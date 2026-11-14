@@ -17,7 +17,7 @@ import { artificialBodyKind, buildArtificialBodyModel } from "./artificial-body-
 import { inspectSurfaceFeature } from "./body-layers.mjs";
 import { loadBodyOperationAsset } from "./body-operations.mjs";
 import { AstronomySnapshotCache, loadAstronomyOrientations } from "./astronomy.mjs";
-import { UNION_EPOCH_MS } from "./universal-time.mjs";
+import { CAMPAIGN_START_MS } from "./universal-time.mjs";
 import { loadStarfield } from "./starfield.mjs";
 import { displayNameFor, objectDisplayName, parentDisplayName, systemDisplayName } from "./display-names.mjs";
 import { groundSky, localSolarHours } from "./ground-sky.mjs";
@@ -175,7 +175,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       const api = game.modules.get(MODULE_ID)?.api;
       const referenceTimestampMs = Number.isFinite(requestedReferenceTimestampMs)
         ? requestedReferenceTimestampMs
-        : api?.getCampaignTimeState?.()?.referenceBaseMs ?? UNION_EPOCH_MS;
+        : api?.getCampaignTimeState?.()?.referenceBaseMs ?? CAMPAIGN_START_MS;
       const model = await this.#astronomicalModel(system.name, referenceTimestampMs);
       // The night sky is decoration: if it cannot load, the system map still opens without it.
       this._starfieldPromise ??= loadStarfield(MODULE_ID).catch((error) => { console.warn(`${MODULE_ID} | Starfield unavailable`, error); return null; });
@@ -222,7 +222,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
   /** A fresh ground-sky snapshot for the current look-up place at the campaign clock's moment. */
   async #skySnapshot() {
     const api = game.modules.get(MODULE_ID)?.api;
-    const t = api?.getCampaignTimeState?.()?.referenceBaseMs ?? UNION_EPOCH_MS;
+    const t = api?.getCampaignTimeState?.()?.referenceBaseMs ?? CAMPAIGN_START_MS;
     this._registryPromise ??= loadSystemRegistry(MODULE_ID);
     this._astronomyOrientationsPromise ??= loadAstronomyOrientations(MODULE_ID);
     this._skyDocumentPromise ??= fetch(`modules/${MODULE_ID}/data/stellar/constellations.json`).then((r) => { if (!r.ok) throw new Error(`Sky data fetch failed (${r.status})`); return r.json(); });

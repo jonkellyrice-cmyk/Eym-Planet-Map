@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { buildSystemModel, parseCsv } from "../scripts/system-data.mjs";
-import { DAY_MS, UNION_EPOCH_MS } from "../scripts/universal-time.mjs";
+import { DAY_MS, NORTHWARD_EQUINOX_MS, UNION_EPOCH_MS } from "../scripts/universal-time.mjs";
 import { dot } from "../scripts/sky-frame.mjs";
 import { airmass, bodyFrame, discCoverage, groundSky, localSolarHours, observerFrame, twilightLimit } from "../scripts/ground-sky.mjs";
 import { createEphemeris, findMoonEvents } from "../scripts/moon-events.mjs";
@@ -108,4 +108,11 @@ test("eclipses: a totally eclipsed moon goes dark and totality reveals stars", (
   assert.ok(total.sun.coverage > 0.99, `coverage ${total.sun.coverage}`);
   assert.ok(total.limitingMagnitude > 0 && total.stars.some((s) => s.visible), "bright stars come out at totality");
   assert.ok(discCoverage(1, 1, 0) === 1 && discCoverage(1, 0.5, 0) === 0.25 && discCoverage(1, 1, 3) === 0);
+});
+
+test("the March equinox in the calendar is the real one: Mitkear crosses Eym's equator going north", () => {
+  const sunDeclination = (t) => snap(t, 90, 0).sun.altDeg; // the Sun's altitude at the north pole is its declination
+  assert.ok(Math.abs(sunDeclination(NORTHWARD_EQUINOX_MS)) < 0.02);
+  assert.ok(sunDeclination(NORTHWARD_EQUINOX_MS - 3 * DAY_MS) < 0 && sunDeclination(NORTHWARD_EQUINOX_MS + 3 * DAY_MS) > 0);
+  assert.ok(sunDeclination(NORTHWARD_EQUINOX_MS + 87.5 * DAY_MS) > 23);
 });

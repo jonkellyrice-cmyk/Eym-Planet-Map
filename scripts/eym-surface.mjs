@@ -12,14 +12,17 @@ const CAREN_AREA_KM2 = 590_000 * 2.589988110336;
 
 /**
  * Where everything goes. Caren straddles the equator (its centroid sits on
- * it); Garyk lies north-north-west of Caren, slightly north of the equator;
+ * it). Garyk lies slightly north of the equator, three weeks by steamer from
+ * Caren: its south-east port is that far from Caren's north-west port
+ * (Pouk), which puts it west-north-west of Caren;
  * the largest continent lies east of Caren; two smaller, colder ones lie far
  * to the north and south. The seeded shapes come from `seed`.
  */
 export const EYM_LAYOUT = Object.freeze({
   seed: "eym-surface|v1",
   caren: { center: [0, 0] },
-  garyk: { bearingDeg: 337.5, gapKm: 700 },
+  // 21 days at an average 9 knots, sailing 8% further than the great circle.
+  garyk: { centerLat: 15, steamer: { days: 21, knots: 9, routeFactor: 1.08 }, carenPortPx: [85, 421], garykPortPx: [1318, 828] },
   seeded: [
     { id: "eastern", name: "the Eastern Continent", areaKm2: 1.6 * CAREN_AREA_KM2, center: [5, 36], elongation: 1.5, orientationDeg: 20, ridges: [4300, 3100], offshoreIslands: 12 },
     { id: "northern", name: "the Northern Continent", areaKm2: 0.65 * CAREN_AREA_KM2, center: [52, 18], elongation: 1.8, orientationDeg: 70, ridges: [2900], offshoreIslands: 9 },
@@ -280,14 +283,19 @@ export function buildEymSurface(traced, layout = EYM_LAYOUT) {
   const mainland = (c) => c.coasts.find((coast) => coast.kind === "mainland").ring;
   const carenCenter = layout.caren.center;
   const carenMainLatLon = [toLatLonRing(carenCenter, mainland(authored.caren))];
-  let lo = 1000, hi = 6000, garykCenter = null;
-  for (let iteration = 0; iteration < 26; iteration += 1) {
-    const mid = (lo + hi) / 2, center = destination(carenCenter, layout.garyk.bearingDeg, mid);
-    const gap = minGapKm(carenMainLatLon, [toLatLonRing(center, mainland(authored.garyk))]);
-    if (gap < layout.garyk.gapKm) lo = mid; else hi = mid;
-    garykCenter = center;
+  // Slide Garyk west along its latitude until the two ports are the steamer's run apart.
+  const portLatLon = (continent, center, [px, py]) => fromLocal(center, (px - continent.originPx[0]) * continent.kmPerPixel, (continent.originPx[1] - py) * continent.kmPerPixel);
+  const { days, knots, routeFactor } = layout.garyk.steamer;
+  const portToPortKm = days * 24 * knots * 1.852 / routeFactor;
+  const carenPort = portLatLon(authored.caren, carenCenter, layout.garyk.carenPortPx);
+  let lo = 0, hi = 179;
+  for (let iteration = 0; iteration < 50; iteration += 1) {
+    const mid = (lo + hi) / 2, garykPort = portLatLon(authored.garyk, [layout.garyk.centerLat, carenCenter[1] - mid], layout.garyk.garykPortPx);
+    if (greatCircleKm(carenPort, garykPort) < portToPortKm) lo = mid; else hi = mid;
   }
-  garykCenter = destination(carenCenter, layout.garyk.bearingDeg, hi).map(round3);
+  const garykCenter = [layout.garyk.centerLat, round3(carenCenter[1] - hi)];
+  const garykPort = portLatLon(authored.garyk, garykCenter, layout.garyk.garykPortPx);
+  if (minGapKm(carenMainLatLon, [toLatLonRing(garykCenter, mainland(authored.garyk))]) < 500) throw new Error("Garyk overlaps Caren");
   for (const [key, center, peakM] of [["caren", carenCenter, 5400], ["garyk", garykCenter, 3900]]) {
     const source = authored[key];
     const frame = buildFrame({ id: key, continent: source.name, origin: "authored", center, rings: source.coasts.map((coast) => coast.ring), waterRings: source.inlandWater.flatMap((water) => water.rings), relief: source.relief, peakM, cellKm: 6, noise });
@@ -355,7 +363,7 @@ export function buildEymSurface(traced, layout = EYM_LAYOUT) {
   const surfaceKm2 = 4 * Math.PI * EYM_RADIUS_KM ** 2;
   const surface = {
     schemaVersion: 1, modelVersion: EYM_SURFACE_MODEL, seed: layout.seed, radiusKm: EYM_RADIUS_KM,
-    layout: { caren: layout.caren, garyk: { ...layout.garyk, center: garykCenter }, seeded: layout.seeded.map(({ id, name, areaKm2, center }) => ({ id, name, areaKm2: Math.round(areaKm2), center })), archipelagoCenters: clusterCenters },
+    layout: { caren: layout.caren, garyk: { ...layout.garyk, center: garykCenter, carenPort: carenPort.map(round3), garykPort: garykPort.map(round3), portToPortKm: Math.round(portToPortKm), bearingFromCarenDeg: Number(((Math.atan2(...toLocal(carenCenter, ...garykCenter)) * 180 / Math.PI + 360) % 360).toFixed(1)) }, seeded: layout.seeded.map(({ id, name, areaKm2, center }) => ({ id, name, areaKm2: Math.round(areaKm2), center })), archipelagoCenters: clusterCenters },
     landAreaKm2: Math.round(landAreaKm2), landFraction: Number((landAreaKm2 / surfaceKm2).toFixed(5)),
     continents, coasts, inlandWater,
   };

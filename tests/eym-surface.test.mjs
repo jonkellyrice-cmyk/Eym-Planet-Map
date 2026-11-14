@@ -25,15 +25,17 @@ test("the surface is deterministic", () => {
   assert.deepEqual(buildEymSurface(traced).surface, surface);
 });
 
-test("Caren straddles the equator; Garyk lies north-north-west of it, slightly north of the equator", () => {
+test("Caren straddles the equator; Garyk lies slightly north of it, three weeks west-north-west by steamer", () => {
   const lats = mainland("caren").map(([lat]) => lat);
   assert.ok(Math.min(...lats) < -5 && Math.max(...lats) > 5);
   assert.deepEqual(continent("caren").center, EYM_LAYOUT.caren.center);
   const garyk = continent("garyk").center;
-  assert.ok(garyk[0] > 10 && garyk[0] < 30);
-  assert.ok(Math.abs(bearing(continent("caren").center, garyk) - 337.5) < 0.5);
-  const gap = Math.min(...mainland("caren").filter((_, i) => i % 3 === 0).flatMap((p) => mainland("garyk").filter((_, i) => i % 3 === 0).map((q) => greatCircleKm(p, q))));
-  assert.ok(gap > 650 && gap < 760, `gap ${gap}`);
+  assert.ok(garyk[0] > 10 && garyk[0] < 25);
+  const { carenPort, garykPort, steamer } = surface.layout.garyk;
+  const steamedKm = greatCircleKm(carenPort, garykPort) * steamer.routeFactor;
+  assert.ok(Math.abs(steamedKm / (9 * 1.852 * 24) - 21) < 0.05, `${steamedKm} km`);
+  const heading = bearing(continent("caren").center, garyk);
+  assert.ok(heading > 270 && heading < 300, `bearing ${heading}`);
 });
 
 test("the seeded continents: the largest to the east, colder ones far north and south", () => {

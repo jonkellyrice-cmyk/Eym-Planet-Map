@@ -2,20 +2,20 @@
 
 A Foundry VTT v13 module: an interactive three-dimensional SVG map of a single star system (currently the **Abydos** system), with orbital, planetary-surface and local operational views. It is a single-system edition of the Orphaned Sun Cluster Map, being retooled for a fantasy campaign.
 
-On screen the system is called **The Sun**: its star is the **Sun** and Eventide is **Eym** (display names in `scripts/display-names.mjs`; the registry keeps the canonical names Abydos and Eventide because data files and seeds are keyed by them).
+On screen the star is **Mitkear**, Eventide is **Eym**, its moons are **Austarm** (white) and **Chatarm** (red), and the four wandering planets, largest to smallest, are **Iarn**, **Esonth**, **Bruthi** and **Lilta**. These display names live in `scripts/display-names.mjs`. The registry keeps the old canonical names (Abydos, Eventide, White Moon, Red Moon, Tribune, Thraximundus, Ramses, Kandahar) because data files and seeds are keyed by them.
 
 The module id is `eym-planet-map`, so it installs alongside the original Orphaned Sun Cluster Map without conflict.
 
 ## Features
 
-- An interactive AU-scale map of all 9 objects of the Sun's system (the Sun, Eym, the four other planets, Eym's White and Red Moons, and Tribune's moon Enoch), keeping physical hierarchical coordinates separate from compressed display coordinates.
+- An interactive AU-scale map of all 9 objects of Mitkear's system (Mitkear, Eym, the four wandering planets, Eym's moons Austarm and Chatarm, and Iarn's moon Enoch), keeping physical hierarchical coordinates separate from compressed display coordinates.
 - The system is the outermost level: double-click/double-tap or zoom inward from system → body, with a breadcrumb back to the system; zooming out stops at the system.
 - A fixed night sky around the system: 2,000 naked-eye stars, the galactic band and a distant sister galaxy, drawn inside-looking-out behind the system view and turning with the camera (see `tools/generate-starfield.mjs`).
 - 48 named constellations (24 per hemisphere: 35 discovered in the generated stars plus 13 sculpted by nudging spare stars; 7 chief constellations per hemisphere; 8 on the path of the sun, in order), 4 asterisms and 28 lunar mansions, in plain English with Pathfinder 2e canon deity names where a figure matches a deity's symbol or favored weapon. Stored as star-to-star line data in `data/stellar/constellations.json` (see `tools/constellation-canon.mjs`, `tools/sculpt-constellations.mjs` and `tools/generate-constellations.mjs`).
-- **Ground view of the sky:** on Eym's surface map, choose a latitude and longitude (or click a place) and press *Look up from here* to see the sky from that spot at the campaign date and time: stars to the naked-eye limit, named stars, optional constellation lines and names, the four wandering planets, both moons with phases and eclipses, and the Sun. Daylight and twilight wash out the stars; the moons and the brightest planets can still show by day. A readout gives local sun time, the Sun's altitude, each moon's phase, place and lunar mansion, and which planets are up.
+- **Ground view of the sky:** on Eym's surface map, choose a latitude and longitude (or click a place) and press *Look up from here* to see the sky from that spot at the campaign date and time: stars to the naked-eye limit, named stars, optional constellation lines and names, the four wandering planets, both moons with phases and eclipses, and Mitkear. Daylight and twilight wash out the stars; the moons and the brightest planets can still show by day. A readout gives local sun time, Mitkear's altitude, each moon's phase, place and lunar mansion, and which planets are up.
 - Eym's five continents (see below), drawn from vector coastlines with forest, mountain and peak overlays; zoom in to 30× to read Caren's towns.
-- Three other terrestrial worlds (Ramses, Thraximundus, Kandahar) with accepted deterministic 2° cartography: coastlines, elevation/contours, hydrology, ecoregions, soils, resources, settlements, permanent cultural gazetteers, and transport geometry.
-- Four non-cartographic natural bodies with accepted deterministic local surveys (the three moons and the gas giant Tribune).
+- Three other terrestrial worlds (Bruthi, Esonth, Lilta) with accepted deterministic 2° cartography: coastlines, elevation/contours, hydrology, ecoregions, soils, resources, settlements, permanent cultural gazetteers, and transport geometry.
+- Four non-cartographic natural bodies with accepted deterministic local surveys (the three moons and the gas giant Iarn).
 - Culture-aware permanent names (Vadan for Abydos; the Aurethic, Vostrann, Xuānhari and Union naming cultures remain available for new systems).
 - Zoom-dependent SVG level of detail keeps orbital, regional, and close inspection useful on desktop and mobile without unbounded DOM growth.
 - Desktop: drag to rotate, mouse wheel to zoom, double-click empty space to reset the camera. Mobile/touch: one-finger drag rotates; pinch zooms.
@@ -24,22 +24,30 @@ The module id is `eym-planet-map`, so it installs alongside the original Orphane
 
 ## Eym and its sky
 
-- **The Sun** is a twin of Earth's Sun (G2V, 1 solar mass and luminosity).
+- **Mitkear**, the sun, is a twin of Earth's Sun (G2V, 1 solar mass and luminosity).
 - **Eym** is an Earth twin: 1 AU, Earth's radius, mass and gravity, 23.44° tilt (precessing every ~25,772 years; obliquity rocking 22.1°–24.5° over ~41,000 years), eccentricity 0.0167 and an Earth-like magnetic field.
 - **Eym's surface** is five continents in a planet-wide ocean (98.6% water, 7.3 million km² of land):
   - **Caren**, 590,000 sq mi (1.53 million km²), straddles the equator, centered on 0°, 0°. It is traced from its source map with its coastline, islands, lakes, great rivers, mountains, forests, 4 nations, 81 settlements and 39 named features.
-  - **Garyk**, four fifths of Caren's size, lies north-north-west of Caren (centered 18.6°N, 8.0°W). The narrowest crossing between them is about 700 km of open sea: roughly 4–7 days under sail. It is traced from its map with its 51 settlements, grouped by realm colour (yellow, red, magenta, green, blue, orange) and not yet named.
+  - **Garyk**, four fifths of Caren's size, lies slightly north of the equator (centered 15°N, 79.8°W), west-north-west of Caren. From Caren's north-west port (Pouk) to Garyk's south-east port is three weeks by steamer: 7,780 km on the great circle, taken as 8,400 km sailed at an average 9 knots. It is traced from its map with its 51 settlements, grouped by realm colour (yellow, red, magenta, green, blue, orange) and not yet named.
   - **The Eastern Continent**, the largest (1.6× Caren), lies east of Caren on the equator. **The Northern** and **Southern Continents** (about 0.65× and 0.55× Caren) lie near 52°N and 50°S, in taiga and tundra. These three, and ten island chains in the open ocean, are seeded deterministically. Their names are placeholders.
 
   How to change it: the layout and seed are `EYM_LAYOUT` in `scripts/eym-surface.mjs`. The traced continents are `data/eym/traced-continents.json` (from `tools/trace-eym-continents.py` and the two source maps, which are not stored in the repository). Caren's labels and Garyk's markers are `data/eym/caren-labels.json` and `data/eym/garyk-markers.json`; most of Caren's settlement names were read from small text and are marked `"confidence": "low"`, so correct them there. After any change, run `node tools/generate-planet-geography.mjs --accept` and `node tools/generate-planet-cartography.mjs --accept` (the first tells you the new input fingerprint to put in Eym's registry row).
 - **Time.** Eym's year is exactly 350 days of 24 hours × 60 minutes × 60 seconds. Because Eym's year is as long as Earth's, each Eym second is 1.0435 SI seconds; every day and hour value in the registry is in Eym units.
-- **Calendar.** Twelve months with Gregorian names, each exactly 28 days (4 weeks), then the 14-day **Year's End** holiday (month 13 in the clock's date inputs). Every month and every year begins on a Monday.
-- **Moons.** The **White Moon** (382,029 km, 0.50° across) has phases that repeat every 28 days and set the month. The **Red Moon** (195,000 km, 0.40° across) cycles every 9.77 days, so the two are only full together roughly every 7½ months. Their combined tides equal Earth's on average: great tides (~1.35×) when they line up, slack tides (~0.4×) when they are 90° apart.
-- **Moon events.** `scripts/moon-events.mjs` computes phases, double full moons and double dark nights (both within 12 hours, about every 9 months), solar eclipses (the White Moon's are total or annular like Earth's Moon's; the Red Moon is too small to cover the Sun), lunar eclipses, the Red Moon passing in front of the White Moon, and combined tides. Both moons' nodes regress and periapses advance like Earth's Moon's, so eclipse seasons drift through the calendar. `npm run moons:almanac -- 5017` lists a year's events with the lunar mansion each falls in.
+- **Calendar.** Twelve months with Gregorian names, each exactly 28 days (4 weeks), then the 14-day **Year's End** holiday (month 13 in the clock's date inputs). Every month and every year begins on a Monday. The calendar follows the seasons: the March equinox falls at noon on 20 March every year. Years count from the new calendar; the campaign begins on **Sunday, 14 March, year 50**, at 08:00, and the clock starts there.
+- **Moons.** **Austarm**, the white moon (382,029 km, 0.50° across), has phases that repeat every 28 days and set the month. **Chatarm**, the red moon (195,000 km, 0.40° across), cycles every 9.77 days, so the two are only full together roughly every 7½ months. Their combined tides equal Earth's on average: great tides (~1.35×) when they line up, slack tides (~0.4×) when they are 90° apart.
+- **Moon events.** `scripts/moon-events.mjs` computes phases, double full moons and double dark nights (both within 12 hours, about every 9 months), solar eclipses (Austarm's are total or annular like Earth's Moon's; Chatarm is too small to cover Mitkear), lunar eclipses, Chatarm passing in front of Austarm, and combined tides. Both moons' nodes regress and periapses advance like Earth's Moon's, so eclipse seasons drift through the calendar. `npm run moons:almanac -- 50` lists a year's events with the lunar mansion each falls in.
 - **The pole star.** Cynosure (Golarion's North Star in Pathfinder canon, home of Desna's palace) stands 0.7° from Eym's north celestial pole at magnitude 1.4, at the waist of the Hourglass, which turns around it through the night. Like Earth, Eym has no bright southern pole star; the Bell hangs around the south pole.
 - **Named stars.** The 21 brightest stars and Cynosure have their own names, about Earth's count of household-name navigation stars; most also belong to a constellation, as Polaris belongs to the Little Dipper. Three are named for Pathfinder 2e canon gods of the night sky: Pulura (the brightest, high in the north), Ketephys (in the Stag) and Ashava (a lone bright star). Southlight, deep in the south, is the southern guide star.
-- **The wandering stars.** Besides Eym there are exactly four planets, all naked-eye wanderers: Thraximundus (brightest about magnitude −6.7, the next world out), Tribune (gas giant, −5.9), Kandahar (−3.6) and Ramses (an inner world seen as a morning or evening star, −3.5). Fainter worlds (Cataphract, Sumatra, Ventus) were removed.
+- **The wandering stars.** Besides Eym there are exactly four planets, all naked-eye wanderers. Largest to smallest: Iarn (the gas giant, brightest about magnitude −5.9), Esonth (the next world out, −6.7), Bruthi (an inner world seen as a morning or evening star, −3.5) and Lilta (−3.6). Fainter worlds (Cataphract, Sumatra, Ventus) were removed.
 - **The other worlds** keep their original architecture: every orbit was scaled by 1/0.68 when the star changed, and periods follow Kepler's third law.
+
+## History
+
+- About 50,000 years ago the elves began building civilization.
+- About 40,000 years ago, the dragons.
+- Between 20,000 and 10,000 years ago, humans, dwarves and the other peoples.
+- Recorded history reaches back about 10,000 years for most of Caren.
+- The present calendar is new: the campaign opens in its year 50.
 
 **Astral travel (dormant).** Routes, relativistic voyages, the ship marker, the navigation profile and the second (shipboard proper time) clock are commented out in place, marked `ASTRAL TRAVEL (dormant)`, so they can be revived later.
 
@@ -91,7 +99,7 @@ npm run astronomy:validate
 npm run atlas:snapshot:check
 npm run starfield:check
 npm run constellations:check
-npm run moons:almanac -- 5017
+npm run moons:almanac -- 50
 ```
 
 ## Coordinate model

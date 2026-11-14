@@ -5,7 +5,7 @@ import {
   engageVoyage, evaluateVoyage, normalizeCampaignTimeState, resumeCampaignTimeSession,
 } from "../scripts/campaign-time.mjs";
 import { calculateTransit, evaluateTrajectoryAtProperTime, properTimeAtRouteFraction, trajectoryMarkers } from "../scripts/relativity.mjs";
-import { UNION_EPOCH_MS } from "../scripts/universal-time.mjs";
+import { CAMPAIGN_START_MS } from "../scripts/universal-time.mjs";
 
 const DAY_MS = 86_400_000;
 const route = {
@@ -15,14 +15,14 @@ const route = {
 };
 
 test("campaign clocks begin canonically synchronized", () => {
-  assert.equal(DEFAULT_CAMPAIGN_TIME_STATE.properBaseMs, UNION_EPOCH_MS);
-  assert.equal(DEFAULT_CAMPAIGN_TIME_STATE.referenceBaseMs, UNION_EPOCH_MS);
+  assert.equal(DEFAULT_CAMPAIGN_TIME_STATE.properBaseMs, CAMPAIGN_START_MS);
+  assert.equal(DEFAULT_CAMPAIGN_TIME_STATE.referenceBaseMs, CAMPAIGN_START_MS);
 });
 
 test("ordinary proper-time advancement is one-to-one", () => {
   const next = adjustCampaignProperTime({ ...DEFAULT_CAMPAIGN_TIME_STATE, running: false }, DAY_MS, 10);
-  assert.equal(next.properBaseMs - UNION_EPOCH_MS, DAY_MS);
-  assert.equal(next.referenceBaseMs - UNION_EPOCH_MS, DAY_MS);
+  assert.equal(next.properBaseMs - CAMPAIGN_START_MS, DAY_MS);
+  assert.equal(next.referenceBaseMs - CAMPAIGN_START_MS, DAY_MS);
 });
 
 test("engagement freezes navigation parameters and departure snapshot", () => {
@@ -30,16 +30,16 @@ test("engagement freezes navigation parameters and departure snapshot", () => {
   route.accelerationG = 1; route.cruiseBeta = .5;
   assert.equal(engaged.activeVoyage.accelerationG, 200);
   assert.equal(engaged.activeVoyage.cruiseBeta, .995);
-  assert.equal(engaged.activeVoyage.departureProperMs, UNION_EPOCH_MS);
-  assert.equal(engaged.activeVoyage.departureAstronomySnapshotReferenceMs, UNION_EPOCH_MS);
+  assert.equal(engaged.activeVoyage.departureProperMs, CAMPAIGN_START_MS);
+  assert.equal(engaged.activeVoyage.departureAstronomySnapshotReferenceMs, CAMPAIGN_START_MS);
   route.accelerationG = 200; route.cruiseBeta = .995;
 });
 
 test("proper advancement derives diverging reference time from trajectory", () => {
   const engaged = engageVoyage({ ...DEFAULT_CAMPAIGN_TIME_STATE, running: false }, route, 10);
   const advanced = adjustCampaignProperTime(engaged, 6 * DAY_MS, 20);
-  assert.equal(advanced.properBaseMs - UNION_EPOCH_MS, 6 * DAY_MS);
-  assert.ok(advanced.referenceBaseMs - UNION_EPOCH_MS > 6 * DAY_MS);
+  assert.equal(advanced.properBaseMs - CAMPAIGN_START_MS, 6 * DAY_MS);
+  assert.ok(advanced.referenceBaseMs - CAMPAIGN_START_MS > 6 * DAY_MS);
 });
 
 test("analytical velocity rises, caps, falls, and arrives exactly", () => {
@@ -58,7 +58,7 @@ test("analytical velocity rises, caps, falls, and arrives exactly", () => {
 
 test("position and marker transitions are deterministic from proper timestamp", () => {
   const engaged = engageVoyage({ ...DEFAULT_CAMPAIGN_TIME_STATE, running: false }, route, 10);
-  const timestamp = UNION_EPOCH_MS + 30 * DAY_MS;
+  const timestamp = CAMPAIGN_START_MS + 30 * DAY_MS;
   assert.deepEqual(evaluateVoyage(engaged.activeVoyage, timestamp), evaluateVoyage(engaged.activeVoyage, timestamp));
   const markers = trajectoryMarkers(evaluateVoyage(engaged.activeVoyage, timestamp).transit);
   assert.deepEqual(markers.map((marker) => marker.kind), ["speed-cap", "braking"]);
@@ -116,6 +116,6 @@ test("arrival preserves divergence then returns both clocks to equal rates", () 
 test("live running clock advances from proper-time anchor", () => {
   const running = { ...DEFAULT_CAMPAIGN_TIME_STATE, anchorRealMs: 1000, running: true };
   const current = currentCampaignTime(running, 5000);
-  assert.equal(current.properBaseMs - UNION_EPOCH_MS, 4000);
-  assert.equal(current.referenceBaseMs - UNION_EPOCH_MS, 4000);
+  assert.equal(current.properBaseMs - CAMPAIGN_START_MS, 4000);
+  assert.equal(current.referenceBaseMs - CAMPAIGN_START_MS, 4000);
 });

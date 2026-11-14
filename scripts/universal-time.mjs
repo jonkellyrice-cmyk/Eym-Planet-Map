@@ -1,9 +1,22 @@
 export const UNIVERSAL_TIME_SETTING = "universalTimeState";
+// Internal astronomy anchor: orbital elements and epoch orientations are stated at this instant.
 export const UNION_EPOCH_MS = Date.UTC(5016, 8, 3, 10, 38, 0, 0);
 export const DAY_MS = 86_400_000;
 
+// The calendar is tied to the seasons: Eym's northward (March) equinox, found from the astronomy model
+// (the Sun crossing Eym's celestial equator going north), falls at noon on 20 March. The year is exactly
+// one tropical year, so it falls there every year. Year 50 is the year the campaign begins.
+export const NORTHWARD_EQUINOX_MS = 96_158_096_819_419;
+const EQUINOX_DATE = Object.freeze({ year: 50, month: 3, day: 20, hour: 12 });
+/** The campaign begins on 14 March, year 50, at 08:00. */
+export const CAMPAIGN_START = Object.freeze({ year: 50, month: 3, day: 14, hour: 8 });
+const DAYS_IN_YEAR = 350, DAYS_IN_MONTH = 28, HOUR_MS = 3_600_000;
+const dayIndexOf = (year, month, day) => (year - 1) * DAYS_IN_YEAR + (month - 1) * DAYS_IN_MONTH + (day - 1);
+const CALENDAR_ZERO_MS = NORTHWARD_EQUINOX_MS - EQUINOX_DATE.hour * HOUR_MS - dayIndexOf(EQUINOX_DATE.year, EQUINOX_DATE.month, EQUINOX_DATE.day) * DAY_MS;
+export const CAMPAIGN_START_MS = CALENDAR_ZERO_MS + dayIndexOf(CAMPAIGN_START.year, CAMPAIGN_START.month, CAMPAIGN_START.day) * DAY_MS + CAMPAIGN_START.hour * HOUR_MS;
+
 export const DEFAULT_UNIVERSAL_TIME_STATE = Object.freeze({
-  baseMs: UNION_EPOCH_MS,
+  baseMs: CAMPAIGN_START_MS,
   anchorRealMs: 0,
   running: true,
 });
@@ -33,7 +46,7 @@ export function normalizeUniversalTimeState(state) {
   const baseMs = Number(source.baseMs);
   const anchorRealMs = Number(source.anchorRealMs);
   return {
-    baseMs: Number.isFinite(baseMs) ? baseMs : UNION_EPOCH_MS,
+    baseMs: Number.isFinite(baseMs) ? baseMs : CAMPAIGN_START_MS,
     anchorRealMs: Number.isFinite(anchorRealMs) && anchorRealMs > 0 ? anchorRealMs : 0,
     running: source.running !== false,
   };
@@ -78,10 +91,6 @@ export function daysInMonth(month) {
   return month === HOLIDAY_MONTH ? HOLIDAY_DAYS : DAYS_PER_MONTH;
 }
 
-const dayIndexOf = (year, month, day) => (year - 1) * DAYS_PER_YEAR + (month - 1) * DAYS_PER_MONTH + (day - 1);
-// The internal timeline anchor (UNION_EPOCH_MS) keeps its calendar label: 3 September 5016, 10:38.
-const EPOCH_LABEL = Object.freeze({ year: 5016, month: 9, day: 3, hour: 10, minute: 38 });
-const CALENDAR_ZERO_MS = UNION_EPOCH_MS - ((EPOCH_LABEL.hour * 60 + EPOCH_LABEL.minute) * 60_000) - dayIndexOf(EPOCH_LABEL.year, EPOCH_LABEL.month, EPOCH_LABEL.day) * DAY_MS;
 
 export function makeUniversalTimeMs({ year, month, day, hour = 0, minute = 0, second = 0 }) {
   const values = [year, month, day, hour, minute, second].map(Number);

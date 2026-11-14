@@ -55,7 +55,7 @@ test("canonical CSV is pinned to the five-continents canon edit", () => {
   // three seeded) in a 98.6% ocean, replacing the archipelago canon (eym-surface-v1).
   // Any further registry change must re-pin this on purpose.
   const csv = readFileSync(new URL("docs/system-orbital-distances.csv", root));
-  assert.equal(createHash("sha256").update(csv).digest("hex"), "59a3cb53023e7917da396598698b6c08053c7bc9732294f8fc0b4a2be681e9b8");
+  assert.equal(createHash("sha256").update(csv).digest("hex"), "15b87e6bf1bc89b7c76fa5cfbd1f66eae9ce38ca95db3238bfb5adc473519117");
 });
 
 test("Eym's accepted canon has five continents in a planet-wide ocean", () => {

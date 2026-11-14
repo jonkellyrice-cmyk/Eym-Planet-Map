@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   DAY_MS,
+  CAMPAIGN_START_MS,
   DEFAULT_UNIVERSAL_TIME_STATE,
+  NORTHWARD_EQUINOX_MS,
   UNION_EPOCH_MS,
   adjustUniversalTime,
   currentUniversalTimeMs,
@@ -16,10 +18,13 @@ import {
   weekdayIndex,
 } from "../scripts/universal-time.mjs";
 
-test("the timeline epoch keeps its date, September 3, 5016 at 10:38", () => {
-  assert.equal(formatUniversalDate(UNION_EPOCH_MS), "Wednesday, September 3, 5016");
-  assert.equal(formatUniversalClock(UNION_EPOCH_MS), "10:38:00");
-  assert.equal(formatUniversalDate(UNION_EPOCH_MS + DAY_MS), "Thursday, September 4, 5016");
+test("the campaign begins on 14 March, year 50, and the March equinox falls on 20 March every year", () => {
+  assert.equal(DEFAULT_UNIVERSAL_TIME_STATE.baseMs, CAMPAIGN_START_MS);
+  assert.equal(formatUniversalDate(CAMPAIGN_START_MS), "Sunday, March 14, 50");
+  assert.equal(formatUniversalClock(CAMPAIGN_START_MS), "08:00:00");
+  assert.equal(`${formatUniversalDate(NORTHWARD_EQUINOX_MS)} ${formatUniversalClock(NORTHWARD_EQUINOX_MS)}`, "Saturday, March 20, 50 12:00:00");
+  assert.equal(formatUniversalDate(NORTHWARD_EQUINOX_MS + 10 * 350 * DAY_MS), "Saturday, March 20, 60");
+  assert.ok(UNION_EPOCH_MS < CAMPAIGN_START_MS, "the internal astronomy anchor stays where it was");
 });
 
 test("running universal time advances from its real-time anchor", () => {
@@ -45,7 +50,7 @@ test("pausing settles elapsed time and freezes the clock", () => {
 test("GM adjustments preserve running state", () => {
   const adjusted = adjustUniversalTime({ ...DEFAULT_UNIVERSAL_TIME_STATE, anchorRealMs: 1_000 }, 3_600_000, 1_000);
   assert.equal(adjusted.running, true);
-  assert.equal(formatUniversalClock(adjusted.baseMs), "11:38:00");
+  assert.equal(formatUniversalClock(adjusted.baseMs), "09:00:00");
 });
 
 test("direct date and time setting validates calendar dates", () => {

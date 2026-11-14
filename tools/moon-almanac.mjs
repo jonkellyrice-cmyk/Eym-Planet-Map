@@ -2,7 +2,7 @@
 // eclipses, and the Red Moon passing in front of the White Moon.
 //
 // Usage: node tools/moon-almanac.mjs [fromYear] [toYear] [--phases]
-//   Years are Eym calendar years (default: the epoch year, 5016). Phases are listed only with --phases.
+//   Years are Eym calendar years (default: year 50, when the campaign begins). Phases are listed only with --phases.
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,7 +15,7 @@ import { displayNameFor } from "../scripts/display-names.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
 const years = args.filter((a) => /^\d+$/.test(a)).map(Number);
-const from = years[0] ?? 5016, to = years[1] ?? from;
+const from = years[0] ?? 50, to = years[1] ?? from;
 const showPhases = args.includes("--phases");
 
 const rows = parseCsv(readFileSync(resolve(ROOT, "docs/system-orbital-distances.csv"), "utf8"));
@@ -28,9 +28,9 @@ const describe = (e) => {
     case "new": case "full": case "first-quarter": case "last-quarter": return `${moon(e.moon)}: ${e.type.replace("-", " ")}`;
     case "double-full": return `DOUBLE FULL MOON (both full within ${e.offsetHours.toFixed(1)} h)`;
     case "double-dark": return `DOUBLE DARK (both new within ${e.offsetHours.toFixed(1)} h)`;
-    case "solar-eclipse": return `${e.kind.toUpperCase()} SOLAR ECLIPSE by the ${moon(e.moon)}`;
-    case "lunar-eclipse": return `${e.kind.toUpperCase()} LUNAR ECLIPSE of the ${moon(e.moon)}`;
-    case "occultation": return `The ${moon(e.moon)} passes in front of the ${moon(e.occulted)}`;
+    case "solar-eclipse": return `${e.kind.toUpperCase()} SOLAR ECLIPSE by ${moon(e.moon)}`;
+    case "lunar-eclipse": return `${e.kind.toUpperCase()} LUNAR ECLIPSE of ${moon(e.moon)}`;
+    case "occultation": return `${moon(e.moon)} passes in front of ${moon(e.occulted)}`;
     default: return e.type;
   }
 };

@@ -4,13 +4,21 @@
 
 /** `${system}/${object}` → display name. */
 export const OBJECT_DISPLAY_NAMES = Object.freeze({
-  "Abydos/Abydos": "Sun",
+  "Abydos/Abydos": "Mitkear",
+  "Abydos/Sun": "Mitkear",
   "Abydos/Eventide": "Eym",
+  "Abydos/White Moon": "Austarm",
+  "Abydos/Red Moon": "Chatarm",
+  // The four wandering stars, largest to smallest.
+  "Abydos/Tribune": "Iarn",
+  "Abydos/Thraximundus": "Esonth",
+  "Abydos/Ramses": "Bruthi",
+  "Abydos/Kandahar": "Lilta",
 });
 
 /** Registry system name → display name for the whole system. */
 export const SYSTEM_DISPLAY_NAMES = Object.freeze({
-  Abydos: "The Sun",
+  Abydos: "Mitkear",
 });
 
 export function displayNameFor(system, name) {
