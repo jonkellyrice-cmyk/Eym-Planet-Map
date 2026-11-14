@@ -1,10 +1,14 @@
-import { SYSTEMS, projectedDistanceLy, spatialDistanceLy } from "./cluster-data.mjs";
-import { calculateTransit, formatDuration, formatLightYears, formatVelocity, SECONDS_PER_JULIAN_YEAR, trajectoryMarkers } from "./relativity.mjs";
-import { abortVoyage, advanceVoyageToRouteFraction, engageVoyage, evaluateVoyage } from "./campaign-time.mjs";
-import { ClusterView } from "./cluster-view.mjs";
-import { attachFactionTerritories } from "./faction-territories.mjs";
-import { attachCapitalIcons } from "./capital-icons.mjs";
-import { AU_KM, LIGHT_YEAR_KM, buildSystemModel, formatSystemDistance, loadSystemRegistry, physicalDistanceAu, physicalDistanceLy } from "./system-data.mjs";
+// Single-system edition: the app opens on HOME_SYSTEM and never leaves it. The cluster view
+// (cluster-view.mjs, cluster-data.mjs, faction-territories.mjs) is no longer wired in; those
+// files are left on disk untouched.
+//
+// ASTRAL TRAVEL (dormant): routes, voyages, the ship marker and the relativistic travel solver
+// are commented out below, not deleted, so they can be revived later (e.g. for astral barges).
+// To revive, restore these imports and uncomment every block marked "ASTRAL TRAVEL (dormant)".
+// import { calculateTransit, formatDuration, formatVelocity, SECONDS_PER_JULIAN_YEAR, trajectoryMarkers } from "./relativity.mjs";
+// import { abortVoyage, advanceVoyageToRouteFraction, engageVoyage, evaluateVoyage } from "./campaign-time.mjs";
+// import { AU_KM, LIGHT_YEAR_KM, formatSystemDistance, physicalDistanceAu, physicalDistanceLy } from "./system-data.mjs";
+import { buildSystemModel, loadSystemRegistry } from "./system-data.mjs";
 import { SystemView } from "./system-view.mjs";
 import { BodyView } from "./body-view.mjs";
 import { naturalBodyKind, buildNaturalBodyModel } from "./natural-body-data.mjs";
@@ -15,26 +19,28 @@ import { AstronomySnapshotCache, loadAstronomyOrientations } from "./astronomy.m
 import { UNION_EPOCH_MS } from "./universal-time.mjs";
 
 export const MODULE_ID = "orphaned-sun-cluster-map";
+/** The only system this module exposes. Its name must match the `system` column of the registry CSV. */
+export const HOME_SYSTEM = Object.freeze({ id: "abydos", name: "Abydos" });
 const assetSlug = (value) => value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 export class ClusterMapApplication extends HandlebarsApplicationMixin(ApplicationV2) {
-  mode = "cluster";
-  activeSystem = null;
+  mode = "system";
+  activeSystem = HOME_SYSTEM;
   activeBody = null;
   _registryPromise = null;
   _astronomyOrientationsPromise = null;
   _astronomyCache = new AstronomySnapshotCache();
   _systemSnapshotReferenceMs = null;
-  _astronomyArrivalVoyageId = null;
+  // ASTRAL TRAVEL (dormant): _astronomyArrivalVoyageId = null;
   selectedRoute = null;
   static DEFAULT_OPTIONS = {
     id: "orphaned-sun-cluster-map",
     classes: ["orphaned-sun-cluster-map", "standard-form"],
     position: { width: 1120, height: 760 },
     window: {
-      title: "Orphaned Sun: Beehive Cluster",
+      title: `${HOME_SYSTEM.name} System`,
       icon: "fa-solid fa-star",
       resizable: true,
       minimizable: true,
@@ -51,13 +57,9 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const context = await super._prepareContext(options);
     return {
       ...context,
-      accelerationG: game.settings.get(MODULE_ID, "accelerationG"),
-      cruiseBeta: game.settings.get(MODULE_ID, "cruiseBeta"),
-      gridSpacing: game.settings.get(MODULE_ID, "gridSpacing"),
-      gridOneSelected: Number(game.settings.get(MODULE_ID, "gridSpacing")) === 1,
-      gridTwoSelected: Number(game.settings.get(MODULE_ID, "gridSpacing")) === 2,
+      // ASTRAL TRAVEL (dormant): accelerationG, cruiseBeta and gridSpacing fed the navigation profile card.
       isGM: game.user.isGM,
-      systemCount: SYSTEMS.length,
+      systemName: HOME_SYSTEM.name,
     };
   }
 
@@ -71,21 +73,14 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this._clusterView?.destroy();
     this._resizeObserver?.disconnect();
 
-    this._clusterView = new ClusterView(svg, {
-      gridSpacing: Number(game.settings.get(MODULE_ID, "gridSpacing")),
-      onSelectionChange: (origin, destination) => this.#updateRoutePanel(origin, destination),
-      onSystemActivate: (system) => this.#enterSystem(system),
-      onShipDrag: (fraction) => this.#scrubVoyageToFraction(fraction),
-    });
-    attachFactionTerritories(this._clusterView);
-    attachCapitalIcons(this._clusterView);
+    this._clusterView = null;
 
-    root.querySelector('[data-action="reset-view"]')?.addEventListener("click", () => this._clusterView.resetView());
-    root.querySelector('[data-action="clear-route"]')?.addEventListener("click", () => this._clusterView.clearSelection());
-    root.querySelector('[data-action="apply-profile"]')?.addEventListener("click", () => this.#applyProfile(root));
-    root.querySelector('[data-action="engage-route"]')?.addEventListener("click", () => this.#engageSelectedRoute());
-    root.querySelector('[data-action="abort-voyage"]')?.addEventListener("click", () => this.#abortActiveVoyage());
-    root.querySelector('[data-action="back-to-cluster"]')?.addEventListener("click", () => this.#showCluster());
+    root.querySelector('[data-action="reset-view"]')?.addEventListener("click", () => this._clusterView?.resetView?.());
+    root.querySelector('[data-action="clear-route"]')?.addEventListener("click", () => this._clusterView?.clearSelection?.());
+    // ASTRAL TRAVEL (dormant):
+    // root.querySelector('[data-action="apply-profile"]')?.addEventListener("click", () => this.#applyProfile(root));
+    // root.querySelector('[data-action="engage-route"]')?.addEventListener("click", () => this.#engageSelectedRoute());
+    // root.querySelector('[data-action="abort-voyage"]')?.addEventListener("click", () => this.#abortActiveVoyage());
     root.querySelector('[data-action="back-to-system"]')?.addEventListener("click", () => this.#showSystem());
     for (const control of root.querySelectorAll("[data-body-layer]")) control.addEventListener("change", () => this._clusterView?.setLayerVisibility?.(control.dataset.bodyLayer, control.checked));
 
@@ -93,18 +88,21 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this._resizeObserver.observe(root);
 
     this.#updateRoutePanel(null, null);
-    if (this.mode === "system" && this.activeSystem) this.#enterSystem(this.activeSystem);
-    if (this.mode === "body" && this.activeSystem && this.activeBody) this.#enterBody(this.activeBody);
+    // The system is the outermost level, so there is always a system or a body to show.
+    this.activeSystem ??= HOME_SYSTEM;
+    if (this.mode === "body" && this.activeBody) this.#enterBody(this.activeBody);
+    else this.#enterSystem(this.activeSystem);
     window.removeEventListener("oscm-campaign-time-changed", this._campaignTimeListener);
-    window.clearInterval(this._voyageTicker);
+    // ASTRAL TRAVEL (dormant): window.clearInterval(this._voyageTicker);
     this._campaignTimeListener = () => {
-      this.#refreshActiveVoyage();
+      // ASTRAL TRAVEL (dormant): this.#refreshActiveVoyage();
       void this.#refreshVisibleAstronomy().catch((error) => console.warn(`${MODULE_ID} | Unable to refresh visible astronomy`, error));
-      void this.#snapshotVoyageArrival().catch((error) => console.warn(`${MODULE_ID} | Unable to snapshot voyage arrival system`, error));
+      // ASTRAL TRAVEL (dormant): void this.#snapshotVoyageArrival().catch((error) => console.warn(`${MODULE_ID} | Unable to snapshot voyage arrival system`, error));
     };
     window.addEventListener("oscm-campaign-time-changed", this._campaignTimeListener);
-    this._voyageTicker = window.setInterval(() => this.#refreshActiveVoyage(), 1000);
-    this.#refreshActiveVoyage();
+    // ASTRAL TRAVEL (dormant):
+    // this._voyageTicker = window.setInterval(() => this.#refreshActiveVoyage(), 1000);
+    // this.#refreshActiveVoyage();
   }
 
   _onClose(options) {
@@ -113,7 +111,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this._clusterView?.destroy();
     this._clusterView = null;
     window.removeEventListener("oscm-campaign-time-changed", this._campaignTimeListener);
-    window.clearInterval(this._voyageTicker);
+    // ASTRAL TRAVEL (dormant): window.clearInterval(this._voyageTicker);
     return super._onClose(options);
   }
 
@@ -128,13 +126,14 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   async #refreshVisibleAstronomy() {
-    if (this.mode !== "system" || !this.activeSystem || this._clusterView?.isDraggingShip) return;
+    if (this.mode !== "system" || !this.activeSystem) return; // ASTRAL TRAVEL (dormant): || this._clusterView?.isDraggingShip
     const referenceTimestampMs = game.modules.get(MODULE_ID)?.api?.getCampaignTimeState?.()?.referenceBaseMs;
     if (!Number.isFinite(referenceTimestampMs)) return;
     if (Number.isFinite(this._systemSnapshotReferenceMs) && Math.abs(referenceTimestampMs - this._systemSnapshotReferenceMs) < 3_600_000) return;
     await this.#enterSystem(this.activeSystem, referenceTimestampMs);
   }
 
+  /* ASTRAL TRAVEL (dormant): voyage-arrival astronomy snapshot.
   async #snapshotVoyageArrival() {
     const state = game.modules.get(MODULE_ID)?.api?.getCampaignTimeState?.();
     const voyage = state?.activeVoyage;
@@ -145,6 +144,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     await this.#astronomicalModel(voyage.destinationName, arrivalReferenceMs);
     this._astronomyArrivalVoyageId = voyage.id;
   }
+  */
 
   async #enterSystem(system, requestedReferenceTimestampMs = null) {
     const root = this.element?.querySelector?.(".oscm-shell");
@@ -160,9 +160,10 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       this._clusterView = new SystemView(svg, {
         model,
         onSelectionChange: (origin, destination) => this.#updateRoutePanel(origin, destination),
-        onExitRequested: () => this.#showCluster(),
+        // The system is the outermost level: zooming out stops at the minimum zoom instead of leaving.
+        onExitRequested: () => {},
         onObjectActivate: (object) => this.#enterBody(object),
-        onShipDrag: (fraction) => this.#scrubVoyageToFraction(fraction),
+        // ASTRAL TRAVEL (dormant): onShipDrag: (fraction) => this.#scrubVoyageToFraction(fraction),
       });
       this.mode = "system";
       this.activeSystem = system;
@@ -172,11 +173,10 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       root.classList.remove("is-body-mode");
       root.classList.remove("has-geography");
       root.classList.remove("has-operations");
-      root.querySelector('[data-action="back-to-cluster"]')?.classList.remove("is-hidden");
       root.querySelector('[data-action="back-to-system"]')?.classList.add("is-hidden");
       const title = root.querySelector("[data-map-title]"); if (title) title.textContent = `${system.name} System`;
       const count = root.querySelector("[data-map-count]"); if (count) count.textContent = `${model.objects.length} mapped objects`;
-      const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Click / tap two objects: local route";
+      const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Click / tap to select; double-click / double-tap to open";
       this.#updateRoutePanel(null, null);
     } catch (error) {
       console.error(`${MODULE_ID} | Unable to enter system view`, error);
@@ -211,7 +211,6 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       root.classList.add("is-system-mode", "is-body-mode");
       root.classList.toggle("has-geography", Boolean(geography));
       root.classList.toggle("has-operations", Boolean(operations));
-      root.querySelector('[data-action="back-to-cluster"]')?.classList.remove("is-hidden");
       root.querySelector('[data-action="back-to-system"]')?.classList.remove("is-hidden");
       const title = root.querySelector("[data-map-title]"); if (title) title.textContent = object.name;
       const count = root.querySelector("[data-map-count]"); if (count) count.textContent = geography ? geography.schemaVersion === 2 ? `${geography.gazetteer.length} named features · 2° survey` : `${geography.cells.length} surface cells` : operations ? `${operations.operationalSummary.featureCount} operational features` : object.type;
@@ -246,34 +245,14 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-field="${field}"]`); if (element) element.textContent = value; }
   }
 
-  #showCluster() {
-    const root = this.element?.querySelector?.(".oscm-shell");
-    const svg = root?.querySelector(".oscm-cluster-svg");
-    if (!root || !svg) return;
-    this._clusterView?.destroy();
-    this._clusterView = new ClusterView(svg, {
-      gridSpacing: Number(game.settings.get(MODULE_ID, "gridSpacing")),
-      onSelectionChange: (origin, destination) => this.#updateRoutePanel(origin, destination),
-      onSystemActivate: (system) => this.#enterSystem(system),
-      onShipDrag: (fraction) => this.#scrubVoyageToFraction(fraction),
-    });
-    attachFactionTerritories(this._clusterView);
-    attachCapitalIcons(this._clusterView);
-    this.mode = "cluster";
-    this.activeSystem = null;
-    this.activeBody = null;
-    root.classList.remove("is-system-mode");
-    root.classList.remove("is-body-mode");
-    root.classList.remove("has-geography");
-      root.classList.remove("has-operations");
-    root.querySelector('[data-action="back-to-cluster"]')?.classList.add("is-hidden");
-    root.querySelector('[data-action="back-to-system"]')?.classList.add("is-hidden");
-    const title = root.querySelector("[data-map-title]"); if (title) title.textContent = "Beehive Cluster";
-    const count = root.querySelector("[data-map-count]"); if (count) count.textContent = `${SYSTEMS.length} systems`;
-    const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Click / tap two systems: route";
-    this.#updateRoutePanel(null, null);
+  /** Selection without travel: shows the selected object's details. The route maths is dormant below. */
+  #updateRoutePanel(origin, destination) {
+    this.selectedRoute = null;
+    this.#updateObjectDetails(origin, destination);
   }
 
+  /* ASTRAL TRAVEL (dormant): navigation profile, relativistic routes, voyages and the ship marker.
+     The original #updateRoutePanel is kept here as #updateTravelRoutePanel.
   async #applyProfile(root) {
     if (!game.user.isGM) return;
 
@@ -298,7 +277,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     ui.notifications.info("Cluster navigation profile updated.");
   }
 
-  #updateRoutePanel(origin, destination) {
+  #updateTravelRoutePanel(origin, destination) {
     const root = this.element?.querySelector?.(".oscm-shell");
     if (!root) return;
 
@@ -466,6 +445,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       draggable: Boolean(game.user.isGM && api.isClockAuthority?.()),
     });
   }
+  */
 
   #updateObjectDetails(origin, destination) {
     const root = this.element?.querySelector?.(".oscm-shell");

@@ -184,6 +184,8 @@ function installUniversalClockObserver() {
 }
 
 Hooks.once("init", () => {
+  // ASTRAL TRAVEL (dormant): accelerationG, cruiseBeta and gridSpacing are no longer shown in the UI.
+  // They stay registered so the dormant travel code and any stored world values keep working when revived.
   game.settings.register(MODULE_ID, "accelerationG", {
     name: "Acceleration (g)",
     scope: "world",
@@ -265,7 +267,7 @@ Hooks.on("getSceneControlButtons", (controls) => {
 
   measurementControl.tools.orphanedSunClusterMap = {
     name: "orphanedSunClusterMap",
-    title: "Cluster Map",
+    title: "System Map",
     icon: "fa-solid fa-map",
     order: lastOrder + 1,
     button: true,

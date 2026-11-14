@@ -117,6 +117,7 @@ export class SystemView {
     const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse()); return { x: point.x, y: point.y };
   }
 
+  /* ASTRAL TRAVEL (dormant): GM drag of the ship marker along the route rail.
   #bindShipRailDrag(ship, a, b, initialFraction) {
     if (!this.routeVisualization?.draggable || !this.onShipDrag) return;
     const angle = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
@@ -126,6 +127,7 @@ export class SystemView {
     ship.classList.add("is-draggable"); ship.addEventListener("pointerdown",(event)=>{ event.preventDefault(); event.stopPropagation(); this.shipDrag={id:event.pointerId,fraction:initialFraction}; ship.classList.add("is-dragging"); ship.setPointerCapture?.(event.pointerId); });
     ship.addEventListener("pointermove",move); ship.addEventListener("pointerup",finish); ship.addEventListener("pointercancel",finish);
   }
+  */
 
   #buildScene() {
     this.svg.replaceChildren();
@@ -317,6 +319,7 @@ export class SystemView {
     this.routeLayer.replaceChildren();
     this.transitionLayer.replaceChildren();
     this.shipLayer.replaceChildren();
+    /* ASTRAL TRAVEL (dormant): route line, trajectory markers and ship marker between two selected objects.
     const routeOrigin = this.routeVisualization?.origin ?? this.origin;
     const routeDestination = this.routeVisualization?.destination ?? this.destination;
     if (routeOrigin && routeDestination) {
@@ -334,5 +337,6 @@ export class SystemView {
         this.#bindShipRailDrag(ship, a, b, this.routeVisualization.shipFraction); this.shipLayer.append(ship);
       }
     }
+    */
   }
 }
