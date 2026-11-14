@@ -13,7 +13,7 @@
       "operationalKind": "natural-solid",
       "path": "data/body-operations/abydos/enoch.json",
       "seed": "44a24b1e71c53369",
-      "fingerprint": "647b18979b74ba7afe5e",
+      "fingerprint": "ed78e861c99f3932ad55",
       "featureCount": 16
     },
     {
@@ -23,7 +23,7 @@
       "operationalKind": "natural-solid",
       "path": "data/body-operations/abydos/red-moon.json",
       "seed": "5aa1bc9f65f477a6",
-      "fingerprint": "1e9b0720b2b8b3c7f552",
+      "fingerprint": "dfdb30eba690eff8e626",
       "featureCount": 11
     },
     {
@@ -33,7 +33,7 @@
       "operationalKind": "giant",
       "path": "data/body-operations/abydos/tribune.json",
       "seed": "6da71cef11d5534a",
-      "fingerprint": "dabc88a8338e3ecff059",
+      "fingerprint": "f42bed32d67c2d3d9916",
       "featureCount": 13
     },
     {
@@ -43,7 +43,7 @@
       "operationalKind": "natural-solid",
       "path": "data/body-operations/abydos/white-moon.json",
       "seed": "64b3df9196e7910c",
-      "fingerprint": "6cd0aeb5036f83b0ab1a",
+      "fingerprint": "a89717135309f0423ff4",
       "featureCount": 11
     }
   ]

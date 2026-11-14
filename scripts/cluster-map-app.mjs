@@ -19,7 +19,11 @@ import { loadBodyOperationAsset } from "./body-operations.mjs";
 import { AstronomySnapshotCache, loadAstronomyOrientations } from "./astronomy.mjs";
 import { UNION_EPOCH_MS } from "./universal-time.mjs";
 import { loadStarfield } from "./starfield.mjs";
-import { objectDisplayName, parentDisplayName, systemDisplayName } from "./display-names.mjs";
+import { displayNameFor, objectDisplayName, parentDisplayName, systemDisplayName } from "./display-names.mjs";
+import { groundSky, localSolarHours } from "./ground-sky.mjs";
+import { SkyView } from "./sky-view.mjs";
+import { mansionForDirection, sunPathLongitudeDeg } from "./lunar-mansions.mjs";
+import { phaseName } from "./moon-events.mjs";
 
 export const MODULE_ID = "eym-planet-map";
 /** The only system this module exposes. Its name must match the `system` column of the registry CSV. */
@@ -35,6 +39,9 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
   _registryPromise = null;
   _astronomyOrientationsPromise = null;
   _starfieldPromise = null;
+  _skyDocumentPromise = null;
+  /** Where the ground view looks up from: { latDeg, lonDeg }. */
+  lookUp = null;
   _astronomyCache = new AstronomySnapshotCache();
   _systemSnapshotReferenceMs = null;
   // ASTRAL TRAVEL (dormant): _astronomyArrivalVoyageId = null;
@@ -86,6 +93,13 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     // root.querySelector('[data-action="engage-route"]')?.addEventListener("click", () => this.#engageSelectedRoute());
     // root.querySelector('[data-action="abort-voyage"]')?.addEventListener("click", () => this.#abortActiveVoyage());
     root.querySelector('[data-action="back-to-system"]')?.addEventListener("click", () => this.#showSystem());
+    root.querySelector('[data-action="look-up"]')?.addEventListener("click", () => {
+      const lat = Number(root.querySelector('[name="lookUpLat"]')?.value), lon = Number(root.querySelector('[name="lookUpLon"]')?.value);
+      if (!(lat >= -90 && lat <= 90) || !(lon >= -180 && lon <= 180)) return ui.notifications.warn("Latitude must be −90 to 90 and longitude −180 to 180.");
+      this.#enterSky(lat, lon);
+    });
+    root.querySelector('[data-action="back-to-body"]')?.addEventListener("click", () => { if (this.activeBody) this.#enterBody(this.activeBody); });
+    for (const control of root.querySelectorAll("[data-sky-layer]")) control.addEventListener("change", () => this._clusterView?.setLayerVisibility?.(control.dataset.skyLayer, control.checked));
     for (const control of root.querySelectorAll("[data-body-layer]")) control.addEventListener("change", () => this._clusterView?.setLayerVisibility?.(control.dataset.bodyLayer, control.checked));
 
     this._resizeObserver = new ResizeObserver(() => this._clusterView?.render());
@@ -94,13 +108,15 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this.#updateRoutePanel(null, null);
     // The system is the outermost level, so there is always a system or a body to show.
     this.activeSystem ??= HOME_SYSTEM;
-    if (this.mode === "body" && this.activeBody) this.#enterBody(this.activeBody);
+    if (this.mode === "sky" && this.activeBody && this.lookUp) this.#enterSky(this.lookUp.latDeg, this.lookUp.lonDeg);
+    else if (this.mode === "body" && this.activeBody) this.#enterBody(this.activeBody);
     else this.#enterSystem(this.activeSystem);
     window.removeEventListener("oscm-campaign-time-changed", this._campaignTimeListener);
     // ASTRAL TRAVEL (dormant): window.clearInterval(this._voyageTicker);
     this._campaignTimeListener = () => {
       // ASTRAL TRAVEL (dormant): this.#refreshActiveVoyage();
       void this.#refreshVisibleAstronomy().catch((error) => console.warn(`${MODULE_ID} | Unable to refresh visible astronomy`, error));
+      void this.#refreshSky().catch((error) => console.warn(`${MODULE_ID} | Unable to refresh the sky`, error));
       // ASTRAL TRAVEL (dormant): void this.#snapshotVoyageArrival().catch((error) => console.warn(`${MODULE_ID} | Unable to snapshot voyage arrival system`, error));
     };
     window.addEventListener("oscm-campaign-time-changed", this._campaignTimeListener);
@@ -115,6 +131,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this._clusterView?.destroy();
     this._clusterView = null;
     window.removeEventListener("oscm-campaign-time-changed", this._campaignTimeListener);
+    window.clearInterval(this._skyTicker);
     // ASTRAL TRAVEL (dormant): window.clearInterval(this._voyageTicker);
     return super._onClose(options);
   }
@@ -173,6 +190,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
         onObjectActivate: (object) => this.#enterBody(object),
         // ASTRAL TRAVEL (dormant): onShipDrag: (fraction) => this.#scrubVoyageToFraction(fraction),
       });
+      this.#leaveSky(root);
       this.mode = "system";
       this.activeSystem = system;
       this.activeBody = null;
@@ -193,6 +211,87 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   #showSystem() { if (this.activeSystem) this.#enterSystem(this.activeSystem); }
+
+  #leaveSky(root) {
+    window.clearInterval(this._skyTicker);
+    this._skyTicker = null;
+    root.classList.remove("is-sky-mode");
+    root.querySelector('[data-action="back-to-body"]')?.classList.add("is-hidden");
+  }
+
+  /** A fresh ground-sky snapshot for the current look-up place at the campaign clock's moment. */
+  async #skySnapshot() {
+    const api = game.modules.get(MODULE_ID)?.api;
+    const t = api?.getCampaignTimeState?.()?.referenceBaseMs ?? UNION_EPOCH_MS;
+    this._registryPromise ??= loadSystemRegistry(MODULE_ID);
+    this._astronomyOrientationsPromise ??= loadAstronomyOrientations(MODULE_ID);
+    this._skyDocumentPromise ??= fetch(`modules/${MODULE_ID}/data/stellar/constellations.json`).then((r) => { if (!r.ok) throw new Error(`Sky data fetch failed (${r.status})`); return r.json(); });
+    this._starfieldPromise ??= loadStarfield(MODULE_ID).catch((error) => { console.warn(`${MODULE_ID} | Starfield unavailable`, error); return null; });
+    const [rows, orientationDocument, sky, starfield] = await Promise.all([this._registryPromise, this._astronomyOrientationsPromise, this._skyDocumentPromise, this._starfieldPromise]);
+    if (!starfield) throw new Error("The star catalogue is unavailable.");
+    const model = buildSystemModel(rows, HOME_SYSTEM.name, { referenceTimestampMs: t, orientations: orientationDocument.orientations });
+    return { snapshot: groundSky({ model, sky, starfield, latDeg: this.lookUp.latDeg, lonDeg: this.lookUp.lonDeg }), sky, starfield };
+  }
+
+  async #enterSky(latDeg, lonDeg) {
+    const root = this.element?.querySelector?.(".oscm-shell"), svg = root?.querySelector(".oscm-cluster-svg");
+    if (!root || !svg) return;
+    try {
+      this.lookUp = { latDeg, lonDeg };
+      const { snapshot, sky, starfield } = await this.#skySnapshot();
+      const layers = Object.fromEntries([...root.querySelectorAll("[data-sky-layer]")].map((c) => [c.dataset.skyLayer, c.checked]));
+      this._clusterView?.destroy();
+      this._clusterView = new SkyView(svg, { snapshot, sky, starfield, displayName: (name) => displayNameFor(HOME_SYSTEM.name, name), layers });
+      this.mode = "sky";
+      root.classList.add("is-sky-mode");
+      root.classList.remove("is-system-mode", "is-body-mode", "has-geography", "has-operations", "can-look-up");
+      root.querySelector('[data-action="back-to-system"]')?.classList.remove("is-hidden");
+      root.querySelector('[data-action="back-to-body"]')?.classList.remove("is-hidden");
+      const title = root.querySelector("[data-map-title]"); if (title) title.textContent = `The sky over ${displayNameFor(HOME_SYSTEM.name, "Eventide")}`;
+      const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Drag to turn · wheel to zoom · double-click to reset";
+      this.#updateSkyReadout(snapshot, sky);
+      window.clearInterval(this._skyTicker);
+      // The sky turns slowly; with the clock running, refresh it every few seconds.
+      this._skyTicker = window.setInterval(() => void this.#refreshSky().catch(() => {}), 5000);
+    } catch (error) {
+      console.error(`${MODULE_ID} | Unable to show the sky`, error);
+      ui.notifications.error("Unable to show the sky from here.");
+    }
+  }
+
+  async #refreshSky() {
+    if (this.mode !== "sky" || !this.lookUp || !this._clusterView?.update) return;
+    const { snapshot, sky } = await this.#skySnapshot();
+    if (this.mode !== "sky") return;
+    this._clusterView.update(snapshot);
+    this.#updateSkyReadout(snapshot, sky);
+  }
+
+  #updateSkyReadout(snapshot, sky) {
+    const root = this.element?.querySelector?.(".oscm-shell"); if (!root) return;
+    const { latDeg, lonDeg } = snapshot;
+    const hours = localSolarHours(snapshot), hh = Math.floor(hours), mm = Math.floor((hours - hh) * 60);
+    const sunLongitude = sunPathLongitudeDeg(snapshot.sun.dir, sky);
+    const moonText = (moon) => {
+      const phase = phaseName(sunPathLongitudeDeg(moon.dir, sky) - sunLongitude);
+      const where = moon.visible ? `up, ${Math.round(moon.altDeg)}°` : moon.altDeg > 0 ? "lost in daylight" : "below the horizon";
+      const eclipse = moon.umbralFraction > 0.98 ? " · totally eclipsed" : moon.umbralFraction > 0.01 ? " · partly eclipsed" : "";
+      return `${phase} (${Math.round(moon.illuminated * 100)}%) · ${where} · ${mansionForDirection(moon.dir, sky).name}${eclipse}`;
+    };
+    const sunEclipse = snapshot.sun.coverage > 0.995 ? " · TOTAL ECLIPSE" : snapshot.sun.coverage > 0.01 ? ` · ${Math.round(snapshot.sun.coverage * 100)}% eclipsed` : "";
+    const visiblePlanets = snapshot.planets.filter((p) => p.visible).map((p) => displayNameFor(HOME_SYSTEM.name, p.name));
+    const values = {
+      place: `${Math.abs(latDeg).toFixed(1)}°${latDeg >= 0 ? "N" : "S"}, ${Math.abs(lonDeg).toFixed(1)}°${lonDeg >= 0 ? "E" : "W"}`,
+      localTime: `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")} (sun time)`,
+      sun: `${snapshot.twilight}, ${Math.round(snapshot.sun.altDeg)}°${sunEclipse}`,
+      whiteMoon: moonText(snapshot.moons.find((m) => m.name === "White Moon")),
+      redMoon: moonText(snapshot.moons.find((m) => m.name === "Red Moon")),
+      planets: visiblePlanets.length ? visiblePlanets.join(", ") : "none visible",
+      limit: `magnitude ${snapshot.limitingMagnitude.toFixed(1)}`,
+    };
+    for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-sky-field="${field}"]`); if (element) element.textContent = value; }
+    const count = root.querySelector("[data-map-count]"); if (count) count.textContent = values.place;
+  }
 
   async #enterBody(object) {
     const root = this.element?.querySelector?.(".oscm-shell"), svg = root?.querySelector(".oscm-cluster-svg");
@@ -215,8 +314,11 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       }
       this._clusterView?.destroy();
       this._clusterView = new BodyView(svg, { model, geography, operations, ownerFaction: object.owner_faction, onExitRequested: () => this.#showSystem(), onFeatureSelected: (feature) => this.#updateBodyFeature(feature) });
+      this.#leaveSky(root);
       this.mode = "body"; this.activeBody = object;
       root.classList.add("is-system-mode", "is-body-mode");
+      // Only Eym has people on it to look up: offer the ground view from its surface map.
+      root.classList.toggle("can-look-up", object.name === "Eventide" && Boolean(geography));
       root.classList.toggle("has-geography", Boolean(geography));
       root.classList.toggle("has-operations", Boolean(operations));
       root.querySelector('[data-action="back-to-system"]')?.classList.remove("is-hidden");
@@ -236,6 +338,12 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     if (!feature) { this.#updateBodyMetadata(this.activeBody, this._clusterView?.model); return; }
     card.classList.remove("is-hidden");
     const inspected = inspectSurfaceFeature(feature);
+    const lat = Number(feature.lat ?? feature.at?.[0]), lon = Number(feature.lon ?? feature.at?.[1]);
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      const latInput = root.querySelector('[name="lookUpLat"]'), lonInput = root.querySelector('[name="lookUpLon"]');
+      if (latInput) latInput.value = lat.toFixed(1);
+      if (lonInput) lonInput.value = ((((lon + 180) % 360) + 360) % 360 - 180).toFixed(1);
+    }
     const values = { objectName: inspected.name, objectType: inspected.type, objectParent: (this.activeBody && objectDisplayName(this.activeBody)) || "—", objectRole: inspected.detail, objectScale: inspected.scale ?? (feature.suitability != null ? `Settlement suitability ${feature.suitability}` : "Survey extent not fixed") };
     for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-field="${field}"]`); if (element) element.textContent = value; }
   }

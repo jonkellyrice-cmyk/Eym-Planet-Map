@@ -37,6 +37,7 @@
       <div>
         <div class="oscm-kicker">SYSTEM SURVEY</div>
         <button class="oscm-back-button is-hidden" type="button" data-action="back-to-system">← System</button>
+        <button class="oscm-back-button is-hidden" type="button" data-action="back-to-body">← Eym</button>
         <h2 data-map-title>{{systemTitle}}</h2>
       </div>
       <div class="oscm-system-count" data-map-count></div>
@@ -117,6 +118,31 @@
       <div class="oscm-selection-row"><span>Parent</span><strong data-field="objectParent">—</strong></div>
       <div class="oscm-selection-row"><span>Role</span><strong data-field="objectRole">—</strong></div>
       <div class="oscm-selection-row"><span>Scale</span><strong data-field="objectScale">—</strong></div>
+    </section>
+
+    <section class="oscm-card oscm-look-up-card">
+      <div class="oscm-card-title">Look up at the sky</div>
+      <div class="oscm-look-up-coords">
+        <label><span>Latitude (°N)</span><input name="lookUpLat" type="number" min="-90" max="90" step="0.1" value="45"></label>
+        <label><span>Longitude (°E)</span><input name="lookUpLon" type="number" min="-180" max="180" step="0.1" value="0"></label>
+      </div>
+      <p class="oscm-muted">Click a place on the map to use it, or type coordinates.</p>
+      <button class="oscm-apply" type="button" data-action="look-up"><i class="fa-solid fa-star"></i> Look up from here</button>
+    </section>
+
+    <section class="oscm-card oscm-sky-card">
+      <div class="oscm-card-title">The sky overhead</div>
+      <div class="oscm-sky-readout">
+        <div><span>Place</span><strong data-sky-field="place">—</strong></div>
+        <div><span>Local time</span><strong data-sky-field="localTime">—</strong></div>
+        <div><span>Sun</span><strong data-sky-field="sun">—</strong></div>
+        <div><span>White Moon</span><strong data-sky-field="whiteMoon">—</strong></div>
+        <div><span>Red Moon</span><strong data-sky-field="redMoon">—</strong></div>
+        <div><span>Wandering stars</span><strong data-sky-field="planets">—</strong></div>
+        <div><span>Naked-eye limit</span><strong data-sky-field="limit">—</strong></div>
+      </div>
+      <label><input type="checkbox" data-sky-layer="lines"> Constellation lines</label>
+      <label><input type="checkbox" data-sky-layer="names" checked> Star names</label>
     </section>
 
     <section class="oscm-card oscm-body-layer-controls">

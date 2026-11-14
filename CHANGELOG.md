@@ -2,6 +2,7 @@
 
 ## 0.12.0 — Eym Planet Map (single-system edition)
 
+- Ground view: from Eym's surface map, pick a spot (or click a place) and **Look up from here** to see the sky over that spot at the campaign date and time. It shows the stars down to the naked-eye limit for the sky's brightness (daylight, civil/nautical/astronomical twilight, moonlight, haze near the horizon), the 22 named stars, constellation lines and names (toggles), the four wandering planets, both moons with their phases, earthshine-dark sides and eclipse shading, and the Sun with any solar eclipse drawn to scale. The moons can show by day, as Earth's Moon does. The view follows the campaign clock; drag to turn, wheel to zoom, double-click to reset. New `scripts/ground-sky.mjs` (sky model) and `scripts/sky-view.mjs` (renderer); the registry gains a `geometric_albedo` column for planet and moon brightness.
 - Named stars: the 21 brightest stars plus Cynosure (22, in `namedStars`), in plain English apart from Pulura, Ketephys and Ashava (Pathfinder 2e canon gods of the night sky).
 - Pole star: Cynosure (Pathfinder canon's North Star), magnitude 1.4 and 0.7° from Eym's north celestial pole, pinned at the waist of the re-sculpted Hourglass. No southern pole star, as on Earth.
 - Only four planets besides Eym remain, the four brightest wandering stars of Eym's sky (Thraximundus, Tribune, Kandahar, Ramses); Cataphract, Sumatra and Ventus were removed (Sumatra peaks at magnitude −0.3, Cataphract never leaves the twilight 30° from the Sun, Ventus is invisible to the eye).

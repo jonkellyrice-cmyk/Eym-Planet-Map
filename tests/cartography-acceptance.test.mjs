@@ -44,7 +44,7 @@ test("canonical CSV is pinned to the four-wandering-stars canon edit", () => {
   // Sumatra and Ventus: the four "wandering stars" Ramses, Thraximundus, Kandahar and Tribune remain besides Eventide.
   // Any further registry change must re-pin this on purpose.
   const csv = readFileSync(new URL("docs/system-orbital-distances.csv", root));
-  assert.equal(createHash("sha256").update(csv).digest("hex"), "18be33039386b763053fd66c83e12618ccaa859eb3a33089db6d288b1c8e1f86");
+  assert.equal(createHash("sha256").update(csv).digest("hex"), "dda20c9cc33bbfb14654aae19f35dff33fb67d93fe25dd9e5f3ccac2a536a02f");
 });
 
 test("Eventide's accepted canon remains continent-free and ocean dominated", () => {

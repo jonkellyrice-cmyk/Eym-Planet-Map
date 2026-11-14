@@ -35,7 +35,8 @@
     "styles/system-map.css",
     "styles/body-map.css",
     "styles/body-operations.css",
-    "styles/starfield.css"
+    "styles/starfield.css",
+    "styles/sky-view.css"
   ],
   "languages": [
     {

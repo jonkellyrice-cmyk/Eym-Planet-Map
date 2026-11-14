@@ -1,0 +1,29 @@
+/* The night sky from the ground (scripts/sky-view.mjs). */
+.oscm-shell.is-sky-mode .oscm-cluster-svg { background: #020409; }
+.oscm-ground-backdrop { fill: #020409; }
+.oscm-ground-horizon { stroke: rgba(160, 190, 210, 0.45); stroke-width: 1.2; }
+.oscm-ground-cardinal { fill: #a9c2d4; font: 700 13px var(--font-primary, sans-serif); pointer-events: none; }
+.oscm-ground-constellation-lines { stroke: #6fb6ff; stroke-width: 1; }
+.oscm-ground-label { font: 11px var(--font-primary, sans-serif); paint-order: stroke; stroke: rgba(2, 4, 9, 0.85); stroke-width: 3px; pointer-events: none; }
+.oscm-ground-label.is-star { fill: #d7e3f2; }
+.oscm-ground-label.is-pole-star { fill: #ffd36b; font-weight: 700; }
+.oscm-ground-label.is-planet { fill: #ffe7b0; font-style: italic; }
+.oscm-ground-label.is-moon { fill: #f2efe6; font-weight: 700; }
+.oscm-ground-label.is-constellation { fill: rgba(111, 182, 255, 0.85); font-size: 10px; letter-spacing: 0.04em; }
+.oscm-ground-planet { filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.6)); }
+.oscm-ground-sun { filter: drop-shadow(0 0 6px rgba(255, 230, 170, 0.9)); }
+.oscm-cluster-svg.is-daylight .oscm-ground-label.is-star { display: none; }
+
+/* Panel: the "Look up" card shows on Eym's surface map; the sky card shows while looking up. */
+.oscm-look-up-card, .oscm-sky-card { display: none; }
+.oscm-shell.is-body-mode.can-look-up .oscm-look-up-card { display: grid; gap: .45rem; }
+.oscm-shell.is-sky-mode .oscm-sky-card { display: grid; gap: .45rem; }
+.oscm-shell.is-sky-mode .oscm-body-layer-controls,
+.oscm-shell.is-sky-mode .oscm-object-details,
+.oscm-shell.is-sky-mode .oscm-look-up-card { display: none; }
+.oscm-look-up-coords { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+.oscm-look-up-coords label { display: grid; gap: .15rem; font-size: 10px; color: var(--oscm-muted, #8aa); }
+.oscm-sky-readout { display: grid; gap: .2rem; font-size: 11px; }
+.oscm-sky-readout div { display: flex; justify-content: space-between; gap: .5rem; }
+.oscm-sky-readout span { color: var(--oscm-muted, #8aa); }
+.oscm-sky-card label { display: flex; align-items: center; gap: .4rem; font-size: 12px; }
