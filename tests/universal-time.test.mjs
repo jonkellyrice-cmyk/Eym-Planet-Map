@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   DAY_MS,
+  CAMPAIGN_START_MS,
   DEFAULT_UNIVERSAL_TIME_STATE,
+  NORTHWARD_EQUINOX_MS,
   UNION_EPOCH_MS,
   adjustUniversalTime,
   currentUniversalTimeMs,
@@ -12,12 +14,17 @@ import {
   resumeUniversalTimeSession,
   setUniversalDateTime,
   setUniversalTimeRunning,
+  universalTimeParts,
+  weekdayIndex,
 } from "../scripts/universal-time.mjs";
 
-test("Union epoch is Friday, September 3, 5016 U at 10:38", () => {
-  assert.equal(formatUniversalDate(UNION_EPOCH_MS), "Friday, September 3, 5016 U");
-  assert.equal(formatUniversalClock(UNION_EPOCH_MS), "10:38:00");
-  assert.equal(formatUniversalDate(UNION_EPOCH_MS + DAY_MS), "Saturday, September 4, 5016 U");
+test("the campaign begins on 14 March, year 50, and the March equinox falls on 20 March every year", () => {
+  assert.equal(DEFAULT_UNIVERSAL_TIME_STATE.baseMs, CAMPAIGN_START_MS);
+  assert.equal(formatUniversalDate(CAMPAIGN_START_MS), "Sunday, March 14, 50");
+  assert.equal(formatUniversalClock(CAMPAIGN_START_MS), "08:00:00");
+  assert.equal(`${formatUniversalDate(NORTHWARD_EQUINOX_MS)} ${formatUniversalClock(NORTHWARD_EQUINOX_MS)}`, "Saturday, March 20, 50 12:00:00");
+  assert.equal(formatUniversalDate(NORTHWARD_EQUINOX_MS + 10 * 350 * DAY_MS), "Saturday, March 20, 60");
+  assert.ok(UNION_EPOCH_MS < CAMPAIGN_START_MS, "the internal astronomy anchor stays where it was");
 });
 
 test("running universal time advances from its real-time anchor", () => {
@@ -43,7 +50,7 @@ test("pausing settles elapsed time and freezes the clock", () => {
 test("GM adjustments preserve running state", () => {
   const adjusted = adjustUniversalTime({ ...DEFAULT_UNIVERSAL_TIME_STATE, anchorRealMs: 1_000 }, 3_600_000, 1_000);
   assert.equal(adjusted.running, true);
-  assert.equal(formatUniversalClock(adjusted.baseMs), "11:38:00");
+  assert.equal(formatUniversalClock(adjusted.baseMs), "09:00:00");
 });
 
 test("direct date and time setting validates calendar dates", () => {
@@ -55,7 +62,36 @@ test("direct date and time setting validates calendar dates", () => {
     minute: 5,
     second: 0,
   }, 100);
-  assert.equal(formatUniversalDate(state.baseMs), "Monday, February 28, 5017 U");
+  assert.equal(formatUniversalDate(state.baseMs), "Sunday, February 28, 5017");
   assert.equal(formatUniversalClock(state.baseMs), "23:05:00");
   assert.throws(() => makeUniversalTimeMs({ year: 5017, month: 2, day: 29 }), /does not exist/);
+  assert.throws(() => makeUniversalTimeMs({ year: 5017, month: 13, day: 15 }), /does not exist/);
+  assert.throws(() => makeUniversalTimeMs({ year: 5017, month: 14, day: 1 }), /outside the supported range/);
+});
+
+test("Eym's year: twelve 28-day months, a 14-day Year's End, exactly 350 days with no leap days", () => {
+  const start = (year) => makeUniversalTimeMs({ year, month: 1, day: 1 });
+  for (const year of [1, 4999, 5016, 5017, 5400]) assert.equal((start(year + 1) - start(year)) / DAY_MS, 350);
+  assert.equal(formatUniversalDate(makeUniversalTimeMs({ year: 5016, month: 12, day: 28 })), "Sunday, December 28, 5016");
+  assert.equal(formatUniversalDate(makeUniversalTimeMs({ year: 5016, month: 13, day: 1 })), "Monday, Year's End 1, 5016");
+  const lastHoliday = makeUniversalTimeMs({ year: 5016, month: 13, day: 14, hour: 23, minute: 59, second: 59 });
+  assert.equal(formatUniversalDate(lastHoliday), "Sunday, Year's End 14, 5016");
+  assert.equal(formatUniversalDate(lastHoliday + 1000), "Monday, January 1, 5017");
+  assert.deepEqual(universalTimeParts(lastHoliday + 1000), { year: 5017, month: 1, day: 1, dayOfYear: 1, hour: 0, minute: 0, second: 0 });
+});
+
+test("every month, the holiday and every year begin on a Monday", () => {
+  for (const year of [5015, 5016, 5017]) for (let month = 1; month <= 13; month += 1) {
+    assert.equal(weekdayIndex(makeUniversalTimeMs({ year, month, day: 1 })), 1, `${year}-${month}`);
+  }
+});
+
+test("calendar round-trips every day of a year, including times before the epoch", () => {
+  for (const year of [5015, 5016]) for (let month = 1; month <= 13; month += 1) {
+    for (let day = 1; day <= (month === 13 ? 14 : 28); day += 1) {
+      const ms = makeUniversalTimeMs({ year, month, day, hour: 6, minute: 7, second: 8 });
+      const parts = universalTimeParts(ms);
+      assert.deepEqual([parts.year, parts.month, parts.day, parts.hour, parts.minute, parts.second], [year, month, day, 6, 7, 8]);
+    }
+  }
 });

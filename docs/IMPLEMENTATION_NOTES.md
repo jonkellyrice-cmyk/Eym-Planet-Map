@@ -12,15 +12,15 @@ The module uses `module.json`, ES modules, `foundry.applications.api.Application
 
 ## Three map levels
 
-1. **Cluster:** ten-system 3D political/navigation map in light-years.
-2. **System:** all 126 canonical registry rows using physical parent-relative coordinates plus separately compressed display coordinates.
+1. **Cluster:** removed in the single-system edition; the system is the outermost level.
+2. **System:** all 9 canonical registry rows using physical parent-relative coordinates plus separately compressed display coordinates.
 3. **Body/orbital:** accepted inhabited-world cartography or accepted local operational surveys for non-cartographic targets.
 
 Pointer Events provide mouse, pen, and touch rotation. Wheel/pinch controls zoom and outward navigation. Display coordinates never replace physical coordinates for route or separation calculations.
 
 ## Inhabited-world cartography
 
-The 43 accepted inhabited terrestrial maps remain under `data/planet-cartography/` and retain their accepted seeds, source fingerprints, 2° raster/vector products, cultural gazetteers, settlements, and transport networks. The body-operations pass does not regenerate or redefine them.
+The 4 accepted inhabited terrestrial maps remain under `data/planet-cartography/` and retain their accepted seeds, source fingerprints, 2° raster/vector products, cultural gazetteers, settlements, and transport networks. The body-operations pass does not regenerate or redefine them.
 
 ## Local operational assets
 
@@ -29,7 +29,7 @@ The canonical object registry remains `docs/system-orbital-distances.csv`. Non-c
 - `data/body-operations/manifest.json`
 - `data/body-operations/<system-slug>/<body-slug>.json`
 
-The current registry yields **71** eligible operational targets after excluding stars, barycenters, and the 43 accepted cartographic worlds. The derived inventory includes Seti's Arrowfall Range, a canonical distributed military installation field that was omitted from the original 70-object planning list.
+The current registry yields **4** eligible operational targets (the three moons and Tribune) after excluding the Sun and the 4 accepted cartographic worlds.
 
 Every accepted operational asset stores:
 
@@ -69,7 +69,7 @@ Artificial structures remain survey/superstructure plans rather than room-scale 
 
 ## Navigation model
 
-For cluster/system routes the module computes projected separation, depth-axis difference, true 3D distance, ship-frame contracted distance, cluster-rest-frame elapsed time, and shipboard proper time. The flight model uses constant proper acceleration, a configurable speed cap (default `0.995c`), and symmetric braking; sufficiently short routes use a midpoint flip instead.
+*(Dormant astral-travel code; not active in the single-system edition.)* For system routes the module computes projected separation, depth-axis difference, true 3D distance, ship-frame contracted distance, cluster-rest-frame elapsed time, and shipboard proper time. The flight model uses constant proper acceleration, a configurable speed cap (default `0.995c`), and symmetric braking; sufficiently short routes use a midpoint flip instead.
 
 ## On-demand astronomy
 

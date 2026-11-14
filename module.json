@@ -1,26 +1,26 @@
 {
-  "id": "orphaned-sun-cluster-map",
-  "title": "Orphaned Sun Cluster Map",
-  "description": "An interactive 3D SVG map and relativistic navigation calculator for the Orphaned Sun campaign's Beehive Cluster.",
-  "version": "0.11.0",
+  "id": "eym-planet-map",
+  "title": "Eym Planet Map",
+  "description": "An interactive 3D map of the Sun and its worlds, with orbital, surface and night-sky views.",
+  "version": "0.12.0",
   "authors": [
     {
       "name": "Jon Rice"
     }
   ],
   "compatibility": {
-    "minimum": 13,
-    "verified": 13,
-    "maximum": 13
+    "minimum": "13",
+    "verified": "14.370",
+    "maximum": "14"
   },
   "relationships": {
     "systems": [
       {
-        "id": "lancer",
+        "id": "pf2e",
         "type": "system",
         "compatibility": {
-          "minimum": "3.1.3",
-          "verified": "3.1.3"
+          "minimum": "7.0.0",
+          "verified": "8.6.1"
         }
       }
     ]
@@ -31,12 +31,13 @@
   "styles": [
     "styles/cluster-map.css",
     "styles/universal-time.css",
-    "styles/faction-territories.css",
     "styles/capital-icons.css",
     "styles/route-hud.css",
     "styles/system-map.css",
     "styles/body-map.css",
-    "styles/body-operations.css"
+    "styles/body-operations.css",
+    "styles/starfield.css",
+    "styles/sky-view.css"
   ],
   "languages": [
     {
@@ -45,7 +46,7 @@
       "path": "lang/en.json"
     }
   ],
-  "url": "https://github.com/jonkellyrice-cmyk/Orphaned-sun-cluster-map",
-  "manifest": "https://github.com/jonkellyrice-cmyk/Orphaned-sun-cluster-map/releases/latest/download/module.json",
-  "download": "https://github.com/jonkellyrice-cmyk/Orphaned-sun-cluster-map/releases/download/v0.11.0/orphaned-sun-cluster-map-v0.11.0.zip"
+  "url": "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map",
+  "manifest": "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map/releases/latest/download/module.json",
+  "download": "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map/releases/download/v0.12.0/eym-planet-map-v0.12.0.zip"
 }

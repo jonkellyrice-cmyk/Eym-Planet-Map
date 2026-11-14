@@ -64,7 +64,7 @@ function adjacencyScore(cell, category, assigned, cells) {
   return score;
 }
 
-function polygonize(cells, field, resolutionDeg, grid) {
+export function polygonize(cells, field, resolutionDeg, grid) {
   const { latCount, lonCount } = grid, byId = new Map(cells.map((cell) => [cell.id, cell])), visited = new Set(), regions = [];
   const neighborIds = (cell) => [[-1, 0], [1, 0], [0, -1], [0, 1]].flatMap(([dy, dx]) => { const y = cell.latIndex + dy; return y < 0 || y >= latCount ? [] : [y * lonCount + mod(cell.lonIndex + dx, lonCount)]; });
   for (const origin of cells) {

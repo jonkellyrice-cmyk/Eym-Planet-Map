@@ -1,0 +1,25 @@
+/* Night sky behind the system view (scripts/starfield.mjs). */
+
+/* The system view gets a plain deep-space backdrop; the fixed tiled dot pattern would not turn with the sky. */
+.oscm-shell.is-system-mode:not(.is-body-mode) .oscm-cluster-svg {
+  background: radial-gradient(circle at center, #07101a 0, #020509 78%);
+}
+
+.oscm-sky-layer { pointer-events: none; }
+
+/* Twinkle: each brightness class is split into three groups that dim out of step, so the sky
+   shimmers instead of pulsing in unison. Bright stars twinkle less than faint ones. */
+@keyframes oscm-star-twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: var(--oscm-twinkle-low, 0.6); }
+}
+.oscm-sky-stars { animation: oscm-star-twinkle 4.3s ease-in-out infinite; }
+.oscm-sky-stars.is-twinkle-0 { animation-duration: 3.1s; }
+.oscm-sky-stars.is-twinkle-1 { animation-duration: 4.7s; animation-delay: -1.3s; }
+.oscm-sky-stars.is-twinkle-2 { animation-duration: 6.1s; animation-delay: -2.9s; }
+.oscm-sky-stars.is-class-0, .oscm-sky-stars.is-class-1 { --oscm-twinkle-low: 0.82; }
+.oscm-sky-stars.is-class-2, .oscm-sky-stars.is-class-3 { --oscm-twinkle-low: 0.7; }
+
+@media (prefers-reduced-motion: reduce) {
+  .oscm-sky-stars { animation: none; }
+}

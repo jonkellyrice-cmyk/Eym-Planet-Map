@@ -14,6 +14,9 @@
 .oscm-body-cell.biome-tundra,.oscm-body-cell.biome-ice-cap { fill: #c6d8d7; }
 .oscm-body-settlement { fill: #ffe18a; stroke: #1b2426; stroke-width: 1; cursor: pointer; }
 .oscm-body-settlement.is-capital { fill: #fff3b0; stroke: #f1b84b; stroke-width: 2; }
+.oscm-body-settlement.is-town,.oscm-body-settlement.is-village { fill: #f4e6c0; stroke-width: .8; }
+.oscm-body-settlement.is-fort { fill: #d98c6a; stroke-width: .8; }
+.oscm-body-settlement.is-port { fill: #9fd8ef; stroke-width: .8; }
 .oscm-body-region { fill: rgba(193,219,210,.25); stroke: #c1dbd2; }
 .oscm-body-docking-node { fill: #63d9df; stroke: #d2ffff; cursor: pointer; }
 .oscm-body-disc.is-hidden,.oscm-body-surface.is-hidden,.oscm-body-night.is-hidden,.oscm-body-atmosphere.is-hidden { display: none; }
@@ -79,15 +82,58 @@
 .oscm-cartography-region.biome-savanna { fill: #84905a; }
 .oscm-cartography-coast { fill: none; stroke: rgba(210,241,235,.82); stroke-width: 1.25; pointer-events: stroke; }
 .oscm-cartography-river { fill: none; stroke: #61bde3; stroke-width: 1.35; pointer-events: stroke; }
-.oscm-cartography-lake { fill: #4e9dc3; stroke: #9edbf2; stroke-width: .8; }
+.oscm-cartography-lake { fill: #4e9dc3; stroke: #9edbf2; stroke-width: .8; fill-rule: evenodd; }
+.oscm-cartography-land { fill: #6e8b69; stroke: none; fill-rule: evenodd; pointer-events: none; }
+.oscm-body-disc.is-vector-ocean { fill: #24577a; }
+.oscm-cartography-detail { stroke: none; fill-rule: evenodd; pointer-events: none; }
+.oscm-cartography-detail.is-forest { fill: rgba(30,74,40,.55); }
+.oscm-cartography-detail.is-upland { fill: rgba(176,150,96,.5); }
+.oscm-cartography-detail.is-mountains { fill: rgba(122,94,70,.72); stroke: rgba(40,28,20,.35); stroke-width: .5; }
+.oscm-cartography-detail.is-peaks { fill: rgba(236,240,240,.85); }
 .oscm-cartography-wetland { fill: rgba(82,145,117,.7); stroke: #9ad1ad; stroke-width: .7; }
 .oscm-cartography-glacier { fill: #d8f2f4; stroke: #fff; stroke-width: .7; }
 .oscm-cartography-resource { fill: rgba(196,104,220,.16); stroke: rgba(225,154,244,.75); stroke-width: .8; cursor: pointer; }
 .oscm-cartography-label { fill: #e8fbf7; stroke: rgba(2,10,12,.9); stroke-width: 2.4; paint-order: stroke; font-size: 10px; font-family: var(--font-mono, monospace); text-anchor: middle; cursor: pointer; pointer-events: visiblePainted; }
 .oscm-cartography-label.is-capital { fill: #ffe9a3; font-size: 13px; font-weight: 700; }
 .oscm-cartography-label.is-continent,.oscm-cartography-label.is-ocean { font-size: 12px; letter-spacing: .08em; opacity: .78; }
+.oscm-cartography-label.is-region { fill: #f6dca0; font-size: 11px; letter-spacing: .06em; font-style: italic; }
 .oscm-cartography-label.is-city,.oscm-cartography-label.is-port { fill: #fff1b5; }
 .oscm-body-view path[hidden],.oscm-body-view text[hidden],.oscm-body-view circle[hidden] { display: none; }
 .oscm-body-layer-controls { display: none; }
 .oscm-shell.is-body-mode.has-geography .oscm-body-layer-controls { display: grid; gap: .35rem; }
 .oscm-shell.is-body-mode .oscm-selection-card,.oscm-shell.is-body-mode .oscm-territory-legend,.oscm-shell.is-body-mode .oscm-legend { display: none; }
+
+/* Day, night and the seasons (worlds with vector coastlines). */
+.oscm-night-band { fill: #020713; fill-opacity: .2; stroke: none; pointer-events: none; }
+.oscm-night-band.below-0 { fill-opacity: .16; }
+.oscm-terminator.is-hidden, .oscm-body-night.is-hidden { display: none; }
+.oscm-season-cover { stroke: none; fill-rule: evenodd; pointer-events: none; }
+.oscm-season-cover.is-snow { fill: rgba(244,248,252,.78); }
+.oscm-season-cover.is-ice { fill: rgba(222,238,246,.82); }
+.oscm-place-readout { display: grid; gap: .2rem; font-size: 11px; margin: .2rem 0 .4rem; }
+.oscm-place-readout div { display: flex; justify-content: space-between; gap: .5rem; }
+.oscm-place-readout span { color: var(--oscm-muted, #8aa); }
+
+/* Weather (Eym). */
+.oscm-weather-field { pointer-events: none; }
+.oscm-weather-field circle { stroke: none; }
+.oscm-weather-field.is-cloud-thin { fill: #eef3f7; opacity: .16; }
+.oscm-weather-field.is-cloud-mid { fill: #eef3f7; opacity: .28; }
+.oscm-weather-field.is-cloud-thick { fill: #f4f7fa; opacity: .42; }
+.oscm-weather-field.is-rain { fill: #3f8fe6; opacity: .32; }
+.oscm-weather-field.is-rain-heavy { fill: #2d6fe0; opacity: .5; }
+.oscm-weather-field.is-sleet { fill: #9fb4f2; opacity: .4; }
+.oscm-weather-field.is-snow { fill: #ffffff; opacity: .5; }
+.oscm-weather-field.is-thunder { fill: #a05ae6; opacity: .55; }
+.oscm-weather-centre { font: 700 15px var(--font-primary, sans-serif); paint-order: stroke; stroke: rgba(4,12,20,.8); stroke-width: 3px; pointer-events: visiblePainted; }
+.oscm-weather-centre.is-low { fill: #ff8a7a; }
+.oscm-weather-centre.is-high { fill: #8ac8ff; }
+.oscm-weather-cyclone circle { fill: #ff5a3c; }
+.oscm-weather-cyclone path { fill: none; stroke: #ff5a3c; stroke-width: 2.2; }
+.oscm-weather-cyclone.is-tropical-depression circle, .oscm-weather-cyclone.is-tropical-depression path { fill: none; stroke: #ffb24a; }
+.oscm-weather-cyclone.is-tropical-storm path { stroke: #ff8c3a; }
+.oscm-weather-cyclone text { fill: #ffd3c4; font: 600 10px var(--font-primary, sans-serif); paint-order: stroke; stroke: rgba(4,12,20,.85); stroke-width: 3px; }
+.oscm-weather-flood { fill: #3fb7ff; fill-opacity: .75; stroke: #e8fbff; stroke-width: .8; }
+.oscm-weather-wind { fill: none; stroke: rgba(230,245,255,.75); stroke-width: 1; pointer-events: none; }
+.oscm-weather-wind.is-gale { stroke: #ffcf6b; stroke-width: 1.4; }
+.oscm-sky-cloud { fill: #8a96a3; pointer-events: none; }

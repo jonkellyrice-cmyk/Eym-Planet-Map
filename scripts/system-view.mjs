@@ -1,5 +1,7 @@
-import { displayPosition, vectorFromOrbit } from "./system-data.mjs";
+import { displayPosition, orbitVector } from "./system-data.mjs";
 import { createFactionEmblem, factionPresentationForOwner } from "./capital-icons.mjs";
+import { STAR_CLASSES, TWINKLE_GROUPS, buildSkyFrame } from "./starfield.mjs";
+import { objectDisplayName, parentDisplayName, systemDisplayName } from "./display-names.mjs";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -12,7 +14,6 @@ function svgElement(name, attrs = {}) {
 
 function paletteFor(object) {
   if (object.objectClass === "star") {
-    if (/memphis/i.test(object.system)) return { fill: "#159a63", core: "#c8ffe0" };
     if (/F\d/i.test(object.type)) return { fill: "#fff1c9", core: "#fffbed" };
     if (/G\d/i.test(object.type)) return { fill: "#f4ce68", core: "#fff0b7" };
     return { fill: "#e98d43", core: "#ffc687" };
@@ -68,6 +69,7 @@ export class SystemView {
   constructor(svg, options) {
     this.svg = svg;
     this.model = options.model;
+    this.starfield = options.starfield ?? null;
     this.onSelectionChange = options.onSelectionChange ?? (() => {});
     this.onExitRequested = options.onExitRequested ?? (() => {});
     this.onObjectActivate = options.onObjectActivate ?? (() => {});
@@ -117,6 +119,7 @@ export class SystemView {
     const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse()); return { x: point.x, y: point.y };
   }
 
+  /* ASTRAL TRAVEL (dormant): GM drag of the ship marker along the route rail.
   #bindShipRailDrag(ship, a, b, initialFraction) {
     if (!this.routeVisualization?.draggable || !this.onShipDrag) return;
     const angle = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
@@ -126,6 +129,7 @@ export class SystemView {
     ship.classList.add("is-draggable"); ship.addEventListener("pointerdown",(event)=>{ event.preventDefault(); event.stopPropagation(); this.shipDrag={id:event.pointerId,fraction:initialFraction}; ship.classList.add("is-dragging"); ship.setPointerCapture?.(event.pointerId); });
     ship.addEventListener("pointermove",move); ship.addEventListener("pointerup",finish); ship.addEventListener("pointercancel",finish);
   }
+  */
 
   #buildScene() {
     this.svg.replaceChildren();
@@ -143,6 +147,7 @@ export class SystemView {
     this.transitionLayer = svgElement("g", { class: "oscm-trajectory-transition-layer" });
     this.shipLayer = svgElement("g", { class: "oscm-ship-layer" });
     this.svg.append(this.orbitLayer, this.routeLayer, this.objectLayer, this.factionLayer, this.transitionLayer, this.shipLayer);
+    this.#buildSky();
 
     const faction = factionPresentationForOwner(this.model.ownerFaction);
     this.factionAnchorObjects = this.model.objects.filter((object) => object.objectClass === "star");
@@ -152,7 +157,7 @@ export class SystemView {
       marker.append(svgElement("line", { class: "oscm-faction-context-leader", x1: 0, y1: 18, x2: 0, y2: 35 }));
       marker.append(createFactionEmblem(faction));
       const title = svgElement("title");
-      title.textContent = `${faction.factionName} jurisdiction — ${this.model.name} System`;
+      title.textContent = `${faction.factionName} jurisdiction — ${systemDisplayName(this.model.name)}`;
       marker.append(title); this.factionLayer.append(marker); this.factionMarker = marker;
     }
 
@@ -167,7 +172,7 @@ export class SystemView {
         fill: "none",
       });
       this.orbitLayer.append(orbit);
-      this.orbitNodes.push({ orbit, center: parentDisplay, radius, inclinationDeg: object.inclinationDeg });
+      this.orbitNodes.push({ orbit, center: parentDisplay, radius, object });
     }
 
     this.objectNodes = new Map();
@@ -177,7 +182,7 @@ export class SystemView {
         class: `oscm-system-object is-${object.objectClass}${object.selectable ? " is-selectable" : ""}`,
         tabindex: object.selectable ? 0 : -1,
         role: object.selectable ? "button" : "img",
-        "aria-label": `${object.name}, ${object.type}`,
+        "aria-label": `${objectDisplayName(object)}, ${object.type}`,
         "data-object-id": object.id,
       });
       const radius = baseRadius(object), colors = paletteFor(object);
@@ -185,9 +190,9 @@ export class SystemView {
       const selection = svgElement("circle", { class: "oscm-system-selection-ring", r: radius + 5, fill: "none" });
       const glyph = svgElement("g", { class: "oscm-system-glyph" });
       appendGlyph(glyph, object, radius, colors);
-      const label = svgElement("text", { class: "oscm-system-object-label", x: radius + 8, y: -4 }); label.textContent = object.name;
+      const label = svgElement("text", { class: "oscm-system-object-label", x: radius + 8, y: -4 }); label.textContent = objectDisplayName(object);
       const type = svgElement("text", { class: "oscm-system-object-type", x: radius + 8, y: 9 }); type.textContent = object.type;
-      const title = svgElement("title"); title.textContent = `${object.name} — ${object.type}; parent: ${object.parent}; reference distance: ${object.distance_from_parent} ${object.distance_unit}`;
+      const title = svgElement("title"); title.textContent = `${objectDisplayName(object)} — ${object.type}; parent: ${parentDisplayName(object)}; reference distance: ${object.distance_from_parent} ${object.distance_unit}`;
       group.append(hit, selection, glyph, label, type, title); this.objectLayer.append(group);
       this.objectNodes.set(object.id, { group, glyph, label, type, selection, object });
       if (object.selectable) {
@@ -293,10 +298,42 @@ export class SystemView {
     return { x: 450 + panX + x1 * scale * perspective, y: 340 + panY - y2 * scale * perspective, z: z2, scale: perspective };
   }
 
+  /** Inside-looking-out celestial sphere, drawn behind everything else. */
+  #buildSky() {
+    this.skyLayer = svgElement("g", { class: "oscm-sky-layer", "aria-hidden": "true" });
+    this.svg.insertBefore(this.skyLayer, this.orbitLayer);
+    if (!this.starfield) return;
+    const defs = svgElement("defs");
+    const glow = svgElement("radialGradient", { id: "oscm-sky-glow" });
+    glow.append(svgElement("stop", { offset: "0%", "stop-color": "#dfe8ff", "stop-opacity": 1 }), svgElement("stop", { offset: "100%", "stop-color": "#dfe8ff", "stop-opacity": 0 }));
+    defs.append(glow);
+    this.skyBand = svgElement("g", { class: "oscm-sky-band" });
+    this.skySister = svgElement("ellipse", { class: "oscm-sky-sister-galaxy", fill: "url(#oscm-sky-glow)" });
+    const title = svgElement("title"); title.textContent = "Distant spiral galaxy"; this.skySister.append(title);
+    this.skyStars = STAR_CLASSES.map((entry, classIndex) => Array.from({ length: TWINKLE_GROUPS }, (_, twinkle) => {
+      const path = svgElement("path", { class: `oscm-sky-stars is-class-${classIndex} is-twinkle-${twinkle}`, fill: "none", stroke: "#ffffff", "stroke-linecap": "round", "stroke-width": entry.size, "stroke-opacity": entry.opacity });
+      return path;
+    }));
+    this.skyLayer.append(defs, this.skyBand, this.skySister, ...this.skyStars.flat());
+  }
+
+  #renderSky() {
+    if (!this.starfield || !this.skyStars) return;
+    const frame = buildSkyFrame(this.starfield, this.state);
+    for (const group of frame.stars) this.skyStars[group.classIndex][group.twinkle].setAttribute("d", group.d);
+    this.skyBand.replaceChildren(...frame.band.map((sample) => svgElement("circle", { cx: sample.x.toFixed(1), cy: sample.y.toFixed(1), r: sample.r.toFixed(1), fill: "url(#oscm-sky-glow)", opacity: sample.opacity.toFixed(3) })));
+    if (frame.sister) {
+      const { x, y, rx, ry, rotation } = frame.sister;
+      for (const [key, value] of Object.entries({ cx: x.toFixed(1), cy: y.toFixed(1), rx: rx.toFixed(1), ry: ry.toFixed(1), transform: `rotate(${rotation.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})` })) this.skySister.setAttribute(key, value);
+      this.skySister.removeAttribute("display");
+    } else this.skySister.setAttribute("display", "none");
+  }
+
   render() {
+    this.#renderSky();
     for (const node of this.orbitNodes) {
       const points = Array.from({ length: 49 }, (_, index) => {
-        const local = vectorFromOrbit(node.radius, index * 7.5, node.inclinationDeg);
+        const local = orbitVector(node.object, node.radius, index * 7.5, this.model.referenceTimestampMs);
         return this.#project({ x: node.center.x + local.x, y: node.center.y + local.y, z: node.center.z + local.z });
       });
       node.orbit.setAttribute("d", points.map((point, index) => `${index ? "L" : "M"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ") + " Z");
@@ -317,6 +354,7 @@ export class SystemView {
     this.routeLayer.replaceChildren();
     this.transitionLayer.replaceChildren();
     this.shipLayer.replaceChildren();
+    /* ASTRAL TRAVEL (dormant): route line, trajectory markers and ship marker between two selected objects.
     const routeOrigin = this.routeVisualization?.origin ?? this.origin;
     const routeDestination = this.routeVisualization?.destination ?? this.destination;
     if (routeOrigin && routeDestination) {
@@ -334,5 +372,6 @@ export class SystemView {
         this.#bindShipRailDrag(ship, a, b, this.routeVisualization.shipFraction); this.shipLayer.append(ship);
       }
     }
+    */
   }
 }

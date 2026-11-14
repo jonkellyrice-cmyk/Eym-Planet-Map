@@ -8,10 +8,10 @@ const coarse = JSON.parse(readFileSync(new URL(manifest.sourceManifest, root), "
 const coarseByKey = new Map(coarse.worlds.map((world) => [`${world.system}/${world.body}`, world]));
 const load = (entry) => JSON.parse(readFileSync(new URL(entry.path, root), "utf8"));
 
-test("refined manifest contains 43 unique fingerprinted worlds", () => {
+test("refined manifest contains 4 unique fingerprinted worlds", () => {
   assert.equal(manifest.schemaVersion, 2);
-  assert.equal(manifest.worlds.length, 43);
-  assert.equal(new Set(manifest.worlds.map((world) => `${world.system}/${world.body}`)).size, 43);
+  assert.equal(manifest.worlds.length, 4);
+  assert.equal(new Set(manifest.worlds.map((world) => `${world.system}/${world.body}`)).size, 4);
   for (const entry of manifest.worlds) {
     const text = readFileSync(new URL(entry.path, root), "utf8");
     assert.equal(createHash("sha256").update(text).digest("hex"), entry.sha256);
@@ -24,7 +24,7 @@ test("every asset preserves its accepted seed and coarse fingerprint", () => {
     const asset = load(entry), source = coarseByKey.get(`${entry.system}/${entry.body}`);
     assert.equal(asset.sourceSeed, source.seed, entry.body);
     assert.equal(asset.sourceFingerprint, source.inputFingerprint, entry.body);
-    assert.equal(asset.modelVersion, manifest.modelVersion, entry.body);
+    assert.equal(asset.modelVersion, entry.body === "Eventide" ? "eym-surface-v1" : manifest.modelVersion, entry.body);
   }
 });
 
@@ -43,14 +43,16 @@ test("materialized gazetteers and civilization networks have literal geometry", 
   for (const entry of manifest.worlds) {
     const asset = load(entry);
     assert.ok(asset.gazetteer.every((feature) => feature.properName && feature.at.every(Number.isFinite)), entry.body);
-    assert.equal(asset.settlements.filter((site) => site.kind === "capital").length, 1, entry.body);
+    if (entry.body === "Eventide") assert.ok(asset.settlements.some((site) => site.kind === "capital"), entry.body);
+    else assert.equal(asset.settlements.filter((site) => site.kind === "capital").length, 1, entry.body);
     assert.ok(asset.transportRoutes.every((route) => route.properName && route.points.length >= 2), entry.body);
   }
 });
 
-test("Eventide materializes as a named archipelago without a continent", () => {
-  const eventide = load(manifest.worlds.find((world) => world.body === "Eventide"));
-  assert.equal(eventide.gazetteer.some((feature) => feature.featureClass === "continent"), false);
-  assert.ok(eventide.gazetteer.filter((feature) => feature.featureClass === "island").length >= 8);
-  assert.ok(eventide.terrain.realizedWaterFraction >= .85);
+test("Eym materializes with vector coastlines for its five continents and their islands", () => {
+  const eym = load(manifest.worlds.find((world) => world.body === "Eventide"));
+  assert.equal(eym.terrain.coastlineSource, "vector");
+  assert.equal(eym.terrain.coastlines.filter((coast) => coast.kind === "mainland").length, 5);
+  assert.ok(eym.terrain.coastlines.filter((coast) => coast.kind === "island").length >= 100);
+  for (const coast of eym.terrain.coastlines) assert.deepEqual(coast.points[0], coast.points.at(-1));
 });

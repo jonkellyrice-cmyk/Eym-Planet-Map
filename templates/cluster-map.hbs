@@ -1,8 +1,9 @@
 <div class="oscm-shell">
-  <section class="oscm-view" aria-label="3D Beehive Cluster map">
-    <svg class="oscm-cluster-svg" role="img" aria-label="Interactive three-dimensional star cluster"></svg>
+  <section class="oscm-view" aria-label="3D system map">
+    <svg class="oscm-cluster-svg" role="img" aria-label="Interactive three-dimensional star system"></svg>
 
-    <section class="oscm-route-hud is-hidden" aria-live="polite" aria-label="Selected route travel time">
+    {{!-- ASTRAL TRAVEL (dormant): route and voyage HUD
+<section class="oscm-route-hud is-hidden" aria-live="polite" aria-label="Selected route travel time">
       <div class="oscm-route-hud-kicker">SELECTED ROUTE</div>
       <div class="oscm-route-hud-title-row"><div class="oscm-route-hud-route" data-hud-field="route">—</div>{{#if isGM}}<button type="button" data-action="engage-route">ENGAGE</button>{{/if}}</div>
       <div class="oscm-route-hud-distance" data-hud-field="spatial">—</div>
@@ -22,38 +23,41 @@
         {{#if isGM}}<button type="button" data-action="abort-voyage">ABORT VOYAGE</button>{{/if}}
       </div>
     </section>
+--}}
 
     <div class="oscm-view-help">
       <span><i class="fa-solid fa-arrows-rotate"></i> Drag / 1 finger: rotate</span>
       <span><i class="fa-solid fa-magnifying-glass"></i> Wheel / pinch: zoom</span>
-      <span data-map-help><i class="fa-solid fa-star"></i> Click / tap two systems: route</span>
+      <span data-map-help><i class="fa-solid fa-star"></i> Click / tap to select; double-click / double-tap to open</span>
     </div>
   </section>
 
   <aside class="oscm-panel">
     <header class="oscm-panel-header">
       <div>
-        <div class="oscm-kicker">RA // PRAESEPE TEST VOLUME</div>
-        <button class="oscm-back-button is-hidden" type="button" data-action="back-to-cluster">← Beehive Cluster</button>
+        <div class="oscm-kicker">SYSTEM SURVEY</div>
         <button class="oscm-back-button is-hidden" type="button" data-action="back-to-system">← System</button>
-        <h2 data-map-title>Beehive Cluster</h2>
+        <button class="oscm-back-button is-hidden" type="button" data-action="back-to-body">← Eym</button>
+        <h2 data-map-title>{{systemTitle}}</h2>
       </div>
-      <div class="oscm-system-count" data-map-count>{{systemCount}} systems</div>
+      <div class="oscm-system-count" data-map-count></div>
     </header>
 
     <section class="oscm-card oscm-universal-clock" aria-live="polite" aria-label="Campaign time">
       <div class="oscm-clock-heading">
-        <div class="oscm-card-title">Reference Frame Time</div>
+        <div class="oscm-card-title">Campaign Time</div>
         <span class="oscm-clock-status" data-universal-clock-status>RUNNING</span>
       </div>
-      <div class="oscm-clock-date" data-reference-date>Friday, September 3, 5016 U</div>
+      <div class="oscm-clock-date" data-reference-date>Wednesday, September 3, 5016</div>
       <div class="oscm-clock-time" data-reference-clock>10:38:00</div>
-      <div class="oscm-clock-standard">Cradle Standard Reckoning</div>
+      <div class="oscm-clock-standard">Reckoning of Eym</div>
+      {{!-- ASTRAL TRAVEL (dormant): shipboard proper time only differs from campaign time during a relativistic voyage.
       <div class="oscm-clock-readout-divider"></div>
       <div class="oscm-card-title">Shipboard Proper Time</div>
-      <div class="oscm-clock-date" data-proper-date>Friday, September 3, 5016 U</div>
+      <div class="oscm-clock-date" data-proper-date>Wednesday, September 3, 5016</div>
       <div class="oscm-clock-time" data-proper-clock>10:38:00</div>
       <div class="oscm-clock-standard">Crew Proper Reckoning</div>
+      --}}
       {{#if isGM}}
       <div class="oscm-clock-gm-controls">
         <div class="oscm-clock-transport">
@@ -68,20 +72,22 @@
           <button type="button" data-clock-delta-minutes="1440">+1 day</button>
         </div>
         <div class="oscm-clock-set">
-          <div class="oscm-clock-set-label">Set shipboard proper date / time</div>
+          <div class="oscm-clock-set-label">Set date / time</div>
           <div class="oscm-clock-date-inputs">
-            <label><span>Month</span><input name="universalMonth" type="number" min="1" max="12" step="1" value="9"></label>
-            <label><span>Day</span><input name="universalDay" type="number" min="1" max="31" step="1" value="3"></label>
-            <label><span>Year U</span><input name="universalYear" type="number" min="1" step="1" value="5016"></label>
+            <label><span>Month (13 = Year's End)</span><input name="universalMonth" type="number" min="1" max="13" step="1" value="9"></label>
+            <label><span>Day</span><input name="universalDay" type="number" min="1" max="28" step="1" value="3"></label>
+            <label><span>Year</span><input name="universalYear" type="number" min="1" step="1" value="5016"></label>
           </div>
           <label class="oscm-clock-time-input"><span>24-hour time</span><input name="universalTime" type="time" step="60" value="10:38"></label>
-          <button class="oscm-apply" type="button" data-action="set-universal-clock"><i class="fa-solid fa-clock"></i> Set Proper Time</button>
+          <button class="oscm-apply" type="button" data-action="set-universal-clock"><i class="fa-solid fa-clock"></i> Set Time</button>
         </div>
       </div>
       {{/if}}
     </section>
 
     <section class="oscm-card oscm-selection-card">
+      <div class="oscm-card-title">View</div>
+      {{!-- ASTRAL TRAVEL (dormant): route selection and relativistic route results.
       <div class="oscm-card-title">Route Selection</div>
       <div class="oscm-selection-row"><span>Origin</span><strong data-field="origin">—</strong></div>
       <div class="oscm-selection-row"><span>Destination</span><strong data-field="destination">—</strong></div>
@@ -98,8 +104,9 @@
         </dl>
         <p class="oscm-profile-line" data-field="profile"></p>
       </div>
+      --}}
       <div class="oscm-button-row">
-        <button type="button" data-action="clear-route"><i class="fa-solid fa-xmark"></i> Clear Route</button>
+        <button type="button" data-action="clear-route"><i class="fa-solid fa-xmark"></i> Clear Selection</button>
         <button type="button" data-action="reset-view"><i class="fa-solid fa-rotate-left"></i> Reset View</button>
       </div>
     </section>
@@ -113,6 +120,52 @@
       <div class="oscm-selection-row"><span>Scale</span><strong data-field="objectScale">—</strong></div>
     </section>
 
+    <section class="oscm-card oscm-look-up-card">
+      <div class="oscm-card-title">Here and now</div>
+      <div class="oscm-place-readout">
+        <div><span>Date</span><strong data-place-field="date">—</strong></div>
+        <div><span>Season</span><strong data-place-field="season">—</strong></div>
+        <div><span>Mitkear</span><strong data-place-field="sun">—</strong></div>
+        <div><span>Sun time</span><strong data-place-field="localTime">—</strong></div>
+        <div><span>Sunrise – sunset</span><strong data-place-field="sunriseSunset">—</strong></div>
+        <div><span>Daylight</span><strong data-place-field="dayLength">—</strong></div>
+        <div><span>Weather</span><strong data-place-field="conditions">—</strong></div>
+        <div><span>Temperature</span><strong data-place-field="temperature">—</strong></div>
+        <div><span>Wind</span><strong data-place-field="wind">—</strong></div>
+        <div><span>Pressure</span><strong data-place-field="pressure">—</strong></div>
+        <div><span>Humidity</span><strong data-place-field="humidity">—</strong></div>
+        <div><span>Last 7 days</span><strong data-place-field="lastWeek">—</strong></div>
+        <div><span>Ground</span><strong data-place-field="ground">—</strong></div>
+        <div><span>Next 24 h</span><strong data-place-field="outlook">—</strong></div>
+        <div><span>Storms</span><strong data-place-field="storm">—</strong></div>
+      </div>
+      <div class="oscm-look-up-coords">
+        <label><span>Latitude (°N)</span><input name="lookUpLat" type="number" min="-90" max="90" step="0.1" value="45"></label>
+        <label><span>Longitude (°E)</span><input name="lookUpLon" type="number" min="-180" max="180" step="0.1" value="0"></label>
+      </div>
+      <p class="oscm-muted">Click a place on the map to use it, or type coordinates.</p>
+      <button class="oscm-apply" type="button" data-action="look-up"><i class="fa-solid fa-star"></i> Look up from here</button>
+    </section>
+
+    <section class="oscm-card oscm-sky-card">
+      <div class="oscm-card-title">The sky overhead</div>
+      <div class="oscm-sky-readout">
+        <div><span>Place</span><strong data-sky-field="place">—</strong></div>
+        <div><span>Local time</span><strong data-sky-field="localTime">—</strong></div>
+        <div><span>Mitkear</span><strong data-sky-field="sun">—</strong></div>
+        <div><span>Season</span><strong data-sky-field="season">—</strong></div>
+        <div><span>Sunrise – sunset</span><strong data-sky-field="sunriseSunset">—</strong></div>
+        <div><span>Weather</span><strong data-sky-field="weather">—</strong></div>
+        <div><span>Temperature</span><strong data-sky-field="temperature">—</strong></div>
+        <div><span>Austarm</span><strong data-sky-field="whiteMoon">—</strong></div>
+        <div><span>Chatarm</span><strong data-sky-field="redMoon">—</strong></div>
+        <div><span>Wandering stars</span><strong data-sky-field="planets">—</strong></div>
+        <div><span>Naked-eye limit</span><strong data-sky-field="limit">—</strong></div>
+      </div>
+      <label><input type="checkbox" data-sky-layer="lines"> Constellation lines</label>
+      <label><input type="checkbox" data-sky-layer="names" checked> Star names</label>
+    </section>
+
     <section class="oscm-card oscm-body-layer-controls">
       <div class="oscm-card-title">Orbital Survey Layers</div>
       <label><input type="checkbox" data-body-layer="terrain" checked> Terrain &amp; biomes</label>
@@ -120,8 +173,12 @@
       <label><input type="checkbox" data-body-layer="resources"> Resources &amp; soils</label>
       <label><input type="checkbox" data-body-layer="settlements" checked> Cities &amp; capital</label>
       <label><input type="checkbox" data-body-layer="transport" checked> Transport corridors</label>
+      <label><input type="checkbox" data-body-layer="weather-clouds" checked> Clouds &amp; rain</label>
+      <label><input type="checkbox" data-body-layer="weather-storms" checked> Storms, highs &amp; lows</label>
+      <label><input type="checkbox" data-body-layer="weather-wind"> Wind</label>
     </section>
 
+{{!-- ASTRAL TRAVEL (dormant): navigation profile (acceleration / speed cap / cluster grid)
     <section class="oscm-card">
       <div class="oscm-card-title">Navigation Profile</div>
       <div class="oscm-form-grid">
@@ -147,7 +204,9 @@
       <p class="oscm-muted">The GM controls the shared navigation profile.</p>
       {{/if}}
     </section>
+--}}
 
+{{!-- Cluster-scale territorial control legend (no cluster view in this edition).
     <section class="oscm-card oscm-territory-legend">
       <div class="oscm-card-title">Territorial Control</div>
       <div class="oscm-territory-legend-grid">
@@ -160,11 +219,14 @@
       </div>
       <p class="oscm-territory-note">Faint volumes extrapolate the 2D Manger control map into approximate 3D jurisdiction. Their depth is intentionally approximate rather than a surveyed border.</p>
     </section>
+--}}
 
+{{!-- ASTRAL TRAVEL (dormant): origin / destination legend
     <section class="oscm-legend">
       <div><span class="oscm-swatch origin"></span> Origin</div>
       <div><span class="oscm-swatch destination"></span> Destination</div>
       <p>Reference values use the cluster rest frame. “Shipboard” is elapsed proper time experienced by the crew.</p>
     </section>
+--}}
   </aside>
 </div>

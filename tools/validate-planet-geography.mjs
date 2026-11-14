@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { parseCsv } from "../scripts/system-data.mjs";
 import { generatePlanetGeography, summarizeGeography } from "../scripts/planet-geography.mjs";
+import { isEymRow, loadEymWorld } from "./eym-world.mjs";
 
 const strict = process.argv.includes("--strict");
 const accepted = process.argv.includes("--accepted");
@@ -12,9 +13,9 @@ const manifest = JSON.parse(readFileSync(new URL("data/planet-geography/manifest
 const failures = [];
 const assert = (condition, message) => { if (!condition) failures.push(message); };
 
-assert(targets.length === 43, `canonical registry has ${targets.length}, not 43, seeded worlds`);
+assert(targets.length === 4, `canonical registry has ${targets.length}, not 4, seeded worlds`);
 if (accepted) assert(manifest.status === "accepted-working-canon", "manifest is not accepted working canon");
-assert(manifest.worlds?.length === 43, `manifest has ${manifest.worlds?.length}, not 43, worlds`);
+assert(manifest.worlds?.length === 4, `manifest has ${manifest.worlds?.length}, not 4, worlds`);
 const targetByKey = new Map(targets.map((row) => [`${row.system}\0${row.object}`, row]));
 const keys = new Set();
 for (const entry of manifest.worlds ?? []) {
@@ -35,7 +36,7 @@ for (const entry of manifest.worlds ?? []) {
   assert(world.transportRoutes.length === Math.max(0, world.settlements.length - 1), `${key}: incomplete transport network`);
   if (entry.body === "Eventide") assert(!world.cells.some((cell) => !cell.ocean && cell.elevationM < 0), "Eventide contains invalid submerged land");
   if (strict) {
-    const regenerated = generatePlanetGeography(row, { resolutionDeg: world.resolutionDeg });
+    const regenerated = isEymRow(row) ? loadEymWorld(row).coarse : generatePlanetGeography(row, { resolutionDeg: world.resolutionDeg });
     assert(JSON.stringify(regenerated) === JSON.stringify(world), `${key}: asset is not reproducible from canonical inputs`);
     assert(JSON.stringify(summarizeGeography(world)) === JSON.stringify(entry.summary), `${key}: manifest summary drift`);
   }

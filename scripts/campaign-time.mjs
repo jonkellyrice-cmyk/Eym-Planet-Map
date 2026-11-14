@@ -1,10 +1,10 @@
 import { calculateTransit, evaluateTrajectoryAtProperTime, properTimeAtRouteFraction, SECONDS_PER_JULIAN_YEAR } from "./relativity.mjs";
-import { UNION_EPOCH_MS } from "./universal-time.mjs";
+import { CAMPAIGN_START_MS } from "./universal-time.mjs";
 
 export const CAMPAIGN_TIME_SETTING = "campaignTimeState";
 export const DEFAULT_CAMPAIGN_TIME_STATE = Object.freeze({
-  properBaseMs: UNION_EPOCH_MS,
-  referenceBaseMs: UNION_EPOCH_MS,
+  properBaseMs: CAMPAIGN_START_MS,
+  referenceBaseMs: CAMPAIGN_START_MS,
   anchorRealMs: 0,
   running: true,
   activeVoyage: null,
@@ -17,8 +17,8 @@ const finite = (value, fallback) => Number.isFinite(Number(value)) ? Number(valu
 export function normalizeCampaignTimeState(state) {
   const source = state && typeof state === "object" ? state : DEFAULT_CAMPAIGN_TIME_STATE;
   return {
-    properBaseMs: finite(source.properBaseMs, UNION_EPOCH_MS),
-    referenceBaseMs: finite(source.referenceBaseMs, UNION_EPOCH_MS),
+    properBaseMs: finite(source.properBaseMs, CAMPAIGN_START_MS),
+    referenceBaseMs: finite(source.referenceBaseMs, CAMPAIGN_START_MS),
     anchorRealMs: Math.max(0, finite(source.anchorRealMs, 0)),
     running: source.running !== false,
     activeVoyage: source.activeVoyage && typeof source.activeVoyage === "object" ? structuredClone(source.activeVoyage) : null,

@@ -20,7 +20,7 @@ test("same inputs recreate byte-equivalent literal geography", () => {
 });
 
 test("sea-level fitting tracks canonical water inventory", () => {
-  for (const name of ["Eventide", "Ramses", "Tlaloc", "Keshun"]) {
+  for (const name of ["Eventide", "Ramses", "Thraximundus", "Kandahar"]) {
     const world = generatePlanetGeography(byName[name], { resolutionDeg: 12 });
     assert.ok(Math.abs(world.realizedWaterFraction - Number(byName[name].water_pct) / 100) <= .02, name);
   }
@@ -39,9 +39,13 @@ test("generated world contains causal physical and human feature layers", () => 
 
 test("physical extremes produce distinct deterministic realizations", () => {
   const ocean = generatePlanetGeography(byName.Eventide, { resolutionDeg: 12 });
-  const dry = generatePlanetGeography(byName.Nansen, { resolutionDeg: 12 });
-  const cold = generatePlanetGeography(byName.Keshun, { resolutionDeg: 12 });
-  assert.ok(ocean.realizedWaterFraction > dry.realizedWaterFraction * 5);
+  const dry = generatePlanetGeography(byName.Ramses, { resolutionDeg: 12 });
+  const cold = generatePlanetGeography(byName.Kandahar, { resolutionDeg: 12 });
+  // Abydos's driest seeded world (Ramses, 18% water) is not as dry as the removed fixture, so the
+  // fixed 5× contrast is replaced by the canonical contrast itself (86% ÷ 18% ≈ 4.8×), held to 5%.
+  const canonicalRatio = Number(byName.Eventide.water_pct) / Number(byName.Ramses.water_pct);
+  assert.ok(Math.abs(ocean.realizedWaterFraction / dry.realizedWaterFraction - canonicalRatio) <= canonicalRatio * .05);
+  assert.ok(canonicalRatio > 4.5);
   assert.ok(dry.cells.filter((cell) => cell.biome.includes("desert")).length > ocean.cells.filter((cell) => cell.biome.includes("desert")).length);
   assert.ok(cold.cells.filter((cell) => ["ice-cap", "tundra", "cold-desert"].includes(cell.biome)).length > 0);
 });

@@ -12,7 +12,7 @@ const accepted = manifest.assets.map((entry) => {
 });
 
 test("accepted operational assets stay within bounded on-demand loading budgets", () => {
-  assert.equal(accepted.length, 71);
+  assert.equal(accepted.length, 4);
   assert.ok(accepted.every(({ bytes }) => bytes <= 16 * 1024));
   assert.ok(accepted.reduce((sum, { bytes }) => sum + bytes, 0) <= 1024 * 1024);
 });
@@ -36,8 +36,8 @@ test("mobile and desktop render plans remain bounded at every operational LOD", 
   }
 });
 
-test("operational canon never overlaps the 43 accepted inhabited cartography products", () => {
+test("operational canon never overlaps the 4 accepted inhabited cartography products", () => {
   const inhabited = new Set(cartography.worlds.map((world) => targetKey(world.system, world.body)));
-  assert.equal(inhabited.size, 43);
+  assert.equal(inhabited.size, 4);
   for (const { asset, entry } of accepted) assert.ok(!inhabited.has(targetKey(asset.system, asset.body)), entry.path);
 });

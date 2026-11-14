@@ -1,0 +1,368 @@
+{
+ "markers": [
+  {
+   "x": 1318,
+   "y": 137,
+   "color": "orange",
+   "icon": "capital-star",
+   "onLand": true
+  },
+  {
+   "x": 643,
+   "y": 176,
+   "color": "yellow",
+   "icon": "capital-star",
+   "onLand": true
+  },
+  {
+   "x": 784,
+   "y": 186,
+   "color": "yellow",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 1501,
+   "y": 189,
+   "color": "orange",
+   "icon": "anchor",
+   "onLand": true
+  },
+  {
+   "x": 1340,
+   "y": 216,
+   "color": "orange",
+   "icon": "anchor",
+   "onLand": true
+  },
+  {
+   "x": 678,
+   "y": 242,
+   "color": "yellow",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 856,
+   "y": 244,
+   "color": "yellow",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 374,
+   "y": 248,
+   "color": "yellow",
+   "icon": "anchor",
+   "onLand": true
+  },
+  {
+   "x": 456,
+   "y": 268,
+   "color": "yellow",
+   "icon": "city-ring",
+   "onLand": true
+  },
+  {
+   "x": 1003,
+   "y": 286,
+   "color": "yellow",
+   "icon": "city-ring",
+   "onLand": true
+  },
+  {
+   "x": 740,
+   "y": 302,
+   "color": "yellow",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 1090,
+   "y": 332,
+   "color": "yellow",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 530,
+   "y": 350,
+   "color": "yellow",
+   "icon": "city-ring",
+   "onLand": true
+  },
+  {
+   "x": 1262,
+   "y": 354,
+   "color": "yellow",
+   "icon": "city-ring",
+   "onLand": true
+  },
+  {
+   "x": 481,
+   "y": 368,
+   "color": "yellow",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 430,
+   "y": 373,
+   "color": "yellow",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 868,
+   "y": 376,
+   "color": "yellow",
+   "icon": "city-ring",
+   "onLand": true
+  },
+  {
+   "x": 343,
+   "y": 387,
+   "color": "yellow",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 1273,
+   "y": 405,
+   "color": "yellow",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 369,
+   "y": 408,
+   "color": "yellow",
+   "icon": "castle",
+   "onLand": true
+  },
+  {
+   "x": 1264,
+   "y": 438,
+   "color": "yellow",
+   "icon": "city-ring",
+   "onLand": true
+  },
+  {
+   "x": 1178,
+   "y": 462,
+   "color": "yellow",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 158,
+   "y": 468,
+   "color": "magenta",
+   "icon": "anchor",
+   "onLand": true
+  },
+  {
+   "x": 340,
+   "y": 478,
+   "color": "magenta",
+   "icon": "capital-star",
+   "onLand": true
+  },
+  {
+   "x": 522,
+   "y": 492,
+   "color": "magenta",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 1872,
+   "y": 532,
+   "color": "red",
+   "icon": "anchor",
+   "onLand": true
+  },
+  {
+   "x": 626,
+   "y": 547,
+   "color": "magenta",
+   "icon": "city-ring",
+   "onLand": false
+  },
+  {
+   "x": 462,
+   "y": 550,
+   "color": "magenta",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 1540,
+   "y": 554,
+   "color": "red",
+   "icon": "city-ring",
+   "onLand": true
+  },
+  {
+   "x": 1428,
+   "y": 560,
+   "color": "red",
+   "icon": "castle",
+   "onLand": true
+  },
+  {
+   "x": 748,
+   "y": 566,
+   "color": "magenta",
+   "icon": "castle",
+   "onLand": true
+  },
+  {
+   "x": 1432,
+   "y": 584,
+   "color": "red",
+   "icon": "city-ring",
+   "onLand": true
+  },
+  {
+   "x": 1158,
+   "y": 613,
+   "color": "red",
+   "icon": "castle",
+   "onLand": true
+  },
+  {
+   "x": 1190,
+   "y": 627,
+   "color": "red",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 1659,
+   "y": 630,
+   "color": "red",
+   "icon": "city-ring",
+   "onLand": true
+  },
+  {
+   "x": 974,
+   "y": 632,
+   "color": "green",
+   "icon": "city-ring",
+   "onLand": true
+  },
+  {
+   "x": 1482,
+   "y": 654,
+   "color": "red",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 1548,
+   "y": 659,
+   "color": "red",
+   "icon": "capital-star",
+   "onLand": true
+  },
+  {
+   "x": 860,
+   "y": 664,
+   "color": "green",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 662,
+   "y": 675,
+   "color": "magenta",
+   "icon": "city-ring",
+   "onLand": true
+  },
+  {
+   "x": 1338,
+   "y": 685,
+   "color": "red",
+   "icon": "city-ring",
+   "onLand": true
+  },
+  {
+   "x": 987,
+   "y": 688,
+   "color": "green",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 1679,
+   "y": 712,
+   "color": "red",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 1038,
+   "y": 783,
+   "color": "green",
+   "icon": "castle",
+   "onLand": true
+  },
+  {
+   "x": 784,
+   "y": 788,
+   "color": "magenta",
+   "icon": "town-dot",
+   "onLand": true
+  },
+  {
+   "x": 1800,
+   "y": 818,
+   "color": "blue",
+   "icon": "anchor",
+   "onLand": true
+  },
+  {
+   "x": 1562,
+   "y": 818,
+   "color": "red",
+   "icon": "city-ring",
+   "onLand": true
+  },
+  {
+   "x": 1088,
+   "y": 822,
+   "color": "green",
+   "icon": "city-ring",
+   "onLand": true
+  },
+  {
+   "x": 1318,
+   "y": 828,
+   "color": "red",
+   "icon": "anchor",
+   "onLand": true
+  },
+  {
+   "x": 1898,
+   "y": 858,
+   "color": "blue",
+   "icon": "city-ring",
+   "onLand": true
+  },
+  {
+   "x": 1855,
+   "y": 980,
+   "color": "blue",
+   "icon": "anchor",
+   "onLand": true
+  },
+  {
+   "x": 1668,
+   "y": 1012,
+   "color": "blue",
+   "icon": "anchor",
+   "onLand": true
+  }
+ ]
+}

@@ -19,8 +19,8 @@ function naturalBodyWithAtmosphere(row) {
   return true;
 }
 
-test("all 43 Ra-seeded terrestrial worlds have varied, conservative life-compatible atmospheres", () => {
-  assert.equal(seededWorlds.length, 43, "canonical geography registry must still contain exactly 43 Ra-seeded terrestrial worlds");
+test("all 4 Ra-seeded Abydos terrestrial worlds have varied, conservative life-compatible atmospheres", () => {
+  assert.equal(seededWorlds.length, 4, "canonical geography registry must still contain exactly 4 Ra-seeded terrestrial worlds");
 
   const pressures = new Set();
   const oxygenFractions = new Set();
@@ -35,8 +35,9 @@ test("all 43 Ra-seeded terrestrial worlds have varied, conservative life-compati
     oxygenFractions.add(result.atmosphere.dryCompositionPct.O2);
   }
 
-  assert.ok(pressures.size >= 10, `expected meaningful canonical pressure variation; found ${pressures.size} distinct pressures`);
-  assert.ok(oxygenFractions.size >= 10, `expected oxygen fraction to adapt to differing pressures; found ${oxygenFractions.size} distinct fractions`);
+  // With four worlds, "meaningful variation" means every world differs.
+  assert.equal(pressures.size, seededWorlds.length, `expected canonical pressure variation; found ${pressures.size} distinct pressures`);
+  assert.equal(oxygenFractions.size, seededWorlds.length, `expected oxygen fraction to adapt to differing pressures; found ${oxygenFractions.size} distinct fractions`);
 });
 
 test("atmospheric derivation is deterministic and preserves canonical numeric pressure", () => {
@@ -64,7 +65,15 @@ test("every natural body with an established atmosphere gets a usable compositio
 });
 
 test("known nonhabitable atmosphere cases remain nonhabitable", () => {
-  const eileanVolna = rows.find((row) => row.object === "Eilean Volna");
+  // Abydos has no thin-but-oxygenated respirator world, so this marginal case keeps its fixture as
+  // the atmosphere-relevant fields of the removed Eilean Volna registry row (Saqqara, v0.4.0 base).
+  const eileanVolna = {
+    system: "Saqqara", object: "Eilean Volna", type: "moon",
+    atmosphere_pressure_atm: "0.42", atmosphere_profile: "thin N2/CO2/O2; respirator recommended",
+    mean_surface_temp_c: "-8", magnetosphere_radiation: "within Bannoch Vost radiation belts; moderate-high radiation",
+    geography_seed: "", bulk_composition: "rock/ice large moon",
+    volatile_profile: "water ice; likely CO2, ammonia and minor carbon-bearing ices in cold traps/regolith",
+  };
   const eileanAtmosphere = deriveAtmosphereMetadata(eileanVolna);
   assert.equal(eileanAtmosphere.breathability.longTermUnassistedHumanCompatible, false);
   assert.match(eileanAtmosphere.breathability.classification, /respirator/i);
@@ -74,4 +83,9 @@ test("known nonhabitable atmosphere cases remain nonhabitable", () => {
   const tribuneAtmosphere = deriveAtmosphereMetadata(tribune);
   assert.equal(tribuneAtmosphere.breathability.longTermUnassistedHumanCompatible, false);
   assert.ok(tribuneAtmosphere.dryCompositionPct.H2 > 70);
+
+  // Enoch's tenuous exosphere is the surviving thin, nonzero-pressure, nonbreathable case.
+  const enoch = deriveAtmosphereMetadata(rows.find((row) => row.object === "Enoch"));
+  assert.equal(enoch.breathability.longTermUnassistedHumanCompatible, false);
+  assert.equal(enoch.pressureAtm, 0.02);
 });

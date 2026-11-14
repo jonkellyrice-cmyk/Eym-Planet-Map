@@ -131,7 +131,7 @@ export function projectOperationPosition(asset, feature, yaw = 0, pitch = 0, rad
   return { x: 450 + x1 * radius, y: 340 - y1 * radius, depth: z2, visible: true };
 }
 
-export async function loadBodyOperationAsset(system, body, moduleId = "orphaned-sun-cluster-map") {
+export async function loadBodyOperationAsset(system, body, moduleId = "eym-planet-map") {
   const path = bodyOperationAssetPath(system, body);
   const response = await fetch(`modules/${moduleId}/${path}`);
   if (response.status === 404) return null;

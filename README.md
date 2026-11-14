@@ -1,48 +1,88 @@
-# Orphaned Sun Cluster Map
+# Eym Planet Map
 
-A Foundry VTT v13 module for the **Orphaned Sun** LANCER campaign. It provides an interactive three-dimensional SVG model of the campaign's compact Beehive Cluster, system-scale orbital maps, body/orbital inspection views, and relativistic route calculations.
+A Foundry VTT v14 module (v13 also supported): an interactive three-dimensional SVG map of a single star system (currently the **Abydos** system), with orbital, planetary-surface and local operational views. It is a single-system edition of the Orphaned Sun Cluster Map, being retooled for a fantasy campaign.
+
+On screen the star is **Mitkear**, Eventide is **Eym**, its moons are **Austarm** (white) and **Chatarm** (red), and the four wandering planets, largest to smallest, are **Iarn**, **Esonth**, **Bruthi** and **Lilta**. These display names live in `scripts/display-names.mjs`. The registry keeps the old canonical names (Abydos, Eventide, White Moon, Red Moon, Tribune, Thraximundus, Ramses, Kandahar) because data files and seeds are keyed by them.
+
+The module id is `eym-planet-map`, so it installs alongside the original Orphaned Sun Cluster Map without conflict.
 
 ## Features
 
-- 16 × 16 × 16 light-year wireframe cluster volume with the ten campaign systems at canonical X/Y/Z coordinates.
-- Interactive AU-scale system maps for all 126 canonical system/object rows, preserving physical hierarchical coordinates separately from compressed display coordinates.
-- Double-click/double-tap or inward zoom from cluster → system → body, with explicit outward breadcrumbs and wheel/pinch return navigation.
-- Forty-three inhabited terrestrial worlds with accepted deterministic 2° cartography: coastlines, elevation/contours, hydrology, ecoregions, soils, resources, settlements, permanent cultural gazetteers, and transport geometry.
-- **Seventy-one non-cartographic bodies and orbital structures with accepted deterministic local operational surveys**, including barren worlds and moons, giants, belts, stations, installations, shipyards, vessels, fleets, blinkgates, megastructures, and anomalies.
-- Operational body views expose named landmarks, extraction sites, habitats, landing fields, hazards, docks, modules, approaches, formation elements, structural segments, and observation perimeters as appropriate to each body family.
-- Culture-aware permanent names use Aurethic, Vostrann, Xuānhari, Vadan, or cosmopolitan Union naming traditions while retaining functional labels where they are more realistic.
-- Zoom-dependent SVG level of detail keeps orbital, regional, and close inspection useful on desktop and mobile without room-scale interiors or unbounded DOM growth.
-- Desktop: drag to rotate, mouse wheel to zoom, double-click empty space to reset the camera.
-- Mobile/touch: one-finger drag rotates; pinch changes zoom; touch activation uses the same cluster/system/body navigation model.
-- Route calculations use physical coordinates only. Display compression and operational schematics are never treated as navigation distances.
-- Configurable shared navigation profile, defaulting to **200 g** proper acceleration and **0.995c** maximum cruise speed, with automatic midpoint flips on short routes.
-- Dual persistent campaign clocks distinguish **Cradle reference-frame time** from **crew proper time**; selected routes can be engaged as analytical relativistic voyages with live phase, velocity, transition markers, and ship position.
-- System views resolve deterministic Keplerian planet/moon positions and body rotations from **Cradle reference time** on demand; no offscreen or frame-by-frame astronomy simulation runs.
+- An interactive AU-scale map of all 9 objects of Mitkear's system (Mitkear, Eym, the four wandering planets, Eym's moons Austarm and Chatarm, and Iarn's moon Enoch), keeping physical hierarchical coordinates separate from compressed display coordinates.
+- The system is the outermost level: double-click/double-tap or zoom inward from system → body, with a breadcrumb back to the system; zooming out stops at the system.
+- A fixed night sky around the system: 2,000 naked-eye stars, the galactic band and a distant sister galaxy, drawn inside-looking-out behind the system view and turning with the camera (see `tools/generate-starfield.mjs`).
+- 48 named constellations (24 per hemisphere: 35 discovered in the generated stars plus 13 sculpted by nudging spare stars; 7 chief constellations per hemisphere; 8 on the path of the sun, in order), 4 asterisms and 28 lunar mansions, in plain English with Pathfinder 2e canon deity names where a figure matches a deity's symbol or favored weapon. Stored as star-to-star line data in `data/stellar/constellations.json` (see `tools/constellation-canon.mjs`, `tools/sculpt-constellations.mjs` and `tools/generate-constellations.mjs`).
+- **Ground view of the sky:** on Eym's surface map, choose a latitude and longitude (or click a place) and press *Look up from here* to see the sky from that spot at the campaign date and time: stars to the naked-eye limit, named stars, optional constellation lines and names, the four wandering planets, both moons with phases and eclipses, and Mitkear. Daylight and twilight wash out the stars; the moons and the brightest planets can still show by day. A readout gives local sun time, Mitkear's altitude, each moon's phase, place and lunar mansion, and which planets are up.
+- **Day, night and the seasons on Eym's globe:** the real terminator with civil, nautical and astronomical twilight bands, following the campaign clock; seasonal snow on land and sea ice that grow and retreat through the year. A **Here and now** card gives any place's date, season (wet and dry seasons in the tropics), sun time, sunrise and sunset, day length, temperature (now, high and low) and whether there is snow on the ground; click a place or type coordinates. The model is `scripts/eym-seasons.mjs`.
+- **Weather on Eym** (`scripts/eym-weather.mjs`): mid-latitude lows and highs, tropical waves and tropical cyclones (in season, about 50 a year) are born from a fixed seed and move along their tracks, so the weather at any place and time is computed directly: no background simulation, and a jump of a century costs no more than a jump of an hour. Pressure, wind (geostrophic, turning the right way round lows in each hemisphere), cloud, rain, sleet, snow, thunderstorms and temperature follow from them and the seasonal climate, calibrated so each latitude's rainfall matches its climate over the year (`tools/calibrate-eym-weather.mjs`). Snow cover, ground wetness and flooding are reconstructed over the previous 168 hours in 3-hour steps. The globe shows cloud and rain fields, highs and lows, cyclones, floods and (optional) wind arrows; the Here and now card adds the weather, wind, pressure and its tendency, humidity, the last week's rain, the ground, the next 24 hours and nearby storms; cloud veils the sky in the ground view.
+- Eym's five continents (see below), drawn from vector coastlines with forest, mountain and peak overlays; zoom in to 30× to read Caren's towns.
+- Three other terrestrial worlds (Bruthi, Esonth, Lilta) with accepted deterministic 2° cartography: coastlines, elevation/contours, hydrology, ecoregions, soils, resources, settlements, permanent cultural gazetteers, and transport geometry.
+- Four non-cartographic natural bodies with accepted deterministic local surveys (the three moons and the gas giant Iarn).
+- Culture-aware permanent names (Vadan for Abydos; the Aurethic, Vostrann, Xuānhari and Union naming cultures remain available for new systems).
+- Zoom-dependent SVG level of detail keeps orbital, regional, and close inspection useful on desktop and mobile without unbounded DOM growth.
+- Desktop: drag to rotate, mouse wheel to zoom, double-click empty space to reset the camera. Mobile/touch: one-finger drag rotates; pinch zooms.
+- One campaign clock in Eym's calendar (play/pause, step, set date and time). System views resolve deterministic Keplerian planet/moon positions and body rotations from it on demand; no frame-by-frame astronomy simulation runs.
 - No runtime third-party libraries or CDN calls.
 
-## Operational survey canon
+## Eym and its sky
 
-`docs/system-orbital-distances.csv` remains the canonical object registry. Accepted local operational detail lives separately under `data/body-operations/` so the registry is not expanded into thousands of feature columns.
+- **Mitkear**, the sun, is a twin of Earth's Sun (G2V, 1 solar mass and luminosity).
+- **Eym** is an Earth twin: 1 AU, Earth's radius, mass and gravity, 23.44° tilt (precessing every ~25,772 years; obliquity rocking 22.1°–24.5° over ~41,000 years), eccentricity 0.0167 and an Earth-like magnetic field.
+- **Eym's surface** is five continents in a planet-wide ocean (98.6% water, 7.3 million km² of land):
+  - **Caren**, 590,000 sq mi (1.53 million km²), straddles the equator, centered on 0°, 0°. It is traced from its source map with its coastline, islands, lakes, great rivers, mountains, forests, 4 nations, 81 settlements and 39 named features.
+  - **Garyk**, four fifths of Caren's size, lies slightly north of the equator (centered 15°N, 79.8°W), west-north-west of Caren. From Caren's north-west port (Pouk) to Garyk's south-east port is three weeks by steamer: 7,780 km on the great circle, taken as 8,400 km sailed at an average 9 knots. It is traced from its map with its 51 settlements, grouped by realm colour (yellow, red, magenta, green, blue, orange) and not yet named.
+  - **The Eastern Continent**, the largest (1.6× Caren), lies east of Caren on the equator. **The Northern** and **Southern Continents** (about 0.65× and 0.55× Caren) lie near 52°N and 50°S, in taiga and tundra. These three, and ten island chains in the open ocean, are seeded deterministically. Their names are placeholders.
 
-Each body-operation asset records its permanent seed, model version, canonical-row fingerprint, coordinate frame, stable feature IDs, generated feature collections, and accepted-canon status. Regeneration is byte-for-byte deterministic and validated against the current canonical row before publication.
+  How to change it: the layout and seed are `EYM_LAYOUT` in `scripts/eym-surface.mjs`. The traced continents are `data/eym/traced-continents.json` (from `tools/trace-eym-continents.py` and the two source maps, which are not stored in the repository). Caren's labels and Garyk's markers are `data/eym/caren-labels.json` and `data/eym/garyk-markers.json`; most of Caren's settlement names were read from small text and are marked `"confidence": "low"`, so correct them there. After any change, run `node tools/generate-planet-geography.mjs --accept` and `node tools/generate-planet-cartography.mjs --accept` (the first tells you the new input fingerprint to put in Eym's registry row).
+- **Time.** Eym's year is exactly 350 days of 24 hours × 60 minutes × 60 seconds. Because Eym's year is as long as Earth's, each Eym second is 1.0435 SI seconds; every day and hour value in the registry is in Eym units.
+- **Calendar.** Twelve months with Gregorian names, each exactly 28 days (4 weeks), then the 14-day **Year's End** holiday (month 13 in the clock's date inputs). Every month and every year begins on a Monday. The calendar follows the seasons: the March equinox falls at noon on 20 March every year. Years count from the new calendar; the campaign begins on **Sunday, 14 March, year 50**, at 08:00, and the clock starts there.
+- **Moons.** **Austarm**, the white moon (382,029 km, 0.50° across), has phases that repeat every 28 days and set the month. **Chatarm**, the red moon (195,000 km, 0.40° across), cycles every 9.77 days, so the two are only full together roughly every 7½ months. Their combined tides equal Earth's on average: great tides (~1.35×) when they line up, slack tides (~0.4×) when they are 90° apart.
+- **Moon events.** `scripts/moon-events.mjs` computes phases, double full moons and double dark nights (both within 12 hours, about every 9 months), solar eclipses (Austarm's are total or annular like Earth's Moon's; Chatarm is too small to cover Mitkear), lunar eclipses, Chatarm passing in front of Austarm, and combined tides. Both moons' nodes regress and periapses advance like Earth's Moon's, so eclipse seasons drift through the calendar. `npm run moons:almanac -- 50` lists a year's events with the lunar mansion each falls in.
+- **The pole star.** Cynosure (Golarion's North Star in Pathfinder canon, home of Desna's palace) stands 0.7° from Eym's north celestial pole at magnitude 1.4, at the waist of the Hourglass, which turns around it through the night. Like Earth, Eym has no bright southern pole star; the Bell hangs around the south pole.
+- **Named stars.** The 21 brightest stars and Cynosure have their own names, about Earth's count of household-name navigation stars; most also belong to a constellation, as Polaris belongs to the Little Dipper. Three are named for Pathfinder 2e canon gods of the night sky: Pulura (the brightest, high in the north), Ketephys (in the Stag) and Ashava (a lone bright star). Southlight, deep in the south, is the southern guide star.
+- **The wandering stars.** Besides Eym there are exactly four planets, all naked-eye wanderers. Largest to smallest: Iarn (the gas giant, brightest about magnitude −5.9), Esonth (the next world out, −6.7), Bruthi (an inner world seen as a morning or evening star, −3.5) and Lilta (−3.6). Fainter worlds (Cataphract, Sumatra, Ventus) were removed.
+- **The other worlds** keep their original architecture: every orbit was scaled by 1/0.68 when the star changed, and periods follow Kepler's third law.
 
-The current operational inventory is 71 objects. This includes Seti's **Arrowfall Range**, which the canonical registry defines as a distributed military installation field and therefore qualifies for local operational detail even though it was absent from the initial 70-object planning list.
+## History
+
+- About 50,000 years ago the elves began building civilization.
+- About 40,000 years ago, the dragons.
+- Between 20,000 and 10,000 years ago, humans, dwarves and the other peoples.
+- Recorded history reaches back about 10,000 years for most of Caren.
+- The present calendar is new: the campaign opens in its year 50.
+
+**Astral travel (dormant).** Routes, relativistic voyages, the ship marker, the navigation profile and the second (shipboard proper time) clock are commented out in place, marked `ASTRAL TRAVEL (dormant)`, so they can be revived later.
+
+## Data
+
+`docs/system-orbital-distances.csv` is the canonical object registry. Accepted detail lives beside it: planetary cartography under `data/planet-cartography/` and `data/planet-geography/`, local operational surveys under `data/body-operations/`, epoch orientations under `data/astronomy/`, superstructure identities in `data/superstructure-identities.json`, and the night sky under `data/stellar/`. `exports/` holds the frozen reference-sheet bundle derived from them.
+
+Every generated asset records its permanent seed, model version and source fingerprint, and regenerates byte-for-byte.
+
+## Installing from a manifest
+
+In Foundry, install the module with this manifest URL:
+
+`https://github.com/jonkellyrice-cmyk/Eym-Planet-Map/releases/latest/download/module.json`
+
+That URL resolves once a GitHub release exists. Releases are built by `.github/workflows/release.yml` when a commit whose message contains `[release]` is pushed to `main`; it packages `eym-planet-map-v<version>.zip` and attaches it with `module.json`.
 
 ## Compatibility
 
-- Foundry VTT: **13**
-- LANCER system: **3.1.3+**
+- Game system: **Pathfinder Second Edition** (`pf2e`) **7.0+**, targeted at **8.6.1** (the campaign's version, which itself needs Foundry 14.361–14). Nothing in the module depends on PF2e rules; the system is declared so it is offered in PF2e worlds.
+- Foundry VTT: **14** (targeted at v14 Stable, build 370, the campaign's version; `verified` is set to 14.370) and **13** (still supported). PF2e 8.x runs on Foundry v14 and PF2e 7.x on v13. As of 0.12.0 the module has been checked in a headless browser, not yet in a live v14 world.
+- The **System Map** button sits in the Token controls, where it exists on both Foundry v13 and v14 (v14 replaced measured templates with Regions).
 
 ## Development / local install
 
 Copy this folder into:
 
-`{Foundry user data}/Data/modules/orphaned-sun-cluster-map/`
+`{Foundry user data}/Data/modules/eym-planet-map/`
 
-Restart Foundry, enable **Orphaned Sun Cluster Map**, then use the map button in the Measurement controls. It may also be opened from the browser console or a macro:
+Restart Foundry, enable the module, then use the **System Map** button in the Token controls. It may also be opened from the browser console or a macro:
 
 ```js
-game.modules.get("orphaned-sun-cluster-map").api.open();
+game.modules.get("eym-planet-map").api.open();
 ```
 
 Run the complete deterministic suite with:
@@ -51,19 +91,19 @@ Run the complete deterministic suite with:
 npm test
 ```
 
-Operational canon can also be audited directly:
+Generated canon can also be audited directly:
 
 ```bash
 npm run body-operations:validate
 npm run body-operations:check
 npm run astronomy:check
 npm run astronomy:validate
+npm run atlas:snapshot:check
+npm run starfield:check
+npm run constellations:check
+npm run moons:almanac -- 50
 ```
-
-## Forge / manifest installation
-
-Release `v0.9.0` is packaged with both `module.json` and `orphaned-sun-cluster-map-v0.9.0.zip`. Foundry/Forge updates use the manifest URL declared in `module.json`.
 
 ## Coordinate model
 
-Cluster and system navigation retain their established physical coordinate model. Operational assets explicitly declare whether their geometry is physical, a physical reference-epoch snapshot, a constrained estimate, or an uncertain observation volume. Belt and fleet layouts are reference-epoch snapshots; anomalies remain observational/uncertain; gas giants use atmospheric coordinates rather than a fictitious solid surface. See `docs/IMPLEMENTATION_NOTES.md`.
+System navigation retains the established physical coordinate model. Operational assets explicitly declare whether their geometry is physical, a physical reference-epoch snapshot, a constrained estimate, or an uncertain observation volume. Belt layouts are reference-epoch snapshots; anomalies remain observational/uncertain; gas giants use atmospheric coordinates rather than a fictitious solid surface. The night sky uses the same system frame. See `docs/IMPLEMENTATION_NOTES.md`.

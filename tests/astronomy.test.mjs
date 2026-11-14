@@ -12,6 +12,17 @@ const rows = parseCsv(await readFile(new URL("../docs/system-orbital-distances.c
 const orientationDocument = JSON.parse(await readFile(new URL("../data/astronomy/epoch-orientations.json", import.meta.url), "utf8"));
 const options = (timestamp) => ({ referenceTimestampMs: timestamp, orientations: orientationDocument.orientations });
 const angularDifference = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
+// Synthetic binary: the only canonical two-star system was removed with the other systems.
+const binaryRow = (object, type, parent, distance, phase, period = "", eccentricity = "") => ({
+  system: "Binary Test", object, type, parent, distance_from_parent: String(distance), distance_unit: "AU",
+  reference_phase_deg: phase === null ? "" : String(phase), inclination_deg: "", selectable: "yes", owner_faction: "Test Faction",
+  orbital_period_days: period, orbital_eccentricity: eccentricity,
+});
+const binaryRows = [
+  binaryRow("Test barycenter", "barycenter", "System barycenter", 0, null, "", "0"),
+  binaryRow("Test A", "G8V star", "Test barycenter", 0.044, 165, "9.131", "0.025"),
+  binaryRow("Test B", "K4V star", "Test barycenter", 0.056, 345, "9.131", "0.025"),
+];
 
 test("canonical epoch reproduces every established reference phase", () => {
   for (const row of rows) {
@@ -57,9 +68,10 @@ test("all canonical orbit hierarchies and ellipse metadata validate", () => {
 test("fabricated orientations are frozen, provenance-labelled, and irregular", () => {
   const entries = Object.values(orientationDocument.orientations);
   const spins = entries.flatMap((entry) => entry.spinPhaseAtEpochDeg == null ? [] : [entry.spinPhaseAtEpochDeg]);
-  assert.equal(entries.length, 83);
-  assert.equal(spins.length, 50);
-  assert.ok(new Set(spins.map((value) => Math.floor(value / 30))).size >= 10);
+  assert.equal(entries.length, 8);
+  assert.equal(spins.length, 5);
+  // Five free spins (White Moon, Red Moon and Enoch are tidally locked): all but one fall in distinct 30-degree sectors.
+  assert.ok(new Set(spins.map((value) => Math.floor(value / 30))).size >= spins.length - 1);
   assert.ok(entries.every((entry) => /DETERMINISTIC WORKING CANON/.test(entry.axialSeasonPhaseProvenance)));
   assert.ok(entries.filter((entry) => entry.spinPhaseAtEpochDeg == null).every((entry) => /DERIVED: synchronous tidal lock/.test(entry.spinPhaseProvenance)));
 });
@@ -100,7 +112,7 @@ test("free and tidally locked rotations are analytical", () => {
 
 test("opening a natural body can consume its coherent system-snapshot rotation", () => {
   const timestamp = UNION_EPOCH_MS + 42 * DAY_MS;
-  const system = buildSystemModel(rows, "Thebes", options(timestamp));
+  const system = buildSystemModel(rows, "Abydos", options(timestamp));
   const body = system.objects.find((object) => object.selectable && naturalBodyKind(object));
   const model = buildNaturalBodyModel(body);
   assert.equal(model.astronomy.referenceTimestampMs, timestamp);
@@ -114,12 +126,12 @@ test("large and backward jumps are direct deterministic evaluations", () => {
   assert.deepEqual(orbitalStateAt(body, UNION_EPOCH_MS - 1234 * DAY_MS), orbitalStateAt(body, UNION_EPOCH_MS - 1234 * DAY_MS));
 });
 
-test("Tanis stellar components remain opposite around their barycenter", () => {
+test("binary stellar components remain opposite around their barycenter (synthetic fixture)", () => {
   for (const offsetDays of [0, 1, 100, -40]) {
-    const model = buildSystemModel(rows, "Tanis", options(UNION_EPOCH_MS + offsetDays * DAY_MS));
-    const a = model.byName.get("Tanis A"), b = model.byName.get("Tanis B");
+    const model = buildSystemModel(binaryRows, "Binary Test", options(UNION_EPOCH_MS + offsetDays * DAY_MS));
+    const a = model.byName.get("Test A"), b = model.byName.get("Test B");
     assert.ok(Math.abs(angularDifference(a.phaseDeg, b.phaseDeg) - 180) < 1e-8);
-    assert.equal(b.orbitalState.binaryCompanionOf, "Tanis A");
+    assert.equal(b.orbitalState.binaryCompanionOf, "Test A");
   }
 });
 
@@ -129,7 +141,7 @@ test("snapshot cache reuses exact requests and bounds retained history", () => {
   const first = cache.getOrCreate("Abydos", 10, () => ({ calls: ++calls }));
   assert.strictEqual(cache.getOrCreate("Abydos", 10, () => ({ calls: ++calls })), first);
   cache.getOrCreate("Abydos", 20, () => ({ calls: ++calls }));
-  cache.getOrCreate("Thebes", 30, () => ({ calls: ++calls }));
+  cache.getOrCreate("Other", 30, () => ({ calls: ++calls }));
   assert.equal(cache.entries.size, 2);
   assert.equal(cache.get("Abydos", 10), null);
 });

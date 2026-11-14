@@ -1,9 +1,6 @@
+// System → naming culture. Only Abydos remains; the other cultures stay available for new systems.
 const SYSTEM_PROFILE = Object.freeze({
   Abydos: "vadan",
-  Tanis: "vostrann", Saqqara: "vostrann", Iunu: "vostrann",
-  Memphis: "aurethic", Nekhen: "aurethic",
-  Thebes: "xuanhari", Sais: "xuanhari", Seti: "xuanhari",
-  Amarna: "union",
 });
 
 const PROFILES = Object.freeze({

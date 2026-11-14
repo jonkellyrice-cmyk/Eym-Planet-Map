@@ -3,22 +3,25 @@ import fs from "node:fs";
 import { test } from "node:test";
 
 import { createAtlasBundle, snapshotOperational, snapshotPlanet } from "../scripts/atlas-snapshot.mjs";
+import { generateBodyOperationAsset, serializeAsset } from "../tools/generate-body-operations.mjs";
 
 test("planet snapshot serializes existing materialized coordinates without regeneration", () => {
   const sourcePath = "data/planet-cartography/abydos/eventide.json";
   const source = fs.readFileSync(sourcePath, "utf8");
   const snapshot = snapshotPlanet(JSON.parse(source), sourcePath, source);
   assert.equal(snapshot.name, "Eventide");
-  assert.match(snapshot.referenceSvg, /Nacreward Crown/);
-  assert.match(snapshot.informationPacket, /Ramseslight Flow/);
+  assert.match(snapshot.referenceSvg, /Bostain/);
+  assert.match(snapshot.informationPacket, /\*\*Caren\*\*/);
+  assert.match(snapshot.informationPacket, /Sondel Range/);
   assert.equal(snapshot.sourcePath, sourcePath);
 });
 
-test("operational snapshot preserves committed feature names and coordinates", () => {
-  const sourcePath = "data/body-operations/abydos/vada-anchorage.json";
-  const source = fs.readFileSync(sourcePath, "utf8");
+// The setting has no stations, so a synthetic (non-canon) station asset from the generator keeps the structural path under test.
+test("operational snapshot preserves serialized station feature names and coordinates", () => {
+  const sourcePath = "synthetic/synthetic-anchorage.json";
+  const source = serializeAsset(generateBodyOperationAsset({ system: "Synthetic", object: "Synthetic Anchorage", type: "major station", parent: "Synthetic" }));
   const snapshot = snapshotOperational(JSON.parse(source), sourcePath, source);
-  assert.equal(snapshot.name, "Vada Anchorage");
+  assert.equal(snapshot.name, "Synthetic Anchorage");
   assert.match(snapshot.referenceSvg, /Primary Hub/);
   assert.match(snapshot.informationPacket, /x 0, y 0, z 0/);
 });

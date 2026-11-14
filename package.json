@@ -1,6 +1,6 @@
 {
-  "name": "orphaned-sun-cluster-map",
-  "version": "0.11.0",
+  "name": "eym-planet-map",
+  "version": "0.12.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,6 +13,12 @@
     "astronomy:generate": "node tools/generate-astronomy-orientations.mjs",
     "astronomy:check": "node tools/generate-astronomy-orientations.mjs --check",
     "astronomy:validate": "node tools/validate-astronomy.mjs",
-    "atmosphere:validate": "node tools/validate-atmospheres.mjs"
+    "atmosphere:validate": "node tools/validate-atmospheres.mjs",
+    "starfield:generate": "node tools/generate-starfield.mjs",
+    "starfield:check": "node tools/generate-starfield.mjs --check",
+    "constellations:generate": "node tools/generate-constellations.mjs",
+    "constellations:check": "node tools/generate-constellations.mjs --check",
+    "moons:almanac": "node tools/moon-almanac.mjs",
+    "weather:calibrate": "node tools/calibrate-eym-weather.mjs"
   }
 }

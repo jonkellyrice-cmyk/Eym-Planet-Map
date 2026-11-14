@@ -6,9 +6,9 @@ const root = new URL("../", import.meta.url);
 const manifest = JSON.parse(readFileSync(new URL("data/planet-geography/manifest.json", root), "utf8"));
 const load = (entry) => JSON.parse(readFileSync(new URL(entry.path, root), "utf8"));
 
-test("manifest contains 43 unique accepted-seed terrestrial realizations", () => {
-  assert.equal(manifest.worlds.length, 43);
-  assert.equal(new Set(manifest.worlds.map((world) => `${world.system}/${world.body}`)).size, 43);
+test("manifest contains 4 unique accepted-seed terrestrial realizations", () => {
+  assert.equal(manifest.worlds.length, 4);
+  assert.equal(new Set(manifest.worlds.map((world) => `${world.system}/${world.body}`)).size, 4);
   assert.ok(manifest.worlds.every((world) => world.seed && world.inputFingerprint && world.path));
 });
 
@@ -24,10 +24,10 @@ test("every inhabited world has literal physical and civilization geometry", () 
   }
 });
 
-test("Eventide remains a continent-free oceanic archipelago realization", () => {
+test("Eym's coarse summary records its five continents in a planet-wide ocean", () => {
   const entry = manifest.worlds.find((world) => world.body === "Eventide");
   const world = load(entry);
-  assert.ok(world.realizedWaterFraction >= .85);
-  assert.ok(world.coastlines.length > 100);
-  assert.ok(world.cells.filter((cell) => !cell.ocean).length < world.cells.length * .16);
+  assert.ok(world.realizedWaterFraction >= .98);
+  assert.equal(world.surface.continents.length, 5);
+  assert.ok(world.cells.filter((cell) => !cell.ocean).length < world.cells.length * .03);
 });

@@ -7,7 +7,7 @@ import { createAtlasBundle, sha256, snapshotPlanet } from "../scripts/atlas-snap
 import { snapshotOperationalRich } from "../scripts/atlas-snapshot-v2.mjs";
 import { buildArtificialBodyModel } from "../scripts/artificial-body-data.mjs";
 import { buildNaturalBodyModel, naturalBodyKind } from "../scripts/natural-body-data.mjs";
-import { buildSuperstructureIdentity, SUPERSTRUCTURE_MODEL_VERSION } from "../scripts/superstructure-identities.mjs";
+import { buildSuperstructureIdentity, SUPERSTRUCTURE_KEYS, SUPERSTRUCTURE_MODEL_VERSION } from "../scripts/superstructure-identities.mjs";
 import { parseCsv } from "../scripts/system-data.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -56,7 +56,7 @@ function presentationModel(row, asset) {
 function buildBundle() {
   const planetManifestText = read(PLANET_MANIFEST), operationsManifestText = read(OPERATIONS_MANIFEST), superstructureText = read(SUPERSTRUCTURE_IDENTITIES);
   const planetManifest = JSON.parse(planetManifestText), operationsManifest = JSON.parse(operationsManifestText), superstructureManifest = JSON.parse(superstructureText);
-  if (superstructureManifest.modelVersion !== SUPERSTRUCTURE_MODEL_VERSION || superstructureManifest.count !== 28) throw new Error("Superstructure identity artifact is stale or incompatible.");
+  if (superstructureManifest.modelVersion !== SUPERSTRUCTURE_MODEL_VERSION || superstructureManifest.count !== SUPERSTRUCTURE_KEYS.length) throw new Error("Superstructure identity artifact is stale or incompatible.");
   const registryText = read(REGISTRY);
   const rows = parseCsv(registryText);
   const rowByBody = new Map(rows.map((row) => [key(row.system, row.object), row]));

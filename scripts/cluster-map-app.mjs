@@ -1,10 +1,15 @@
-import { SYSTEMS, projectedDistanceLy, spatialDistanceLy } from "./cluster-data.mjs";
-import { calculateTransit, formatDuration, formatLightYears, formatVelocity, SECONDS_PER_JULIAN_YEAR, trajectoryMarkers } from "./relativity.mjs";
-import { abortVoyage, advanceVoyageToRouteFraction, engageVoyage, evaluateVoyage } from "./campaign-time.mjs";
-import { ClusterView } from "./cluster-view.mjs";
-import { attachFactionTerritories } from "./faction-territories.mjs";
-import { attachCapitalIcons } from "./capital-icons.mjs";
-import { AU_KM, LIGHT_YEAR_KM, buildSystemModel, formatSystemDistance, loadSystemRegistry, physicalDistanceAu, physicalDistanceLy } from "./system-data.mjs";
+// Single-system edition: the app opens on HOME_SYSTEM and never leaves it. The cluster view and
+// the other nine systems' data have been removed from this module.
+//
+// ASTRAL TRAVEL (dormant): routes, voyages, the ship marker and the relativistic travel solver
+// are commented out below, not deleted, so they can be revived later (e.g. for astral barges).
+// To revive, restore these imports and uncomment every block marked "ASTRAL TRAVEL (dormant)".
+// Branches for voyage.context === "cluster" (and the SYSTEMS / formatLightYears references) belong
+// to the removed cluster view and should be dropped when reviving; in-system routes are self-contained.
+// import { calculateTransit, formatDuration, formatVelocity, SECONDS_PER_JULIAN_YEAR, trajectoryMarkers } from "./relativity.mjs";
+// import { abortVoyage, advanceVoyageToRouteFraction, engageVoyage, evaluateVoyage } from "./campaign-time.mjs";
+// import { AU_KM, LIGHT_YEAR_KM, formatSystemDistance, physicalDistanceAu, physicalDistanceLy } from "./system-data.mjs";
+import { buildSystemModel, loadSystemRegistry } from "./system-data.mjs";
 import { SystemView } from "./system-view.mjs";
 import { BodyView } from "./body-view.mjs";
 import { naturalBodyKind, buildNaturalBodyModel } from "./natural-body-data.mjs";
@@ -12,29 +17,43 @@ import { artificialBodyKind, buildArtificialBodyModel } from "./artificial-body-
 import { inspectSurfaceFeature } from "./body-layers.mjs";
 import { loadBodyOperationAsset } from "./body-operations.mjs";
 import { AstronomySnapshotCache, loadAstronomyOrientations } from "./astronomy.mjs";
-import { UNION_EPOCH_MS } from "./universal-time.mjs";
+import { CAMPAIGN_START_MS, DAY_MS, formatUniversalClock, formatUniversalDate } from "./universal-time.mjs";
+import { coverRings, environmentField, placeReport, seasonalCover, subsolarPoint } from "./eym-seasons.mjs";
+import { buildWeatherState, globeWeather, placeWeatherNow, STEP_HOURS, weatherReport } from "./eym-weather.mjs";
+import { loadStarfield } from "./starfield.mjs";
+import { displayNameFor, objectDisplayName, parentDisplayName, systemDisplayName } from "./display-names.mjs";
+import { groundSky, localSolarHours } from "./ground-sky.mjs";
+import { SkyView } from "./sky-view.mjs";
+import { mansionForDirection, sunPathLongitudeDeg } from "./lunar-mansions.mjs";
+import { phaseName } from "./moon-events.mjs";
 
-export const MODULE_ID = "orphaned-sun-cluster-map";
+export const MODULE_ID = "eym-planet-map";
+/** The only system this module exposes. Its name must match the `system` column of the registry CSV. */
+export const HOME_SYSTEM = Object.freeze({ id: "abydos", name: "Abydos" });
 const assetSlug = (value) => value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 export class ClusterMapApplication extends HandlebarsApplicationMixin(ApplicationV2) {
-  mode = "cluster";
-  activeSystem = null;
+  mode = "system";
+  activeSystem = HOME_SYSTEM;
   activeBody = null;
   _registryPromise = null;
   _astronomyOrientationsPromise = null;
+  _starfieldPromise = null;
+  _skyDocumentPromise = null;
+  /** Where the ground view looks up from: { latDeg, lonDeg }. */
+  lookUp = null;
   _astronomyCache = new AstronomySnapshotCache();
   _systemSnapshotReferenceMs = null;
-  _astronomyArrivalVoyageId = null;
+  // ASTRAL TRAVEL (dormant): _astronomyArrivalVoyageId = null;
   selectedRoute = null;
   static DEFAULT_OPTIONS = {
-    id: "orphaned-sun-cluster-map",
-    classes: ["orphaned-sun-cluster-map", "standard-form"],
+    id: MODULE_ID,
+    classes: [MODULE_ID, "standard-form"],
     position: { width: 1120, height: 760 },
     window: {
-      title: "Orphaned Sun: Beehive Cluster",
+      title: systemDisplayName(HOME_SYSTEM.name),
       icon: "fa-solid fa-star",
       resizable: true,
       minimizable: true,
@@ -51,13 +70,9 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const context = await super._prepareContext(options);
     return {
       ...context,
-      accelerationG: game.settings.get(MODULE_ID, "accelerationG"),
-      cruiseBeta: game.settings.get(MODULE_ID, "cruiseBeta"),
-      gridSpacing: game.settings.get(MODULE_ID, "gridSpacing"),
-      gridOneSelected: Number(game.settings.get(MODULE_ID, "gridSpacing")) === 1,
-      gridTwoSelected: Number(game.settings.get(MODULE_ID, "gridSpacing")) === 2,
+      // ASTRAL TRAVEL (dormant): accelerationG, cruiseBeta and gridSpacing fed the navigation profile card.
       isGM: game.user.isGM,
-      systemCount: SYSTEMS.length,
+      systemTitle: systemDisplayName(HOME_SYSTEM.name),
     };
   }
 
@@ -71,40 +86,47 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this._clusterView?.destroy();
     this._resizeObserver?.disconnect();
 
-    this._clusterView = new ClusterView(svg, {
-      gridSpacing: Number(game.settings.get(MODULE_ID, "gridSpacing")),
-      onSelectionChange: (origin, destination) => this.#updateRoutePanel(origin, destination),
-      onSystemActivate: (system) => this.#enterSystem(system),
-      onShipDrag: (fraction) => this.#scrubVoyageToFraction(fraction),
-    });
-    attachFactionTerritories(this._clusterView);
-    attachCapitalIcons(this._clusterView);
+    this._clusterView = null;
 
-    root.querySelector('[data-action="reset-view"]')?.addEventListener("click", () => this._clusterView.resetView());
-    root.querySelector('[data-action="clear-route"]')?.addEventListener("click", () => this._clusterView.clearSelection());
-    root.querySelector('[data-action="apply-profile"]')?.addEventListener("click", () => this.#applyProfile(root));
-    root.querySelector('[data-action="engage-route"]')?.addEventListener("click", () => this.#engageSelectedRoute());
-    root.querySelector('[data-action="abort-voyage"]')?.addEventListener("click", () => this.#abortActiveVoyage());
-    root.querySelector('[data-action="back-to-cluster"]')?.addEventListener("click", () => this.#showCluster());
+    root.querySelector('[data-action="reset-view"]')?.addEventListener("click", () => this._clusterView?.resetView?.());
+    root.querySelector('[data-action="clear-route"]')?.addEventListener("click", () => this._clusterView?.clearSelection?.());
+    // ASTRAL TRAVEL (dormant):
+    // root.querySelector('[data-action="apply-profile"]')?.addEventListener("click", () => this.#applyProfile(root));
+    // root.querySelector('[data-action="engage-route"]')?.addEventListener("click", () => this.#engageSelectedRoute());
+    // root.querySelector('[data-action="abort-voyage"]')?.addEventListener("click", () => this.#abortActiveVoyage());
     root.querySelector('[data-action="back-to-system"]')?.addEventListener("click", () => this.#showSystem());
+    root.querySelector('[data-action="look-up"]')?.addEventListener("click", () => {
+      const lat = Number(root.querySelector('[name="lookUpLat"]')?.value), lon = Number(root.querySelector('[name="lookUpLon"]')?.value);
+      if (!(lat >= -90 && lat <= 90) || !(lon >= -180 && lon <= 180)) return ui.notifications.warn("Latitude must be −90 to 90 and longitude −180 to 180.");
+      this.#enterSky(lat, lon);
+    });
+    root.querySelector('[data-action="back-to-body"]')?.addEventListener("click", () => { if (this.activeBody) this.#enterBody(this.activeBody); });
+    for (const control of root.querySelectorAll("[data-sky-layer]")) control.addEventListener("change", () => this._clusterView?.setLayerVisibility?.(control.dataset.skyLayer, control.checked));
+    for (const name of ["lookUpLat", "lookUpLon"]) root.querySelector(`[name="${name}"]`)?.addEventListener("input", () => this.#updatePlaceReadout());
     for (const control of root.querySelectorAll("[data-body-layer]")) control.addEventListener("change", () => this._clusterView?.setLayerVisibility?.(control.dataset.bodyLayer, control.checked));
 
     this._resizeObserver = new ResizeObserver(() => this._clusterView?.render());
     this._resizeObserver.observe(root);
 
     this.#updateRoutePanel(null, null);
-    if (this.mode === "system" && this.activeSystem) this.#enterSystem(this.activeSystem);
-    if (this.mode === "body" && this.activeSystem && this.activeBody) this.#enterBody(this.activeBody);
+    // The system is the outermost level, so there is always a system or a body to show.
+    this.activeSystem ??= HOME_SYSTEM;
+    if (this.mode === "sky" && this.activeBody && this.lookUp) this.#enterSky(this.lookUp.latDeg, this.lookUp.lonDeg);
+    else if (this.mode === "body" && this.activeBody) this.#enterBody(this.activeBody);
+    else this.#enterSystem(this.activeSystem);
     window.removeEventListener("oscm-campaign-time-changed", this._campaignTimeListener);
-    window.clearInterval(this._voyageTicker);
+    // ASTRAL TRAVEL (dormant): window.clearInterval(this._voyageTicker);
     this._campaignTimeListener = () => {
-      this.#refreshActiveVoyage();
+      // ASTRAL TRAVEL (dormant): this.#refreshActiveVoyage();
       void this.#refreshVisibleAstronomy().catch((error) => console.warn(`${MODULE_ID} | Unable to refresh visible astronomy`, error));
-      void this.#snapshotVoyageArrival().catch((error) => console.warn(`${MODULE_ID} | Unable to snapshot voyage arrival system`, error));
+      void this.#refreshSky().catch((error) => console.warn(`${MODULE_ID} | Unable to refresh the sky`, error));
+      void this.#refreshBodyEnvironment().catch((error) => console.warn(`${MODULE_ID} | Unable to refresh day and night`, error));
+      // ASTRAL TRAVEL (dormant): void this.#snapshotVoyageArrival().catch((error) => console.warn(`${MODULE_ID} | Unable to snapshot voyage arrival system`, error));
     };
     window.addEventListener("oscm-campaign-time-changed", this._campaignTimeListener);
-    this._voyageTicker = window.setInterval(() => this.#refreshActiveVoyage(), 1000);
-    this.#refreshActiveVoyage();
+    // ASTRAL TRAVEL (dormant):
+    // this._voyageTicker = window.setInterval(() => this.#refreshActiveVoyage(), 1000);
+    // this.#refreshActiveVoyage();
   }
 
   _onClose(options) {
@@ -113,7 +135,9 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this._clusterView?.destroy();
     this._clusterView = null;
     window.removeEventListener("oscm-campaign-time-changed", this._campaignTimeListener);
-    window.clearInterval(this._voyageTicker);
+    window.clearInterval(this._skyTicker);
+    window.clearInterval(this._bodyTicker);
+    // ASTRAL TRAVEL (dormant): window.clearInterval(this._voyageTicker);
     return super._onClose(options);
   }
 
@@ -128,13 +152,14 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   async #refreshVisibleAstronomy() {
-    if (this.mode !== "system" || !this.activeSystem || this._clusterView?.isDraggingShip) return;
+    if (this.mode !== "system" || !this.activeSystem) return; // ASTRAL TRAVEL (dormant): || this._clusterView?.isDraggingShip
     const referenceTimestampMs = game.modules.get(MODULE_ID)?.api?.getCampaignTimeState?.()?.referenceBaseMs;
     if (!Number.isFinite(referenceTimestampMs)) return;
     if (Number.isFinite(this._systemSnapshotReferenceMs) && Math.abs(referenceTimestampMs - this._systemSnapshotReferenceMs) < 3_600_000) return;
     await this.#enterSystem(this.activeSystem, referenceTimestampMs);
   }
 
+  /* ASTRAL TRAVEL (dormant): voyage-arrival astronomy snapshot.
   async #snapshotVoyageArrival() {
     const state = game.modules.get(MODULE_ID)?.api?.getCampaignTimeState?.();
     const voyage = state?.activeVoyage;
@@ -145,6 +170,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     await this.#astronomicalModel(voyage.destinationName, arrivalReferenceMs);
     this._astronomyArrivalVoyageId = voyage.id;
   }
+  */
 
   async #enterSystem(system, requestedReferenceTimestampMs = null) {
     const root = this.element?.querySelector?.(".oscm-shell");
@@ -154,16 +180,22 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       const api = game.modules.get(MODULE_ID)?.api;
       const referenceTimestampMs = Number.isFinite(requestedReferenceTimestampMs)
         ? requestedReferenceTimestampMs
-        : api?.getCampaignTimeState?.()?.referenceBaseMs ?? UNION_EPOCH_MS;
+        : api?.getCampaignTimeState?.()?.referenceBaseMs ?? CAMPAIGN_START_MS;
       const model = await this.#astronomicalModel(system.name, referenceTimestampMs);
+      // The night sky is decoration: if it cannot load, the system map still opens without it.
+      this._starfieldPromise ??= loadStarfield(MODULE_ID).catch((error) => { console.warn(`${MODULE_ID} | Starfield unavailable`, error); return null; });
+      const starfield = await this._starfieldPromise;
       this._clusterView?.destroy();
       this._clusterView = new SystemView(svg, {
         model,
+        starfield,
         onSelectionChange: (origin, destination) => this.#updateRoutePanel(origin, destination),
-        onExitRequested: () => this.#showCluster(),
+        // The system is the outermost level: zooming out stops at the minimum zoom instead of leaving.
+        onExitRequested: () => {},
         onObjectActivate: (object) => this.#enterBody(object),
-        onShipDrag: (fraction) => this.#scrubVoyageToFraction(fraction),
+        // ASTRAL TRAVEL (dormant): onShipDrag: (fraction) => this.#scrubVoyageToFraction(fraction),
       });
+      this.#leaveSky(root);
       this.mode = "system";
       this.activeSystem = system;
       this.activeBody = null;
@@ -172,19 +204,175 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       root.classList.remove("is-body-mode");
       root.classList.remove("has-geography");
       root.classList.remove("has-operations");
-      root.querySelector('[data-action="back-to-cluster"]')?.classList.remove("is-hidden");
       root.querySelector('[data-action="back-to-system"]')?.classList.add("is-hidden");
-      const title = root.querySelector("[data-map-title]"); if (title) title.textContent = `${system.name} System`;
+      const title = root.querySelector("[data-map-title]"); if (title) title.textContent = systemDisplayName(system.name);
       const count = root.querySelector("[data-map-count]"); if (count) count.textContent = `${model.objects.length} mapped objects`;
-      const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Click / tap two objects: local route";
+      const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Click / tap to select; double-click / double-tap to open";
       this.#updateRoutePanel(null, null);
     } catch (error) {
       console.error(`${MODULE_ID} | Unable to enter system view`, error);
-      ui.notifications.error(`Unable to load ${system.name} system data.`);
+      ui.notifications.error(`Unable to load ${systemDisplayName(system.name)} system data.`);
     }
   }
 
   #showSystem() { if (this.activeSystem) this.#enterSystem(this.activeSystem); }
+
+  #leaveSky(root) {
+    window.clearInterval(this._skyTicker);
+    this._skyTicker = null;
+    root.classList.remove("is-sky-mode");
+    root.querySelector('[data-action="back-to-body"]')?.classList.add("is-hidden");
+  }
+
+  /** A fresh ground-sky snapshot for the current look-up place at the campaign clock's moment. */
+  async #skySnapshot() {
+    const api = game.modules.get(MODULE_ID)?.api;
+    const t = api?.getCampaignTimeState?.()?.referenceBaseMs ?? CAMPAIGN_START_MS;
+    this._registryPromise ??= loadSystemRegistry(MODULE_ID);
+    this._astronomyOrientationsPromise ??= loadAstronomyOrientations(MODULE_ID);
+    this._skyDocumentPromise ??= fetch(`modules/${MODULE_ID}/data/stellar/constellations.json`).then((r) => { if (!r.ok) throw new Error(`Sky data fetch failed (${r.status})`); return r.json(); });
+    this._starfieldPromise ??= loadStarfield(MODULE_ID).catch((error) => { console.warn(`${MODULE_ID} | Starfield unavailable`, error); return null; });
+    const [rows, orientationDocument, sky, starfield] = await Promise.all([this._registryPromise, this._astronomyOrientationsPromise, this._skyDocumentPromise, this._starfieldPromise]);
+    if (!starfield) throw new Error("The star catalogue is unavailable.");
+    const model = buildSystemModel(rows, HOME_SYSTEM.name, { referenceTimestampMs: t, orientations: orientationDocument.orientations });
+    this._sun = { t, subsolar: subsolarPoint(model, sky) };
+    return { snapshot: groundSky({ model, sky, starfield, latDeg: this.lookUp.latDeg, lonDeg: this.lookUp.lonDeg }), sky, starfield };
+  }
+
+  async #enterSky(latDeg, lonDeg) {
+    const root = this.element?.querySelector?.(".oscm-shell"), svg = root?.querySelector(".oscm-cluster-svg");
+    if (!root || !svg) return;
+    try {
+      this.lookUp = { latDeg, lonDeg };
+      const { snapshot, sky, starfield } = await this.#skySnapshot();
+      const layers = Object.fromEntries([...root.querySelectorAll("[data-sky-layer]")].map((c) => [c.dataset.skyLayer, c.checked]));
+      this._clusterView?.destroy();
+      this._clusterView = new SkyView(svg, { snapshot, sky, starfield, displayName: (name) => displayNameFor(HOME_SYSTEM.name, name), layers });
+      this.mode = "sky";
+      root.classList.add("is-sky-mode");
+      root.classList.remove("is-system-mode", "is-body-mode", "has-geography", "has-operations", "can-look-up");
+      root.querySelector('[data-action="back-to-system"]')?.classList.remove("is-hidden");
+      root.querySelector('[data-action="back-to-body"]')?.classList.remove("is-hidden");
+      const title = root.querySelector("[data-map-title]"); if (title) title.textContent = `The sky over ${displayNameFor(HOME_SYSTEM.name, "Eventide")}`;
+      const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Drag to turn · wheel to zoom · double-click to reset";
+      this.#updateSkyReadout(snapshot, sky);
+      window.clearInterval(this._skyTicker);
+      // The sky turns slowly; with the clock running, refresh it every few seconds.
+      this._skyTicker = window.setInterval(() => void this.#refreshSky().catch(() => {}), 5000);
+    } catch (error) {
+      console.error(`${MODULE_ID} | Unable to show the sky`, error);
+      ui.notifications.error("Unable to show the sky from here.");
+    }
+  }
+
+  /** Where Mitkear is overhead on Eym at the campaign clock's moment. */
+  async #sunNow() {
+    const t = game.modules.get(MODULE_ID)?.api?.getCampaignTimeState?.()?.referenceBaseMs ?? CAMPAIGN_START_MS;
+    this._registryPromise ??= loadSystemRegistry(MODULE_ID);
+    this._astronomyOrientationsPromise ??= loadAstronomyOrientations(MODULE_ID);
+    this._skyDocumentPromise ??= fetch(`modules/${MODULE_ID}/data/stellar/constellations.json`).then((r) => { if (!r.ok) throw new Error(`Sky data fetch failed (${r.status})`); return r.json(); });
+    const [rows, orientationDocument, sky] = await Promise.all([this._registryPromise, this._astronomyOrientationsPromise, this._skyDocumentPromise]);
+    const model = buildSystemModel(rows, HOME_SYSTEM.name, { referenceTimestampMs: t, orientations: orientationDocument.orientations });
+    return { t, subsolar: subsolarPoint(model, sky) };
+  }
+
+  /** Real day and night on Eym's globe, and the season's snow and sea ice (recomputed once a day). */
+  async #refreshBodyEnvironment() {
+    if (this.mode !== "body" || this.activeBody?.name !== "Eventide" || !this._eymField || !this._clusterView?.setEnvironment) return;
+    const { t, subsolar } = await this.#sunNow();
+    if (this.mode !== "body" || !this._clusterView?.setEnvironment) return;
+    const day = Math.floor(t / DAY_MS);
+    if (this._coverDay !== day) { this._cover = seasonalCover(this._eymField, t); this._coverDay = day; }
+    this._sun = { t, subsolar };
+    if (this.#ensureWeather()) {
+      this._globeWeather = globeWeather(this._weather);
+      this._weatherSnow = coverRings(this._eymField, this._globeWeather.snow);
+      this._clusterView.setWeather?.(this._globeWeather);
+    }
+    // Snow on the ground comes from the weather (the last week's snowfall and thaw); sea ice from the season.
+    this._clusterView.setEnvironment({ subsolar, snow: this._weatherSnow ?? this._cover.snow, ice: this._cover.ice });
+    this.#updatePlaceReadout();
+  }
+
+  /** Rebuild the weather state when the clock enters a new 3-hour step; true if it changed. */
+  #ensureWeather() {
+    if (!this._eymField || !this._sun) return false;
+    const step = Math.round(this._sun.t / (DAY_MS / 24) / STEP_HOURS);
+    if (this._weatherStep === step && this._weather) return false;
+    this._weather = buildWeatherState({ timeMs: this._sun.t, subsolar: this._sun.subsolar, field: this._eymField });
+    this._weatherStep = step;
+    return true;
+  }
+
+  /** The weather at a place now, in words (null before the weather is ready). */
+  #weatherHere(latDeg, lonDeg) {
+    if (!this._weather || !this._sun) return null;
+    const now = placeWeatherNow(this._weather, latDeg, lonDeg, { subsolar: this._sun.subsolar, timeMs: this._sun.t });
+    return weatherReport(this._weather, latDeg, lonDeg, now);
+  }
+
+  /** The "Here and now" card: date, season, sun and temperature at the chosen place. */
+  #updatePlaceReadout() {
+    const root = this.element?.querySelector?.(".oscm-shell"); if (!root || !this._eymField || !this._sun) return;
+    const latDeg = Number(root.querySelector('[name="lookUpLat"]')?.value), lonDeg = Number(root.querySelector('[name="lookUpLon"]')?.value);
+    if (!(latDeg >= -90 && latDeg <= 90) || !(lonDeg >= -180 && lonDeg <= 180)) return;
+    const report = placeReport({ field: this._eymField, subsolar: this._sun.subsolar, latDeg, lonDeg, timeMs: this._sun.t });
+    const weather = this.#weatherHere(latDeg, lonDeg);
+    const values = { ...report, date: `${formatUniversalDate(this._sun.t)}, ${formatUniversalClock(this._sun.t).slice(0, 5)}` };
+    if (weather) {
+      const { values: ignored, ...words } = weather; void ignored;
+      Object.assign(values, words, { temperature: `${weather.weatherTemperature} (seasonal high ${Math.round(report.values.temperature.highC)}, low ${Math.round(report.values.temperature.lowC)})`, ground: weather.groundNow });
+    }
+    for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-place-field="${field}"]`); if (element && typeof value === "string") element.textContent = value; }
+  }
+
+  async #refreshSky() {
+    if (this.mode !== "sky" || !this.lookUp || !this._clusterView?.update) return;
+    const { snapshot, sky } = await this.#skySnapshot();
+    if (this.mode !== "sky") return;
+    this._clusterView.update(snapshot);
+    this.#updateSkyReadout(snapshot, sky);
+  }
+
+  #updateSkyReadout(snapshot, sky) {
+    const root = this.element?.querySelector?.(".oscm-shell"); if (!root) return;
+    const { latDeg, lonDeg } = snapshot;
+    const hours = localSolarHours(snapshot), hh = Math.floor(hours), mm = Math.floor((hours - hh) * 60);
+    const sunLongitude = sunPathLongitudeDeg(snapshot.sun.dir, sky);
+    const moonText = (moon) => {
+      const phase = phaseName(sunPathLongitudeDeg(moon.dir, sky) - sunLongitude);
+      const where = moon.visible ? `up, ${Math.round(moon.altDeg)}°` : moon.altDeg > 0 ? "lost in daylight" : "below the horizon";
+      const eclipse = moon.umbralFraction > 0.98 ? " · totally eclipsed" : moon.umbralFraction > 0.01 ? " · partly eclipsed" : "";
+      return `${phase} (${Math.round(moon.illuminated * 100)}%) · ${where} · ${mansionForDirection(moon.dir, sky).name}${eclipse}`;
+    };
+    const sunEclipse = snapshot.sun.coverage > 0.995 ? " · TOTAL ECLIPSE" : snapshot.sun.coverage > 0.01 ? ` · ${Math.round(snapshot.sun.coverage * 100)}% eclipsed` : "";
+    let extra = {}, cloud = 0;
+    if (this._eymField && this._sun) {
+      const report = placeReport({ field: this._eymField, subsolar: this._sun.subsolar, latDeg, lonDeg, timeMs: this._sun.t });
+      extra = { season: report.season, sunriseSunset: `${report.sunriseSunset} (${report.dayLength})`, temperature: report.temperature };
+      this.#ensureWeather();
+      const weather = this.#weatherHere(latDeg, lonDeg);
+      if (weather) {
+        extra.weather = `${weather.conditions}; ${weather.wind}`;
+        extra.temperature = `${weather.weatherTemperature} (seasonal high ${Math.round(report.values.temperature.highC)}, low ${Math.round(report.values.temperature.lowC)})`;
+        cloud = weather.values.weather.cloud;
+        this._clusterView?.setCloud?.(cloud);
+      }
+    }
+    const visiblePlanets = snapshot.planets.filter((p) => p.visible).map((p) => displayNameFor(HOME_SYSTEM.name, p.name));
+    const values = {
+      place: `${Math.abs(latDeg).toFixed(1)}°${latDeg >= 0 ? "N" : "S"}, ${Math.abs(lonDeg).toFixed(1)}°${lonDeg >= 0 ? "E" : "W"}`,
+      localTime: `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")} (sun time)`,
+      sun: `${snapshot.twilight}, ${Math.round(snapshot.sun.altDeg)}°${sunEclipse}`,
+      whiteMoon: moonText(snapshot.moons.find((m) => m.name === "White Moon")),
+      redMoon: moonText(snapshot.moons.find((m) => m.name === "Red Moon")),
+      planets: visiblePlanets.length ? `${visiblePlanets.join(", ")}${cloud > 0.8 ? " (behind cloud)" : ""}` : "none visible",
+      limit: `magnitude ${snapshot.limitingMagnitude.toFixed(1)}`,
+      ...extra,
+    };
+    for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-sky-field="${field}"]`); if (element) element.textContent = value; }
+    const count = root.querySelector("[data-map-count]"); if (count) count.textContent = values.place;
+  }
 
   async #enterBody(object) {
     const root = this.element?.querySelector?.(".oscm-shell"), svg = root?.querySelector(".oscm-cluster-svg");
@@ -207,13 +395,22 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       }
       this._clusterView?.destroy();
       this._clusterView = new BodyView(svg, { model, geography, operations, ownerFaction: object.owner_faction, onExitRequested: () => this.#showSystem(), onFeatureSelected: (feature) => this.#updateBodyFeature(feature) });
+      this.#leaveSky(root);
       this.mode = "body"; this.activeBody = object;
+      // Eym: real day and night and the seasons on the globe, kept current with the clock.
+      window.clearInterval(this._bodyTicker); this._bodyTicker = null;
+      if (object.name === "Eventide" && geography?.terrain?.coastlineSource === "vector") {
+        this._eymField = environmentField(geography); this._coverDay = null; this._weatherStep = null; this._weatherSnow = null;
+        void this.#refreshBodyEnvironment().catch((error) => console.warn(`${MODULE_ID} | Unable to show day and night`, error));
+        this._bodyTicker = window.setInterval(() => void this.#refreshBodyEnvironment().catch(() => {}), 10000);
+      }
       root.classList.add("is-system-mode", "is-body-mode");
+      // Only Eym has people on it to look up: offer the ground view from its surface map.
+      root.classList.toggle("can-look-up", object.name === "Eventide" && Boolean(geography));
       root.classList.toggle("has-geography", Boolean(geography));
       root.classList.toggle("has-operations", Boolean(operations));
-      root.querySelector('[data-action="back-to-cluster"]')?.classList.remove("is-hidden");
       root.querySelector('[data-action="back-to-system"]')?.classList.remove("is-hidden");
-      const title = root.querySelector("[data-map-title]"); if (title) title.textContent = object.name;
+      const title = root.querySelector("[data-map-title]"); if (title) title.textContent = objectDisplayName(object);
       const count = root.querySelector("[data-map-count]"); if (count) count.textContent = geography ? geography.schemaVersion === 2 ? `${geography.gazetteer.length} named features · 2° survey` : `${geography.cells.length} surface cells` : operations ? `${operations.operationalSummary.featureCount} operational features` : object.type;
       const help = root.querySelector("[data-map-help]"); if (help) help.textContent = geography
         ? "Click / tap a mapped surface feature"
@@ -221,7 +418,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
         : "Click / tap docking approaches; drag to inspect";
       this.#updateRoutePanel(null, null);
       this.#updateBodyMetadata(object, model);
-    } catch (error) { console.error(`${MODULE_ID} | Unable to enter body view`, error); ui.notifications.error(`Unable to load ${object.name} orbital view.`); }
+    } catch (error) { console.error(`${MODULE_ID} | Unable to enter body view`, error); ui.notifications.error(`Unable to load ${objectDisplayName(object)} orbital view.`); }
   }
 
   #updateBodyFeature(feature) {
@@ -229,7 +426,14 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     if (!feature) { this.#updateBodyMetadata(this.activeBody, this._clusterView?.model); return; }
     card.classList.remove("is-hidden");
     const inspected = inspectSurfaceFeature(feature);
-    const values = { objectName: inspected.name, objectType: inspected.type, objectParent: this.activeBody?.name || "—", objectRole: inspected.detail, objectScale: inspected.scale ?? (feature.suitability != null ? `Settlement suitability ${feature.suitability}` : "Survey extent not fixed") };
+    const lat = Number(feature.lat ?? feature.at?.[0]), lon = Number(feature.lon ?? feature.at?.[1]);
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      const latInput = root.querySelector('[name="lookUpLat"]'), lonInput = root.querySelector('[name="lookUpLon"]');
+      if (latInput) latInput.value = lat.toFixed(1);
+      if (lonInput) lonInput.value = ((((lon + 180) % 360) + 360) % 360 - 180).toFixed(1);
+      this.#updatePlaceReadout();
+    }
+    const values = { objectName: inspected.name, objectType: inspected.type, objectParent: (this.activeBody && objectDisplayName(this.activeBody)) || "—", objectRole: inspected.detail, objectScale: inspected.scale ?? (feature.suitability != null ? `Settlement suitability ${feature.suitability}` : "Survey extent not fixed") };
     for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-field="${field}"]`); if (element) element.textContent = value; }
   }
 
@@ -237,43 +441,23 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const root = this.element?.querySelector?.(".oscm-shell"), card = root?.querySelector(".oscm-object-details"); if (!root || !card || !object || !model) return;
     card.classList.remove("is-hidden");
     const values = {
-      objectName: object.name,
+      objectName: objectDisplayName(object),
       objectType: model.structureClass || object.type,
-      objectParent: object.parent || "—",
+      objectParent: parentDisplayName(object) || "—",
       objectRole: model.function || model.resourceProfile || object.hz_or_role || "Mapped orbital body",
       objectScale: model.dimensions || (model.radiusKm ? `${model.radiusKm.toLocaleString()} km radius` : "Distributed mapped region"),
     };
     for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-field="${field}"]`); if (element) element.textContent = value; }
   }
 
-  #showCluster() {
-    const root = this.element?.querySelector?.(".oscm-shell");
-    const svg = root?.querySelector(".oscm-cluster-svg");
-    if (!root || !svg) return;
-    this._clusterView?.destroy();
-    this._clusterView = new ClusterView(svg, {
-      gridSpacing: Number(game.settings.get(MODULE_ID, "gridSpacing")),
-      onSelectionChange: (origin, destination) => this.#updateRoutePanel(origin, destination),
-      onSystemActivate: (system) => this.#enterSystem(system),
-      onShipDrag: (fraction) => this.#scrubVoyageToFraction(fraction),
-    });
-    attachFactionTerritories(this._clusterView);
-    attachCapitalIcons(this._clusterView);
-    this.mode = "cluster";
-    this.activeSystem = null;
-    this.activeBody = null;
-    root.classList.remove("is-system-mode");
-    root.classList.remove("is-body-mode");
-    root.classList.remove("has-geography");
-      root.classList.remove("has-operations");
-    root.querySelector('[data-action="back-to-cluster"]')?.classList.add("is-hidden");
-    root.querySelector('[data-action="back-to-system"]')?.classList.add("is-hidden");
-    const title = root.querySelector("[data-map-title]"); if (title) title.textContent = "Beehive Cluster";
-    const count = root.querySelector("[data-map-count]"); if (count) count.textContent = `${SYSTEMS.length} systems`;
-    const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Click / tap two systems: route";
-    this.#updateRoutePanel(null, null);
+  /** Selection without travel: shows the selected object's details. The route maths is dormant below. */
+  #updateRoutePanel(origin, destination) {
+    this.selectedRoute = null;
+    this.#updateObjectDetails(origin, destination);
   }
 
+  /* ASTRAL TRAVEL (dormant): navigation profile, relativistic routes, voyages and the ship marker.
+     The original #updateRoutePanel is kept here as #updateTravelRoutePanel.
   async #applyProfile(root) {
     if (!game.user.isGM) return;
 
@@ -298,7 +482,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     ui.notifications.info("Cluster navigation profile updated.");
   }
 
-  #updateRoutePanel(origin, destination) {
+  #updateTravelRoutePanel(origin, destination) {
     const root = this.element?.querySelector?.(".oscm-shell");
     if (!root) return;
 
@@ -466,6 +650,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       draggable: Boolean(game.user.isGM && api.isClockAuthority?.()),
     });
   }
+  */
 
   #updateObjectDetails(origin, destination) {
     const root = this.element?.querySelector?.(".oscm-shell");
@@ -474,9 +659,9 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     card.classList.toggle("is-hidden", this.mode !== "system" || (!origin && !destination));
     const object = destination ?? origin;
     const values = {
-      objectName: object?.name ?? "—",
+      objectName: object ? objectDisplayName(object) : "—",
       objectType: object?.type ?? "—",
-      objectParent: object?.parent ?? "—",
+      objectParent: (object && parentDisplayName(object)) ?? "—",
       objectRole: object?.hz_or_role || object?.primary_function || "—",
       objectScale: object?.dimensions_estimate || (object?.radiusRe ? `${object.radiusRe} Earth radii` : "Schematic marker"),
     };

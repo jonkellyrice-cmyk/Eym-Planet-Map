@@ -6,14 +6,6 @@ function svgElement(name, attrs = {}) {
   return el;
 }
 
-export const CAPITAL_MARKERS = Object.freeze([
-  Object.freeze({ systemId: "abydos", factionId: "eventide", factionName: "Eventide", emblem: "eventide" }),
-  Object.freeze({ systemId: "sais", factionId: "mandate", factionName: "XUANJIA Mandate", emblem: "mandate" }),
-  Object.freeze({ systemId: "nekhen", factionId: "conclave", factionName: "Adainian Conclave", emblem: "conclave" }),
-  Object.freeze({ systemId: "saqqara", factionId: "accords", factionName: "Signatories of the Accords Paramount", emblem: "accords" }),
-  Object.freeze({ systemId: "amarna", factionId: "union", factionName: "Union", emblem: "union" }),
-]);
-
 export const FACTION_PRESENTATIONS = Object.freeze({
   eventide: Object.freeze({ factionId: "eventide", factionName: "Eventide", emblem: "eventide" }),
   mandate: Object.freeze({ factionId: "mandate", factionName: "XUANJIA Mandate", emblem: "mandate" }),
@@ -31,26 +23,6 @@ export function factionPresentationForOwner(ownerFaction) {
   if (owner.includes("conclave")) return FACTION_PRESENTATIONS.conclave;
   if (owner.includes("union")) return FACTION_PRESENTATIONS.union;
   return null;
-}
-
-function project(view, point) {
-  const { yaw, pitch, zoom, panX, panY } = view.state;
-  const cosY = Math.cos(yaw);
-  const sinY = Math.sin(yaw);
-  const cosP = Math.cos(pitch);
-  const sinP = Math.sin(pitch);
-  const x1 = point.x * cosY + point.z * sinY;
-  const z1 = -point.x * sinY + point.z * cosY;
-  const y2 = point.y * cosP - z1 * sinP;
-  const z2 = point.y * sinP + z1 * cosP;
-  const focal = 34;
-  const perspective = focal / (focal - z2);
-  const scale = 36 * zoom;
-  return {
-    x: 500 + panX + x1 * scale * perspective,
-    y: 350 + panY - y2 * scale * perspective,
-    z: z2,
-  };
 }
 
 function starPoints(points = 8, outerRadius = 10, innerRadius = 4.5) {
@@ -181,69 +153,4 @@ export function createFactionEmblem(ownerOrPresentation, className = "oscm-facti
   });
   drawEmblem(group, presentation.emblem);
   return group;
-}
-
-/**
- * Adds faction-capital emblems as screen-space SVG markers.
- *
- * Only the anchor position is projected through the 3D camera. The emblem
- * geometry itself is never rotated with the cube, so its visual north remains
- * screen-up as players orbit the cluster. Marker size is likewise kept in
- * screen pixels for legibility at all camera orientations and zoom levels.
- */
-export function attachCapitalIcons(view, markers = CAPITAL_MARKERS) {
-  if (!view?.svg || !view?.state) return null;
-
-  const systems = new Map((view.systems ?? []).map((system) => [system.id, system]));
-  const layer = svgElement("g", { class: "oscm-capital-layer", "aria-hidden": "true" });
-  view.svg.append(layer);
-
-  const nodes = [];
-  for (const marker of markers) {
-    const system = systems.get(marker.systemId);
-    if (!system) continue;
-
-    const group = svgElement("g", {
-      class: `oscm-capital-marker is-${marker.factionId}`,
-      "data-capital-system-id": marker.systemId,
-    });
-    const leader = svgElement("line", {
-      class: "oscm-capital-leader",
-      x1: 0,
-      y1: 18,
-      x2: 0,
-      y2: 37,
-    });
-    group.append(leader);
-
-    const emblemGroup = svgElement("g", { class: "oscm-capital-emblem" });
-    drawEmblem(emblemGroup, marker.emblem);
-    group.append(emblemGroup);
-
-    const title = svgElement("title");
-    title.textContent = `${marker.factionName} capital — ${system.name}`;
-    group.append(title);
-    layer.append(group);
-    nodes.push({ marker, system, group });
-  }
-
-  const renderCapitalIcons = () => {
-    const projected = nodes.map((node) => ({ ...node, p: project(view, node.system) }));
-    projected.sort((a, b) => a.p.z - b.p.z);
-    for (const { group, p } of projected) {
-      // Translation only: the marker follows the star but remains screen-upright.
-      group.setAttribute("transform", `translate(${p.x.toFixed(2)} ${(p.y - 48).toFixed(2)})`);
-      layer.append(group);
-    }
-  };
-
-  const baseRender = view.render.bind(view);
-  view.render = (...args) => {
-    const result = baseRender(...args);
-    renderCapitalIcons();
-    return result;
-  };
-
-  renderCapitalIcons();
-  return layer;
 }

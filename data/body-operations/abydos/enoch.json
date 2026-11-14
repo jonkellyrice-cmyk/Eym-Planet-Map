@@ -6,7 +6,7 @@
   "operationalKind": "natural-solid",
   "permanentOperationalSeed": "44a24b1e71c53369",
   "operationalModelVersion": "orphaned-sun-body-operations-v1",
-  "canonicalSourceFingerprint": "7b71ab4e215b0e6b6d4f",
+  "canonicalSourceFingerprint": "ed78e861c99f3932ad55",
   "acceptedCanonStatus": "accepted-generated-canon",
   "coordinateFrame": {
     "id": "body-fixed-spherical",

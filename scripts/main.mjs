@@ -1,4 +1,5 @@
 import { ClusterMapApplication, MODULE_ID } from "./cluster-map-app.mjs";
+import { addMapSceneControl } from "./scene-control.mjs";
 import {
   DEFAULT_UNIVERSAL_TIME_STATE,
   UNIVERSAL_TIME_SETTING,
@@ -177,13 +178,15 @@ function bindUniversalClock(root) {
 
 function installUniversalClockObserver() {
   if (universalClockObserver || !document?.body) return;
-  const attach = () => document.querySelectorAll(".orphaned-sun-cluster-map .oscm-shell").forEach(bindUniversalClock);
+  const attach = () => document.querySelectorAll(`.${MODULE_ID} .oscm-shell`).forEach(bindUniversalClock);
   universalClockObserver = new MutationObserver(attach);
   universalClockObserver.observe(document.body, { childList: true, subtree: true });
   attach();
 }
 
 Hooks.once("init", () => {
+  // ASTRAL TRAVEL (dormant): accelerationG, cruiseBeta and gridSpacing are no longer shown in the UI.
+  // They stay registered so the dormant travel code and any stored world values keep working when revived.
   game.settings.register(MODULE_ID, "accelerationG", {
     name: "Acceleration (g)",
     scope: "world",
@@ -239,37 +242,13 @@ Hooks.once("ready", async () => {
   installUniversalClockObserver();
 });
 
-function getMeasurementControl(controls) {
-  if (controls.measure?.tools) return controls.measure;
-  if (controls.templates?.tools) return controls.templates;
-
-  return Object.values(controls).find((control) => {
-    const tools = Object.values(control?.tools ?? {});
-    return tools.some((tool) => {
-      const name = String(tool?.name ?? "").toLowerCase();
-      const icon = String(tool?.icon ?? "").toLowerCase();
-      return name.includes("clear") && name.includes("template") || icon.includes("fa-trash");
-    });
-  });
-}
-
 Hooks.on("getSceneControlButtons", (controls) => {
-  const measurementControl = getMeasurementControl(controls);
-  if (!measurementControl?.tools) return;
-
-  const existingTools = Object.values(measurementControl.tools);
-  const lastOrder = existingTools.reduce((max, tool) => {
-    const order = Number(tool?.order);
-    return Number.isFinite(order) ? Math.max(max, order) : max;
-  }, existingTools.length - 1);
-
-  measurementControl.tools.orphanedSunClusterMap = {
-    name: "orphanedSunClusterMap",
-    title: "Cluster Map",
+  addMapSceneControl(controls, {
+    name: "eymPlanetMap",
+    title: "System Map",
     icon: "fa-solid fa-map",
-    order: lastOrder + 1,
     button: true,
     visible: true,
     onChange: () => openClusterMap(),
-  };
+  });
 });

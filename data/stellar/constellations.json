@@ -1,0 +1,2972 @@
+{
+  "schemaVersion": 1,
+  "modelVersion": "eym-constellations-v1",
+  "status": "working-canon",
+  "language": "English (the common tongue of Eym); proper names from Pathfinder 2e canon",
+  "galacticBand": {
+    "name": "Desna's Path",
+    "description": "The bright band of the home galaxy across the sky; a name some Golarion cultures give it, after Desna, goddess of stars and travelers."
+  },
+  "sourceStarfield": {
+    "path": "data/stellar/starfield.json",
+    "modelVersion": "eym-starfield-v2",
+    "sha256": "9fe2278c44cbe978c7d13d12d8013c46247ea69f7ad5371d1e325b4eb3220554"
+  },
+  "note": "Star ids index data/stellar/starfield.json (star-0001 is the brightest). Lines are drawn between listed stars. Hemisphere and declination are relative to Eym's celestial equator; the path of the sun is Eym's orbital plane. 'discovered' figures were found in the generated stars; 'sculpted' ones were made by nudging spare stars into a template.",
+  "celestialPole": [
+    0.01134,
+    -0.42151,
+    0.90675
+  ],
+  "sunPathPole": [
+    0,
+    -0.02618,
+    0.99966
+  ],
+  "counts": {
+    "constellations": 48,
+    "north": 24,
+    "south": 24,
+    "chief": 14,
+    "sunPath": 8,
+    "asterisms": 4,
+    "lunarMansions": 28,
+    "namedStars": 22
+  },
+  "poleStar": {
+    "name": "Cynosure",
+    "star": "star-0022",
+    "pole": "north",
+    "figure": "hourglass",
+    "magnitude": 1.423,
+    "distanceFromPoleDeg": 0.708,
+    "description": "The pole star: it holds steady and marks north while the sky turns around it. Desna's palace is said to sit at its heart."
+  },
+  "southPoleStar": null,
+  "namedStars": [
+    {
+      "star": "star-0001",
+      "name": "Pulura",
+      "description": "The brightest star in the sky, high in the north in the Shepherd: the lost traveller's guide, named for the Shimmering Maiden.",
+      "magnitude": -1.209,
+      "hemisphere": "north",
+      "declinationDeg": 70.1,
+      "constellation": "shepherd",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0002",
+      "name": "Reaper",
+      "description": "The blade of the Scythe, on the path of the sun; one corner of the Wayfarer's Triangle.",
+      "magnitude": -0.466,
+      "hemisphere": "north",
+      "declinationDeg": 1.9,
+      "constellation": "scythe",
+      "asterisms": [
+        "wayfarers-triangle"
+      ],
+      "poleStar": false
+    },
+    {
+      "star": "star-0003",
+      "name": "Sower",
+      "description": "The share of the Plough, on the path of the sun; one corner of the Wayfarer's Triangle.",
+      "magnitude": -0.269,
+      "hemisphere": "south",
+      "declinationDeg": -5,
+      "constellation": "plough",
+      "asterisms": [
+        "wayfarers-triangle"
+      ],
+      "poleStar": false
+    },
+    {
+      "star": "star-0004",
+      "name": "Brim",
+      "description": "The bright lip of the Ladle, high in the north.",
+      "magnitude": -0.018,
+      "hemisphere": "north",
+      "declinationDeg": 50,
+      "constellation": "ladle",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0005",
+      "name": "Gleam",
+      "description": "The Pike's eye, on the path of the sun.",
+      "magnitude": 0.036,
+      "hemisphere": "south",
+      "declinationDeg": -15.4,
+      "constellation": "pike",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0006",
+      "name": "Ketephys",
+      "description": "The brightest star of the Stag, named for the Hunter.",
+      "magnitude": 0.11,
+      "hemisphere": "south",
+      "declinationDeg": -18.9,
+      "constellation": "stag",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0007",
+      "name": "Carter",
+      "description": "The driver of the Wagon.",
+      "magnitude": 0.408,
+      "hemisphere": "north",
+      "declinationDeg": 32.3,
+      "constellation": "wagon",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0008",
+      "name": "Elderlamp",
+      "description": "The brighter of the Twin Lamps in the Windmill; one corner of the Wayfarer's Triangle.",
+      "magnitude": 0.523,
+      "hemisphere": "north",
+      "declinationDeg": 28.3,
+      "constellation": "windmill",
+      "asterisms": [
+        "twin-lamps",
+        "wayfarers-triangle"
+      ],
+      "poleStar": false
+    },
+    {
+      "star": "star-0009",
+      "name": "Doorpost",
+      "description": "The bright post of the Hinge, near the celestial equator.",
+      "magnitude": 0.54,
+      "hemisphere": "north",
+      "declinationDeg": 8.8,
+      "constellation": "hinge",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0010",
+      "name": "Younglamp",
+      "description": "The fainter of the Twin Lamps in the Windmill.",
+      "magnitude": 0.59,
+      "hemisphere": "north",
+      "declinationDeg": 23.2,
+      "constellation": "windmill",
+      "asterisms": [
+        "twin-lamps"
+      ],
+      "poleStar": false
+    },
+    {
+      "star": "star-0011",
+      "name": "Ashava",
+      "description": "A brilliant star that belongs to no figure, named for the True Spark of lonely spirits.",
+      "magnitude": 0.837,
+      "hemisphere": "south",
+      "declinationDeg": -13.4,
+      "constellation": null,
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0012",
+      "name": "Cartwheel",
+      "description": "A wheel of the Wagon.",
+      "magnitude": 0.947,
+      "hemisphere": "north",
+      "declinationDeg": 28.1,
+      "constellation": "wagon",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0013",
+      "name": "Vigil",
+      "description": "A bright lone star keeping watch north of the path of the sun.",
+      "magnitude": 0.974,
+      "hemisphere": "north",
+      "declinationDeg": 21.2,
+      "constellation": null,
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0014",
+      "name": "Hearthfire",
+      "description": "The brightest of the Hearthstones in the Staff, on the path of the sun.",
+      "magnitude": 1.1,
+      "hemisphere": "south",
+      "declinationDeg": -22.9,
+      "constellation": "staff",
+      "asterisms": [
+        "hearthstones"
+      ],
+      "poleStar": false
+    },
+    {
+      "star": "star-0015",
+      "name": "Latch",
+      "description": "The second star of the Hinge.",
+      "magnitude": 1.118,
+      "hemisphere": "north",
+      "declinationDeg": 3.9,
+      "constellation": "hinge",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0016",
+      "name": "Ripple",
+      "description": "The brightest star of the Eel, high in the north.",
+      "magnitude": 1.256,
+      "hemisphere": "north",
+      "declinationDeg": 56.8,
+      "constellation": "eel",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0017",
+      "name": "Southlight",
+      "description": "The Wishbone's bright star deep in the south: the southern sky's guide, as there is no southern pole star.",
+      "magnitude": 1.275,
+      "hemisphere": "south",
+      "declinationDeg": -63.5,
+      "constellation": "wishbone",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0018",
+      "name": "Fang",
+      "description": "The Adder's fang, on the path of the sun.",
+      "magnitude": 1.386,
+      "hemisphere": "south",
+      "declinationDeg": -18.7,
+      "constellation": "adder",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0019",
+      "name": "Axle",
+      "description": "The axle of the Wagon.",
+      "magnitude": 1.391,
+      "hemisphere": "north",
+      "declinationDeg": 24.4,
+      "constellation": "wagon",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0020",
+      "name": "Sandfall",
+      "description": "A bright star of the Hourglass, near Cynosure.",
+      "magnitude": 1.412,
+      "hemisphere": "north",
+      "declinationDeg": 82.4,
+      "constellation": "hourglass",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0021",
+      "name": "Wayfire",
+      "description": "A lone bright star on the empty road of the sun; it marks the mansion of the Watchfire.",
+      "magnitude": 1.413,
+      "hemisphere": "north",
+      "declinationDeg": 21.8,
+      "constellation": null,
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0022",
+      "name": "Cynosure",
+      "description": "The pole star: it holds steady and marks north while the sky turns around it. Desna's palace is said to sit at its heart.",
+      "magnitude": 1.423,
+      "hemisphere": "north",
+      "declinationDeg": 89.3,
+      "constellation": "hourglass",
+      "asterisms": [],
+      "poleStar": true
+    }
+  ],
+  "constellations": [
+    {
+      "id": "abadar-crossbow",
+      "name": "Abadar's Crossbow",
+      "description": "The crossbow of Abadar, god of cities and trade: a bent prod across a long stock.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -27.9,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        0.67968,
+        -0.30506,
+        -0.66706
+      ],
+      "stars": [
+        "star-0373",
+        "star-0452",
+        "star-0384",
+        "star-0529",
+        "star-0043"
+      ],
+      "lines": [
+        [
+          "star-0373",
+          "star-0452"
+        ],
+        [
+          "star-0452",
+          "star-0384"
+        ],
+        [
+          "star-0452",
+          "star-0529"
+        ],
+        [
+          "star-0529",
+          "star-0043"
+        ],
+        [
+          "star-0373",
+          "star-0529"
+        ],
+        [
+          "star-0384",
+          "star-0529"
+        ]
+      ],
+      "origin": "sculpted"
+    },
+    {
+      "id": "cayden-tankard",
+      "name": "Cayden's Tankard",
+      "description": "The tankard of Cayden Cailean: four stars in an open V.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 8,
+      "sunPath": null,
+      "shape": "arc",
+      "center": [
+        0.35961,
+        0.78058,
+        0.51125
+      ],
+      "stars": [
+        "star-0131",
+        "star-0155",
+        "star-0241",
+        "star-0294"
+      ],
+      "lines": [
+        [
+          "star-0131",
+          "star-0155"
+        ],
+        [
+          "star-0155",
+          "star-0241"
+        ],
+        [
+          "star-0131",
+          "star-0294"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "desna-butterfly",
+      "name": "Desna's Butterfly",
+      "description": "The butterfly of Desna, goddess of stars and travelers: two pairs of wings on a slender body.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 33.7,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.79795,
+        -0.42948,
+        0.42287
+      ],
+      "stars": [
+        "star-0560",
+        "star-0165",
+        "star-0509",
+        "star-0273",
+        "star-0552",
+        "star-0358"
+      ],
+      "lines": [
+        [
+          "star-0560",
+          "star-0165"
+        ],
+        [
+          "star-0560",
+          "star-0509"
+        ],
+        [
+          "star-0509",
+          "star-0273"
+        ],
+        [
+          "star-0273",
+          "star-0165"
+        ],
+        [
+          "star-0560",
+          "star-0552"
+        ],
+        [
+          "star-0552",
+          "star-0358"
+        ],
+        [
+          "star-0358",
+          "star-0165"
+        ]
+      ],
+      "origin": "sculpted"
+    },
+    {
+      "id": "erastil-bow",
+      "name": "Erastil's Bow",
+      "description": "The longbow of Erastil, god of farming and the hunt; the sun passes through it.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 13.2,
+      "sunPath": {
+        "order": 7,
+        "longitudeDeg": 209
+      },
+      "shape": "chain",
+      "center": [
+        -0.85967,
+        -0.5102,
+        0.02563
+      ],
+      "stars": [
+        "star-0054",
+        "star-0112",
+        "star-0380",
+        "star-0345",
+        "star-0149",
+        "star-0341"
+      ],
+      "lines": [
+        [
+          "star-0054",
+          "star-0112"
+        ],
+        [
+          "star-0112",
+          "star-0380"
+        ],
+        [
+          "star-0380",
+          "star-0345"
+        ],
+        [
+          "star-0345",
+          "star-0149"
+        ],
+        [
+          "star-0149",
+          "star-0341"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "gozreh-trident",
+      "name": "Gozreh's Trident",
+      "description": "The trident of Gozreh, god of nature, weather and the sea: a shaft splitting into tines.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -2.1,
+      "sunPath": null,
+      "shape": "branched",
+      "center": [
+        0.5615,
+        0.76778,
+        0.3086
+      ],
+      "stars": [
+        "star-0049",
+        "star-0076",
+        "star-0198",
+        "star-0347",
+        "star-0115"
+      ],
+      "lines": [
+        [
+          "star-0049",
+          "star-0076"
+        ],
+        [
+          "star-0076",
+          "star-0347"
+        ],
+        [
+          "star-0076",
+          "star-0198"
+        ],
+        [
+          "star-0347",
+          "star-0115"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "iomedae-sword",
+      "name": "Iomedae's Sword",
+      "description": "The longsword of Iomedae: a long blade with a short crossguard near its top.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 44.8,
+      "sunPath": null,
+      "shape": "branched",
+      "center": [
+        0.49238,
+        -0.76472,
+        0.41565
+      ],
+      "stars": [
+        "star-0161",
+        "star-0164",
+        "star-0211",
+        "star-0411",
+        "star-0327"
+      ],
+      "lines": [
+        [
+          "star-0161",
+          "star-0164"
+        ],
+        [
+          "star-0164",
+          "star-0211"
+        ],
+        [
+          "star-0161",
+          "star-0411"
+        ],
+        [
+          "star-0164",
+          "star-0327"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "sarenrae-scimitar",
+      "name": "Sarenrae's Scimitar",
+      "description": "The scimitar of Sarenrae, goddess of the sun: a curved blade above a short hilt and crossguard.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 61.2,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.46606,
+        -0.43864,
+        0.76837
+      ],
+      "stars": [
+        "star-0486",
+        "star-0414",
+        "star-0178",
+        "star-0186",
+        "star-0169",
+        "star-0572",
+        "star-0519"
+      ],
+      "lines": [
+        [
+          "star-0486",
+          "star-0414"
+        ],
+        [
+          "star-0178",
+          "star-0414"
+        ],
+        [
+          "star-0414",
+          "star-0186"
+        ],
+        [
+          "star-0414",
+          "star-0169"
+        ],
+        [
+          "star-0169",
+          "star-0572"
+        ],
+        [
+          "star-0572",
+          "star-0519"
+        ]
+      ],
+      "origin": "sculpted"
+    },
+    {
+      "id": "adder",
+      "name": "The Adder",
+      "description": "A small zigzag serpent on the path of the sun.",
+      "tier": "chief",
+      "hemisphere": "south",
+      "declinationDeg": -18.9,
+      "sunPath": {
+        "order": 3,
+        "longitudeDeg": 33
+      },
+      "shape": "zigzag",
+      "center": [
+        0.81722,
+        0.5669,
+        -0.10383
+      ],
+      "stars": [
+        "star-0018",
+        "star-0304",
+        "star-0059",
+        "star-0323"
+      ],
+      "lines": [
+        [
+          "star-0018",
+          "star-0304"
+        ],
+        [
+          "star-0018",
+          "star-0323"
+        ],
+        [
+          "star-0323",
+          "star-0059"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "anchor",
+      "name": "The Anchor",
+      "description": "A ringed shank with a crossbar stock and two curved flukes.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -16.4,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.22052,
+        -0.72959,
+        -0.64736
+      ],
+      "stars": [
+        "star-0553",
+        "star-0514",
+        "star-0575",
+        "star-0103",
+        "star-0390",
+        "star-0498",
+        "star-0278"
+      ],
+      "lines": [
+        [
+          "star-0553",
+          "star-0514"
+        ],
+        [
+          "star-0553",
+          "star-0575"
+        ],
+        [
+          "star-0553",
+          "star-0103"
+        ],
+        [
+          "star-0103",
+          "star-0390"
+        ],
+        [
+          "star-0390",
+          "star-0498"
+        ],
+        [
+          "star-0390",
+          "star-0278"
+        ]
+      ],
+      "origin": "sculpted"
+    },
+    {
+      "id": "arrow",
+      "name": "The Arrow",
+      "description": "A long shaft with a barbed head at one end and fletching at the other.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 13.2,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.60119,
+        0.59344,
+        0.53517
+      ],
+      "stars": [
+        "star-0235",
+        "star-0032",
+        "star-0393",
+        "star-0510",
+        "star-0400",
+        "star-0057",
+        "star-0296"
+      ],
+      "lines": [
+        [
+          "star-0235",
+          "star-0032"
+        ],
+        [
+          "star-0235",
+          "star-0393"
+        ],
+        [
+          "star-0235",
+          "star-0510"
+        ],
+        [
+          "star-0510",
+          "star-0400"
+        ],
+        [
+          "star-0400",
+          "star-0057"
+        ],
+        [
+          "star-0400",
+          "star-0296"
+        ]
+      ],
+      "origin": "sculpted"
+    },
+    {
+      "id": "beggar",
+      "name": "The Beggar",
+      "description": "A crooked figure with a bent arm.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 18.3,
+      "sunPath": null,
+      "shape": "branched",
+      "center": [
+        -0.79803,
+        0.32459,
+        0.50773
+      ],
+      "stars": [
+        "star-0079",
+        "star-0171",
+        "star-0160",
+        "star-0375",
+        "star-0225",
+        "star-0081",
+        "star-0152"
+      ],
+      "lines": [
+        [
+          "star-0079",
+          "star-0171"
+        ],
+        [
+          "star-0171",
+          "star-0375"
+        ],
+        [
+          "star-0171",
+          "star-0160"
+        ],
+        [
+          "star-0079",
+          "star-0225"
+        ],
+        [
+          "star-0160",
+          "star-0152"
+        ],
+        [
+          "star-0225",
+          "star-0081"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "bell",
+      "name": "The Bell",
+      "description": "A bell with sloping shoulders and a flared lip around its clapper.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -87.5,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        0.032,
+        0.42762,
+        -0.90339
+      ],
+      "stars": [
+        "star-0262",
+        "star-0332",
+        "star-0193",
+        "star-0136",
+        "star-0061",
+        "star-0320"
+      ],
+      "lines": [
+        [
+          "star-0262",
+          "star-0332"
+        ],
+        [
+          "star-0332",
+          "star-0136"
+        ],
+        [
+          "star-0136",
+          "star-0320"
+        ],
+        [
+          "star-0320",
+          "star-0061"
+        ],
+        [
+          "star-0061",
+          "star-0193"
+        ],
+        [
+          "star-0193",
+          "star-0262"
+        ]
+      ],
+      "origin": "sculpted"
+    },
+    {
+      "id": "bolt",
+      "name": "The Bolt",
+      "description": "A jagged stroke like lightning.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -7,
+      "sunPath": null,
+      "shape": "zigzag",
+      "center": [
+        -0.82986,
+        -0.44865,
+        -0.33173
+      ],
+      "stars": [
+        "star-0048",
+        "star-0212",
+        "star-0159",
+        "star-0242",
+        "star-0368"
+      ],
+      "lines": [
+        [
+          "star-0048",
+          "star-0212"
+        ],
+        [
+          "star-0212",
+          "star-0159"
+        ],
+        [
+          "star-0159",
+          "star-0242"
+        ],
+        [
+          "star-0242",
+          "star-0368"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "chain",
+      "name": "The Chain",
+      "description": "Links hanging down to a bright pair.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 26.7,
+      "sunPath": null,
+      "shape": "chain",
+      "center": [
+        -0.19713,
+        0.5981,
+        0.77679
+      ],
+      "stars": [
+        "star-0042",
+        "star-0077",
+        "star-0318",
+        "star-0069",
+        "star-0101",
+        "star-0093",
+        "star-0099"
+      ],
+      "lines": [
+        [
+          "star-0042",
+          "star-0077"
+        ],
+        [
+          "star-0077",
+          "star-0318"
+        ],
+        [
+          "star-0318",
+          "star-0069"
+        ],
+        [
+          "star-0069",
+          "star-0101"
+        ],
+        [
+          "star-0101",
+          "star-0093"
+        ],
+        [
+          "star-0093",
+          "star-0099"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "crane",
+      "name": "The Crane",
+      "description": "A long-legged bird near the southern pole.",
+      "tier": "chief",
+      "hemisphere": "south",
+      "declinationDeg": -67,
+      "sunPath": null,
+      "shape": "zigzag",
+      "center": [
+        0.12979,
+        0.05863,
+        -0.98981
+      ],
+      "stars": [
+        "star-0023",
+        "star-0157",
+        "star-0113",
+        "star-0344",
+        "star-0337"
+      ],
+      "lines": [
+        [
+          "star-0023",
+          "star-0157"
+        ],
+        [
+          "star-0157",
+          "star-0337"
+        ],
+        [
+          "star-0023",
+          "star-0113"
+        ],
+        [
+          "star-0113",
+          "star-0344"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "crook",
+      "name": "The Crook",
+      "description": "A shepherd's crook with a bent head.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -34.8,
+      "sunPath": null,
+      "shape": "zigzag",
+      "center": [
+        0.37924,
+        -0.41443,
+        -0.8273
+      ],
+      "stars": [
+        "star-0233",
+        "star-0379",
+        "star-0248",
+        "star-0234"
+      ],
+      "lines": [
+        [
+          "star-0233",
+          "star-0379"
+        ],
+        [
+          "star-0379",
+          "star-0248"
+        ],
+        [
+          "star-0233",
+          "star-0234"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "crown",
+      "name": "The Crown",
+      "description": "A half-ring of seven stars, like a circlet seen from the side.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 15.2,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        0.77524,
+        0.4182,
+        0.47341
+      ],
+      "stars": [
+        "star-0126",
+        "star-0424",
+        "star-0109",
+        "star-0565",
+        "star-0299",
+        "star-0561",
+        "star-0292"
+      ],
+      "lines": [
+        [
+          "star-0126",
+          "star-0424"
+        ],
+        [
+          "star-0424",
+          "star-0109"
+        ],
+        [
+          "star-0109",
+          "star-0565"
+        ],
+        [
+          "star-0565",
+          "star-0299"
+        ],
+        [
+          "star-0299",
+          "star-0561"
+        ],
+        [
+          "star-0561",
+          "star-0292"
+        ]
+      ],
+      "origin": "sculpted"
+    },
+    {
+      "id": "eel",
+      "name": "The Eel",
+      "description": "A long wavering line of stars in the northern sky.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 47.1,
+      "sunPath": null,
+      "shape": "chain",
+      "center": [
+        -0.32342,
+        0.22956,
+        0.91799
+      ],
+      "stars": [
+        "star-0016",
+        "star-0311",
+        "star-0146",
+        "star-0410",
+        "star-0218",
+        "star-0181",
+        "star-0027"
+      ],
+      "lines": [
+        [
+          "star-0016",
+          "star-0311"
+        ],
+        [
+          "star-0311",
+          "star-0146"
+        ],
+        [
+          "star-0146",
+          "star-0410"
+        ],
+        [
+          "star-0410",
+          "star-0218"
+        ],
+        [
+          "star-0218",
+          "star-0181"
+        ],
+        [
+          "star-0181",
+          "star-0027"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "ferryman",
+      "name": "The Ferryman",
+      "description": "A figure leaning on a long pole; Irori's Belt crosses him.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -30.5,
+      "sunPath": null,
+      "shape": "branched",
+      "center": [
+        -0.06879,
+        -0.56518,
+        -0.82209
+      ],
+      "stars": [
+        "star-0098",
+        "star-0105",
+        "star-0183",
+        "star-0391",
+        "star-0401",
+        "star-0350",
+        "star-0249"
+      ],
+      "lines": [
+        [
+          "star-0098",
+          "star-0401"
+        ],
+        [
+          "star-0401",
+          "star-0350"
+        ],
+        [
+          "star-0098",
+          "star-0105"
+        ],
+        [
+          "star-0105",
+          "star-0183"
+        ],
+        [
+          "star-0183",
+          "star-0391"
+        ],
+        [
+          "star-0401",
+          "star-0249"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "fishhook",
+      "name": "The Fishhook",
+      "description": "A line with a barbed hook at its end.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -33.3,
+      "sunPath": null,
+      "shape": "chain",
+      "center": [
+        -0.72679,
+        0.61239,
+        -0.31106
+      ],
+      "stars": [
+        "star-0091",
+        "star-0134",
+        "star-0142",
+        "star-0330",
+        "star-0297"
+      ],
+      "lines": [
+        [
+          "star-0091",
+          "star-0134"
+        ],
+        [
+          "star-0134",
+          "star-0297"
+        ],
+        [
+          "star-0297",
+          "star-0142"
+        ],
+        [
+          "star-0142",
+          "star-0330"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "heron",
+      "name": "The Heron",
+      "description": "An arched neck curling into a loop.",
+      "tier": "chief",
+      "hemisphere": "south",
+      "declinationDeg": -34.4,
+      "sunPath": null,
+      "shape": "chain",
+      "center": [
+        0.80927,
+        0.12971,
+        -0.57294
+      ],
+      "stars": [
+        "star-0037",
+        "star-0140",
+        "star-0328",
+        "star-0074",
+        "star-0107",
+        "star-0349",
+        "star-0223"
+      ],
+      "lines": [
+        [
+          "star-0037",
+          "star-0349"
+        ],
+        [
+          "star-0349",
+          "star-0328"
+        ],
+        [
+          "star-0328",
+          "star-0140"
+        ],
+        [
+          "star-0037",
+          "star-0074"
+        ],
+        [
+          "star-0074",
+          "star-0107"
+        ],
+        [
+          "star-0107",
+          "star-0223"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "hinge",
+      "name": "The Hinge",
+      "description": "Three bright stars bent at a joint.",
+      "tier": "chief",
+      "hemisphere": "north",
+      "declinationDeg": 7.8,
+      "sunPath": null,
+      "shape": "line",
+      "center": [
+        -0.47167,
+        -0.84869,
+        -0.23927
+      ],
+      "stars": [
+        "star-0009",
+        "star-0015",
+        "star-0106"
+      ],
+      "lines": [
+        [
+          "star-0009",
+          "star-0015"
+        ],
+        [
+          "star-0009",
+          "star-0106"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "horseshoe",
+      "name": "The Horseshoe",
+      "description": "An open bent shape like a horseshoe.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 59.7,
+      "sunPath": null,
+      "shape": "hook",
+      "center": [
+        0.12889,
+        -0.80814,
+        0.57472
+      ],
+      "stars": [
+        "star-0179",
+        "star-0388",
+        "star-0264",
+        "star-0201",
+        "star-0398"
+      ],
+      "lines": [
+        [
+          "star-0179",
+          "star-0388"
+        ],
+        [
+          "star-0179",
+          "star-0264"
+        ],
+        [
+          "star-0264",
+          "star-0398"
+        ],
+        [
+          "star-0398",
+          "star-0201"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "hourglass",
+      "name": "The Hourglass",
+      "description": "Two triangles meeting at Cynosure, the pole star; the whole figure turns around its waist through the night.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 89.3,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        0.01102,
+        -0.4104,
+        0.91184
+      ],
+      "stars": [
+        "star-0482",
+        "star-0020",
+        "star-0022",
+        "star-0158",
+        "star-0265"
+      ],
+      "lines": [
+        [
+          "star-0482",
+          "star-0020"
+        ],
+        [
+          "star-0020",
+          "star-0022"
+        ],
+        [
+          "star-0022",
+          "star-0482"
+        ],
+        [
+          "star-0158",
+          "star-0265"
+        ],
+        [
+          "star-0265",
+          "star-0022"
+        ],
+        [
+          "star-0022",
+          "star-0158"
+        ]
+      ],
+      "origin": "sculpted"
+    },
+    {
+      "id": "kite",
+      "name": "The Kite",
+      "description": "Four stars in a lopsided diamond.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -14.5,
+      "sunPath": null,
+      "shape": "box",
+      "center": [
+        0.94283,
+        -0.07686,
+        -0.3243
+      ],
+      "stars": [
+        "star-0041",
+        "star-0244",
+        "star-0073",
+        "star-0276"
+      ],
+      "lines": [
+        [
+          "star-0041",
+          "star-0244"
+        ],
+        [
+          "star-0041",
+          "star-0276"
+        ],
+        [
+          "star-0244",
+          "star-0073"
+        ],
+        [
+          "star-0073",
+          "star-0276"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "ladder",
+      "name": "The Ladder",
+      "description": "Two rails joined by three rungs.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -40.3,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.48619,
+        -0.26825,
+        -0.83166
+      ],
+      "stars": [
+        "star-0139",
+        "star-0495",
+        "star-0493",
+        "star-0596",
+        "star-0124",
+        "star-0367"
+      ],
+      "lines": [
+        [
+          "star-0139",
+          "star-0493"
+        ],
+        [
+          "star-0493",
+          "star-0124"
+        ],
+        [
+          "star-0495",
+          "star-0596"
+        ],
+        [
+          "star-0596",
+          "star-0367"
+        ],
+        [
+          "star-0139",
+          "star-0495"
+        ],
+        [
+          "star-0493",
+          "star-0596"
+        ],
+        [
+          "star-0124",
+          "star-0367"
+        ]
+      ],
+      "origin": "sculpted"
+    },
+    {
+      "id": "ladle",
+      "name": "The Ladle",
+      "description": "A long handle ending in a small bent bowl.",
+      "tier": "chief",
+      "hemisphere": "north",
+      "declinationDeg": 51.5,
+      "sunPath": null,
+      "shape": "branched",
+      "center": [
+        -0.52648,
+        -0.04393,
+        0.84905
+      ],
+      "stars": [
+        "star-0004",
+        "star-0026",
+        "star-0151",
+        "star-0084",
+        "star-0307",
+        "star-0120",
+        "star-0086"
+      ],
+      "lines": [
+        [
+          "star-0004",
+          "star-0151"
+        ],
+        [
+          "star-0004",
+          "star-0026"
+        ],
+        [
+          "star-0026",
+          "star-0307"
+        ],
+        [
+          "star-0307",
+          "star-0120"
+        ],
+        [
+          "star-0120",
+          "star-0086"
+        ],
+        [
+          "star-0004",
+          "star-0084"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "lantern",
+      "name": "The Lantern",
+      "description": "A hanging ring above a tall lantern body.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 41.2,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.74293,
+        -0.22485,
+        0.63048
+      ],
+      "stars": [
+        "star-0387",
+        "star-0053",
+        "star-0280",
+        "star-0215",
+        "star-0184"
+      ],
+      "lines": [
+        [
+          "star-0387",
+          "star-0053"
+        ],
+        [
+          "star-0387",
+          "star-0280"
+        ],
+        [
+          "star-0053",
+          "star-0280"
+        ],
+        [
+          "star-0053",
+          "star-0215"
+        ],
+        [
+          "star-0280",
+          "star-0184"
+        ],
+        [
+          "star-0215",
+          "star-0184"
+        ]
+      ],
+      "origin": "sculpted"
+    },
+    {
+      "id": "lyre",
+      "name": "The Lyre",
+      "description": "Two curved arms rising from a base and joined by a crossbar.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 45.2,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.45009,
+        -0.78669,
+        0.42255
+      ],
+      "stars": [
+        "star-0494",
+        "star-0143",
+        "star-0554",
+        "star-0395",
+        "star-0078",
+        "star-0598"
+      ],
+      "lines": [
+        [
+          "star-0494",
+          "star-0143"
+        ],
+        [
+          "star-0143",
+          "star-0554"
+        ],
+        [
+          "star-0494",
+          "star-0395"
+        ],
+        [
+          "star-0395",
+          "star-0078"
+        ],
+        [
+          "star-0554",
+          "star-0598"
+        ],
+        [
+          "star-0598",
+          "star-0078"
+        ],
+        [
+          "star-0598",
+          "star-0494"
+        ]
+      ],
+      "origin": "sculpted"
+    },
+    {
+      "id": "mast",
+      "name": "The Mast",
+      "description": "A tall upright with a spar to one side.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -61.3,
+      "sunPath": null,
+      "shape": "branched",
+      "center": [
+        -0.32712,
+        0.04022,
+        -0.94413
+      ],
+      "stars": [
+        "star-0052",
+        "star-0056",
+        "star-0386",
+        "star-0085",
+        "star-0114",
+        "star-0361"
+      ],
+      "lines": [
+        [
+          "star-0052",
+          "star-0386"
+        ],
+        [
+          "star-0386",
+          "star-0085"
+        ],
+        [
+          "star-0052",
+          "star-0056"
+        ],
+        [
+          "star-0052",
+          "star-0114"
+        ],
+        [
+          "star-0114",
+          "star-0361"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "pike",
+      "name": "The Pike",
+      "description": "A long straight fish whose tail forks at the lower end.",
+      "tier": "chief",
+      "hemisphere": "south",
+      "declinationDeg": -17.3,
+      "sunPath": {
+        "order": 5,
+        "longitudeDeg": 120.6
+      },
+      "shape": "chain",
+      "center": [
+        -0.53332,
+        0.843,
+        0.07013
+      ],
+      "stars": [
+        "star-0005",
+        "star-0033",
+        "star-0141",
+        "star-0237",
+        "star-0174",
+        "star-0396",
+        "star-0208"
+      ],
+      "lines": [
+        [
+          "star-0005",
+          "star-0237"
+        ],
+        [
+          "star-0237",
+          "star-0174"
+        ],
+        [
+          "star-0174",
+          "star-0396"
+        ],
+        [
+          "star-0396",
+          "star-0208"
+        ],
+        [
+          "star-0005",
+          "star-0033"
+        ],
+        [
+          "star-0033",
+          "star-0141"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "plough",
+      "name": "The Plough",
+      "description": "A crooked share and handle lying on the path of the sun.",
+      "tier": "chief",
+      "hemisphere": "north",
+      "declinationDeg": 0.4,
+      "sunPath": {
+        "order": 2,
+        "longitudeDeg": 26.6
+      },
+      "shape": "chain",
+      "center": [
+        0.86402,
+        0.45772,
+        0.20966
+      ],
+      "stars": [
+        "star-0003",
+        "star-0196",
+        "star-0108",
+        "star-0168",
+        "star-0187",
+        "star-0172",
+        "star-0038"
+      ],
+      "lines": [
+        [
+          "star-0003",
+          "star-0196"
+        ],
+        [
+          "star-0003",
+          "star-0108"
+        ],
+        [
+          "star-0108",
+          "star-0168"
+        ],
+        [
+          "star-0168",
+          "star-0187"
+        ],
+        [
+          "star-0187",
+          "star-0172"
+        ],
+        [
+          "star-0172",
+          "star-0038"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "ribbon",
+      "name": "The Ribbon",
+      "description": "A long S-shaped curve of stars.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 20.6,
+      "sunPath": null,
+      "shape": "chain",
+      "center": [
+        0.44346,
+        0.60303,
+        0.66309
+      ],
+      "stars": [
+        "star-0088",
+        "star-0148",
+        "star-0271",
+        "star-0232",
+        "star-0288",
+        "star-0302",
+        "star-0219"
+      ],
+      "lines": [
+        [
+          "star-0088",
+          "star-0148"
+        ],
+        [
+          "star-0148",
+          "star-0271"
+        ],
+        [
+          "star-0271",
+          "star-0232"
+        ],
+        [
+          "star-0088",
+          "star-0288"
+        ],
+        [
+          "star-0288",
+          "star-0302"
+        ],
+        [
+          "star-0302",
+          "star-0219"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "scythe",
+      "name": "The Scythe",
+      "description": "A short blade with a long handle; the sun passes through it.",
+      "tier": "chief",
+      "hemisphere": "north",
+      "declinationDeg": 4.3,
+      "sunPath": {
+        "order": 8,
+        "longitudeDeg": 341.5
+      },
+      "shape": "chain",
+      "center": [
+        0.9557,
+        -0.28741,
+        -0.06357
+      ],
+      "stars": [
+        "star-0002",
+        "star-0067",
+        "star-0116",
+        "star-0185",
+        "star-0371"
+      ],
+      "lines": [
+        [
+          "star-0002",
+          "star-0185"
+        ],
+        [
+          "star-0185",
+          "star-0116"
+        ],
+        [
+          "star-0116",
+          "star-0371"
+        ],
+        [
+          "star-0002",
+          "star-0067"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "shepherd",
+      "name": "The Shepherd",
+      "description": "A walking figure high in the north, led by the brightest star in the sky.",
+      "tier": "chief",
+      "hemisphere": "north",
+      "declinationDeg": 70.9,
+      "sunPath": null,
+      "shape": "branched",
+      "center": [
+        -0.13902,
+        -0.13425,
+        0.98115
+      ],
+      "stars": [
+        "star-0001",
+        "star-0290",
+        "star-0246",
+        "star-0173",
+        "star-0072",
+        "star-0203",
+        "star-0080"
+      ],
+      "lines": [
+        [
+          "star-0001",
+          "star-0290"
+        ],
+        [
+          "star-0290",
+          "star-0246"
+        ],
+        [
+          "star-0246",
+          "star-0173"
+        ],
+        [
+          "star-0173",
+          "star-0203"
+        ],
+        [
+          "star-0203",
+          "star-0080"
+        ],
+        [
+          "star-0173",
+          "star-0072"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "ship",
+      "name": "The Ship",
+      "description": "A hull with a raised stern and bow beneath a single triangular sail.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -31.5,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.75393,
+        -0.15346,
+        -0.63878
+      ],
+      "stars": [
+        "star-0035",
+        "star-0528",
+        "star-0138",
+        "star-0216",
+        "star-0036",
+        "star-0202"
+      ],
+      "lines": [
+        [
+          "star-0035",
+          "star-0528"
+        ],
+        [
+          "star-0528",
+          "star-0138"
+        ],
+        [
+          "star-0138",
+          "star-0216"
+        ],
+        [
+          "star-0528",
+          "star-0036"
+        ],
+        [
+          "star-0036",
+          "star-0202"
+        ],
+        [
+          "star-0202",
+          "star-0138"
+        ]
+      ],
+      "origin": "sculpted"
+    },
+    {
+      "id": "sling",
+      "name": "The Sling",
+      "description": "A small forked sling.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -33.5,
+      "sunPath": null,
+      "shape": "branched",
+      "center": [
+        0.82677,
+        0.26943,
+        -0.49382
+      ],
+      "stars": [
+        "star-0130",
+        "star-0145",
+        "star-0132",
+        "star-0154"
+      ],
+      "lines": [
+        [
+          "star-0130",
+          "star-0145"
+        ],
+        [
+          "star-0145",
+          "star-0132"
+        ],
+        [
+          "star-0145",
+          "star-0154"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "spindle",
+      "name": "The Spindle",
+      "description": "A long narrow spindle on the path of the sun.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -16.5,
+      "sunPath": {
+        "order": 6,
+        "longitudeDeg": 163.8
+      },
+      "shape": "box",
+      "center": [
+        -0.95023,
+        0.25168,
+        -0.18365
+      ],
+      "stars": [
+        "star-0119",
+        "star-0205",
+        "star-0306",
+        "star-0376"
+      ],
+      "lines": [
+        [
+          "star-0119",
+          "star-0205"
+        ],
+        [
+          "star-0205",
+          "star-0306"
+        ],
+        [
+          "star-0306",
+          "star-0376"
+        ],
+        [
+          "star-0119",
+          "star-0376"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "staff",
+      "name": "The Staff",
+      "description": "A short walking staff on the path of the sun, holding the Hearthstones.",
+      "tier": "chief",
+      "hemisphere": "south",
+      "declinationDeg": -22.9,
+      "sunPath": {
+        "order": 4,
+        "longitudeDeg": 60.4
+      },
+      "shape": "branched",
+      "center": [
+        0.46778,
+        0.88351,
+        -0.0242
+      ],
+      "stars": [
+        "star-0014",
+        "star-0062",
+        "star-0319",
+        "star-0060",
+        "star-0277"
+      ],
+      "lines": [
+        [
+          "star-0014",
+          "star-0319"
+        ],
+        [
+          "star-0319",
+          "star-0062"
+        ],
+        [
+          "star-0319",
+          "star-0060"
+        ],
+        [
+          "star-0062",
+          "star-0277"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "stag",
+      "name": "The Stag",
+      "description": "A standing stem with branching antlers above.",
+      "tier": "chief",
+      "hemisphere": "south",
+      "declinationDeg": -18.7,
+      "sunPath": null,
+      "shape": "branched",
+      "center": [
+        -0.62027,
+        -0.51941,
+        -0.58777
+      ],
+      "stars": [
+        "star-0006",
+        "star-0194",
+        "star-0039",
+        "star-0195",
+        "star-0335",
+        "star-0197",
+        "star-0406"
+      ],
+      "lines": [
+        [
+          "star-0006",
+          "star-0194"
+        ],
+        [
+          "star-0006",
+          "star-0335"
+        ],
+        [
+          "star-0335",
+          "star-0197"
+        ],
+        [
+          "star-0197",
+          "star-0406"
+        ],
+        [
+          "star-0006",
+          "star-0195"
+        ],
+        [
+          "star-0194",
+          "star-0039"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "swan",
+      "name": "The Swan",
+      "description": "A bird with outstretched neck and wings.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 31,
+      "sunPath": null,
+      "shape": "branched",
+      "center": [
+        0.80533,
+        -0.4939,
+        0.32788
+      ],
+      "stars": [
+        "star-0046",
+        "star-0206",
+        "star-0121",
+        "star-0308",
+        "star-0282",
+        "star-0252",
+        "star-0289"
+      ],
+      "lines": [
+        [
+          "star-0046",
+          "star-0206"
+        ],
+        [
+          "star-0206",
+          "star-0308"
+        ],
+        [
+          "star-0206",
+          "star-0121"
+        ],
+        [
+          "star-0121",
+          "star-0282"
+        ],
+        [
+          "star-0282",
+          "star-0252"
+        ],
+        [
+          "star-0046",
+          "star-0289"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "tent",
+      "name": "The Tent",
+      "description": "Three stars in a clean triangle, low in the south.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -62.6,
+      "sunPath": null,
+      "shape": "triangle",
+      "center": [
+        0.26816,
+        0.70851,
+        -0.65277
+      ],
+      "stars": [
+        "star-0065",
+        "star-0096",
+        "star-0066"
+      ],
+      "lines": [
+        [
+          "star-0065",
+          "star-0096"
+        ],
+        [
+          "star-0096",
+          "star-0066"
+        ],
+        [
+          "star-0065",
+          "star-0066"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "throne",
+      "name": "The Throne",
+      "description": "A high back above a broad seat.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -46.2,
+      "sunPath": null,
+      "shape": "zigzag",
+      "center": [
+        0.53841,
+        -0.07705,
+        -0.83915
+      ],
+      "stars": [
+        "star-0064",
+        "star-0083",
+        "star-0100",
+        "star-0167",
+        "star-0399",
+        "star-0351",
+        "star-0240"
+      ],
+      "lines": [
+        [
+          "star-0064",
+          "star-0351"
+        ],
+        [
+          "star-0351",
+          "star-0083"
+        ],
+        [
+          "star-0083",
+          "star-0399"
+        ],
+        [
+          "star-0399",
+          "star-0167"
+        ],
+        [
+          "star-0167",
+          "star-0240"
+        ],
+        [
+          "star-0064",
+          "star-0100"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "wagon",
+      "name": "The Wagon",
+      "description": "A long wagon bed with its tongue reaching out to one side.",
+      "tier": "chief",
+      "hemisphere": "north",
+      "declinationDeg": 28.2,
+      "sunPath": null,
+      "shape": "chain",
+      "center": [
+        -0.83427,
+        0.04097,
+        0.54983
+      ],
+      "stars": [
+        "star-0007",
+        "star-0012",
+        "star-0019",
+        "star-0129",
+        "star-0274",
+        "star-0040",
+        "star-0340"
+      ],
+      "lines": [
+        [
+          "star-0007",
+          "star-0012"
+        ],
+        [
+          "star-0012",
+          "star-0019"
+        ],
+        [
+          "star-0019",
+          "star-0129"
+        ],
+        [
+          "star-0129",
+          "star-0274"
+        ],
+        [
+          "star-0274",
+          "star-0340"
+        ],
+        [
+          "star-0340",
+          "star-0040"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "windmill",
+      "name": "The Windmill",
+      "description": "Crossed sails around the Twin Lamps.",
+      "tier": "chief",
+      "hemisphere": "north",
+      "declinationDeg": 26.8,
+      "sunPath": null,
+      "shape": "branched",
+      "center": [
+        0.88723,
+        -0.06108,
+        0.45726
+      ],
+      "stars": [
+        "star-0008",
+        "star-0010",
+        "star-0034",
+        "star-0123",
+        "star-0243",
+        "star-0407",
+        "star-0224"
+      ],
+      "lines": [
+        [
+          "star-0008",
+          "star-0123"
+        ],
+        [
+          "star-0123",
+          "star-0243"
+        ],
+        [
+          "star-0123",
+          "star-0010"
+        ],
+        [
+          "star-0010",
+          "star-0407"
+        ],
+        [
+          "star-0008",
+          "star-0034"
+        ],
+        [
+          "star-0008",
+          "star-0224"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "wishbone",
+      "name": "The Wishbone",
+      "description": "A forked bone with a short stem, low in the south.",
+      "tier": "chief",
+      "hemisphere": "south",
+      "declinationDeg": -58.8,
+      "sunPath": null,
+      "shape": "branched",
+      "center": [
+        -0.05382,
+        0.82876,
+        -0.557
+      ],
+      "stars": [
+        "star-0017",
+        "star-0255",
+        "star-0102",
+        "star-0251",
+        "star-0298"
+      ],
+      "lines": [
+        [
+          "star-0017",
+          "star-0255"
+        ],
+        [
+          "star-0255",
+          "star-0102"
+        ],
+        [
+          "star-0102",
+          "star-0251"
+        ],
+        [
+          "star-0255",
+          "star-0298"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "yoke",
+      "name": "The Yoke",
+      "description": "A shallow bowed beam on the path of the sun.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -14.8,
+      "sunPath": {
+        "order": 1,
+        "longitudeDeg": 13.6
+      },
+      "shape": "chain",
+      "center": [
+        0.94956,
+        0.26255,
+        -0.1715
+      ],
+      "stars": [
+        "star-0058",
+        "star-0070",
+        "star-0220",
+        "star-0177",
+        "star-0377"
+      ],
+      "lines": [
+        [
+          "star-0058",
+          "star-0070"
+        ],
+        [
+          "star-0070",
+          "star-0220"
+        ],
+        [
+          "star-0220",
+          "star-0177"
+        ],
+        [
+          "star-0177",
+          "star-0377"
+        ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "torag-hammer",
+      "name": "Torag's Hammer",
+      "description": "The warhammer of Torag, god of the forge: a broad head on a long haft.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 55.5,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.0238,
+        0.16604,
+        0.98583
+      ],
+      "stars": [
+        "star-0356",
+        "star-0284",
+        "star-0448",
+        "star-0417",
+        "star-0259",
+        "star-0188",
+        "star-0263"
+      ],
+      "lines": [
+        [
+          "star-0356",
+          "star-0284"
+        ],
+        [
+          "star-0284",
+          "star-0448"
+        ],
+        [
+          "star-0448",
+          "star-0259"
+        ],
+        [
+          "star-0259",
+          "star-0417"
+        ],
+        [
+          "star-0417",
+          "star-0356"
+        ],
+        [
+          "star-0259",
+          "star-0188"
+        ],
+        [
+          "star-0188",
+          "star-0263"
+        ]
+      ],
+      "origin": "sculpted"
+    }
+  ],
+  "asterisms": [
+    {
+      "id": "twin-lamps",
+      "name": "The Twin Lamps",
+      "stars": [
+        "star-0008",
+        "star-0010"
+      ],
+      "lines": [
+        [
+          "star-0008",
+          "star-0010"
+        ]
+      ],
+      "description": "Two brilliant stars side by side, the most striking pair in the sky.",
+      "within": [
+        "windmill"
+      ]
+    },
+    {
+      "id": "hearthstones",
+      "name": "The Hearthstones",
+      "stars": [
+        "star-0014",
+        "star-0060",
+        "star-0062",
+        "star-0319",
+        "star-0426"
+      ],
+      "lines": [],
+      "description": "A tight knot of bright stars on the path of the sun.",
+      "within": [
+        "staff"
+      ]
+    },
+    {
+      "id": "wayfarers-triangle",
+      "name": "The Wayfarer's Triangle",
+      "stars": [
+        "star-0002",
+        "star-0003",
+        "star-0008"
+      ],
+      "lines": [
+        [
+          "star-0002",
+          "star-0003"
+        ],
+        [
+          "star-0003",
+          "star-0008"
+        ],
+        [
+          "star-0008",
+          "star-0002"
+        ]
+      ],
+      "description": "A great triangle of three of the brightest stars, straddling the celestial equator and seen from both hemispheres.",
+      "within": [
+        "plough",
+        "scythe",
+        "windmill"
+      ]
+    },
+    {
+      "id": "irori-belt",
+      "name": "Irori's Belt",
+      "stars": [
+        "star-0098",
+        "star-0105",
+        "star-0183"
+      ],
+      "lines": [
+        [
+          "star-0098",
+          "star-0105"
+        ],
+        [
+          "star-0105",
+          "star-0183"
+        ]
+      ],
+      "description": "Three evenly spaced stars of similar brightness in a straight row, the belt of Irori.",
+      "within": [
+        "ferryman"
+      ]
+    }
+  ],
+  "lunarMansions": [
+    {
+      "number": 1,
+      "id": "yoke-pin",
+      "name": "The Yoke-Pin",
+      "description": "The bright pin of the Yoke, where the year's mansions begin.",
+      "startLongitudeDeg": 0,
+      "endLongitudeDeg": 12.8571,
+      "determinativeStar": "star-0058",
+      "determinativeMagnitude": 2.426,
+      "constellations": [
+        "yoke"
+      ]
+    },
+    {
+      "number": 2,
+      "id": "ox",
+      "name": "The Ox",
+      "description": "The faint stars trailing the Yoke, the beast in harness.",
+      "startLongitudeDeg": 12.8571,
+      "endLongitudeDeg": 25.7143,
+      "determinativeStar": "star-0177",
+      "determinativeMagnitude": 3.4,
+      "constellations": [
+        "yoke"
+      ]
+    },
+    {
+      "number": 3,
+      "id": "ploughshare",
+      "name": "The Ploughshare",
+      "description": "The blade of the Plough, beside the Adder's coils.",
+      "startLongitudeDeg": 25.7143,
+      "endLongitudeDeg": 38.5714,
+      "determinativeStar": "star-0003",
+      "determinativeMagnitude": -0.269,
+      "constellations": [
+        "adder",
+        "plough"
+      ]
+    },
+    {
+      "number": 4,
+      "id": "furrow",
+      "name": "The Furrow",
+      "description": "A dim stretch behind the Plough, the turned earth.",
+      "startLongitudeDeg": 38.5714,
+      "endLongitudeDeg": 51.4286,
+      "determinativeStar": "star-0394",
+      "determinativeMagnitude": 4.141,
+      "constellations": []
+    },
+    {
+      "number": 5,
+      "id": "hearth",
+      "name": "The Hearth",
+      "description": "The Hearthstones in the Staff, a tight knot of bright stars.",
+      "startLongitudeDeg": 51.4286,
+      "endLongitudeDeg": 64.2857,
+      "determinativeStar": "star-0014",
+      "determinativeMagnitude": 1.1,
+      "constellations": [
+        "gozreh-trident",
+        "staff"
+      ]
+    },
+    {
+      "number": 6,
+      "id": "smoke",
+      "name": "The Smoke",
+      "description": "A few faint stars rising beyond the Hearth.",
+      "startLongitudeDeg": 64.2857,
+      "endLongitudeDeg": 77.1429,
+      "determinativeStar": "star-0338",
+      "determinativeMagnitude": 3.979,
+      "constellations": []
+    },
+    {
+      "number": 7,
+      "id": "well",
+      "name": "The Well",
+      "description": "A lone modest star in an open field of sky.",
+      "startLongitudeDeg": 77.1429,
+      "endLongitudeDeg": 90,
+      "determinativeStar": "star-0180",
+      "determinativeMagnitude": 3.405,
+      "constellations": []
+    },
+    {
+      "number": 8,
+      "id": "beacon",
+      "name": "The Beacon",
+      "description": "A brilliant solitary star that belongs to no figure.",
+      "startLongitudeDeg": 90,
+      "endLongitudeDeg": 102.8571,
+      "determinativeStar": "star-0024",
+      "determinativeMagnitude": 1.544,
+      "constellations": []
+    },
+    {
+      "number": 9,
+      "id": "shallows",
+      "name": "The Shallows",
+      "description": "A bright star just ahead of the Pike.",
+      "startLongitudeDeg": 102.8571,
+      "endLongitudeDeg": 115.7143,
+      "determinativeStar": "star-0031",
+      "determinativeMagnitude": 1.722,
+      "constellations": [
+        "pike"
+      ]
+    },
+    {
+      "number": 10,
+      "id": "pike-eye",
+      "name": "The Pike's Eye",
+      "description": "The brightest star of the Pike.",
+      "startLongitudeDeg": 115.7143,
+      "endLongitudeDeg": 128.5714,
+      "determinativeStar": "star-0005",
+      "determinativeMagnitude": 0.036,
+      "constellations": [
+        "pike"
+      ]
+    },
+    {
+      "number": 11,
+      "id": "weir",
+      "name": "The Weir",
+      "description": "Open sky past the Pike's tail.",
+      "startLongitudeDeg": 128.5714,
+      "endLongitudeDeg": 141.4286,
+      "determinativeStar": "star-0190",
+      "determinativeMagnitude": 3.463,
+      "constellations": []
+    },
+    {
+      "number": 12,
+      "id": "net",
+      "name": "The Net",
+      "description": "A loose scatter of middling stars.",
+      "startLongitudeDeg": 141.4286,
+      "endLongitudeDeg": 154.2857,
+      "determinativeStar": "star-0182",
+      "determinativeMagnitude": 3.408,
+      "constellations": []
+    },
+    {
+      "number": 13,
+      "id": "distaff",
+      "name": "The Distaff",
+      "description": "The Spindle, where thread is spun.",
+      "startLongitudeDeg": 154.2857,
+      "endLongitudeDeg": 167.1429,
+      "determinativeStar": "star-0119",
+      "determinativeMagnitude": 3.02,
+      "constellations": [
+        "spindle"
+      ]
+    },
+    {
+      "number": 14,
+      "id": "loom",
+      "name": "The Loom",
+      "description": "A bright star on the edge of the path, beyond the Spindle.",
+      "startLongitudeDeg": 167.1429,
+      "endLongitudeDeg": 180,
+      "determinativeStar": "star-0071",
+      "determinativeMagnitude": 2.561,
+      "constellations": []
+    },
+    {
+      "number": 15,
+      "id": "hollow",
+      "name": "The Hollow",
+      "description": "An almost empty stretch of the path.",
+      "startLongitudeDeg": 180,
+      "endLongitudeDeg": 192.8571,
+      "determinativeStar": "star-0313",
+      "determinativeMagnitude": 3.907,
+      "constellations": []
+    },
+    {
+      "number": 16,
+      "id": "bowstring",
+      "name": "The Bowstring",
+      "description": "The trailing stars of Erastil's Bow.",
+      "startLongitudeDeg": 192.8571,
+      "endLongitudeDeg": 205.7143,
+      "determinativeStar": "star-0258",
+      "determinativeMagnitude": 3.706,
+      "constellations": [
+        "erastil-bow"
+      ]
+    },
+    {
+      "number": 17,
+      "id": "bow-belly",
+      "name": "The Bow's Belly",
+      "description": "The bright curve of Erastil's Bow.",
+      "startLongitudeDeg": 205.7143,
+      "endLongitudeDeg": 218.5714,
+      "determinativeStar": "star-0054",
+      "determinativeMagnitude": 2.374,
+      "constellations": [
+        "erastil-bow"
+      ]
+    },
+    {
+      "number": 18,
+      "id": "quiver",
+      "name": "The Quiver",
+      "description": "Middling stars beside the Bow.",
+      "startLongitudeDeg": 218.5714,
+      "endLongitudeDeg": 231.4286,
+      "determinativeStar": "star-0209",
+      "determinativeMagnitude": 3.535,
+      "constellations": []
+    },
+    {
+      "number": 19,
+      "id": "watchfire",
+      "name": "The Watchfire",
+      "description": "A brilliant lone star on the empty road of the sun.",
+      "startLongitudeDeg": 231.4286,
+      "endLongitudeDeg": 244.2857,
+      "determinativeStar": "star-0021",
+      "determinativeMagnitude": 1.413,
+      "constellations": []
+    },
+    {
+      "number": 20,
+      "id": "thicket",
+      "name": "The Thicket",
+      "description": "Faint stars clustered off the path.",
+      "startLongitudeDeg": 244.2857,
+      "endLongitudeDeg": 257.1429,
+      "determinativeStar": "star-0238",
+      "determinativeMagnitude": 3.633,
+      "constellations": []
+    },
+    {
+      "number": 21,
+      "id": "barren-field",
+      "name": "The Barren Field",
+      "description": "The dimmest mansion, with hardly a star to mark it.",
+      "startLongitudeDeg": 257.1429,
+      "endLongitudeDeg": 270,
+      "determinativeStar": "star-0496",
+      "determinativeMagnitude": 4.33,
+      "constellations": []
+    },
+    {
+      "number": 22,
+      "id": "hedge",
+      "name": "The Hedge",
+      "description": "A row of middling stars along the empty road.",
+      "startLongitudeDeg": 270,
+      "endLongitudeDeg": 282.8571,
+      "determinativeStar": "star-0189",
+      "determinativeMagnitude": 3.462,
+      "constellations": []
+    },
+    {
+      "number": 23,
+      "id": "fallow",
+      "name": "The Fallow",
+      "description": "Faint stars in the heart of the sun's empty road.",
+      "startLongitudeDeg": 282.8571,
+      "endLongitudeDeg": 295.7143,
+      "determinativeStar": "star-0382",
+      "determinativeMagnitude": 4.098,
+      "constellations": []
+    },
+    {
+      "number": 24,
+      "id": "milestone",
+      "name": "The Milestone",
+      "description": "A bright star standing at the edge of the path.",
+      "startLongitudeDeg": 295.7143,
+      "endLongitudeDeg": 308.5714,
+      "determinativeStar": "star-0044",
+      "determinativeMagnitude": 2.001,
+      "constellations": []
+    },
+    {
+      "number": 25,
+      "id": "crossroads",
+      "name": "The Crossroads",
+      "description": "Scattered faint stars where the road turns.",
+      "startLongitudeDeg": 308.5714,
+      "endLongitudeDeg": 321.4286,
+      "determinativeStar": "star-0362",
+      "determinativeMagnitude": 4.043,
+      "constellations": []
+    },
+    {
+      "number": 26,
+      "id": "gate",
+      "name": "The Gate",
+      "description": "A lone star before the Scythe.",
+      "startLongitudeDeg": 321.4286,
+      "endLongitudeDeg": 334.2857,
+      "determinativeStar": "star-0125",
+      "determinativeMagnitude": 3.048,
+      "constellations": []
+    },
+    {
+      "number": 27,
+      "id": "scythe-edge",
+      "name": "The Scythe's Edge",
+      "description": "The bright blade of the Scythe.",
+      "startLongitudeDeg": 334.2857,
+      "endLongitudeDeg": 347.1429,
+      "determinativeStar": "star-0002",
+      "determinativeMagnitude": -0.466,
+      "constellations": [
+        "scythe"
+      ]
+    },
+    {
+      "number": 28,
+      "id": "sheaf",
+      "name": "The Sheaf",
+      "description": "The gathered stars after the Scythe, closing the year's round.",
+      "startLongitudeDeg": 347.1429,
+      "endLongitudeDeg": 360,
+      "determinativeStar": "star-0175",
+      "determinativeMagnitude": 3.389,
+      "constellations": []
+    }
+  ]
+}

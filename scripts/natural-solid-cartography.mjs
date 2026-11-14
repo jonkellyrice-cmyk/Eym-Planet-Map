@@ -396,16 +396,5 @@ export function naturalSolidFeaturePlan(row, seed) {
     );
   }
 
-  if (row.object === "Eilean Volna") {
-    add("volna-thaw-enclave", "habitat", "installations", "marginal favorable enclave", { name: "Volna Thaw Enclave", lodPriority: 1, position: { lat: -8.4, lon: 42.2, elevation: -0.2 }, description: "A small engineered thaw-basin settlement exploiting locally favorable pressure, geothermal warmth and shielding; not an open-air city." });
-    add("volna-lichen-preserve", "observatory", "terrain", "limited biosphere monitoring site", { name: "Sheltered Lichen Preserve", lodPriority: 2, position: { lat: -11.1, lon: 47.8, elevation: 0.1 }, description: "Protected microbial/lichen-like biosphere site within a favorable thaw region; it does not imply an Earthlike global biosphere." });
-  }
-  if (row.object === "Old Kestrel") {
-    add("black-kestrel-cut", "mine", "resources", "primary deep excavation and refinery feed", { name: "Black Kestrel Cut", resource: "exceptionally metal-rich ore", lodPriority: 1, position: { lat: 12.5, lon: -28.4, elevation: -1.4 } });
-    add("cairnreach-annex", "habitat", "installations", "sealed industrial habitat complex", { name: "Cairnreach Surface Annex", lodPriority: 1, position: { lat: 8.2, lon: -20.1, elevation: -0.8 } });
-    add("gannet-driver", "landing", "installations", "mass-driver export terminus", { name: "Gannet Mass Driver", lodPriority: 1, position: { lat: 5.6, lon: -15.2, elevation: -0.3 }, hazard: "high-velocity export lane" });
-    add("old-cut-debris", "hazard", "hazards", "worked spoil and debris exclusion field", { name: "Old Cut Debris Zone", lodPriority: 1, position: { lat: 15.8, lon: -36.7, elevation: -2.2 }, hazard: "excavation debris and unstable spoil" });
-  }
-
   return { profile, features };
 }

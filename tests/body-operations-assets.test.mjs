@@ -13,8 +13,8 @@ const rowsByKey = new Map(rows.map((row) => [targetKey(row.system, row.object), 
 
 test("manifest covers every eligible non-cartographic operational target exactly once", () => {
   const targets = deriveBodyOperationTargets(rows, cartography);
-  assert.equal(rows.length, 126); assert.equal(cartography.worlds.length, 43); assert.equal(targets.length, 71); assert.equal(manifest.targetCount, 71);
-  assert.equal(new Set(manifest.assets.map((entry) => targetKey(entry.system, entry.body))).size, 71);
+  assert.equal(rows.length, 9); assert.equal(cartography.worlds.length, 4); assert.equal(targets.length, 4); assert.equal(manifest.targetCount, 4);
+  assert.equal(new Set(manifest.assets.map((entry) => targetKey(entry.system, entry.body))).size, 4);
   assert.deepEqual(new Set(manifest.assets.map((entry) => targetKey(entry.system, entry.body))), new Set(targets.map(({ row }) => targetKey(row.system, row.object))));
 });
 

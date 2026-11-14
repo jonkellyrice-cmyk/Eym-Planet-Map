@@ -9,8 +9,8 @@ const root = new URL("../", import.meta.url);
 const rows = parseCsv(readFileSync(new URL("docs/system-orbital-distances.csv", root), "utf8"));
 const manifest = JSON.parse(readFileSync(new URL("data/planet-geography/manifest.json", root), "utf8"));
 
-test("43 permanent-seed surfaces are explicitly accepted as working canon", () => {
-  assert.equal(manifest.status, "accepted-working-canon"); assert.equal(manifest.worlds.length, 43);
+test("4 permanent-seed surfaces are explicitly accepted as working canon", () => {
+  assert.equal(manifest.status, "accepted-working-canon"); assert.equal(manifest.worlds.length, 4);
   for (const entry of manifest.worlds) { const world = JSON.parse(readFileSync(new URL(entry.path, root), "utf8")); assert.equal(world.seed, entry.seed); assert.equal(world.inputFingerprint, entry.inputFingerprint); }
 });
 

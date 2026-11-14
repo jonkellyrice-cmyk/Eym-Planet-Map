@@ -127,7 +127,7 @@ function planetPacket(world, sourcePath, sourceHash) {
     `- Likely transport geography: ${world.civilizationProfile.likelyTransportGeography}`, "",
     "## Legend", "", "- Blue: oceans and seas", "- Green: forest and productive biomes", "- Ochre: steppe, savanna, and deserts", "- White/pale blue: ice and glaciers", "- Blue lines: rivers", "- Cyan lines: transport corridors", "- Numbered circles: settlements", "",
     "## Settlements", "",
-    ...world.settlements.map((item, index) => `${index + 1}. **${item.properName}** — ${item.role}; ${item.kind}; built-environment scale: ${item.scaleClass}; ${item.lat}°, ${item.lon}°`), "",
+    ...world.settlements.map((item, index) => `${index + 1}. **${item.properName ?? `unnamed ${item.polity ?? item.kind}`}** — ${item.role}; ${item.kind}; built-environment scale: ${item.scaleClass ?? item.kind}; ${item.lat}°, ${item.lon}°`), "",
     "## Gazetteer", "",
   ];
   for (const [featureClass, items] of [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))) {

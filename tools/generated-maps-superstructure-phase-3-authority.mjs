@@ -11,7 +11,8 @@ const BUNDLE_PATH = "exports/generated-maps.bundle.json";
 const MANIFEST_PATH = "exports/generated-maps.manifest.json";
 const IDENTITIES_PATH = "data/superstructure-identities.json";
 const EXPECTED_MODEL = "orphaned-sun-superstructure-identity-v1";
-const EXPECTED_COUNTS = Object.freeze({ planetary: 43, operational: 71, total: 114 });
+const EXPECTED_COUNTS = Object.freeze({ planetary: 4, operational: 4, total: 8 });
+const EXPECTED_SUPERSTRUCTURES = 0;
 
 const read = (relative) => fs.readFileSync(path.join(ROOT, relative), "utf8");
 const sha256 = (text) => crypto.createHash("sha256").update(text).digest("hex");
@@ -37,7 +38,7 @@ function main() {
   const identityText = read(IDENTITIES_PATH);
   const identities = JSON.parse(identityText);
   if (identities.modelVersion !== EXPECTED_MODEL) throw new Error(`Unexpected superstructure model ${identities.modelVersion}.`);
-  if (identities.count !== 28 || identities.entries?.length !== 28) throw new Error("Authority requires exactly 28 superstructure identities.");
+  if (identities.count !== EXPECTED_SUPERSTRUCTURES || identities.entries?.length !== EXPECTED_SUPERSTRUCTURES) throw new Error(`Authority requires exactly ${EXPECTED_SUPERSTRUCTURES} superstructure identities.`);
   const identityKeys = new Set(identities.entries.map((entry) => key(entry.system, entry.body)));
 
   const bundleText = read(BUNDLE_PATH);
@@ -81,7 +82,7 @@ function main() {
       naturalContractLeak += 1;
     }
   }
-  if (superstructureCount !== 28) throw new Error(`Observed ${superstructureCount} superstructure bundle entries, expected 28.`);
+  if (superstructureCount !== EXPECTED_SUPERSTRUCTURES) throw new Error(`Observed ${superstructureCount} superstructure bundle entries, expected ${EXPECTED_SUPERSTRUCTURES}.`);
   if (naturalContractLeak) throw new Error(`Superstructure contract leaked into ${naturalContractLeak} non-superstructure entries.`);
 
   console.log(`[superstructure:phase3] authority verified: ${EXPECTED_COUNTS.total} sheets (${EXPECTED_COUNTS.planetary} planetary + ${EXPECTED_COUNTS.operational} operational)`);

@@ -9,7 +9,7 @@ const CSV_PATH = path.join(ROOT, "docs/system-orbital-distances.csv");
 const CARTOGRAPHY_MANIFEST_PATH = path.join(ROOT, "data/planet-cartography/manifest.json");
 const SETTLEMENT_SOURCE_PATH = path.join(ROOT, "scripts/cartography-settlements.mjs");
 const OUTPUT_PATH = path.join(ROOT, "artifacts/planetary-civilization-metadata-audit.json");
-const EXPECTED_WORLD_COUNT = 43;
+const EXPECTED_WORLD_COUNT = 4;
 
 const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
 const key = (system, body) => `${system}/${body}`;
@@ -29,8 +29,9 @@ const assets = cartographyManifest.worlds.map((entry) => {
   return { entry, sourceRow, asset };
 });
 
-const jinyara = assets.find(({ entry }) => entry.system === "Thebes" && entry.body === "Jinyara");
-if (!jinyara) fail("Jinyara cartography asset was not found.");
+const EXEMPLAR = Object.freeze({ system: "Abydos", body: "Eventide" });
+const exemplar = assets.find(({ entry }) => entry.system === EXEMPLAR.system && entry.body === EXEMPLAR.body);
+if (!exemplar) fail(`${EXEMPLAR.system}/${EXEMPLAR.body} cartography asset was not found.`);
 
 const settlementSource = fs.readFileSync(SETTLEMENT_SOURCE_PATH, "utf8");
 const expectedLegacyPathFormula = "const step = 1 + Math.abs(next.elevationM - cell.elevationM) / 450 + Math.max(0, next.elevationM - 1_800) / 4_000;";
@@ -57,30 +58,30 @@ if (fieldPresence.routeCorridorClass !== totalRoutes) gaps.push("Not every gener
 if (fieldPresence.routeRoutingDoctrine !== totalRoutes) gaps.push("Not every generated transport route carries routing-doctrine metadata.");
 if (!/routingStepCost/.test(settlementSource) || !/routingDoctrineForFaction/.test(settlementSource)) gaps.push("Surface-road geometry does not yet apply faction-aware routing doctrine.");
 
-const jinyaraRow = jinyara.sourceRow;
-const jinyaraAsset = jinyara.asset;
+const exemplarRow = exemplar.sourceRow;
+const exemplarAsset = exemplar.asset;
 const report = {
   generatedAt: new Date().toISOString(),
   worldCount: assets.length,
   schemaVersion: cartographyManifest.schemaVersion,
   exemplar: {
-    system: "Thebes",
-    body: "Jinyara",
-    ownerFactionUpstream: jinyaraRow.owner_faction,
+    system: EXEMPLAR.system,
+    body: EXEMPLAR.body,
+    ownerFactionUpstream: exemplarRow.owner_faction,
     upstreamCivilizationMetadata: {
-      settlementPattern: jinyaraRow.settlement_pattern,
-      dominantSettlementPattern: jinyaraRow.dominant_settlement_pattern,
-      majorPopulationCorridors: jinyaraRow.major_population_corridors,
-      urbanConcentration: jinyaraRow.urban_concentration,
-      majorCityCountBand: jinyaraRow.major_city_count_band,
-      likelyTransportGeography: jinyaraRow.likely_transport_geography,
+      settlementPattern: exemplarRow.settlement_pattern,
+      dominantSettlementPattern: exemplarRow.dominant_settlement_pattern,
+      majorPopulationCorridors: exemplarRow.major_population_corridors,
+      urbanConcentration: exemplarRow.urban_concentration,
+      majorCityCountBand: exemplarRow.major_city_count_band,
+      likelyTransportGeography: exemplarRow.likely_transport_geography,
     },
-    generatedSettlementCount: jinyaraAsset.settlements?.length ?? 0,
-    generatedRouteCount: jinyaraAsset.transportRoutes?.length ?? 0,
-    settlementRoles: [...new Set((jinyaraAsset.settlements ?? []).map((site) => site.role))].sort(),
-    routeKinds: [...new Set((jinyaraAsset.transportRoutes ?? []).map((route) => route.kind))].sort(),
-    settlementSampleKeys: Object.keys(jinyaraAsset.settlements?.[0] ?? {}).sort(),
-    routeSampleKeys: Object.keys(jinyaraAsset.transportRoutes?.[0] ?? {}).sort(),
+    generatedSettlementCount: exemplarAsset.settlements?.length ?? 0,
+    generatedRouteCount: exemplarAsset.transportRoutes?.length ?? 0,
+    settlementRoles: [...new Set((exemplarAsset.settlements ?? []).map((site) => site.role))].sort(),
+    routeKinds: [...new Set((exemplarAsset.transportRoutes ?? []).map((route) => route.kind))].sort(),
+    settlementSampleKeys: Object.keys(exemplarAsset.settlements?.[0] ?? {}).sort(),
+    routeSampleKeys: Object.keys(exemplarAsset.transportRoutes?.[0] ?? {}).sort(),
   },
   allWorlds: {
     ownerFactionCounts,
@@ -103,8 +104,8 @@ fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
 fs.writeFileSync(OUTPUT_PATH, `${JSON.stringify(report, null, 2)}\n`);
 
 console.log(`Planetary cartography assets: ${report.worldCount}`);
-console.log(`Jinyara owner faction upstream: ${report.exemplar.ownerFactionUpstream}`);
-console.log(`Jinyara settlements/routes: ${report.exemplar.generatedSettlementCount}/${report.exemplar.generatedRouteCount}`);
+console.log(`${EXEMPLAR.body} owner faction upstream: ${report.exemplar.ownerFactionUpstream}`);
+console.log(`${EXEMPLAR.body} settlements/routes: ${report.exemplar.generatedSettlementCount}/${report.exemplar.generatedRouteCount}`);
 console.log(`All-world settlement count range: ${report.allWorlds.settlementCountRange.join("–")}`);
 console.log(`All-world route count range: ${report.allWorlds.routeCountRange.join("–")}`);
 console.log(`Existing settlement roles: ${roles.join(" | ")}`);
@@ -115,7 +116,7 @@ console.log(`Routes carrying corridorClass: ${fieldPresence.routeCorridorClass}`
 console.log(`Routes carrying routingDoctrine: ${fieldPresence.routeRoutingDoctrine}`);
 console.log(`Single shared least-resistance surface pathfinder: ${report.generatorAudit.sharedLeastResistanceSurfacePath}`);
 console.log(`Faction routing referenced by generator: ${report.generatorAudit.referencesOwnerFaction || report.generatorAudit.referencesRoutingDoctrine}`);
-console.log("\nUpstream Jinyara civilization metadata:");
+console.log(`\nUpstream ${EXEMPLAR.body} civilization metadata:`);
 for (const [name, value] of Object.entries(report.exemplar.upstreamCivilizationMetadata)) console.log(`  ${name}: ${value}`);
 console.log("\nIdentified gaps:");
 for (const gap of report.gaps) console.log(`  - ${gap}`);

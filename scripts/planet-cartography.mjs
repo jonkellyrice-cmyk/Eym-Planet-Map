@@ -135,7 +135,7 @@ export function buildRefinedHydrology(coarse, refined = buildRefinedTerrain(coar
 
 function unwrapLon(lon, reference) { let value = lon; while (value - reference > 180) value -= 360; while (value - reference < -180) value += 360; return value; }
 
-function smoothOpen(points, iterations) {
+export function smoothOpen(points, iterations) {
   let line = points;
   for (let pass = 0; pass < iterations; pass += 1) {
     const next = [line[0]];
@@ -148,13 +148,13 @@ function smoothOpen(points, iterations) {
   return line;
 }
 
-function circlePolygon(lat, lon, radiusDeg, count = 12) {
+export function circlePolygon(lat, lon, radiusDeg, count = 12) {
   const points = Array.from({ length: count }, (_, index) => { const angle = index / count * Math.PI * 2; return [Number(clamp(lat + Math.sin(angle) * radiusDeg, -89.9, 89.9).toFixed(3)), Number(unwrapLon(lon + Math.cos(angle) * radiusDeg / Math.max(.2, Math.cos(lat * Math.PI / 180)), lon).toFixed(3))]; });
   return [...points, points[0]];
 }
 
-function buildElevationMesh(cells, latCount, lonCount, resolutionDeg) {
-  const stride = 2, rows = Math.ceil(latCount / stride), columns = Math.ceil(lonCount / stride);
+export function buildElevationMesh(cells, latCount, lonCount, resolutionDeg, stride = 2) {
+  const rows = Math.ceil(latCount / stride), columns = Math.ceil(lonCount / stride);
   const vertices = [];
   for (let y = 0; y < latCount; y += stride) for (let x = 0; x < lonCount; x += stride) { const cell = cells[y * lonCount + x]; vertices.push([cell.lat, cell.lon, cell.elevationM]); }
   const triangles = [];
@@ -162,7 +162,7 @@ function buildElevationMesh(cells, latCount, lonCount, resolutionDeg) {
   return { resolutionDeg: resolutionDeg * stride, rows, columns, vertices, triangles };
 }
 
-function buildContours(cells, latCount, lonCount, resolutionDeg) {
+export function buildContours(cells, latCount, lonCount, resolutionDeg) {
   const levels = [-4000, -2000, 0, 500, 1500, 3000, 5000], lines = [];
   const crossings = (a, b, level) => (a.elevationM < level && b.elevationM >= level) || (b.elevationM < level && a.elevationM >= level);
   for (const levelM of levels) for (const cell of cells) {

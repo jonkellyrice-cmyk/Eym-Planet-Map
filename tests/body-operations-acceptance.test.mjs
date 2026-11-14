@@ -12,24 +12,33 @@ test("all accepted assets regenerate byte-for-byte from the current canonical re
   for (const { row } of targets) assert.equal(readFileSync(new URL(bodyOperationAssetPath(row.system, row.object), root), "utf8"), serializeAsset(generateBodyOperationAsset(row)), `${row.system}/${row.object}`);
 });
 
-test("special natural worlds retain their constrained operational identities", () => {
-  const eilean = assetFor("Eilean Volna"), kestrel = assetFor("Old Kestrel"), kalong = assetFor("Kalong");
-  assert.ok(eilean.features.some((feature) => feature.name === "Volna Thaw Enclave"));
-  assert.ok(!eilean.features.some((feature) => /\bforest\b|\bhighway\b/i.test(`${feature.name} ${feature.description}`)));
-  assert.ok(!eilean.features.some((feature) => feature.type === "city"));
-  assert.ok(kestrel.features.some((feature) => feature.name === "Black Kestrel Cut")); assert.ok(kestrel.features.some((feature) => /mass driver/i.test(feature.name)));
-  assert.equal(kalong.operationalKind, "giant"); assert.ok(kalong.features.some((feature) => feature.name === "Ember Crown")); assert.ok(!kalong.features.some((feature) => feature.layer === "routes"));
+// Synthetic (non-canon) rows keep the generic structure families that Abydos does not contain under test.
+const synthetic = (object, type) => generateBodyOperationAsset({ system: "Abydos", object, type, parent: "Abydos" });
+
+test("gas giants keep an atmospheric survey with no solid-surface routes", () => {
+  // Tribune is the canonical gas giant; Abydos has no ice/gas giant, so a synthetic row keeps that type under test.
+  const giants = { Tribune: assetFor("Tribune"), "Synthetic Ice Giant": synthetic("Synthetic Ice Giant", "ice/gas giant") };
+  for (const [body, giant] of Object.entries(giants)) {
+    assert.equal(giant.operationalKind, "giant", body);
+    assert.ok(giant.features.some((feature) => feature.layer === "storms"), body);
+    assert.ok(!giant.features.some((feature) => feature.layer === "routes" || /surface route/i.test(feature.operationalRole)), body);
+  }
 });
 
-test("Akhetan, Thornfield, Long Hook and Arrowfall satisfy strategic/distributed contracts", () => {
-  const akhetan = assetFor("Akhetan"), thornfield = assetFor("Thornfield"), hook = assetFor("The Long Hook"), arrowfall = assetFor("Arrowfall Range");
-  assert.ok(akhetan.features.some((feature) => feature.type === "aperture")); assert.ok(akhetan.features.filter((feature) => feature.lodPriority === 1).length >= 8);
-  assert.equal(thornfield.coordinateFrame.geometryKind, "uncertain observation volume"); assert.ok(!thornfield.features.some((feature) => feature.type === "dock"));
-  assert.ok(hook.features.some((feature) => feature.name === "Hookhead Transfer Node"));
-  assert.ok(arrowfall.features.some((feature) => /live-fire/i.test(feature.hazard ?? ""))); assert.ok(arrowfall.features.some((feature) => feature.name === "Arrowfall Safe Ingress"));
+test("an anomaly region stays an uncertain, non-dockable observation volume and generic gates, tethers and yards keep their structure", () => {
+  const anomaly = synthetic("Synthetic Rift", "spatial anomaly region");
+  assert.equal(anomaly.operationalKind, "anomaly");
+  assert.equal(anomaly.coordinateFrame.geometryKind, "uncertain observation volume"); assert.ok(!anomaly.features.some((feature) => feature.type === "dock"));
+  const gate = synthetic("Synthetic Gate", "blinkgate");
+  assert.equal(gate.operationalKind, "blinkgate");
+  assert.ok(gate.features.some((feature) => feature.type === "aperture")); assert.ok(gate.features.filter((feature) => feature.lodPriority === 1).length >= 8);
+  const tether = synthetic("Synthetic Tether", "tether megastructure");
+  assert.equal(tether.operationalKind, "megastructure"); assert.ok(tether.features.filter((feature) => feature.type === "segment").length >= 3);
+  const yard = synthetic("Synthetic Yard", "shipyard");
+  assert.equal(yard.operationalKind, "shipyard"); assert.ok(yard.features.some((feature) => feature.type === "gantry")); assert.ok(yard.features.some((feature) => feature.type === "berth"));
 });
 
-test("cultural naming profiles cover all ten systems without apostrophe-heavy fantasy names", () => {
-  assert.deepEqual(new Set(targets.map(({ row }) => row.system)), new Set(["Abydos","Tanis","Saqqara","Iunu","Memphis","Nekhen","Thebes","Sais","Amarna","Seti"]));
+test("Abydos uses its own naming culture without apostrophe-heavy fantasy names", () => {
+  assert.deepEqual(new Set(targets.map(({ row }) => row.system)), new Set(["Abydos"]));
   for (const { row } of targets) { const asset = assetFor(row.object); assert.ok(asset.namingProfile); assert.ok(asset.features.every((feature) => (feature.name.match(/[’']/g) ?? []).length <= 1)); }
 });
