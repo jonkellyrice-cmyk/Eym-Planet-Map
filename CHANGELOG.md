@@ -2,6 +2,7 @@
 
 ## 0.12.0 — Eym Planet Map (single-system edition)
 
+- Day, night and the seasons on Eym: the globe shows the real terminator and twilight bands, and seasonal snow and sea ice, all following the campaign clock. A "Here and now" card (and the sky readout) gives a place's season, sun time, sunrise and sunset, day length and temperature. Filled shapes that run behind the globe's edge are now closed along the edge, so polar ice and large regions fill correctly. Eym's poles are a little colder, so the Arctic keeps some ice in summer.
 - Names: the sun is **Mitkear**; the moons are **Austarm** (white) and **Chatarm** (red); the wandering planets, largest to smallest, are **Iarn**, **Esonth**, **Bruthi** and **Lilta** (registry names unchanged; display names in `scripts/display-names.mjs`).
 - Calendar: tied to the seasons (the March equinox, found from the astronomy model, falls at noon on 20 March). The campaign and the clock start on Sunday, 14 March, year 50, at 08:00. Orbital elements keep their internal anchor instant.
 - Garyk moved to three weeks by steamer from Caren (Pouk to Garyk's south-east port, 9 knots): it now lies west-north-west of Caren, centered 15°N, 79.8°W.

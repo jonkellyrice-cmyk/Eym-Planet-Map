@@ -1,6 +1,7 @@
 const SVG_NS = "http://www.w3.org/2000/svg";
 import { buildBodyLayers } from "./body-layers.mjs";
-import { projectGeoPath, selectCartographyLabels } from "./body-cartography.mjs";
+import { orthographicGeoPoint, projectGeoPath, selectCartographyLabels } from "./body-cartography.mjs";
+import { nightOutlinePath, TWILIGHT_STEPS } from "./eym-seasons.mjs";
 import { renderSuperstructureAtlas } from "./superstructure-atlas-visuals.mjs";
 import { factionFamilyFor, superstructureProfile, SUPERSTRUCTURE_MODEL_VERSION } from "./superstructure-identities.mjs";
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -127,9 +128,9 @@ export class BodyView {
     const asset = this.geography, namedByRef = new Map(asset.gazetteer.filter((feature) => feature.geometryRef).map((feature) => [feature.geometryRef, feature]));
     this.cartography = true; this.disc.classList.add("is-refined-ocean"); this.layerGroups = new Map();
     for (const id of ["terrain", "hydrology", "resources", "settlements", "transport", "labels"]) { const group = svg("g", { class: `oscm-body-layer is-${id}` }); (id === "labels" ? this.labels : this.surface).append(group); this.layerGroups.set(id, group); }
-    const addPath = (group, feature, rings, className, { minZoom = .46, closed = false } = {}) => {
+    const addPath = (group, feature, rings, className, { minZoom = .46, closed = false, filled = false } = {}) => {
       const node = svg("path", { class: className, "data-feature": feature.id ?? feature.properName });
-      node.addEventListener("click", () => this.onFeatureSelected(feature)); group.append(node); this.featureNodes.push({ node, rings, feature, minZoom, closed, cartographicPath: true }); return node;
+      node.addEventListener("click", () => this.onFeatureSelected(feature)); group.append(node); this.featureNodes.push({ node, rings, feature, minZoom, closed, limbClose: filled, cartographicPath: true }); return node;
     };
     // Vector coastlines (Eym): land is filled from the coastline rings, and land
     // biomes are clipped to it, so the coarse biome raster never spills into the sea.
@@ -137,21 +138,29 @@ export class BodyView {
     const landRings = asset.terrain.coastlines.map((coast) => coast.points);
     if (vectorCoast) {
       const clip = svg("clipPath", { id: "oscm-land-clip" }), clipPath = svg("path", { "clip-rule": "evenodd" }); clip.append(clipPath); this.svg.querySelector("defs").append(clip);
-      this.featureNodes.push({ node: clipPath, rings: landRings, feature: {}, minZoom: 0, closed: true, cartographicPath: true });
+      this.featureNodes.push({ node: clipPath, rings: landRings, feature: {}, minZoom: 0, closed: true, limbClose: true, cartographicPath: true });
     }
     const regions = asset.regions.ecoregions.slice(0, 700), drawRegion = (region) => {
       const feature = { ...region, ...(namedByRef.get(region.id) ?? {}), type: "ecoregion", scientificClassification: region.category };
-      const node = addPath(this.layerGroups.get("terrain"), feature, region.polygons, `oscm-cartography-region biome-${region.category}`, { minZoom: vectorCoast ? 0 : region.cellCount >= 42 ? .46 : region.cellCount >= 10 ? 1.15 : 2.15, closed: true });
+      const node = addPath(this.layerGroups.get("terrain"), feature, region.polygons, `oscm-cartography-region biome-${region.category}`, { minZoom: vectorCoast ? 0 : region.cellCount >= 42 ? .46 : region.cellCount >= 10 ? 1.15 : 2.15, closed: true, filled: vectorCoast });
       if (vectorCoast && !oceanBiome(region.category)) node.setAttribute("clip-path", "url(#oscm-land-clip)");
     };
     if (vectorCoast) {
       // Small continents need a closer look: allow much deeper zoom, and draw the
       // forests, uplands, mountains and peaks traced or seeded at 6–10 km.
       this.maxZoom = 30; this.disc.classList.add("is-vector-ocean"); this.fadeNightWithZoom = true;
+      const before = this.featureNodes.length;
       for (const region of regions.filter((item) => item.category === "sea-ice")) drawRegion(region);
-      addPath(this.layerGroups.get("terrain"), { type: "land" }, landRings, "oscm-cartography-land", { minZoom: 0, closed: true });
+      this.staticIceNodes = this.featureNodes.slice(before).map((item) => item.node);
+      // Seasonal sea ice goes under the land, seasonal snow over it (see setEnvironment).
+      this.iceLayer = svg("g", { class: "oscm-season-ice" }); this.layerGroups.get("terrain").append(this.iceLayer);
+      addPath(this.layerGroups.get("terrain"), { type: "land" }, landRings, "oscm-cartography-land", { minZoom: 0, closed: true, filled: true });
       for (const region of regions.filter((item) => !oceanBiome(item.category))) drawRegion(region);
-      for (const detail of asset.terrain.detail ?? []) addPath(this.layerGroups.get("terrain"), { id: detail.id, type: detail.kind, continent: detail.continent }, detail.rings, `oscm-cartography-detail is-${detail.kind}`, { minZoom: detail.kind === "forest" ? 1.6 : .46, closed: true }).setAttribute("clip-path", "url(#oscm-land-clip)");
+      for (const detail of asset.terrain.detail ?? []) addPath(this.layerGroups.get("terrain"), { id: detail.id, type: detail.kind, continent: detail.continent }, detail.rings, `oscm-cartography-detail is-${detail.kind}`, { minZoom: detail.kind === "forest" ? 1.6 : .46, closed: true, filled: true }).setAttribute("clip-path", "url(#oscm-land-clip)");
+      this.snowLayer = svg("g", { class: "oscm-season-snow", "clip-path": "url(#oscm-land-clip)" }); this.layerGroups.get("terrain").append(this.snowLayer);
+      // Night and the three twilights, darkest last, over everything on the surface.
+      this.nightLayer = svg("g", { class: "oscm-terminator is-hidden" }); this.surface.append(this.nightLayer);
+      this.nightBands = TWILIGHT_STEPS.map((step) => { const node = svg("path", { class: `oscm-night-band below-${-step}` }); this.nightLayer.append(node); return { node, belowDeg: -step }; });
     } else for (const region of regions) drawRegion(region);
     for (const coast of asset.terrain.coastlines) addPath(this.layerGroups.get("terrain"), namedByRef.get(coast.id) ?? { ...coast, type: "coastline" }, [coast.points], "oscm-cartography-coast", { closed: true, minZoom: vectorCoast && coast.areaKm2 < 2000 ? 1.15 : .46 });
     for (const river of asset.hydrology.rivers) addPath(this.layerGroups.get("hydrology"), namedByRef.get(river.id) ?? { ...river, type: "river" }, [river.points], "oscm-cartography-river");
@@ -170,6 +179,25 @@ export class BodyView {
       this.featureNodes.push({ node, lat: feature.at[0], lon: feature.at[1], feature, minZoom, label: true });
     }
     this.layerGroups.get("resources").classList.add("is-hidden");
+  }
+
+  /**
+   * Show the real day and night and the season's snow and sea ice (worlds with vector coastlines).
+   * @param environment { subsolar: { latDeg, lonDeg }, snow: rings, ice: rings }
+   */
+  setEnvironment(environment) {
+    if (!this.nightLayer) return;
+    this.environment = environment;
+    this.night.classList.add("is-hidden"); this.nightLayer.classList.remove("is-hidden");
+    for (const node of this.staticIceNodes ?? []) node.style.display = "none";
+    this.featureNodes = this.featureNodes.filter((item) => !item.seasonal);
+    for (const [layer, rings, kind] of [[this.iceLayer, environment.ice ?? [], "ice"], [this.snowLayer, environment.snow ?? [], "snow"]]) {
+      layer.replaceChildren();
+      if (!rings.length) continue;
+      const node = svg("path", { class: `oscm-season-cover is-${kind}` }); layer.append(node);
+      this.featureNodes.push({ node, rings, feature: { type: kind === "ice" ? "sea ice" : "snow cover" }, minZoom: 0, closed: true, limbClose: true, cartographicPath: true, seasonal: true });
+    }
+    this.render();
   }
 
   buildSchematic() {
@@ -296,12 +324,16 @@ export class BodyView {
   changeZoom(requested) { if (requested < .43 && !this.exitTriggered) { this.exitTriggered = true; this.onExitRequested(); return; } this.state.zoom = clamp(requested, .46, this.maxZoom ?? 4.5); this.render(); }
   render() {
     const radius = 250 * this.state.zoom; this.discClip?.setAttribute("r", radius);
-    if (this.fadeNightWithZoom) this.night.style.opacity = String(clamp(1.8 - this.state.zoom * 0.8, 0, 1)); for (const node of [this.disc, this.atmosphere]) node.setAttribute("r", radius + (node === this.atmosphere ? 6 : 0));
+    if (this.fadeNightWithZoom) this.night.style.opacity = String(clamp(1.8 - this.state.zoom * 0.8, 0, 1));
+    if (this.environment?.subsolar && this.nightBands) {
+      const sun = orthographicGeoPoint(this.environment.subsolar.latDeg, this.environment.subsolar.lonDeg, this.state.yaw, this.state.pitch, 1);
+      for (const band of this.nightBands) band.node.setAttribute("d", nightOutlinePath({ x: sun.x, y: sun.y, z: sun.z }, radius, [450, 340], band.belowDeg));
+    } for (const node of [this.disc, this.atmosphere]) node.setAttribute("r", radius + (node === this.atmosphere ? 6 : 0));
     if (this.structure) this.structure.setAttribute("transform", `translate(450 340) scale(${this.state.zoom}) rotate(${this.state.yaw * 28}) skewX(${this.state.pitch * 7})`);
     for (const item of this.featureNodes) {
       const lodVisible = this.state.zoom >= (item.minZoom ?? .46) && this.state.zoom <= (item.maxZoom ?? Infinity);
       if (item.cartographicPath) {
-        const paths = item.rings.map((ring) => projectGeoPath(ring, this.state.yaw, this.state.pitch, radius, [450, 340], item.closed)).filter(Boolean);
+        const paths = item.rings.map((ring) => projectGeoPath(ring, this.state.yaw, this.state.pitch, radius, [450, 340], item.closed, item.limbClose)).filter(Boolean);
         item.node.setAttribute("d", paths.join(" ")); item.node.hidden = !lodVisible || !paths.length; item.node.style.opacity = item.node.hidden ? "0" : "1"; continue;
       }
       const point = item.schematic ? { x: item.x * this.state.zoom, y: item.y * this.state.zoom, visible: true, z: 1 } : orthographicProject(item.lat, item.lon, this.state.yaw, this.state.pitch, radius);

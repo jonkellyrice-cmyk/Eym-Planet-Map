@@ -17,7 +17,8 @@ import { artificialBodyKind, buildArtificialBodyModel } from "./artificial-body-
 import { inspectSurfaceFeature } from "./body-layers.mjs";
 import { loadBodyOperationAsset } from "./body-operations.mjs";
 import { AstronomySnapshotCache, loadAstronomyOrientations } from "./astronomy.mjs";
-import { CAMPAIGN_START_MS } from "./universal-time.mjs";
+import { CAMPAIGN_START_MS, DAY_MS, formatUniversalClock, formatUniversalDate } from "./universal-time.mjs";
+import { environmentField, placeReport, seasonalCover, subsolarPoint } from "./eym-seasons.mjs";
 import { loadStarfield } from "./starfield.mjs";
 import { displayNameFor, objectDisplayName, parentDisplayName, systemDisplayName } from "./display-names.mjs";
 import { groundSky, localSolarHours } from "./ground-sky.mjs";
@@ -100,6 +101,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     });
     root.querySelector('[data-action="back-to-body"]')?.addEventListener("click", () => { if (this.activeBody) this.#enterBody(this.activeBody); });
     for (const control of root.querySelectorAll("[data-sky-layer]")) control.addEventListener("change", () => this._clusterView?.setLayerVisibility?.(control.dataset.skyLayer, control.checked));
+    for (const name of ["lookUpLat", "lookUpLon"]) root.querySelector(`[name="${name}"]`)?.addEventListener("input", () => this.#updatePlaceReadout());
     for (const control of root.querySelectorAll("[data-body-layer]")) control.addEventListener("change", () => this._clusterView?.setLayerVisibility?.(control.dataset.bodyLayer, control.checked));
 
     this._resizeObserver = new ResizeObserver(() => this._clusterView?.render());
@@ -117,6 +119,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       // ASTRAL TRAVEL (dormant): this.#refreshActiveVoyage();
       void this.#refreshVisibleAstronomy().catch((error) => console.warn(`${MODULE_ID} | Unable to refresh visible astronomy`, error));
       void this.#refreshSky().catch((error) => console.warn(`${MODULE_ID} | Unable to refresh the sky`, error));
+      void this.#refreshBodyEnvironment().catch((error) => console.warn(`${MODULE_ID} | Unable to refresh day and night`, error));
       // ASTRAL TRAVEL (dormant): void this.#snapshotVoyageArrival().catch((error) => console.warn(`${MODULE_ID} | Unable to snapshot voyage arrival system`, error));
     };
     window.addEventListener("oscm-campaign-time-changed", this._campaignTimeListener);
@@ -132,6 +135,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this._clusterView = null;
     window.removeEventListener("oscm-campaign-time-changed", this._campaignTimeListener);
     window.clearInterval(this._skyTicker);
+    window.clearInterval(this._bodyTicker);
     // ASTRAL TRAVEL (dormant): window.clearInterval(this._voyageTicker);
     return super._onClose(options);
   }
@@ -230,6 +234,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const [rows, orientationDocument, sky, starfield] = await Promise.all([this._registryPromise, this._astronomyOrientationsPromise, this._skyDocumentPromise, this._starfieldPromise]);
     if (!starfield) throw new Error("The star catalogue is unavailable.");
     const model = buildSystemModel(rows, HOME_SYSTEM.name, { referenceTimestampMs: t, orientations: orientationDocument.orientations });
+    this._sun = { t, subsolar: subsolarPoint(model, sky) };
     return { snapshot: groundSky({ model, sky, starfield, latDeg: this.lookUp.latDeg, lonDeg: this.lookUp.lonDeg }), sky, starfield };
   }
 
@@ -259,6 +264,39 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     }
   }
 
+  /** Where Mitkear is overhead on Eym at the campaign clock's moment. */
+  async #sunNow() {
+    const t = game.modules.get(MODULE_ID)?.api?.getCampaignTimeState?.()?.referenceBaseMs ?? CAMPAIGN_START_MS;
+    this._registryPromise ??= loadSystemRegistry(MODULE_ID);
+    this._astronomyOrientationsPromise ??= loadAstronomyOrientations(MODULE_ID);
+    this._skyDocumentPromise ??= fetch(`modules/${MODULE_ID}/data/stellar/constellations.json`).then((r) => { if (!r.ok) throw new Error(`Sky data fetch failed (${r.status})`); return r.json(); });
+    const [rows, orientationDocument, sky] = await Promise.all([this._registryPromise, this._astronomyOrientationsPromise, this._skyDocumentPromise]);
+    const model = buildSystemModel(rows, HOME_SYSTEM.name, { referenceTimestampMs: t, orientations: orientationDocument.orientations });
+    return { t, subsolar: subsolarPoint(model, sky) };
+  }
+
+  /** Real day and night on Eym's globe, and the season's snow and sea ice (recomputed once a day). */
+  async #refreshBodyEnvironment() {
+    if (this.mode !== "body" || this.activeBody?.name !== "Eventide" || !this._eymField || !this._clusterView?.setEnvironment) return;
+    const { t, subsolar } = await this.#sunNow();
+    if (this.mode !== "body" || !this._clusterView?.setEnvironment) return;
+    const day = Math.floor(t / DAY_MS);
+    if (this._coverDay !== day) { this._cover = seasonalCover(this._eymField, t); this._coverDay = day; }
+    this._sun = { t, subsolar };
+    this._clusterView.setEnvironment({ subsolar, snow: this._cover.snow, ice: this._cover.ice });
+    this.#updatePlaceReadout();
+  }
+
+  /** The "Here and now" card: date, season, sun and temperature at the chosen place. */
+  #updatePlaceReadout() {
+    const root = this.element?.querySelector?.(".oscm-shell"); if (!root || !this._eymField || !this._sun) return;
+    const latDeg = Number(root.querySelector('[name="lookUpLat"]')?.value), lonDeg = Number(root.querySelector('[name="lookUpLon"]')?.value);
+    if (!(latDeg >= -90 && latDeg <= 90) || !(lonDeg >= -180 && lonDeg <= 180)) return;
+    const report = placeReport({ field: this._eymField, subsolar: this._sun.subsolar, latDeg, lonDeg, timeMs: this._sun.t });
+    const values = { ...report, date: `${formatUniversalDate(this._sun.t)}, ${formatUniversalClock(this._sun.t).slice(0, 5)}` };
+    for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-place-field="${field}"]`); if (element && typeof value === "string") element.textContent = value; }
+  }
+
   async #refreshSky() {
     if (this.mode !== "sky" || !this.lookUp || !this._clusterView?.update) return;
     const { snapshot, sky } = await this.#skySnapshot();
@@ -279,6 +317,11 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       return `${phase} (${Math.round(moon.illuminated * 100)}%) · ${where} · ${mansionForDirection(moon.dir, sky).name}${eclipse}`;
     };
     const sunEclipse = snapshot.sun.coverage > 0.995 ? " · TOTAL ECLIPSE" : snapshot.sun.coverage > 0.01 ? ` · ${Math.round(snapshot.sun.coverage * 100)}% eclipsed` : "";
+    let extra = {};
+    if (this._eymField && this._sun) {
+      const report = placeReport({ field: this._eymField, subsolar: this._sun.subsolar, latDeg, lonDeg, timeMs: this._sun.t });
+      extra = { season: report.season, sunriseSunset: `${report.sunriseSunset} (${report.dayLength})`, temperature: report.temperature };
+    }
     const visiblePlanets = snapshot.planets.filter((p) => p.visible).map((p) => displayNameFor(HOME_SYSTEM.name, p.name));
     const values = {
       place: `${Math.abs(latDeg).toFixed(1)}°${latDeg >= 0 ? "N" : "S"}, ${Math.abs(lonDeg).toFixed(1)}°${lonDeg >= 0 ? "E" : "W"}`,
@@ -288,6 +331,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       redMoon: moonText(snapshot.moons.find((m) => m.name === "Red Moon")),
       planets: visiblePlanets.length ? visiblePlanets.join(", ") : "none visible",
       limit: `magnitude ${snapshot.limitingMagnitude.toFixed(1)}`,
+      ...extra,
     };
     for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-sky-field="${field}"]`); if (element) element.textContent = value; }
     const count = root.querySelector("[data-map-count]"); if (count) count.textContent = values.place;
@@ -316,6 +360,13 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       this._clusterView = new BodyView(svg, { model, geography, operations, ownerFaction: object.owner_faction, onExitRequested: () => this.#showSystem(), onFeatureSelected: (feature) => this.#updateBodyFeature(feature) });
       this.#leaveSky(root);
       this.mode = "body"; this.activeBody = object;
+      // Eym: real day and night and the seasons on the globe, kept current with the clock.
+      window.clearInterval(this._bodyTicker); this._bodyTicker = null;
+      if (object.name === "Eventide" && geography?.terrain?.coastlineSource === "vector") {
+        this._eymField = environmentField(geography); this._coverDay = null;
+        void this.#refreshBodyEnvironment().catch((error) => console.warn(`${MODULE_ID} | Unable to show day and night`, error));
+        this._bodyTicker = window.setInterval(() => void this.#refreshBodyEnvironment().catch(() => {}), 10000);
+      }
       root.classList.add("is-system-mode", "is-body-mode");
       // Only Eym has people on it to look up: offer the ground view from its surface map.
       root.classList.toggle("can-look-up", object.name === "Eventide" && Boolean(geography));
@@ -343,6 +394,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       const latInput = root.querySelector('[name="lookUpLat"]'), lonInput = root.querySelector('[name="lookUpLon"]');
       if (latInput) latInput.value = lat.toFixed(1);
       if (lonInput) lonInput.value = ((((lon + 180) % 360) + 360) % 360 - 180).toFixed(1);
+      this.#updatePlaceReadout();
     }
     const values = { objectName: inspected.name, objectType: inspected.type, objectParent: (this.activeBody && objectDisplayName(this.activeBody)) || "—", objectRole: inspected.detail, objectScale: inspected.scale ?? (feature.suitability != null ? `Settlement suitability ${feature.suitability}` : "Survey extent not fixed") };
     for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-field="${field}"]`); if (element) element.textContent = value; }

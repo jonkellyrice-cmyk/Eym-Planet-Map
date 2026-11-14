@@ -46,15 +46,15 @@
         "lakes": 40,
         "settlements": 3,
         "biomes": {
-          "sea-ice": 480,
-          "open-ocean": 835,
-          "taiga": 3,
+          "sea-ice": 600,
+          "open-ocean": 715,
+          "ice-cap": 2,
           "steppe": 1,
+          "taiga": 2,
           "tropical-ocean": 465,
           "seasonal-forest": 7,
           "tropical-rainforest": 5,
           "savanna": 2,
-          "ice-cap": 1,
           "tundra": 1
         },
         "resources": {

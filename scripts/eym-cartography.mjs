@@ -10,6 +10,7 @@ import { createRng, generatePlateModel } from "./planet-geography.mjs";
 import { buildElevationMesh, circlePolygon, smoothOpen } from "./planet-cartography.mjs";
 import { polygonize } from "./cartography-regions.mjs";
 import { EYM_LAYOUT, EYM_SURFACE_MODEL, fromLocal, greatCircleKm } from "./eym-surface.mjs";
+import { seaLevelTemperatureC } from "./eym-seasons.mjs";
 
 const DEG = Math.PI / 180;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -25,8 +26,7 @@ export function eymInputFingerprint(tracedText, layout = EYM_LAYOUT) {
 
 // ---------------------------------------------------------------- climate
 
-/** Annual mean sea-level temperature (°C) on an Earth-like, mostly-ocean world. */
-export function seaLevelTemperatureC(lat) { const s2 = Math.sin(lat * DEG) ** 2; return 27.5 - 30 * s2 - 6 * s2 * s2; }
+export { seaLevelTemperatureC };
 
 /** Zonal annual precipitation (mm): wet equatorial belt, dry subtropics, wet mid-latitudes, dry poles. */
 export function zonalPrecipitationMm(lat) {

@@ -102,3 +102,14 @@
 .oscm-body-layer-controls { display: none; }
 .oscm-shell.is-body-mode.has-geography .oscm-body-layer-controls { display: grid; gap: .35rem; }
 .oscm-shell.is-body-mode .oscm-selection-card,.oscm-shell.is-body-mode .oscm-territory-legend,.oscm-shell.is-body-mode .oscm-legend { display: none; }
+
+/* Day, night and the seasons (worlds with vector coastlines). */
+.oscm-night-band { fill: #020713; fill-opacity: .2; stroke: none; pointer-events: none; }
+.oscm-night-band.below-0 { fill-opacity: .16; }
+.oscm-terminator.is-hidden, .oscm-body-night.is-hidden { display: none; }
+.oscm-season-cover { stroke: none; fill-rule: evenodd; pointer-events: none; }
+.oscm-season-cover.is-snow { fill: rgba(244,248,252,.78); }
+.oscm-season-cover.is-ice { fill: rgba(222,238,246,.82); }
+.oscm-place-readout { display: grid; gap: .2rem; font-size: 11px; margin: .2rem 0 .4rem; }
+.oscm-place-readout div { display: flex; justify-content: space-between; gap: .5rem; }
+.oscm-place-readout span { color: var(--oscm-muted, #8aa); }

@@ -34,8 +34,9 @@ export function orthographicGeoPoint(latDeg, lonDeg, yaw = 0, pitch = 0, radius 
 }
 
 /** Project a geographic polyline, breaking it whenever it crosses the limb. */
-export function projectGeoPath(points, yaw = 0, pitch = 0, radius = 250, center = [450, 340], closed = false) {
+export function projectGeoPath(points, yaw = 0, pitch = 0, radius = 250, center = [450, 340], closed = false, limbClose = false) {
   if (!points?.length) return "";
+  if (closed && limbClose) return projectFilledRing(points, yaw, pitch, radius, center);
   const projected = points.map(([lat, lon]) => orthographicGeoPoint(lat, lon, yaw, pitch, radius)), commands = []; let drawing = false, visibleCount = 0;
   for (const point of projected) {
     if (!point.visible) { drawing = false; continue; }
@@ -62,4 +63,36 @@ export function buildCartographyRenderPlan(asset, zoom = 1, mobile = false) {
 
 export function cartographyFeatureBudget(plan) {
   return plan.ecoregions.length + plan.resources.length + plan.coastlines.length + plan.rivers.length + plan.waterbodies.length + plan.settlements.length + plan.routes.length + plan.labels.length;
+}
+
+/**
+ * Project a filled ring that may cross the limb: where it passes behind the globe, close it along the
+ * limb (the shorter way round) so the visible part fills correctly.
+ */
+function projectFilledRing(points, yaw, pitch, radius, center) {
+  const ring = points.length > 1 && points[0][0] === points.at(-1)[0] && points[0][1] === points.at(-1)[1] ? points.slice(0, -1) : points;
+  const p = ring.map(([lat, lon]) => orthographicGeoPoint(lat, lon, yaw, pitch, radius)), n = p.length;
+  const fmt = (x, y) => `${(center[0] + x).toFixed(2)},${(center[1] + y).toFixed(2)}`;
+  if (p.every((q) => q.visible)) return `M${p.map((q) => fmt(q.x, q.y)).join(" L")} Z`;
+  if (!p.some((q) => q.visible)) return "";
+  const crossing = (a, b) => { const t = a.z / (a.z - b.z), x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t, k = radius / (Math.hypot(x, y) || 1); return Math.atan2(y * k, x * k); };
+  const start = p.findIndex((q, i) => q.visible && !p[(i - 1 + n) % n].visible);
+  const parts = []; let exitAngle = null;
+  for (let step = 0; step < n; step += 1) {
+    const i = (start + step) % n, q = p[i], prev = p[(i - 1 + n) % n];
+    if (q.visible) {
+      if (!prev.visible) {
+        const entry = crossing(prev, q);
+        if (exitAngle != null) { let d = entry - exitAngle; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; const steps = Math.max(2, Math.ceil(Math.abs(d) / 0.08)); for (let k = 1; k < steps; k += 1) { const a = exitAngle + d * k / steps; parts.push(fmt(Math.cos(a) * radius, Math.sin(a) * radius)); } }
+        parts.push(fmt(Math.cos(entry) * radius, Math.sin(entry) * radius));
+      }
+      parts.push(fmt(q.x, q.y));
+      const next = p[(i + 1) % n];
+      if (!next.visible) { exitAngle = crossing(q, next); parts.push(fmt(Math.cos(exitAngle) * radius, Math.sin(exitAngle) * radius)); }
+    }
+  }
+  // close from the last exit back to the first entry along the limb
+  const firstEntry = crossing(p[(start - 1 + n) % n], p[start]);
+  if (exitAngle != null) { let d = firstEntry - exitAngle; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; const steps = Math.max(2, Math.ceil(Math.abs(d) / 0.08)); for (let k = 1; k < steps; k += 1) { const a = exitAngle + d * k / steps; parts.push(fmt(Math.cos(a) * radius, Math.sin(a) * radius)); } }
+  return `M${parts.join(" L")} Z`;
 }
