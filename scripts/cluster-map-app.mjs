@@ -17,6 +17,7 @@ import { inspectSurfaceFeature } from "./body-layers.mjs";
 import { loadBodyOperationAsset } from "./body-operations.mjs";
 import { AstronomySnapshotCache, loadAstronomyOrientations } from "./astronomy.mjs";
 import { UNION_EPOCH_MS } from "./universal-time.mjs";
+import { loadStarfield } from "./starfield.mjs";
 
 export const MODULE_ID = "orphaned-sun-cluster-map";
 /** The only system this module exposes. Its name must match the `system` column of the registry CSV. */
@@ -31,6 +32,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
   activeBody = null;
   _registryPromise = null;
   _astronomyOrientationsPromise = null;
+  _starfieldPromise = null;
   _astronomyCache = new AstronomySnapshotCache();
   _systemSnapshotReferenceMs = null;
   // ASTRAL TRAVEL (dormant): _astronomyArrivalVoyageId = null;
@@ -156,9 +158,13 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
         ? requestedReferenceTimestampMs
         : api?.getCampaignTimeState?.()?.referenceBaseMs ?? UNION_EPOCH_MS;
       const model = await this.#astronomicalModel(system.name, referenceTimestampMs);
+      // The night sky is decoration: if it cannot load, the system map still opens without it.
+      this._starfieldPromise ??= loadStarfield(MODULE_ID).catch((error) => { console.warn(`${MODULE_ID} | Starfield unavailable`, error); return null; });
+      const starfield = await this._starfieldPromise;
       this._clusterView?.destroy();
       this._clusterView = new SystemView(svg, {
         model,
+        starfield,
         onSelectionChange: (origin, destination) => this.#updateRoutePanel(origin, destination),
         // The system is the outermost level: zooming out stops at the minimum zoom instead of leaving.
         onExitRequested: () => {},

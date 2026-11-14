@@ -1,5 +1,6 @@
 import { displayPosition, vectorFromOrbit } from "./system-data.mjs";
 import { createFactionEmblem, factionPresentationForOwner } from "./capital-icons.mjs";
+import { STAR_CLASSES, TWINKLE_GROUPS, buildSkyFrame } from "./starfield.mjs";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -68,6 +69,7 @@ export class SystemView {
   constructor(svg, options) {
     this.svg = svg;
     this.model = options.model;
+    this.starfield = options.starfield ?? null;
     this.onSelectionChange = options.onSelectionChange ?? (() => {});
     this.onExitRequested = options.onExitRequested ?? (() => {});
     this.onObjectActivate = options.onObjectActivate ?? (() => {});
@@ -145,6 +147,7 @@ export class SystemView {
     this.transitionLayer = svgElement("g", { class: "oscm-trajectory-transition-layer" });
     this.shipLayer = svgElement("g", { class: "oscm-ship-layer" });
     this.svg.append(this.orbitLayer, this.routeLayer, this.objectLayer, this.factionLayer, this.transitionLayer, this.shipLayer);
+    this.#buildSky();
 
     const faction = factionPresentationForOwner(this.model.ownerFaction);
     this.factionAnchorObjects = this.model.objects.filter((object) => object.objectClass === "star");
@@ -295,7 +298,39 @@ export class SystemView {
     return { x: 450 + panX + x1 * scale * perspective, y: 340 + panY - y2 * scale * perspective, z: z2, scale: perspective };
   }
 
+  /** Inside-looking-out celestial sphere, drawn behind everything else. */
+  #buildSky() {
+    this.skyLayer = svgElement("g", { class: "oscm-sky-layer", "aria-hidden": "true" });
+    this.svg.insertBefore(this.skyLayer, this.orbitLayer);
+    if (!this.starfield) return;
+    const defs = svgElement("defs");
+    const glow = svgElement("radialGradient", { id: "oscm-sky-glow" });
+    glow.append(svgElement("stop", { offset: "0%", "stop-color": "#dfe8ff", "stop-opacity": 1 }), svgElement("stop", { offset: "100%", "stop-color": "#dfe8ff", "stop-opacity": 0 }));
+    defs.append(glow);
+    this.skyBand = svgElement("g", { class: "oscm-sky-band" });
+    this.skySister = svgElement("ellipse", { class: "oscm-sky-sister-galaxy", fill: "url(#oscm-sky-glow)" });
+    const title = svgElement("title"); title.textContent = "Distant spiral galaxy"; this.skySister.append(title);
+    this.skyStars = STAR_CLASSES.map((entry, classIndex) => Array.from({ length: TWINKLE_GROUPS }, (_, twinkle) => {
+      const path = svgElement("path", { class: `oscm-sky-stars is-class-${classIndex} is-twinkle-${twinkle}`, fill: "none", stroke: "#ffffff", "stroke-linecap": "round", "stroke-width": entry.size, "stroke-opacity": entry.opacity });
+      return path;
+    }));
+    this.skyLayer.append(defs, this.skyBand, this.skySister, ...this.skyStars.flat());
+  }
+
+  #renderSky() {
+    if (!this.starfield || !this.skyStars) return;
+    const frame = buildSkyFrame(this.starfield, this.state);
+    for (const group of frame.stars) this.skyStars[group.classIndex][group.twinkle].setAttribute("d", group.d);
+    this.skyBand.replaceChildren(...frame.band.map((sample) => svgElement("circle", { cx: sample.x.toFixed(1), cy: sample.y.toFixed(1), r: sample.r.toFixed(1), fill: "url(#oscm-sky-glow)", opacity: sample.opacity.toFixed(3) })));
+    if (frame.sister) {
+      const { x, y, rx, ry, rotation } = frame.sister;
+      for (const [key, value] of Object.entries({ cx: x.toFixed(1), cy: y.toFixed(1), rx: rx.toFixed(1), ry: ry.toFixed(1), transform: `rotate(${rotation.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})` })) this.skySister.setAttribute(key, value);
+      this.skySister.removeAttribute("display");
+    } else this.skySister.setAttribute("display", "none");
+  }
+
   render() {
+    this.#renderSky();
     for (const node of this.orbitNodes) {
       const points = Array.from({ length: 49 }, (_, index) => {
         const local = vectorFromOrbit(node.radius, index * 7.5, node.inclinationDeg);

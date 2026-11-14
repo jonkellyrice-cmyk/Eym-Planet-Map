@@ -36,7 +36,8 @@
     "styles/route-hud.css",
     "styles/system-map.css",
     "styles/body-map.css",
-    "styles/body-operations.css"
+    "styles/body-operations.css",
+    "styles/starfield.css"
   ],
   "languages": [
     {
