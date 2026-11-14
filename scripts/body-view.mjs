@@ -54,7 +54,7 @@ export class BodyView extends CoreBodyView {
     if (operations) this.#buildOperations();
     else if (!options.geography && this.model?.system && this.model?.body) loadBodyOperationAsset(this.model.system, this.model.body).then((asset) => {
       if (!asset || this._destroyed) return; this.operations = asset; this.#buildOperations();
-    }).catch((error) => console.warn(`orphaned-sun-cluster-map | body operations unavailable for ${this.model.system}/${this.model.body}`, error));
+    }).catch((error) => console.warn(`eym-planet-map | body operations unavailable for ${this.model.system}/${this.model.body}`, error));
     this.#buildFactionContext();
     this.render();
   }

@@ -174,7 +174,7 @@ export class AstronomySnapshotCache {
   clear() { this.entries.clear(); }
 }
 
-export async function loadAstronomyOrientations(moduleId = "orphaned-sun-cluster-map") {
+export async function loadAstronomyOrientations(moduleId = "eym-planet-map") {
   const response = await fetch(`modules/${moduleId}/data/astronomy/epoch-orientations.json`);
   if (!response.ok) throw new Error(`Unable to load astronomy epoch orientations (${response.status})`);
   const document = await response.json();

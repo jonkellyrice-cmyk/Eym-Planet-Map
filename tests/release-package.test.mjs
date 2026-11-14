@@ -1,35 +1,46 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const root = new URL("../", import.meta.url);
 
-test("release workflow packages runtime geography, cartography, operational, astronomy, and promoted surface-art assets", () => {
+test("release workflow packages the registry, cartography, operational, astronomy, night-sky and surface-art data", () => {
   const workflow = readFileSync(new URL(".github/workflows/release.yml", root), "utf8");
-  assert.match(workflow, /module\.json scripts templates styles lang README\.md docs data assets/);
-  for (const required of [
+  assert.match(workflow, /module\.json scripts templates styles lang README\.md docs data \\/);
+  const required = [
+    "docs/system-orbital-distances.csv",
     "data/planet-geography/manifest.json",
-    "data/planet-geography/sais/nalini.json",
-    "data/planet-geography/sais/shanvara.json",
+    "data/planet-geography/abydos/eventide.json",
     "data/planet-cartography/manifest.json",
     "data/planet-cartography/abydos/eventide.json",
-    "data/planet-cartography/amarna/cordoba.json",
+    "data/planet-cartography/abydos/ramses.json",
     "data/body-operations/manifest.json",
     "data/body-operations/abydos/cataphract.json",
-    "data/body-operations/amarna/akhetan.json",
-    "data/body-operations/seti/arrowfall-range.json",
+    "data/body-operations/abydos/vada-anchorage.json",
     "data/astronomy/epoch-orientations.json",
+    "data/stellar/starfield.json",
+    "data/stellar/constellations.json",
     "data/surface-art/manifest.json",
-    "assets/body-textures/thebes/jinyara.webp",
-  ]) assert.match(workflow, new RegExp(required.replace(/[./-]/g, "\\$&")));
+  ];
+  for (const path of required) {
+    assert.match(workflow, new RegExp(path.replace(/[./-]/g, "\\$&")));
+    // The workflow's required-file check fails the release if a listed file is missing, so each must exist.
+    assert.ok(existsSync(new URL(path, root)), `${path} is listed for release but missing`);
+  }
   assert.match(workflow, /npm run astronomy:validate && npm run astronomy:check/);
+  assert.match(workflow, /npm run starfield:check && npm run constellations:check/);
 });
 
-test("Foundry and package versions agree on the v0.11.0 release archive", () => {
+test("Foundry and package versions agree on the v0.12.0 eym-planet-map release archive", () => {
   const manifest = JSON.parse(readFileSync(new URL("module.json", root), "utf8"));
   const packageJson = JSON.parse(readFileSync(new URL("package.json", root), "utf8"));
+  const workflow = readFileSync(new URL(".github/workflows/release.yml", root), "utf8");
+  assert.equal(manifest.id, "eym-planet-map");
+  assert.equal(packageJson.name, manifest.id);
   assert.equal(manifest.version, packageJson.version);
-  assert.equal(manifest.version, "0.11.0");
-  assert.equal(manifest.manifest, "https://github.com/jonkellyrice-cmyk/Orphaned-sun-cluster-map/releases/latest/download/module.json");
-  assert.match(manifest.download, /v0\.11\.0\/orphaned-sun-cluster-map-v0\.11\.0\.zip$/);
+  assert.equal(manifest.version, "0.12.0");
+  assert.equal(manifest.url, "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map");
+  assert.equal(manifest.manifest, "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map/releases/latest/download/module.json");
+  assert.equal(manifest.download, "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map/releases/download/v0.12.0/eym-planet-map-v0.12.0.zip");
+  assert.match(workflow, /ARCHIVE="eym-planet-map-v\$\{VERSION\}\.zip"/);
 });

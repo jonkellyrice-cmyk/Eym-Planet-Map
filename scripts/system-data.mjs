@@ -160,7 +160,7 @@ export function displayPosition(object, model) {
   return { x: parent.x + local.x * scale, y: parent.y + local.y * scale, z: parent.z + local.z * scale };
 }
 
-export async function loadSystemRegistry(moduleId = "orphaned-sun-cluster-map") {
+export async function loadSystemRegistry(moduleId = "eym-planet-map") {
   const response = await fetch(`modules/${moduleId}/docs/system-orbital-distances.csv`);
   if (!response.ok) throw new Error(`Unable to load canonical system registry (${response.status})`);
   return parseCsv(await response.text());

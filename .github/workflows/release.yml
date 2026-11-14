@@ -23,6 +23,8 @@ jobs:
         run: npm run body-operations:validate && npm run body-operations:check
       - name: Validate deterministic astronomy
         run: npm run astronomy:validate && npm run astronomy:check
+      - name: Validate night sky
+        run: npm run starfield:check && npm run constellations:check
 
   release:
     needs: validate
@@ -37,24 +39,24 @@ jobs:
         shell: bash
         run: |
           VERSION="$(node -p "require('./package.json').version")"
-          ARCHIVE="orphaned-sun-cluster-map-v${VERSION}.zip"
+          ARCHIVE="eym-planet-map-v${VERSION}.zip"
           zip -r "$ARCHIVE" \
-            module.json scripts templates styles lang README.md docs data assets \
+            module.json scripts templates styles lang README.md docs data \
             -x "*.DS_Store"
           for required in \
+            docs/system-orbital-distances.csv \
             data/planet-geography/manifest.json \
-            data/planet-geography/sais/nalini.json \
-            data/planet-geography/sais/shanvara.json \
+            data/planet-geography/abydos/eventide.json \
             data/planet-cartography/manifest.json \
             data/planet-cartography/abydos/eventide.json \
-            data/planet-cartography/amarna/cordoba.json \
+            data/planet-cartography/abydos/ramses.json \
             data/body-operations/manifest.json \
             data/body-operations/abydos/cataphract.json \
-            data/body-operations/amarna/akhetan.json \
-            data/body-operations/seti/arrowfall-range.json \
+            data/body-operations/abydos/vada-anchorage.json \
             data/astronomy/epoch-orientations.json \
-            data/surface-art/manifest.json \
-            assets/body-textures/thebes/jinyara.webp; do
+            data/stellar/starfield.json \
+            data/stellar/constellations.json \
+            data/surface-art/manifest.json; do
             unzip -Z1 "$ARCHIVE" | grep -Fx "$required"
           done
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"

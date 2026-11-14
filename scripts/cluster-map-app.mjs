@@ -21,7 +21,7 @@ import { UNION_EPOCH_MS } from "./universal-time.mjs";
 import { loadStarfield } from "./starfield.mjs";
 import { objectDisplayName, parentDisplayName, systemDisplayName } from "./display-names.mjs";
 
-export const MODULE_ID = "orphaned-sun-cluster-map";
+export const MODULE_ID = "eym-planet-map";
 /** The only system this module exposes. Its name must match the `system` column of the registry CSV. */
 export const HOME_SYSTEM = Object.freeze({ id: "abydos", name: "Abydos" });
 const assetSlug = (value) => value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -40,8 +40,8 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
   // ASTRAL TRAVEL (dormant): _astronomyArrivalVoyageId = null;
   selectedRoute = null;
   static DEFAULT_OPTIONS = {
-    id: "orphaned-sun-cluster-map",
-    classes: ["orphaned-sun-cluster-map", "standard-form"],
+    id: MODULE_ID,
+    classes: [MODULE_ID, "standard-form"],
     position: { width: 1120, height: 760 },
     window: {
       title: systemDisplayName(HOME_SYSTEM.name),

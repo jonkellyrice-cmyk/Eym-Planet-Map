@@ -22,7 +22,7 @@ const MIN_FORWARD = 0.12; // ignore directions within ~83° of the screen edge-o
 const MARGIN = 40;
 const BAND_STEP_DEG = 3;
 
-export async function loadStarfield(moduleId = "orphaned-sun-cluster-map") {
+export async function loadStarfield(moduleId = "eym-planet-map") {
   const response = await fetch(`modules/${moduleId}/${STARFIELD_PATH}`);
   if (!response.ok) throw new Error(`Starfield fetch failed (${response.status})`);
   return response.json();

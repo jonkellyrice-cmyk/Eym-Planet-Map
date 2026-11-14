@@ -177,7 +177,7 @@ function bindUniversalClock(root) {
 
 function installUniversalClockObserver() {
   if (universalClockObserver || !document?.body) return;
-  const attach = () => document.querySelectorAll(".orphaned-sun-cluster-map .oscm-shell").forEach(bindUniversalClock);
+  const attach = () => document.querySelectorAll(`.${MODULE_ID} .oscm-shell`).forEach(bindUniversalClock);
   universalClockObserver = new MutationObserver(attach);
   universalClockObserver.observe(document.body, { childList: true, subtree: true });
   attach();
@@ -265,8 +265,8 @@ Hooks.on("getSceneControlButtons", (controls) => {
     return Number.isFinite(order) ? Math.max(max, order) : max;
   }, existingTools.length - 1);
 
-  measurementControl.tools.orphanedSunClusterMap = {
-    name: "orphanedSunClusterMap",
+  measurementControl.tools.eymPlanetMap = {
+    name: "eymPlanetMap",
     title: "System Map",
     icon: "fa-solid fa-map",
     order: lastOrder + 1,

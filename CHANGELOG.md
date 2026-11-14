@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased — single-system edition (Eym Planet Map)
+## 0.12.0 — Eym Planet Map (single-system edition)
+
+- Renamed the module to `eym-planet-map` (id, title, window id, CSS namespace, scene-control button and language key), so it installs alongside the original module. Manifest and download URLs point at the Eym-Planet-Map repository's releases; the release workflow packages `eym-planet-map-v<version>.zip` and requires only files that exist.
+- Removed the leftover Thebes/Jinyara body texture from `assets/`.
 
 - The map opens on the Abydos system and treats it as the outermost level; the cluster view and its breadcrumb are removed.
 - Removed the other nine systems: their registry rows, planetary cartography and geography, operational surveys, epoch orientations, superstructure identities and reference sheets; the Thebes/Jinyara surface-art intake; the cluster view, cluster coordinates and faction-territory volumes; and the one-off migration tools written against the ten-system data. Abydos data is byte-identical to before.

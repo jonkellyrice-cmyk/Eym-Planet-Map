@@ -4,7 +4,7 @@ A Foundry VTT v13 module: an interactive three-dimensional SVG map of a single s
 
 On screen the system is called **The Sun**: its star is the **Sun** and Eventide is **Eym** (display names in `scripts/display-names.mjs`; the registry keeps the canonical names Abydos and Eventide because data files and seeds are keyed by them).
 
-The module id is still `orphaned-sun-cluster-map`, so it cannot be installed alongside the original module.
+The module id is `eym-planet-map`, so it installs alongside the original Orphaned Sun Cluster Map without conflict.
 
 ## Features
 
@@ -28,6 +28,14 @@ The module id is still `orphaned-sun-cluster-map`, so it cannot be installed alo
 
 Every generated asset records its permanent seed, model version and source fingerprint, and regenerates byte-for-byte.
 
+## Installing from a manifest
+
+In Foundry, install the module with this manifest URL:
+
+`https://github.com/jonkellyrice-cmyk/Eym-Planet-Map/releases/latest/download/module.json`
+
+That URL resolves once a GitHub release exists. Releases are built by `.github/workflows/release.yml` when a commit whose message contains `[release]` is pushed to `main`; it packages `eym-planet-map-v<version>.zip` and attaches it with `module.json`.
+
 ## Compatibility
 
 - Foundry VTT: **13**
@@ -37,12 +45,12 @@ Every generated asset records its permanent seed, model version and source finge
 
 Copy this folder into:
 
-`{Foundry user data}/Data/modules/orphaned-sun-cluster-map/`
+`{Foundry user data}/Data/modules/eym-planet-map/`
 
 Restart Foundry, enable the module, then use the **System Map** button in the Measurement controls. It may also be opened from the browser console or a macro:
 
 ```js
-game.modules.get("orphaned-sun-cluster-map").api.open();
+game.modules.get("eym-planet-map").api.open();
 ```
 
 Run the complete deterministic suite with:

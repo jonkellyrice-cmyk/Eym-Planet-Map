@@ -1,6 +1,6 @@
 {
-  "name": "orphaned-sun-cluster-map",
-  "version": "0.11.0",
+  "name": "eym-planet-map",
+  "version": "0.12.0",
   "private": true,
   "type": "module",
   "scripts": {

@@ -1,4 +1,4 @@
-.orphaned-sun-cluster-map {
+.eym-planet-map {
   --oscm-bg: #071014;
   --oscm-panel: #0d171b;
   --oscm-panel-2: #101d22;
@@ -11,7 +11,7 @@
   --oscm-destination: #78dce8;
 }
 
-.orphaned-sun-cluster-map .window-content {
+.eym-planet-map .window-content {
   padding: 0;
   overflow: hidden;
   background: var(--oscm-bg);
