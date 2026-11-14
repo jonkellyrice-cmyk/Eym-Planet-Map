@@ -44,6 +44,6 @@ test("main registers the button through the shared helper", () => {
 test("the module targets the Pathfinder 2e system on Foundry v13–v14, not LANCER", () => {
   const manifest = JSON.parse(readFileSync(new URL("../module.json", import.meta.url), "utf8"));
   assert.deepEqual(manifest.relationships, { systems: [{ id: "pf2e", type: "system", compatibility: { minimum: "7.0.0" } }] });
-  assert.deepEqual(manifest.compatibility, { minimum: "13", verified: "13", maximum: "14" });
+  assert.deepEqual(manifest.compatibility, { minimum: "13", verified: "14.370", maximum: "14" });
   assert.doesNotMatch(JSON.stringify(manifest), /lancer/i);
 });

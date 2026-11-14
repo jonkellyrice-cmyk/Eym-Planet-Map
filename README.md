@@ -1,6 +1,6 @@
 # Eym Planet Map
 
-A Foundry VTT v13 module: an interactive three-dimensional SVG map of a single star system (currently the **Abydos** system), with orbital, planetary-surface and local operational views. It is a single-system edition of the Orphaned Sun Cluster Map, being retooled for a fantasy campaign.
+A Foundry VTT v14 module (v13 also supported): an interactive three-dimensional SVG map of a single star system (currently the **Abydos** system), with orbital, planetary-surface and local operational views. It is a single-system edition of the Orphaned Sun Cluster Map, being retooled for a fantasy campaign.
 
 On screen the star is **Mitkear**, Eventide is **Eym**, its moons are **Austarm** (white) and **Chatarm** (red), and the four wandering planets, largest to smallest, are **Iarn**, **Esonth**, **Bruthi** and **Lilta**. These display names live in `scripts/display-names.mjs`. The registry keeps the old canonical names (Abydos, Eventide, White Moon, Red Moon, Tribune, Thraximundus, Ramses, Kandahar) because data files and seeds are keyed by them.
 
@@ -70,7 +70,7 @@ That URL resolves once a GitHub release exists. Releases are built by `.github/w
 ## Compatibility
 
 - Game system: **Pathfinder Second Edition** (`pf2e`) **7.0+**. Nothing in the module depends on PF2e rules; the system is declared so it is offered in PF2e worlds.
-- Foundry VTT: **13** (verified) and **14** (allowed, not yet verified in a live world). PF2e 7.x runs on Foundry v13 and PF2e 8.x on Foundry v14.
+- Foundry VTT: **14** (targeted at v14 Stable, build 370, the campaign's version; `verified` is set to 14.370) and **13** (still supported). PF2e 8.x runs on Foundry v14 and PF2e 7.x on v13. As of 0.12.0 the module has been checked in a headless browser, not yet in a live v14 world.
 - The **System Map** button sits in the Token controls, where it exists on both Foundry v13 and v14 (v14 replaced measured templates with Regions).
 
 ## Development / local install
