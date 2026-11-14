@@ -79,7 +79,7 @@ export class BodyView {
 
   build() {
     this.svg.replaceChildren(); this.svg.setAttribute("viewBox", "0 0 900 680"); this.svg.classList.add("oscm-body-view");
-    const defs = svg("defs"), clip = svg("clipPath", { id: "oscm-body-disc-clip" }); clip.append(svg("circle", { cx: 450, cy: 340, r: 250 })); defs.append(clip);
+    const defs = svg("defs"), clip = svg("clipPath", { id: "oscm-body-disc-clip" }); this.discClip = svg("circle", { cx: 450, cy: 340, r: 250 }); clip.append(this.discClip); defs.append(clip);
     const rocky = svg("radialGradient", { id: "oscm-rocky-gradient", cx: "32%", cy: "27%" }); rocky.append(svg("stop", { offset: "0%", "stop-color": "#c2b7a2" }), svg("stop", { offset: "58%", "stop-color": "#6e6a63" }), svg("stop", { offset: "100%", "stop-color": "#272d30" })); defs.append(rocky);
     const icy = svg("radialGradient", { id: "oscm-icy-gradient", cx: "30%", cy: "25%" }); icy.append(svg("stop", { offset: "0%", "stop-color": "#e7fbff" }), svg("stop", { offset: "58%", "stop-color": "#87aeb8" }), svg("stop", { offset: "100%", "stop-color": "#344a54" })); defs.append(icy);
     const metal = svg("linearGradient", { id: "oscm-metal-gradient", x1: "0%", x2: "100%" }); metal.append(svg("stop", { offset: "0%", "stop-color": "#24373d" }), svg("stop", { offset: "45%", "stop-color": "#a8bdbe" }), svg("stop", { offset: "58%", "stop-color": "#3d555b" }), svg("stop", { offset: "100%", "stop-color": "#101b20" })); defs.append(metal);
@@ -131,21 +131,42 @@ export class BodyView {
       const node = svg("path", { class: className, "data-feature": feature.id ?? feature.properName });
       node.addEventListener("click", () => this.onFeatureSelected(feature)); group.append(node); this.featureNodes.push({ node, rings, feature, minZoom, closed, cartographicPath: true }); return node;
     };
-    for (const region of asset.regions.ecoregions.slice(0, 700)) {
-      const feature = { ...region, ...(namedByRef.get(region.id) ?? {}), type: "ecoregion", scientificClassification: region.category };
-      addPath(this.layerGroups.get("terrain"), feature, region.polygons, `oscm-cartography-region biome-${region.category}`, { minZoom: region.cellCount >= 42 ? .46 : region.cellCount >= 10 ? 1.15 : 2.15, closed: true });
+    // Vector coastlines (Eym): land is filled from the coastline rings, and land
+    // biomes are clipped to it, so the coarse biome raster never spills into the sea.
+    const vectorCoast = asset.terrain.coastlineSource === "vector", oceanBiome = (category) => /ocean|sea-ice/.test(category);
+    const landRings = asset.terrain.coastlines.map((coast) => coast.points);
+    if (vectorCoast) {
+      const clip = svg("clipPath", { id: "oscm-land-clip" }), clipPath = svg("path", { "clip-rule": "evenodd" }); clip.append(clipPath); this.svg.querySelector("defs").append(clip);
+      this.featureNodes.push({ node: clipPath, rings: landRings, feature: {}, minZoom: 0, closed: true, cartographicPath: true });
     }
-    for (const coast of asset.terrain.coastlines) addPath(this.layerGroups.get("terrain"), namedByRef.get(coast.id) ?? { ...coast, type: "coastline" }, [coast.points], "oscm-cartography-coast", { closed: true });
+    const regions = asset.regions.ecoregions.slice(0, 700), drawRegion = (region) => {
+      const feature = { ...region, ...(namedByRef.get(region.id) ?? {}), type: "ecoregion", scientificClassification: region.category };
+      const node = addPath(this.layerGroups.get("terrain"), feature, region.polygons, `oscm-cartography-region biome-${region.category}`, { minZoom: vectorCoast ? 0 : region.cellCount >= 42 ? .46 : region.cellCount >= 10 ? 1.15 : 2.15, closed: true });
+      if (vectorCoast && !oceanBiome(region.category)) node.setAttribute("clip-path", "url(#oscm-land-clip)");
+    };
+    if (vectorCoast) {
+      // Small continents need a closer look: allow much deeper zoom, and draw the
+      // forests, uplands, mountains and peaks traced or seeded at 6–10 km.
+      this.maxZoom = 30; this.disc.classList.add("is-vector-ocean"); this.fadeNightWithZoom = true;
+      for (const region of regions.filter((item) => item.category === "sea-ice")) drawRegion(region);
+      addPath(this.layerGroups.get("terrain"), { type: "land" }, landRings, "oscm-cartography-land", { minZoom: 0, closed: true });
+      for (const region of regions.filter((item) => !oceanBiome(item.category))) drawRegion(region);
+      for (const detail of asset.terrain.detail ?? []) addPath(this.layerGroups.get("terrain"), { id: detail.id, type: detail.kind, continent: detail.continent }, detail.rings, `oscm-cartography-detail is-${detail.kind}`, { minZoom: detail.kind === "forest" ? 1.6 : .46, closed: true }).setAttribute("clip-path", "url(#oscm-land-clip)");
+    } else for (const region of regions) drawRegion(region);
+    for (const coast of asset.terrain.coastlines) addPath(this.layerGroups.get("terrain"), namedByRef.get(coast.id) ?? { ...coast, type: "coastline" }, [coast.points], "oscm-cartography-coast", { closed: true, minZoom: vectorCoast && coast.areaKm2 < 2000 ? 1.15 : .46 });
     for (const river of asset.hydrology.rivers) addPath(this.layerGroups.get("hydrology"), namedByRef.get(river.id) ?? { ...river, type: "river" }, [river.points], "oscm-cartography-river");
-    for (const [kind, features] of [["lake", asset.hydrology.lakes], ["wetland", asset.hydrology.wetlands], ["glacier", asset.hydrology.glaciers]]) for (const feature of features) addPath(this.layerGroups.get("hydrology"), namedByRef.get(feature.id) ?? { ...feature, type: kind }, [feature.polygon], `oscm-cartography-${kind}`, { minZoom: kind === "lake" ? 1.05 : 1.35, closed: true });
+    for (const [kind, features] of [["lake", asset.hydrology.lakes], ["wetland", asset.hydrology.wetlands], ["glacier", asset.hydrology.glaciers]]) for (const feature of features) addPath(this.layerGroups.get("hydrology"), namedByRef.get(feature.id) ?? { ...feature, type: feature.waterKind === "river-channel" ? "river" : kind }, [feature.polygon, ...(feature.islands ?? [])], `oscm-cartography-${kind}`, { minZoom: kind === "lake" ? (vectorCoast ? .46 : 1.05) : 1.35, closed: true });
     for (const region of asset.regions.resourceProvinces.slice(0, 240)) addPath(this.layerGroups.get("resources"), { ...region, type: "resource province", scientificClassification: region.category }, region.polygons, `oscm-cartography-resource resource-${region.category}`, { minZoom: region.cellCount >= 10 ? 1.15 : 2.15, closed: true });
     for (const site of asset.settlements) {
-      const node = svg("circle", { class: `oscm-body-settlement is-${site.kind}`, r: site.kind === "capital" ? 5 : 3, "data-feature": site.id }); node.addEventListener("click", () => this.onFeatureSelected(site)); this.layerGroups.get("settlements").append(node); this.featureNodes.push({ node, lat: site.lat, lon: site.lon, feature: site, minZoom: site.kind === "capital" ? .46 : .85 });
+      const minor = !["capital", "city"].includes(site.kind);
+      const minZoom = site.kind === "capital" ? .46 : vectorCoast ? (minor ? 6 : 2.5) : minor ? 1.6 : .85;
+      const node = svg("circle", { class: `oscm-body-settlement is-${site.kind}`, r: site.kind === "capital" ? 5 : minor ? 2 : 3, "data-feature": site.id }); node.addEventListener("click", () => this.onFeatureSelected(site)); this.layerGroups.get("settlements").append(node); this.featureNodes.push({ node, lat: site.lat, lon: site.lon, feature: site, minZoom });
     }
     for (const route of asset.transportRoutes) addPath(this.layerGroups.get("transport"), route, [route.points], `oscm-body-transport is-${route.mode}`, { minZoom: route.kind?.includes("primary") ? 1.05 : 1.35 });
-    for (const feature of selectCartographyLabels(asset, 4.5, false)) {
+    const vectorLabelZoom = (featureClass) => ["capital", "continent", "ocean"].includes(featureClass) ? .46 : featureClass === "region" ? 2.5 : ["city", "port"].includes(featureClass) ? 4 : ["town", "fort", "village"].includes(featureClass) ? 9 : 5;
+    for (const feature of selectCartographyLabels(asset, 4.5, false, vectorCoast ? 400 : undefined)) {
       const node = svg("text", { class: `oscm-cartography-label is-${feature.featureClass}`, "data-feature": feature.id }); node.textContent = feature.properName; node.addEventListener("click", () => this.onFeatureSelected(feature)); this.layerGroups.get("labels").append(node);
-      const minZoom = ["capital", "continent", "ocean"].includes(feature.featureClass) ? .46 : ["city", "port", "sea", "range"].includes(feature.featureClass) ? 1.15 : 2.15;
+      const minZoom = vectorCoast ? vectorLabelZoom(feature.featureClass) : ["capital", "continent", "ocean"].includes(feature.featureClass) ? .46 : ["city", "port", "sea", "range", "region"].includes(feature.featureClass) ? 1.15 : 2.15;
       this.featureNodes.push({ node, lat: feature.at[0], lon: feature.at[1], feature, minZoom, label: true });
     }
     this.layerGroups.get("resources").classList.add("is-hidden");
@@ -272,9 +293,10 @@ export class BodyView {
     for (const [event, handler] of Object.entries(this.listeners)) this.svg.addEventListener(event, handler, event === "wheel" ? { passive: false } : undefined);
   }
 
-  changeZoom(requested) { if (requested < .43 && !this.exitTriggered) { this.exitTriggered = true; this.onExitRequested(); return; } this.state.zoom = clamp(requested, .46, 4.5); this.render(); }
+  changeZoom(requested) { if (requested < .43 && !this.exitTriggered) { this.exitTriggered = true; this.onExitRequested(); return; } this.state.zoom = clamp(requested, .46, this.maxZoom ?? 4.5); this.render(); }
   render() {
-    const radius = 250 * this.state.zoom; for (const node of [this.disc, this.atmosphere]) node.setAttribute("r", radius + (node === this.atmosphere ? 6 : 0));
+    const radius = 250 * this.state.zoom; this.discClip?.setAttribute("r", radius);
+    if (this.fadeNightWithZoom) this.night.style.opacity = String(clamp(1.8 - this.state.zoom * 0.8, 0, 1)); for (const node of [this.disc, this.atmosphere]) node.setAttribute("r", radius + (node === this.atmosphere ? 6 : 0));
     if (this.structure) this.structure.setAttribute("transform", `translate(450 340) scale(${this.state.zoom}) rotate(${this.state.yaw * 28}) skewX(${this.state.pitch * 7})`);
     for (const item of this.featureNodes) {
       const lodVisible = this.state.zoom >= (item.minZoom ?? .46) && this.state.zoom <= (item.maxZoom ?? Infinity);

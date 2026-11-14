@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { parseCsv } from "../scripts/system-data.mjs";
 import { generatePlanetGeography, summarizeGeography } from "../scripts/planet-geography.mjs";
+import { isEymRow, loadEymWorld } from "./eym-world.mjs";
 
 const strict = process.argv.includes("--strict");
 const accepted = process.argv.includes("--accepted");
@@ -35,7 +36,7 @@ for (const entry of manifest.worlds ?? []) {
   assert(world.transportRoutes.length === Math.max(0, world.settlements.length - 1), `${key}: incomplete transport network`);
   if (entry.body === "Eventide") assert(!world.cells.some((cell) => !cell.ocean && cell.elevationM < 0), "Eventide contains invalid submerged land");
   if (strict) {
-    const regenerated = generatePlanetGeography(row, { resolutionDeg: world.resolutionDeg });
+    const regenerated = isEymRow(row) ? loadEymWorld(row).coarse : generatePlanetGeography(row, { resolutionDeg: world.resolutionDeg });
     assert(JSON.stringify(regenerated) === JSON.stringify(world), `${key}: asset is not reproducible from canonical inputs`);
     assert(JSON.stringify(summarizeGeography(world)) === JSON.stringify(entry.summary), `${key}: manifest summary drift`);
   }

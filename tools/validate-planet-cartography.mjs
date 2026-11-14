@@ -22,12 +22,17 @@ for (const entry of manifest.worlds) {
   if (args.has("--accepted") && asset.status !== "accepted-working-canon") fail(`${key}: asset is not accepted working canon`);
   if (asset.grid.latCount * asset.grid.lonCount !== asset.raster.elevationM.length) fail(`${key}: incomplete refined raster`);
   if (!asset.terrain.coastlines.length || !asset.terrain.elevationMesh.vertices.length || !asset.hydrology.rivers.length || !asset.regions.ecoregions.length) fail(`${key}: missing physical geometry`);
-  if (asset.settlements.filter((site) => site.kind === "capital").length !== 1 || !asset.transportRoutes.length) fail(`${key}: incomplete civilization geometry`);
+  const eym = asset.modelVersion === "eym-surface-v1";
+  if (eym) {
+    // Eym: authored settlements (several realms, so several capitals); no generated transport network.
+    if (!asset.settlements.some((site) => site.kind === "capital") || asset.terrain.coastlineSource !== "vector") fail(`${key}: incomplete authored geography`);
+    const continents = asset.gazetteer.filter((feature) => feature.featureClass === "continent");
+    if (continents.length !== 5 || !["Caren", "Garyk"].every((name) => continents.some((feature) => feature.properName === name && feature.origin === "authored"))) fail(`${key}: Eym must have five continents, Caren and Garyk among them`);
+  } else if (asset.settlements.filter((site) => site.kind === "capital").length !== 1 || !asset.transportRoutes.length) fail(`${key}: incomplete civilization geometry`);
   if (!asset.ownerFaction || asset.civilizationProfile?.ownerFaction !== asset.ownerFaction) fail(`${key}: missing authoritative civilization ownership/profile`);
-  if (asset.settlements.some((site) => !SETTLEMENT_SCALE_CLASSES.has(site.scaleClass))) fail(`${key}: missing or invalid settlement scale class`);
+  if (!eym && asset.settlements.some((site) => !SETTLEMENT_SCALE_CLASSES.has(site.scaleClass))) fail(`${key}: missing or invalid settlement scale class`);
   if (asset.transportRoutes.some((route) => !CORRIDOR_CLASSES.has(route.corridorClass) || !ROUTING_DOCTRINES.has(route.routingDoctrine))) fail(`${key}: missing or invalid transport corridor metadata`);
   if (asset.transportRoutes.some((route) => route.mode === "surface" && route.routingDoctrine === "not-applicable")) fail(`${key}: surface route lacks a routing doctrine`);
   if (new Set(asset.gazetteer.map((feature) => feature.properName)).size !== asset.gazetteer.length) fail(`${key}: duplicate geographic name`);
-  if (entry.body === "Eventide" && asset.gazetteer.some((feature) => feature.featureClass === "continent")) fail("Eventide cannot acquire a continent");
 }
 console.log(`Validated ${manifest.worlds.length} refined planetary assets (${manifest.status}).`);

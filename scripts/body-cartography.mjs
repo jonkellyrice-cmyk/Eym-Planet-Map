@@ -20,10 +20,10 @@ export function cartographyLod(zoom, mobile = false) {
   return { id: "surface", minRegionCells: 1, labels: mobile ? 48 : 80, resourceRegions: mobile ? 150 : 240, rasterStride: 1 };
 }
 
-export function selectCartographyLabels(asset, zoom, mobile = false) {
-  const lod = cartographyLod(zoom, mobile), priority = { capital: 100, continent: 95, ocean: 94, city: 82, port: 81, sea: 78, range: 70, river: 65, lake: 60, mountain: 58, island: 55, desert: 48, forest: 46, wetland: 40, glacier: 40 };
-  const settlements = asset.settlements.map((site) => ({ ...site, featureClass: site.featureClass ?? site.kind, labelSource: "settlement", scale: site.kind === "capital" ? 10_000 : site.suitability * 1_000 }));
-  return [...asset.gazetteer.map((feature) => ({ ...feature, labelSource: "gazetteer" })), ...settlements].sort((a, b) => (priority[b.featureClass] ?? 0) - (priority[a.featureClass] ?? 0) || (b.scale ?? 0) - (a.scale ?? 0) || a.properName.localeCompare(b.properName)).slice(0, lod.labels);
+export function selectCartographyLabels(asset, zoom, mobile = false, limit = undefined) {
+  const lod = cartographyLod(zoom, mobile), priority = { capital: 100, continent: 95, ocean: 94, region: 90, city: 82, port: 81, sea: 78, range: 70, river: 65, lake: 60, mountain: 58, hills: 57, island: 55, islands: 55, fort: 52, town: 50, valley: 50, desert: 48, forest: 46, grove: 44, wetland: 40, glacier: 40, landmark: 40, village: 30 };
+  const settlements = asset.settlements.filter((site) => site.properName).map((site) => ({ ...site, featureClass: site.featureClass ?? site.kind, labelSource: "settlement", scale: site.kind === "capital" ? 10_000 : site.suitability * 1_000 }));
+  return [...asset.gazetteer.map((feature) => ({ ...feature, labelSource: "gazetteer" })), ...settlements].sort((a, b) => (priority[b.featureClass] ?? 0) - (priority[a.featureClass] ?? 0) || (b.scale ?? 0) - (a.scale ?? 0) || a.properName.localeCompare(b.properName)).slice(0, limit ?? lod.labels);
 }
 
 export function orthographicGeoPoint(latDeg, lonDeg, yaw = 0, pitch = 0, radius = 250) {

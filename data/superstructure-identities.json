@@ -6,7 +6,7 @@
   "count": 0,
   "sourceRegistry": {
     "path": "docs/system-orbital-distances.csv",
-    "sha256": "dda20c9cc33bbfb14654aae19f35dff33fb67d93fe25dd9e5f3ccac2a536a02f"
+    "sha256": "59a3cb53023e7917da396598698b6c08053c7bc9732294f8fc0b4a2be681e9b8"
   },
   "sourceOperationsManifest": {
     "path": "data/body-operations/manifest.json",

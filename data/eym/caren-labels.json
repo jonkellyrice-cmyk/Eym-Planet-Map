@@ -1,0 +1,846 @@
+{
+ "settlements": [
+  {
+   "name": "Pelasmus",
+   "kind": "town",
+   "x": 550,
+   "y": 230,
+   "confidence": "low"
+  },
+  {
+   "name": "Kae Dylin",
+   "kind": "town",
+   "x": 261,
+   "y": 324,
+   "confidence": "low"
+  },
+  {
+   "name": "Bostain",
+   "kind": "capital",
+   "x": 551,
+   "y": 321,
+   "confidence": "high"
+  },
+  {
+   "name": "Lostrom",
+   "kind": "city",
+   "x": 706,
+   "y": 190,
+   "confidence": "low"
+  },
+  {
+   "name": "Rigala",
+   "kind": "town",
+   "x": 742,
+   "y": 261,
+   "confidence": "medium"
+  },
+  {
+   "name": "Terr",
+   "kind": "city",
+   "x": 732,
+   "y": 366,
+   "confidence": "high"
+  },
+  {
+   "name": "Alamok",
+   "kind": "town",
+   "x": 981,
+   "y": 346,
+   "confidence": "medium"
+  },
+  {
+   "name": "Pouk",
+   "kind": "town",
+   "x": 85,
+   "y": 421,
+   "confidence": "low"
+  },
+  {
+   "name": "Ancial",
+   "kind": "city",
+   "x": 307,
+   "y": 380,
+   "confidence": "low"
+  },
+  {
+   "name": "Arew",
+   "kind": "city",
+   "x": 332,
+   "y": 489,
+   "confidence": "low"
+  },
+  {
+   "name": "Khorol",
+   "kind": "city",
+   "x": 431,
+   "y": 496,
+   "confidence": "low"
+  },
+  {
+   "name": "Rach",
+   "kind": "city",
+   "x": 519,
+   "y": 431,
+   "confidence": "high"
+  },
+  {
+   "name": "Vereane",
+   "kind": "town",
+   "x": 575,
+   "y": 577,
+   "confidence": "low"
+  },
+  {
+   "name": "Menera",
+   "kind": "town",
+   "x": 902,
+   "y": 383,
+   "confidence": "medium"
+  },
+  {
+   "name": "Naigaes",
+   "kind": "town",
+   "x": 795,
+   "y": 559,
+   "confidence": "low"
+  },
+  {
+   "name": "Lamaele",
+   "kind": "city",
+   "x": 980,
+   "y": 426,
+   "confidence": "low"
+  },
+  {
+   "name": "Lipka",
+   "kind": "town",
+   "x": 930,
+   "y": 551,
+   "confidence": "medium"
+  },
+  {
+   "name": "Cyoa",
+   "kind": "town",
+   "x": 198,
+   "y": 726,
+   "confidence": "low"
+  },
+  {
+   "name": "Seaton",
+   "kind": "town",
+   "x": 85,
+   "y": 780,
+   "confidence": "medium"
+  },
+  {
+   "name": "Selendel",
+   "kind": "town",
+   "x": 395,
+   "y": 592,
+   "confidence": "medium"
+  },
+  {
+   "name": "Mar'kom",
+   "kind": "town",
+   "x": 418,
+   "y": 682,
+   "confidence": "low"
+  },
+  {
+   "name": "Ogruun",
+   "kind": "city",
+   "x": 377,
+   "y": 775,
+   "confidence": "low"
+  },
+  {
+   "name": "Plama",
+   "kind": "city",
+   "x": 675,
+   "y": 787,
+   "confidence": "low"
+  },
+  {
+   "name": "Fort Dewar",
+   "kind": "fort",
+   "x": 711,
+   "y": 652,
+   "confidence": "low"
+  },
+  {
+   "name": "Esco",
+   "kind": "town",
+   "x": 743,
+   "y": 707,
+   "confidence": "low"
+  },
+  {
+   "name": "Turic",
+   "kind": "city",
+   "x": 71,
+   "y": 854,
+   "confidence": "medium"
+  },
+  {
+   "name": "Lucern",
+   "kind": "town",
+   "x": 209,
+   "y": 863,
+   "confidence": "medium"
+  },
+  {
+   "name": "Val de Galler",
+   "kind": "town",
+   "x": 301,
+   "y": 971,
+   "confidence": "low"
+  },
+  {
+   "name": "Brandol",
+   "kind": "town",
+   "x": 443,
+   "y": 1004,
+   "confidence": "low"
+  },
+  {
+   "name": "Slew",
+   "kind": "town",
+   "x": 788,
+   "y": 846,
+   "confidence": "low"
+  },
+  {
+   "name": "Faran",
+   "kind": "town",
+   "x": 714,
+   "y": 863,
+   "confidence": "low"
+  },
+  {
+   "name": "Dykal",
+   "kind": "city",
+   "x": 782,
+   "y": 873,
+   "confidence": "low"
+  },
+  {
+   "name": "Kymar",
+   "kind": "town",
+   "x": 737,
+   "y": 882,
+   "confidence": "low"
+  },
+  {
+   "name": "Umate",
+   "kind": "town",
+   "x": 767,
+   "y": 914,
+   "confidence": "low"
+  },
+  {
+   "name": "Regna",
+   "kind": "town",
+   "x": 916,
+   "y": 856,
+   "confidence": "low"
+  },
+  {
+   "name": "Reme",
+   "kind": "city",
+   "x": 945,
+   "y": 934,
+   "confidence": "low"
+  },
+  {
+   "name": "Avlattar",
+   "kind": "town",
+   "x": 1067,
+   "y": 1019,
+   "confidence": "low"
+  },
+  {
+   "name": "Kelint",
+   "kind": "town",
+   "x": 62,
+   "y": 1102,
+   "confidence": "low"
+  },
+  {
+   "name": "Gowain",
+   "kind": "capital",
+   "x": 230,
+   "y": 1055,
+   "confidence": "low"
+  },
+  {
+   "name": "Winthar",
+   "kind": "town",
+   "x": 261,
+   "y": 1129,
+   "confidence": "low"
+  },
+  {
+   "name": "Augusta",
+   "kind": "city",
+   "x": 440,
+   "y": 1093,
+   "confidence": "low"
+  },
+  {
+   "name": "Merin",
+   "kind": "town",
+   "x": 435,
+   "y": 1159,
+   "confidence": "low"
+  },
+  {
+   "name": "Shalum",
+   "kind": "city",
+   "x": 552,
+   "y": 1114,
+   "confidence": "low"
+  },
+  {
+   "name": "Bestead",
+   "kind": "town",
+   "x": 636,
+   "y": 1162,
+   "confidence": "medium"
+  },
+  {
+   "name": "Arlune",
+   "kind": "town",
+   "x": 590,
+   "y": 1260,
+   "confidence": "low"
+  },
+  {
+   "name": "Dubor",
+   "kind": "city",
+   "x": 672,
+   "y": 1270,
+   "confidence": "medium"
+  },
+  {
+   "name": "Angalvoll",
+   "kind": "town",
+   "x": 730,
+   "y": 1143,
+   "confidence": "low"
+  },
+  {
+   "name": "Lyle",
+   "kind": "capital",
+   "x": 884,
+   "y": 1145,
+   "confidence": "low"
+  },
+  {
+   "name": "Arzalwa",
+   "kind": "town",
+   "x": 917,
+   "y": 1043,
+   "confidence": "low"
+  },
+  {
+   "name": "Tyde",
+   "kind": "city",
+   "x": 1002,
+   "y": 1099,
+   "confidence": "low"
+  },
+  {
+   "name": "Yuldak",
+   "kind": "town",
+   "x": 926,
+   "y": 1228,
+   "confidence": "low"
+  },
+  {
+   "name": "Cloom",
+   "kind": "town",
+   "x": 87,
+   "y": 1340,
+   "confidence": "low"
+  },
+  {
+   "name": "Ihemn",
+   "kind": "city",
+   "x": 239,
+   "y": 1310,
+   "confidence": "low"
+  },
+  {
+   "name": "Magstead",
+   "kind": "town",
+   "x": 342,
+   "y": 1327,
+   "confidence": "medium"
+  },
+  {
+   "name": "Nerra",
+   "kind": "city",
+   "x": 276,
+   "y": 1391,
+   "confidence": "low"
+  },
+  {
+   "name": "Dyason",
+   "kind": "town",
+   "x": 314,
+   "y": 1478,
+   "confidence": "low"
+  },
+  {
+   "name": "Sole",
+   "kind": "town",
+   "x": 466,
+   "y": 1340,
+   "confidence": "low"
+  },
+  {
+   "name": "Oraph",
+   "kind": "town",
+   "x": 565,
+   "y": 1381,
+   "confidence": "medium"
+  },
+  {
+   "name": "Binsade",
+   "kind": "town",
+   "x": 497,
+   "y": 1479,
+   "confidence": "low"
+  },
+  {
+   "name": "Gevor",
+   "kind": "city",
+   "x": 788,
+   "y": 1284,
+   "confidence": "low"
+  },
+  {
+   "name": "Maithe",
+   "kind": "town",
+   "x": 707,
+   "y": 1374,
+   "confidence": "medium"
+  },
+  {
+   "name": "Gorzyn",
+   "kind": "town",
+   "x": 853,
+   "y": 1386,
+   "confidence": "low"
+  },
+  {
+   "name": "Ila",
+   "kind": "town",
+   "x": 987,
+   "y": 1387,
+   "confidence": "low"
+  },
+  {
+   "name": "Lalda",
+   "kind": "city",
+   "x": 935,
+   "y": 1494,
+   "confidence": "low"
+  },
+  {
+   "name": "Tahat",
+   "kind": "city",
+   "x": 234,
+   "y": 1595,
+   "confidence": "low"
+  },
+  {
+   "name": "Ewash",
+   "kind": "city",
+   "x": 370,
+   "y": 1584,
+   "confidence": "high"
+  },
+  {
+   "name": "Shaetun",
+   "kind": "town",
+   "x": 360,
+   "y": 1663,
+   "confidence": "low"
+  },
+  {
+   "name": "Ottila",
+   "kind": "city",
+   "x": 151,
+   "y": 1708,
+   "confidence": "low"
+  },
+  {
+   "name": "Oela'Ko",
+   "kind": "city",
+   "x": 441,
+   "y": 1720,
+   "confidence": "low"
+  },
+  {
+   "name": "Lofana",
+   "kind": "village",
+   "x": 635,
+   "y": 1539,
+   "confidence": "low"
+  },
+  {
+   "name": "Dree",
+   "kind": "city",
+   "x": 588,
+   "y": 1688,
+   "confidence": "low"
+  },
+  {
+   "name": "Calmond",
+   "kind": "town",
+   "x": 680,
+   "y": 1720,
+   "confidence": "medium"
+  },
+  {
+   "name": "Patty",
+   "kind": "city",
+   "x": 785,
+   "y": 1507,
+   "confidence": "low"
+  },
+  {
+   "name": "Seldon Br.",
+   "kind": "town",
+   "x": 755,
+   "y": 1606,
+   "confidence": "low"
+  },
+  {
+   "name": "Viou",
+   "kind": "town",
+   "x": 788,
+   "y": 1667,
+   "confidence": "low"
+  },
+  {
+   "name": "Meknen",
+   "kind": "town",
+   "x": 354,
+   "y": 1762,
+   "confidence": "low"
+  },
+  {
+   "name": "Zorente",
+   "kind": "town",
+   "x": 680,
+   "y": 1772,
+   "confidence": "low"
+  },
+  {
+   "name": "Glaief",
+   "kind": "town",
+   "x": 749,
+   "y": 1729,
+   "confidence": "low"
+  },
+  {
+   "name": "Gorak",
+   "kind": "city",
+   "x": 818,
+   "y": 1739,
+   "confidence": "medium"
+  },
+  {
+   "name": "Yterj",
+   "kind": "town",
+   "x": 767,
+   "y": 1777,
+   "confidence": "low"
+  },
+  {
+   "name": "Fort Zarra",
+   "kind": "fort",
+   "x": 928,
+   "y": 1793,
+   "confidence": "low"
+  }
+ ],
+ "features": [
+  {
+   "name": "Fae'mel Forest",
+   "class": "forest",
+   "x": 256,
+   "y": 275,
+   "confidence": "high"
+  },
+  {
+   "name": "Lake Luin",
+   "class": "lake",
+   "x": 240,
+   "y": 358,
+   "confidence": "high"
+  },
+  {
+   "name": "Palma River",
+   "class": "river",
+   "x": 809,
+   "y": 295,
+   "confidence": "high"
+  },
+  {
+   "name": "Mt. Danrid",
+   "class": "mountain",
+   "x": 951,
+   "y": 283,
+   "confidence": "low"
+  },
+  {
+   "name": "Thran River",
+   "class": "river",
+   "x": 656,
+   "y": 369,
+   "confidence": "high"
+  },
+  {
+   "name": "New Fae'run",
+   "class": "nation",
+   "x": 246,
+   "y": 408,
+   "confidence": "high"
+  },
+  {
+   "name": "Myra River",
+   "class": "river",
+   "x": 391,
+   "y": 385,
+   "confidence": "high"
+  },
+  {
+   "name": "Mt. Weth",
+   "class": "mountain",
+   "x": 280,
+   "y": 486,
+   "confidence": "high"
+  },
+  {
+   "name": "Central Valley",
+   "class": "valley",
+   "x": 539,
+   "y": 385,
+   "confidence": "high"
+  },
+  {
+   "name": "Mt. Shila",
+   "class": "mountain",
+   "x": 656,
+   "y": 529,
+   "confidence": "high"
+  },
+  {
+   "name": "Hadree Forest",
+   "class": "forest",
+   "x": 486,
+   "y": 561,
+   "confidence": "medium"
+  },
+  {
+   "name": "Mt. Oplin",
+   "class": "mountain",
+   "x": 839,
+   "y": 367,
+   "confidence": "medium"
+  },
+  {
+   "name": "Jennu Forest",
+   "class": "forest",
+   "x": 787,
+   "y": 459,
+   "confidence": "high"
+  },
+  {
+   "name": "Achak Forest",
+   "class": "forest",
+   "x": 279,
+   "y": 596,
+   "confidence": "high"
+  },
+  {
+   "name": "Lake Surnet",
+   "class": "lake",
+   "x": 191,
+   "y": 759,
+   "confidence": "high"
+  },
+  {
+   "name": "Nal Lakes",
+   "class": "lake",
+   "x": 798,
+   "y": 611,
+   "confidence": "high"
+  },
+  {
+   "name": "Molkath Confederation",
+   "class": "nation",
+   "x": 756,
+   "y": 819,
+   "confidence": "high"
+  },
+  {
+   "name": "Sondel Range",
+   "class": "range",
+   "x": 557,
+   "y": 839,
+   "confidence": "high"
+  },
+  {
+   "name": "Drong River",
+   "class": "river",
+   "x": 409,
+   "y": 865,
+   "confidence": "high"
+  },
+  {
+   "name": "Lake Whitswell",
+   "class": "lake",
+   "x": 210,
+   "y": 894,
+   "confidence": "high"
+  },
+  {
+   "name": "Cius League",
+   "class": "nation",
+   "x": 206,
+   "y": 979,
+   "confidence": "high"
+  },
+  {
+   "name": "Mater Forest",
+   "class": "forest",
+   "x": 266,
+   "y": 1036,
+   "confidence": "high"
+  },
+  {
+   "name": "Molkath River",
+   "class": "river",
+   "x": 802,
+   "y": 956,
+   "confidence": "high"
+  },
+  {
+   "name": "Lake Rochest",
+   "class": "lake",
+   "x": 930,
+   "y": 961,
+   "confidence": "high"
+  },
+  {
+   "name": "Lake Havamere",
+   "class": "lake",
+   "x": 266,
+   "y": 1116,
+   "confidence": "high"
+  },
+  {
+   "name": "Lake Conera",
+   "class": "lake",
+   "x": 918,
+   "y": 1125,
+   "confidence": "high"
+  },
+  {
+   "name": "Federation of Vinon",
+   "class": "nation",
+   "x": 901,
+   "y": 1195,
+   "confidence": "high"
+  },
+  {
+   "name": "Chom Islands",
+   "class": "islands",
+   "x": 75,
+   "y": 1406,
+   "confidence": "high"
+  },
+  {
+   "name": "Lake Sile",
+   "class": "lake",
+   "x": 400,
+   "y": 1307,
+   "confidence": "high"
+  },
+  {
+   "name": "Arluna Lakes",
+   "class": "lake",
+   "x": 628,
+   "y": 1312,
+   "confidence": "high"
+  },
+  {
+   "name": "Trate Hills",
+   "class": "hills",
+   "x": 310,
+   "y": 1549,
+   "confidence": "medium"
+  },
+  {
+   "name": "Ewash Forest",
+   "class": "forest",
+   "x": 387,
+   "y": 1605,
+   "confidence": "high"
+  },
+  {
+   "name": "Minsa Forest",
+   "class": "forest",
+   "x": 258,
+   "y": 1699,
+   "confidence": "medium"
+  },
+  {
+   "name": "Sherval River",
+   "class": "river",
+   "x": 350,
+   "y": 1705,
+   "confidence": "high"
+  },
+  {
+   "name": "Sanven Hills",
+   "class": "hills",
+   "x": 617,
+   "y": 1517,
+   "confidence": "medium"
+  },
+  {
+   "name": "Taunmis River",
+   "class": "river",
+   "x": 588,
+   "y": 1648,
+   "confidence": "medium"
+  },
+  {
+   "name": "Calmond Forest",
+   "class": "forest",
+   "x": 675,
+   "y": 1691,
+   "confidence": "high"
+  },
+  {
+   "name": "Holy Grove",
+   "class": "grove",
+   "x": 753,
+   "y": 1497,
+   "confidence": "high"
+  },
+  {
+   "name": "Xel Lakes",
+   "class": "lake",
+   "x": 739,
+   "y": 1704,
+   "confidence": "high"
+  }
+ ]
+}

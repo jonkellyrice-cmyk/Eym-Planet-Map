@@ -27,11 +27,9 @@ test("coastlines are smoothed closed vectors rather than coarse cell markers", (
   for (const coast of refined.coastlines) { assert.equal(coast.closed, true); assert.deepEqual(coast.points[0], coast.points.at(-1)); assert.ok(coast.points.length >= 9); }
 });
 
-test("Eventide remains an oceanic archipelago rather than gaining a replacement continent", () => {
-  const refined = buildRefinedTerrain(load("Eventide"));
-  assert.ok(refined.realizedWaterFraction >= .85);
-  assert.ok(refined.landPolygons.length >= 8);
-  assert.ok(refined.landPolygons[0].areaDeg2 < refined.landPolygons.reduce((sum, polygon) => sum + polygon.areaDeg2, 0) * .55);
+test("generic refinement splits a generated world's land into several polygons", () => {
+  const refined = buildRefinedTerrain(load("Thraximundus"));
+  assert.ok(refined.landPolygons.length >= 2);
 });
 
 test("refinement rejects resolutions that cannot preserve accepted grid alignment", () => {

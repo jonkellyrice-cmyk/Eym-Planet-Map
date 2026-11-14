@@ -35,7 +35,7 @@ test("refinement preserves accepted categorical proportions within raster roundi
 });
 
 test("coastline displacement cannot put marine categories on land or land soils at sea", () => {
-  for (const body of ["Eventide", "Ramses", "Kandahar"]) {
+  for (const body of ["Thraximundus", "Ramses", "Kandahar"]) {
     const { regions } = build(body);
     for (const cell of regions.cells) {
       assert.equal(cell.biome.includes("ocean") || cell.biome === "sea-ice", cell.ocean, `${body}/${cell.id}/biome`);
@@ -58,8 +58,13 @@ test("all categorical regions materialize as closed coordinate polygons", () => 
 });
 
 test("world extremes retain distinct canonical ecological identities", () => {
-  const eventide = build("Eventide").regions, ramses = build("Ramses").regions, kandahar = build("Kandahar").regions;
-  assert.ok(eventide.cells.filter((cell) => cell.biome.includes("ocean")).length > ramses.cells.filter((cell) => cell.biome.includes("ocean")).length * 4);
-  assert.ok(ramses.cells.filter((cell) => cell.biome.includes("desert")).length > eventide.cells.filter((cell) => cell.biome.includes("desert")).length);
+  // Eym's surface comes from its own builder; compare its accepted raster by share of cells.
+  const eymAsset = JSON.parse(readFileSync(new URL("data/planet-cartography/abydos/eventide.json", root), "utf8"));
+  const eymBiomes = [...Buffer.from(eymAsset.raster.biome.valuesBase64, "base64")].map((index) => eymAsset.raster.biome.categories[index]);
+  const share = (list, test) => list.filter(test).length / list.length;
+  const ramses = build("Ramses").regions, kandahar = build("Kandahar").regions, ramsesBiomes = ramses.cells.map((cell) => cell.biome);
+  const marine = (biome) => biome.includes("ocean") || biome === "sea-ice";
+  assert.ok(share(eymBiomes, marine) > share(ramsesBiomes, marine) * 4);
+  assert.ok(share(ramsesBiomes, (biome) => biome.includes("desert")) > share(eymBiomes, (biome) => biome.includes("desert")));
   assert.ok(kandahar.cells.some((cell) => ["ice-cap", "tundra", "cold-desert"].includes(cell.biome)));
 });

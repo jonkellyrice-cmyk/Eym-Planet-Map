@@ -44,7 +44,9 @@ test("orbital labels prioritize permanent capital, ocean and continental names",
   for (const body of ["Ramses", "Eventide", "Thraximundus", "Kandahar"]) {
     const labels = selectCartographyLabels(load(body), .8, true);
     assert.ok(labels.some((feature) => feature.featureClass === "capital"), body);
-    assert.ok(labels.some((feature) => feature.featureClass === "ocean"), body);
+    // Eym's oceans are not yet named; its five continents are.
+    if (body === "Eventide") assert.ok(["Caren", "Garyk"].every((name) => labels.some((feature) => feature.featureClass === "continent" && feature.properName === name)), body);
+    else assert.ok(labels.some((feature) => feature.featureClass === "ocean"), body);
     assert.ok(labels.every((feature) => feature.properName), body);
     assert.equal(new Set(labels.map((feature) => feature.properName)).size, labels.length, body);
   }

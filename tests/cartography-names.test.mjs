@@ -41,10 +41,8 @@ test("major physical layers receive proper names without renaming scientific ide
   assert.ok(names.features.every((feature) => feature.scientificClassification && feature.properName !== feature.scientificClassification));
 });
 
-test("Eventide remains named as an archipelago world with no invented continent", () => {
-  const { names } = build("Eventide");
-  assert.equal(names.features.filter((feature) => feature.featureClass === "continent").length, 0);
-  assert.ok(names.features.filter((feature) => feature.featureClass === "island").length >= 8);
+test("generic naming names the oceans of a generated world", () => {
+  const { names } = build("Thraximundus");
   assert.ok(names.features.some((feature) => feature.featureClass === "ocean"));
 });
 

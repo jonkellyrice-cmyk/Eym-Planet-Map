@@ -10,8 +10,9 @@ test("planet snapshot serializes existing materialized coordinates without regen
   const source = fs.readFileSync(sourcePath, "utf8");
   const snapshot = snapshotPlanet(JSON.parse(source), sourcePath, source);
   assert.equal(snapshot.name, "Eventide");
-  assert.match(snapshot.referenceSvg, /Nacreward Crown/);
-  assert.match(snapshot.informationPacket, /Ramseslight Flow/);
+  assert.match(snapshot.referenceSvg, /Bostain/);
+  assert.match(snapshot.informationPacket, /\*\*Caren\*\*/);
+  assert.match(snapshot.informationPacket, /Sondel Range/);
   assert.equal(snapshot.sourcePath, sourcePath);
 });
 

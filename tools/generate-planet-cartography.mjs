@@ -6,6 +6,7 @@ import { buildCartographicRegions } from "../scripts/cartography-regions.mjs";
 import { buildNamedGeography } from "../scripts/cartography-names.mjs";
 import { buildSettlementCartography } from "../scripts/cartography-settlements.mjs";
 import { parseCsv } from "../scripts/system-data.mjs";
+import { isEymRow, loadEymWorld } from "./eym-world.mjs";
 
 const root = new URL("../", import.meta.url), coarseManifest = JSON.parse(readFileSync(new URL("data/planet-geography/manifest.json", root), "utf8"));
 const registryRows = parseCsv(readFileSync(new URL("docs/system-orbital-distances.csv", root), "utf8"));
@@ -18,9 +19,29 @@ const encodeByteField = (cells, field) => {
   return { categories, valuesBase64: Buffer.from(cells.map((cell) => index.get(cell[field]))).toString("base64") };
 };
 
+const civilizationProfileFor = (registryRow) => ({
+  ownerFaction: registryRow.owner_faction,
+  settlementPattern: registryRow.settlement_pattern || "",
+  dominantSettlementPattern: registryRow.dominant_settlement_pattern || "",
+  majorPopulationCorridors: registryRow.major_population_corridors || "",
+  urbanConcentration: registryRow.urban_concentration || "",
+  majorCityCountBand: registryRow.major_city_count_band || "",
+  likelyTransportGeography: registryRow.likely_transport_geography || "",
+});
+/** Eym's refined asset comes whole from its surface builder; add the common header and write it. */
+function writeAsset(coarse, registryRow, built) {
+  const asset = { schemaVersion: 2, status, modelVersion: registryRow.geography_model_version, system: coarse.system, body: coarse.body, ownerFaction: registryRow.owner_faction, civilizationProfile: civilizationProfileFor(registryRow), sourceSeed: coarse.seed, sourceFingerprint: coarse.inputFingerprint, resolutionDeg: built.resolutionDeg, grid: built.grid, terrain: built.terrain, hydrology: built.hydrology, regions: built.regions, gazetteer: built.gazetteer, settlements: built.settlements, transportRoutes: built.transportRoutes, raster: built.raster };
+  const text = `${JSON.stringify(asset)}\n`, path = `data/planet-cartography/${slug(coarse.system)}/${slug(coarse.body)}.json`, diskPath = new URL(path, root);
+  mkdirSync(dirname(diskPath.pathname), { recursive: true }); writeFileSync(diskPath, text);
+  process.stdout.write(`generated ${coarse.system}/${coarse.body}\n`);
+  return { system: coarse.system, body: coarse.body, path, sourceSeed: coarse.seed, sourceFingerprint: coarse.inputFingerprint, sha256: hash(text), bytes: Buffer.byteLength(text) };
+}
+
 const worlds = [];
 for (const entry of coarseManifest.worlds) {
   const coarse = JSON.parse(readFileSync(new URL(entry.path, root), "utf8"));
+  const eymRow = registryByWorld.get(`${coarse.system}\u0000${coarse.body}`);
+  if (isEymRow(eymRow)) { worlds.push(writeAsset(coarse, eymRow, loadEymWorld(eymRow).asset)); continue; }
   const terrain = buildRefinedTerrain(coarse), hydrology = buildRefinedHydrology(coarse, terrain), regions = buildCartographicRegions(coarse, hydrology);
   const gazetteer = buildNamedGeography({ coarse, terrain, hydrology, regions });
   const registryRow = registryByWorld.get(`${coarse.system}\u0000${coarse.body}`);
