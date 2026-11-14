@@ -12,7 +12,7 @@ const accepted = manifest.assets.map((entry) => {
 });
 
 test("accepted operational assets stay within bounded on-demand loading budgets", () => {
-  assert.equal(accepted.length, 8);
+  assert.equal(accepted.length, 7);
   assert.ok(accepted.every(({ bytes }) => bytes <= 16 * 1024));
   assert.ok(accepted.reduce((sum, { bytes }) => sum + bytes, 0) <= 1024 * 1024);
 });

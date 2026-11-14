@@ -16,7 +16,7 @@ test("release workflow packages the registry, cartography, operational, astronom
     "data/planet-cartography/abydos/ramses.json",
     "data/body-operations/manifest.json",
     "data/body-operations/abydos/cataphract.json",
-    "data/body-operations/abydos/vada-anchorage.json",
+    "data/body-operations/abydos/white-moon.json",
     "data/astronomy/epoch-orientations.json",
     "data/stellar/starfield.json",
     "data/stellar/constellations.json",

@@ -68,7 +68,7 @@ test("all canonical orbit hierarchies and ellipse metadata validate", () => {
 test("fabricated orientations are frozen, provenance-labelled, and irregular", () => {
   const entries = Object.values(orientationDocument.orientations);
   const spins = entries.flatMap((entry) => entry.spinPhaseAtEpochDeg == null ? [] : [entry.spinPhaseAtEpochDeg]);
-  assert.equal(entries.length, 9);
+  assert.equal(entries.length, 11);
   assert.equal(spins.length, 8);
   assert.ok(new Set(spins.map((value) => Math.floor(value / 30))).size >= 6);
   assert.ok(entries.every((entry) => /DETERMINISTIC WORKING CANON/.test(entry.axialSeasonPhaseProvenance)));

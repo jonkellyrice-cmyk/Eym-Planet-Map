@@ -6,7 +6,7 @@
   "operationalKind": "giant",
   "permanentOperationalSeed": "3b965b31f6172ec0",
   "operationalModelVersion": "orphaned-sun-body-operations-v1",
-  "canonicalSourceFingerprint": "1e40b72db38a6682b407",
+  "canonicalSourceFingerprint": "05cd53077ef120469833",
   "acceptedCanonStatus": "accepted-generated-canon",
   "coordinateFrame": {
     "id": "atmospheric-spherical",

@@ -20,7 +20,7 @@ test("the Abydos system model resolves every parent hierarchy to finite coordina
 
 test("the Abydos registry exposes exactly its schematic object families", () => {
   const classes = new Set(systems.flatMap((system) => buildSystemModel(rows, system).objects.map((object) => object.objectClass)));
-  assert.deepEqual(classes, new Set(["star", "planet", "moon", "giant", "installation", "anomaly"]));
+  assert.deepEqual(classes, new Set(["star", "planet", "moon", "giant"]));
 });
 
 test("the classifier still maps every schematic family, including ones Abydos lacks", () => {
@@ -32,16 +32,22 @@ test("the classifier still maps every schematic family, including ones Abydos la
   for (const [type, objectClass] of Object.entries(cases)) assert.equal(classifySystemObject(type), objectClass, type);
 });
 
-test("non-selectable regions remain visible but unavailable as route endpoints", () => {
-  const regions = systems.flatMap((system) => buildSystemModel(rows, system).objects).filter((object) => ["belt", "anomaly"].includes(object.objectClass));
-  assert.deepEqual(regions.map((object) => object.name), ["Thornfield"]);
+test("non-selectable regions remain visible but unavailable as route endpoints (synthetic; Abydos has none)", () => {
+  const real = systems.flatMap((system) => buildSystemModel(rows, system).objects).filter((object) => ["belt", "anomaly"].includes(object.objectClass));
+  assert.deepEqual(real, []);
+  const synthetic = [
+    { system: "Region Test", object: "Test Star", type: "G2V star", parent: "System barycenter", distance_from_parent: "0", distance_unit: "AU", selectable: "yes" },
+    { system: "Region Test", object: "Test Field", type: "spatial anomaly region", parent: "Test Star", distance_from_parent: "5.4", distance_unit: "AU", selectable: "no" },
+  ];
+  const regions = buildSystemModel(synthetic, "Region Test").objects.filter((object) => ["belt", "anomaly"].includes(object.objectClass));
+  assert.deepEqual(regions.map((object) => object.name), ["Test Field"]);
   assert.ok(regions.every((object) => !object.selectable));
 });
 
 test("all system objects retain canonical identity and reference measurements", () => {
   const objects = systems.flatMap((system) => buildSystemModel(rows, system).objects);
-  assert.equal(objects.length, 13);
-  assert.equal(new Set(objects.map((object) => object.id)).size, 13);
+  assert.equal(objects.length, 12);
+  assert.equal(new Set(objects.map((object) => object.id)).size, 12);
   for (const object of objects) {
     assert.ok(object.name && object.type && object.parent);
     assert.ok(object.distanceAu >= 0);

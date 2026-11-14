@@ -4,7 +4,7 @@
   "modelVersion": "orphaned-sun-body-operations-v1",
   "sourceRegistry": "docs/system-orbital-distances.csv",
   "sourceCartographyManifest": "data/planet-cartography/manifest.json",
-  "targetCount": 8,
+  "targetCount": 7,
   "assets": [
     {
       "system": "Abydos",
@@ -13,7 +13,7 @@
       "operationalKind": "natural-solid",
       "path": "data/body-operations/abydos/cataphract.json",
       "seed": "a3505837e24554ca",
-      "fingerprint": "f401c47d8afef3005ac6",
+      "fingerprint": "90224a96352ca6db5f73",
       "featureCount": 11
     },
     {
@@ -23,8 +23,18 @@
       "operationalKind": "natural-solid",
       "path": "data/body-operations/abydos/enoch.json",
       "seed": "44a24b1e71c53369",
-      "fingerprint": "7b71ab4e215b0e6b6d4f",
+      "fingerprint": "722c7a6dad86060e806f",
       "featureCount": 16
+    },
+    {
+      "system": "Abydos",
+      "body": "Red Moon",
+      "canonicalType": "moon",
+      "operationalKind": "natural-solid",
+      "path": "data/body-operations/abydos/red-moon.json",
+      "seed": "5aa1bc9f65f477a6",
+      "fingerprint": "a5be2b9ccf06f3ef963c",
+      "featureCount": 11
     },
     {
       "system": "Abydos",
@@ -33,28 +43,8 @@
       "operationalKind": "giant",
       "path": "data/body-operations/abydos/sumatra.json",
       "seed": "3b965b31f6172ec0",
-      "fingerprint": "1e40b72db38a6682b407",
+      "fingerprint": "05cd53077ef120469833",
       "featureCount": 13
-    },
-    {
-      "system": "Abydos",
-      "body": "Thornfield",
-      "canonicalType": "spatial anomaly region",
-      "operationalKind": "anomaly",
-      "path": "data/body-operations/abydos/thornfield.json",
-      "seed": "a6cf79d88a117aa5",
-      "fingerprint": "84c03b14b8448e677a95",
-      "featureCount": 12
-    },
-    {
-      "system": "Abydos",
-      "body": "Thornwatch Array",
-      "canonicalType": "installation array",
-      "operationalKind": "station",
-      "path": "data/body-operations/abydos/thornwatch-array.json",
-      "seed": "e7ea2378070f4979",
-      "fingerprint": "65fb157e4d2baac74bc1",
-      "featureCount": 11
     },
     {
       "system": "Abydos",
@@ -63,18 +53,8 @@
       "operationalKind": "giant",
       "path": "data/body-operations/abydos/tribune.json",
       "seed": "6da71cef11d5534a",
-      "fingerprint": "e41f63dd723b0dc24152",
+      "fingerprint": "92c7b35e2c1d5943540c",
       "featureCount": 13
-    },
-    {
-      "system": "Abydos",
-      "body": "Vada Anchorage",
-      "canonicalType": "major station",
-      "operationalKind": "station",
-      "path": "data/body-operations/abydos/vada-anchorage.json",
-      "seed": "b8e5e73572bce132",
-      "fingerprint": "2e4d16163775da09b631",
-      "featureCount": 11
     },
     {
       "system": "Abydos",
@@ -83,8 +63,18 @@
       "operationalKind": "natural-solid",
       "path": "data/body-operations/abydos/ventus.json",
       "seed": "92e4fbaa636c3585",
-      "fingerprint": "23c6573ae6eff68525b9",
+      "fingerprint": "769449453a0dc8ea7f86",
       "featureCount": 15
+    },
+    {
+      "system": "Abydos",
+      "body": "White Moon",
+      "canonicalType": "moon",
+      "operationalKind": "natural-solid",
+      "path": "data/body-operations/abydos/white-moon.json",
+      "seed": "64b3df9196e7910c",
+      "fingerprint": "af5aa67f104a82a8a8b2",
+      "featureCount": 11
     }
   ]
 }

@@ -47,13 +47,13 @@
         <div class="oscm-card-title">Campaign Time</div>
         <span class="oscm-clock-status" data-universal-clock-status>RUNNING</span>
       </div>
-      <div class="oscm-clock-date" data-reference-date>Friday, September 3, 5016 U</div>
+      <div class="oscm-clock-date" data-reference-date>Wednesday, September 3, 5016</div>
       <div class="oscm-clock-time" data-reference-clock>10:38:00</div>
-      <div class="oscm-clock-standard">Cradle Standard Reckoning</div>
+      <div class="oscm-clock-standard">Reckoning of Eym</div>
       {{!-- ASTRAL TRAVEL (dormant): shipboard proper time only differs from campaign time during a relativistic voyage.
       <div class="oscm-clock-readout-divider"></div>
       <div class="oscm-card-title">Shipboard Proper Time</div>
-      <div class="oscm-clock-date" data-proper-date>Friday, September 3, 5016 U</div>
+      <div class="oscm-clock-date" data-proper-date>Wednesday, September 3, 5016</div>
       <div class="oscm-clock-time" data-proper-clock>10:38:00</div>
       <div class="oscm-clock-standard">Crew Proper Reckoning</div>
       --}}
@@ -73,9 +73,9 @@
         <div class="oscm-clock-set">
           <div class="oscm-clock-set-label">Set date / time</div>
           <div class="oscm-clock-date-inputs">
-            <label><span>Month</span><input name="universalMonth" type="number" min="1" max="12" step="1" value="9"></label>
-            <label><span>Day</span><input name="universalDay" type="number" min="1" max="31" step="1" value="3"></label>
-            <label><span>Year U</span><input name="universalYear" type="number" min="1" step="1" value="5016"></label>
+            <label><span>Month (13 = Year's End)</span><input name="universalMonth" type="number" min="1" max="13" step="1" value="9"></label>
+            <label><span>Day</span><input name="universalDay" type="number" min="1" max="28" step="1" value="3"></label>
+            <label><span>Year</span><input name="universalYear" type="number" min="1" step="1" value="5016"></label>
           </div>
           <label class="oscm-clock-time-input"><span>24-hour time</span><input name="universalTime" type="time" step="60" value="10:38"></label>
           <button class="oscm-apply" type="button" data-action="set-universal-clock"><i class="fa-solid fa-clock"></i> Set Time</button>

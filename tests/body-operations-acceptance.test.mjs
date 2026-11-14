@@ -24,9 +24,10 @@ test("gas giants keep an atmospheric survey with no solid-surface routes", () =>
   }
 });
 
-test("Thornfield stays an uncertain, non-dockable anomaly and generic gates, tethers and yards keep their structure", () => {
-  const thornfield = assetFor("Thornfield");
-  assert.equal(thornfield.coordinateFrame.geometryKind, "uncertain observation volume"); assert.ok(!thornfield.features.some((feature) => feature.type === "dock"));
+test("an anomaly region stays an uncertain, non-dockable observation volume and generic gates, tethers and yards keep their structure", () => {
+  const anomaly = synthetic("Synthetic Rift", "spatial anomaly region");
+  assert.equal(anomaly.operationalKind, "anomaly");
+  assert.equal(anomaly.coordinateFrame.geometryKind, "uncertain observation volume"); assert.ok(!anomaly.features.some((feature) => feature.type === "dock"));
   const gate = synthetic("Synthetic Gate", "blinkgate");
   assert.equal(gate.operationalKind, "blinkgate");
   assert.ok(gate.features.some((feature) => feature.type === "aperture")); assert.ok(gate.features.filter((feature) => feature.lodPriority === 1).length >= 8);

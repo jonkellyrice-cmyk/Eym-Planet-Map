@@ -11,8 +11,8 @@ const BUNDLE_PATH = "exports/generated-maps.bundle.json";
 const MANIFEST_PATH = "exports/generated-maps.manifest.json";
 const IDENTITIES_PATH = "data/superstructure-identities.json";
 const EXPECTED_MODEL = "orphaned-sun-superstructure-identity-v1";
-const EXPECTED_COUNTS = Object.freeze({ planetary: 4, operational: 8, total: 12 });
-const EXPECTED_SUPERSTRUCTURES = 2;
+const EXPECTED_COUNTS = Object.freeze({ planetary: 4, operational: 7, total: 11 });
+const EXPECTED_SUPERSTRUCTURES = 0;
 
 const read = (relative) => fs.readFileSync(path.join(ROOT, relative), "utf8");
 const sha256 = (text) => crypto.createHash("sha256").update(text).digest("hex");

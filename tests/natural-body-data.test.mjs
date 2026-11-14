@@ -11,7 +11,7 @@ test("natural body models cover terrestrial, moon, minor-world, and giant famili
   const kinds = new Set(models.map((model) => model.kind));
   assert.deepEqual(kinds, new Set(["terrestrial", "moon", "minor-world", "giant"]));
   assert.equal(models.length, rows.filter((row) => naturalBodyKind(row)).length);
-  assert.equal(models.length, 9);
+  assert.equal(models.length, 11);
 });
 
 test("asteroid-field bodies still build a natural model (synthetic belt; Abydos has none)", () => {

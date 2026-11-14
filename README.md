@@ -8,17 +8,26 @@ The module id is `eym-planet-map`, so it installs alongside the original Orphane
 
 ## Features
 
-- An interactive AU-scale system map of all 13 canonical Abydos objects (star, planets, moon, giants, station, installation array, anomaly region), keeping physical hierarchical coordinates separate from compressed display coordinates.
+- An interactive AU-scale map of all 12 objects of the Sun's system (the Sun, seven planets and dwarf worlds, Eym's White and Red Moons, and Tribune's moon Enoch), keeping physical hierarchical coordinates separate from compressed display coordinates.
 - The system is the outermost level: double-click/double-tap or zoom inward from system → body, with a breadcrumb back to the system; zooming out stops at the system.
 - A fixed night sky around the system: 2,000 naked-eye stars, the galactic band and a distant sister galaxy, drawn inside-looking-out behind the system view and turning with the camera (see `tools/generate-starfield.mjs`).
 - 35 named constellations and 4 asterisms in plain English (16 northern, 19 southern; 7 chief constellations in each hemisphere; 8 on the path of the sun, in order), stored as star-to-star line data in `data/stellar/constellations.json` (see `tools/generate-constellations.mjs`).
 - Four inhabited terrestrial worlds (Ramses, Eventide, Thraximundus, Kandahar) with accepted deterministic 2° cartography: coastlines, elevation/contours, hydrology, ecoregions, soils, resources, settlements, permanent cultural gazetteers, and transport geometry.
-- Eight non-cartographic bodies and orbital structures with accepted deterministic local operational surveys (barren worlds, moon, giants, station, installation array, anomaly region).
+- Seven non-cartographic natural bodies with accepted deterministic local surveys (barren worlds, moons, giants).
 - Culture-aware permanent names (Vadan for Abydos; the Aurethic, Vostrann, Xuānhari and Union naming cultures remain available for new systems).
 - Zoom-dependent SVG level of detail keeps orbital, regional, and close inspection useful on desktop and mobile without unbounded DOM growth.
 - Desktop: drag to rotate, mouse wheel to zoom, double-click empty space to reset the camera. Mobile/touch: one-finger drag rotates; pinch zooms.
-- One campaign clock (play/pause, step, set date and time). System views resolve deterministic Keplerian planet/moon positions and body rotations from it on demand; no frame-by-frame astronomy simulation runs.
+- One campaign clock in Eym's calendar (play/pause, step, set date and time). System views resolve deterministic Keplerian planet/moon positions and body rotations from it on demand; no frame-by-frame astronomy simulation runs.
 - No runtime third-party libraries or CDN calls.
+
+## Eym and its sky
+
+- **The Sun** is a twin of Earth's Sun (G2V, 1 solar mass and luminosity).
+- **Eym** is an Earth twin: 1 AU, Earth's radius, mass and gravity, 23.44° tilt (precessing every ~25,772 years; obliquity rocking 22.1°–24.5° over ~41,000 years), eccentricity 0.0167 and an Earth-like magnetic field. Its surface water and continents are due to be reseeded.
+- **Time.** Eym's year is exactly 350 days of 24 hours × 60 minutes × 60 seconds. Because Eym's year is as long as Earth's, each Eym second is 1.0435 SI seconds; every day and hour value in the registry is in Eym units.
+- **Calendar.** Twelve months with Gregorian names, each exactly 28 days (4 weeks), then the 14-day **Year's End** holiday (month 13 in the clock's date inputs). Every month and every year begins on a Monday.
+- **Moons.** The **White Moon** (382,029 km, 0.50° across) has phases that repeat every 28 days and set the month. The **Red Moon** (195,000 km, 0.40° across) cycles every 9.77 days, so the two are only full together roughly every 7½ months. Their combined tides equal Earth's on average: great tides (~1.35×) when they line up, slack tides (~0.4×) when they are 90° apart.
+- **The other worlds** keep their original architecture: every orbit was scaled by 1/0.68 when the star changed, and periods follow Kepler's third law.
 
 **Astral travel (dormant).** Routes, relativistic voyages, the ship marker, the navigation profile and the second (shipboard proper time) clock are commented out in place, marked `ASTRAL TRAVEL (dormant)`, so they can be revived later.
 

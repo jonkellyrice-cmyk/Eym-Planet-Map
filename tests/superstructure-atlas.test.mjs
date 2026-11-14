@@ -8,6 +8,8 @@ import { buildArtificialBodyModel } from "../scripts/artificial-body-data.mjs";
 import { buildNaturalBodyModel } from "../scripts/natural-body-data.mjs";
 import { parseCsv } from "../scripts/system-data.mjs";
 import { renderSuperstructureAtlas } from "../scripts/superstructure-atlas-visuals.mjs";
+import { FACTION_GRAMMARS, SUPERSTRUCTURE_MODEL_VERSION } from "../scripts/superstructure-identities.mjs";
+import { generateBodyOperationAsset, serializeAsset } from "../tools/generate-body-operations.mjs";
 
 const ROOT = path.resolve(".");
 const registry = parseCsv(fs.readFileSync(path.join(ROOT, "docs/system-orbital-distances.csv"), "utf8"));
@@ -20,20 +22,50 @@ const assetFor = (system, body) => {
   return { item, sourceText, asset: JSON.parse(sourceText) };
 };
 
-function superstructureSnapshot(system, body) {
-  const row = rowFor(system, body);
-  assert.ok(row, `missing registry row for ${system}/${body}`);
-  const { item, sourceText, asset } = assetFor(system, body);
-  return snapshotOperationalRich(asset, buildArtificialBodyModel(row, asset), item.path, sourceText);
+// The setting has no artificial superstructures, but the identity contract and renderer remain. These synthetic
+// (non-canon) rows and identities have the same shape as the entries data/superstructure-identities.json carries.
+const syntheticRow = (object, type, extra) => ({ system: "Synthetic", object, type, parent: "Synthetic", owner_faction: "Eventide", ...extra });
+const SYNTHETIC_ROWS = {
+  anchorage: syntheticRow("Synthetic Anchorage", "major station", { structure_class: "orbital anchorage / port", dimensions_estimate: "~10-15 km principal span", population_crew_scale: "~10,000-30,000 permanent/transient", primary_function: "civilian docking, logistics, customs, local traffic control", strategic_role: "principal orbital interface", visual_archetype: "compact docking lattice / anchorage", visual_palette: "weathered metal / pale neutral / blue-green accents" }),
+  watch: syntheticRow("Synthetic Watch Array", "installation array", { structure_class: "distributed watch/sensor-defense array", dimensions_estimate: "individual nodes ~1-3 km; network spans millions of km", population_crew_scale: "~1,000-10,000 distributed", primary_function: "sensor coverage, navigation warning, border watch, likely defensive support", strategic_role: "monitors approaches to a synthetic anomaly", visual_archetype: "sparse chain of watch stations", visual_palette: "weathered metal / pale neutral / blue-green accents" }),
+};
+const SYNTHETIC_PROFILES = {
+  anchorage: { topology: "single-anchorage", scaleClass: "major-city-scale orbital anchorage", effectiveDimensions: "roughly 40–70 km principal inhabited/docking span", populationBand: "~0.5–2 million permanent and transient population", primaryAxis: "horizontal docking spine", symmetry: "functional bilateral tendency with asymmetric service growth", silhouetteFamily: "frontier-anchorage", massing: "compact inhabited core with elongated docking and logistics arms", signatureStructures: ["horizontal anchorage spine", "multiple heavy docking collars", "compact civic/logistics core"], interiorZones: ["port administration", "habitation districts", "cargo and customs", "repair yards", "traffic control", "Axiolith/power infrastructure"], circulationLogic: "central port concourses feeding radial/axial dock transit", visualCanonNotes: "Synthetic fixture: a compact practical anchorage." },
+  watch: { topology: "distributed-watch-array", scaleClass: "distributed megacity-scale defense network", effectiveDimensions: "individual watch citadels roughly 20–50 km; network extends across a system-scale surveillance corridor", populationBand: "~1–5 million distributed residents, crews and support population", primaryAxis: "distributed chain along a synthetic anomaly boundary", symmetry: "network repetition rather than one-body symmetry", silhouetteFamily: "watch-citadel chain", massing: "multiple inhabited sensor-defense citadels with broad array planes and compact armored hubs", signatureStructures: ["repeating city-scale watch citadels", "sensor-array planes", "defense and docking hubs", "long distributed surveillance chain"], interiorZones: ["sensor and command precincts", "habitation districts", "defense batteries", "maintenance and docking districts", "Axiolith/power infrastructure"], circulationLogic: "local hub circulation within each citadel plus long-range shuttle/traffic links between nodes", visualCanonNotes: "Synthetic fixture: a chain of separate watch installations rather than one station." },
+};
+function syntheticIdentity(row, asset, profile) {
+  const grammar = FACTION_GRAMMARS.frontier;
+  return {
+    schemaVersion: 1, modelVersion: SUPERSTRUCTURE_MODEL_VERSION, status: "accepted-working-canon", system: row.system, body: row.object,
+    factionFamily: "frontier", factionLabel: grammar.label, canonicalType: row.type, operationalKind: asset.operationalKind,
+    superstructureRule: "Every listed artificial body is a permanent-enough, strategically significant city-scale-or-larger superstructure with a large resident/working population; Axiolith reduces effective inertial/structural stress enough to make this scale practical.",
+    ...profile, signatureStructures: [...profile.signatureStructures], interiorZones: [...profile.interiorZones],
+    legacyRegistryDimensions: row.dimensions_estimate, legacyRegistryPopulation: row.population_crew_scale,
+    factionDesignGrammar: grammar.designGrammar, materialLanguage: grammar.materialLanguage, factionInteriorLogic: grammar.interiorLogic, militaryLogic: grammar.militaryLogic,
+    registryFunction: row.primary_function, registryStrategicRole: row.strategic_role, registryVisualArchetype: row.visual_archetype, registryPalette: row.visual_palette,
+    axiolithRole: "distributed mass/inertia and structural-stress management integrated with primary power/drive architecture",
+    mustPreserve: [profile.primaryAxis, profile.symmetry, profile.massing, ...profile.signatureStructures],
+    prohibitedMisreadings: ["conventional small spacecraft/station scale", ...grammar.prohibited],
+    provenance: "synthetic test fixture",
+  };
+}
+// Mirrors buildArtificialBodyModel's superstructure branch, which only engages for profiled (canonical) bodies.
+const withSuperstructure = (model, identity, asset) => ({ ...model, kind: asset.operationalKind, dimensions: identity.effectiveDimensions, visualArchetype: identity.silhouetteFamily, population: identity.populationBand, superstructure: identity });
+
+function superstructureSnapshot(key) {
+  const row = SYNTHETIC_ROWS[key];
+  const asset = generateBodyOperationAsset(row);
+  const sourceText = serializeAsset(asset);
+  const identity = syntheticIdentity(row, asset, SYNTHETIC_PROFILES[key]);
+  return snapshotOperationalRich(asset, withSuperstructure(buildArtificialBodyModel(row, asset), identity, asset), `synthetic/${key}.json`, sourceText);
 }
 
-// Abydos has two (frontier) superstructures. The other faction silhouette families are still supported by
-// the renderer, so they are exercised with synthetic (non-canon) identities.
+// The renderer still supports every faction silhouette family; they are exercised with synthetic (non-canon) identities.
 const FRAME = { x: -340, y: -260, width: 680, height: 520 };
 const syntheticRender = (silhouetteFamily, factionFamily) => renderSuperstructureAtlas({ system: "Synthetic", body: silhouetteFamily, silhouetteFamily, factionFamily }, FRAME, { includeSectionalBand: false });
 
-test("Vada Anchorage preserves its frontier anchorage identity and cross-section contract", () => {
-  const snapshot = superstructureSnapshot("Abydos", "Vada Anchorage");
+test("a synthetic frontier anchorage preserves its anchorage identity and cross-section contract", () => {
+  const snapshot = superstructureSnapshot("anchorage");
   assert.match(snapshot.referenceSvg, /data-superstructure-family="frontier-anchorage"/);
   assert.match(snapshot.referenceSvg, /data-section-logic="true"/);
   assert.match(snapshot.referenceSvg, /data-operational-overlay="true"/);
@@ -44,8 +76,8 @@ test("Vada Anchorage preserves its frontier anchorage identity and cross-section
 });
 
 test("faction silhouettes remain structurally distinct", () => {
-  const watch = superstructureSnapshot("Abydos", "Thornwatch Array");
-  const anchorage = superstructureSnapshot("Abydos", "Vada Anchorage");
+  const watch = superstructureSnapshot("watch");
+  const anchorage = superstructureSnapshot("anchorage");
   assert.notEqual(watch.referenceSvg, anchorage.referenceSvg);
   const lantern = syntheticRender("conclave-lantern-spindle", "conclave");
   const crown = syntheticRender("accord-crown-spindle", "accords");
@@ -58,7 +90,7 @@ test("faction silhouettes remain structurally distinct", () => {
 });
 
 test("distributed superstructures remain networks rather than generic single stations", () => {
-  const watch = superstructureSnapshot("Abydos", "Thornwatch Array");
+  const watch = superstructureSnapshot("watch");
   assert.match(watch.informationPacket, /distributed megacity-scale defense network/i);
   assert.match(watch.informationPacket, /Topology: distributed-watch-array/);
   const single = syntheticRender("frontier-anchorage", "frontier");

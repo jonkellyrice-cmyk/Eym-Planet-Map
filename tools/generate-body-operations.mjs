@@ -108,10 +108,10 @@ function generateFleet(asset) {
 }
 function generateAnomaly(asset) {
   const add=featureFactory(asset),s=asset.permanentOperationalSeed;
-  for(let i=0;i<6;i++) add("beacon","observation",cartesian(s,i,95000),"observation-perimeter marker",{name:`Thornwatch Perimeter ${i+1}`,lodPriority:i<3?1:2});
+  for(let i=0;i<6;i++) add("beacon","observation",cartesian(s,i,95000),"observation-perimeter marker",{name:`Watch Perimeter ${i+1}`,lodPriority:i<3?1:2});
   for(let i=0;i<4;i++) add("contour","instability",cartesian(s,10+i,65000),"observed instability/intensity contour",{name:`Instability Contour ${String.fromCharCode(65+i)}`,hazard:"spacetime distortion; boundary location uncertain",lodPriority:i<2?1:2,dimensions:{radius:18000+i*9000,unit:"km"}});
-  add("hazard","hazards",{x:0,y:0,z:0},"non-dockable exclusion boundary",{name:"Thornfield Core Exclusion",hazard:"severe spacetime/gravitational distortion",lodPriority:1,dimensions:{radius:72000,unit:"km"},description:"Uncertain observational exclusion volume. It is not a solid surface and provides no docking node."});
-  add("corridor","sensors",{x:125000,y:22000,z:5000},"remote sensor ingress corridor",{name:"Vada Sensor Corridor",hazard:"specialized navigation required",lodPriority:1});
+  add("hazard","hazards",{x:0,y:0,z:0},"non-dockable exclusion boundary",{name:"Core Exclusion",hazard:"severe spacetime/gravitational distortion",lodPriority:1,dimensions:{radius:72000,unit:"km"},description:"Uncertain observational exclusion volume. It is not a solid surface and provides no docking node."});
+  add("corridor","sensors",{x:125000,y:22000,z:5000},"remote sensor ingress corridor",{name:"Sensor Corridor",hazard:"specialized navigation required",lodPriority:1});
 }
 export function generateBodyOperationAsset(row) {
   const operationalKind=operationalKindForRow(row); if(!operationalKind) throw new TypeError(`${row.system}/${row.object} is not an operational target`);

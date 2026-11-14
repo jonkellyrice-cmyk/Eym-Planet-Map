@@ -13,7 +13,7 @@ const solidRows = rows.filter((row) => operationalKindForRow(row) === "natural-s
 const planFor = (row) => naturalSolidFeaturePlan(row, operationSeed(row.system, row.object, row.type));
 
 test("natural-solid metadata profiles are bounded and deterministic", () => {
-  assert.equal(solidRows.length, 7);
+  assert.equal(solidRows.length, 9);
   for (const row of solidRows) {
     const first = deriveNaturalSolidProfile(row);
     const second = deriveNaturalSolidProfile(row);
@@ -72,7 +72,7 @@ test("human surface infrastructure is conditional on actual exploitation metadat
 test("materialized natural-solid assets expose the Phase 2 survey contract", () => {
   const manifest = JSON.parse(readFileSync(new URL("data/body-operations/manifest.json", root), "utf8"));
   const natural = manifest.assets.filter((entry) => entry.operationalKind === "natural-solid");
-  assert.deepEqual(natural.map((entry) => entry.body).sort(), ["Cataphract", "Enoch", "Ventus"]);
+  assert.deepEqual(natural.map((entry) => entry.body).sort(), ["Cataphract", "Enoch", "Red Moon", "Ventus", "White Moon"]);
   for (const entry of natural) {
     const asset = JSON.parse(readFileSync(new URL(entry.path, root), "utf8"));
     assert.equal(asset.surfaceSurvey?.modelVersion, NATURAL_SOLID_SURVEY_MODEL_VERSION, entry.path);
@@ -86,8 +86,8 @@ test("materialized natural-solid assets expose the Phase 2 survey contract", () 
 test("canonical registry does not promote prospecting language into established industry", () => {
   const targetRows = solidRows.filter((row) => row.current_exploitation || row.infrastructure_profile);
   const established = targetRows.filter((row) => deriveNaturalSolidProfile(row).exploitationIndex > 0);
-  // Abydos has no map-established surface industry: its prospecting bodies must stay unexploited.
-  assert.deepEqual(targetRows.map((row) => row.object).sort(), ["Enoch", "Ventus"]);
+  // Abydos has no map-established surface industry: its prospecting bodies and Eym's moons must stay unexploited.
+  assert.deepEqual(targetRows.map((row) => row.object).sort(), ["Enoch", "Red Moon", "Ventus", "White Moon"]);
   assert.equal(established.length, 0);
   // Positive control (synthetic): genuinely established extraction does raise the index.
   const worked = { system: "Test", object: "Worked", type: "rocky planet", radius_re: "0.5", bulk_composition: "iron-rich silicate rock", current_exploitation: "active industrial extraction", infrastructure_profile: "crewed sealed mining habitat, refinery and landing field", resource_profile: "metal-rich ore" };

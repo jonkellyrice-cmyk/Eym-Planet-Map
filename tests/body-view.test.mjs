@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { bodyVisualContract, liveSuperstructureIdentity, orthographicProject, projectOperationAnchor, schematicVisualProfile } from "../scripts/body-view.mjs";
 import { renderSuperstructureAtlas } from "../scripts/superstructure-atlas-visuals.mjs";
-import { SUPERSTRUCTURE_KEYS } from "../scripts/superstructure-identities.mjs";
+import { SUPERSTRUCTURE_KEYS, SUPERSTRUCTURE_MODEL_VERSION } from "../scripts/superstructure-identities.mjs";
 
 test("orthographic projection hides the far hemisphere and responds to rotation", () => {
   assert.equal(orthographicProject(0, 0).visible, true);
@@ -64,20 +64,19 @@ test("body views propagate canonical jurisdiction emblems above every entered bo
 });
 
 test("live Foundry artificial-body renderer shares the frozen-atlas superstructure identity families", () => {
-  assert.equal(SUPERSTRUCTURE_KEYS.length, 2);
-  for (const key of SUPERSTRUCTURE_KEYS) {
-    const [system, body] = key.split("/");
-    const identity = liveSuperstructureIdentity({ system, body });
-    assert.ok(identity, `missing live identity for ${key}`);
+  // The setting has no artificial superstructures: no profiled keys, and no former or synthetic body resolves to a live identity.
+  assert.equal(SUPERSTRUCTURE_KEYS.length, 0);
+  assert.deepEqual([...SUPERSTRUCTURE_KEYS], []);
+  for (const [system, body] of [["Abydos", "Eventide"], ["Abydos", "Tribune"], ["Synthetic", "Synthetic Anchorage"]]) assert.equal(liveSuperstructureIdentity({ system, body }), null, `${system}/${body}`);
+
+  // Synthetic (non-canon) identities shaped like liveSuperstructureIdentity's output (profile + model version + faction family)
+  // keep the live silhouette contract under test: same family marker as the frozen atlas, without its zoning strip.
+  for (const [body, silhouetteFamily, topology, factionFamily] of [["Synthetic Anchorage", "frontier-anchorage", "single-anchorage", "frontier"], ["Synthetic Watch Array", "watch-citadel-chain", "distributed-watch-array", "frontier"], ["Synthetic Halo", "conclave-orbital-halo", "orbital-halo", "conclave"]]) {
+    const identity = { system: "Synthetic", body, topology, silhouetteFamily, factionFamily, modelVersion: SUPERSTRUCTURE_MODEL_VERSION };
     const rendered = renderSuperstructureAtlas(identity, { x: -340, y: -260, width: 680, height: 520 }, { includeSectionalBand: false });
     assert.match(rendered, new RegExp(`data-superstructure-family=\"${identity.silhouetteFamily.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\"`));
-    assert.doesNotMatch(rendered, /data-section-logic=\"true\"/, `Foundry live silhouette must not include the frozen atlas zoning strip for ${key}`);
+    assert.doesNotMatch(rendered, /data-section-logic=\"true\"/, `Foundry live silhouette must not include the frozen atlas zoning strip for ${body}`);
   }
-
-  assert.equal(liveSuperstructureIdentity({ system: "Abydos", body: "Vada Anchorage" }).silhouetteFamily, "frontier-anchorage");
-  assert.equal(liveSuperstructureIdentity({ system: "Abydos", body: "Vada Anchorage" }).factionFamily, "frontier");
-  assert.equal(liveSuperstructureIdentity({ system: "Abydos", body: "Thornwatch Array" }).topology, "distributed-watch-array");
-  assert.equal(liveSuperstructureIdentity({ system: "Abydos", body: "Thornfield" }), null);
 
   const source = readFileSync(new URL("../scripts/body-view-core.mjs", import.meta.url), "utf8");
   for (const token of ["renderSuperstructureAtlas", "liveSuperstructureIdentity", "is-superstructure-parity", "includeSectionalBand: false", "#buildDockingNodes"]) assert.match(source, new RegExp(token));

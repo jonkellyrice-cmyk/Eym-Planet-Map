@@ -13,7 +13,7 @@ The module uses `module.json`, ES modules, `foundry.applications.api.Application
 ## Three map levels
 
 1. **Cluster:** removed in the single-system edition; the system is the outermost level.
-2. **System:** all 13 canonical Abydos registry rows using physical parent-relative coordinates plus separately compressed display coordinates.
+2. **System:** all 12 canonical registry rows using physical parent-relative coordinates plus separately compressed display coordinates.
 3. **Body/orbital:** accepted inhabited-world cartography or accepted local operational surveys for non-cartographic targets.
 
 Pointer Events provide mouse, pen, and touch rotation. Wheel/pinch controls zoom and outward navigation. Display coordinates never replace physical coordinates for route or separation calculations.
@@ -29,7 +29,7 @@ The canonical object registry remains `docs/system-orbital-distances.csv`. Non-c
 - `data/body-operations/manifest.json`
 - `data/body-operations/<system-slug>/<body-slug>.json`
 
-The current (Abydos-only) registry yields **8** eligible operational targets after excluding the star and the 4 accepted cartographic worlds.
+The current registry yields **7** eligible operational targets (all natural bodies) after excluding the Sun and the 4 accepted cartographic worlds.
 
 Every accepted operational asset stores:
 

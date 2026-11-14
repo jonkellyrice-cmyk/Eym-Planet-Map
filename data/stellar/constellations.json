@@ -14,9 +14,9 @@
   },
   "note": "Star ids index data/stellar/starfield.json (star-0001 is the brightest). Lines are drawn between listed stars. Hemisphere and declination are relative to Eym's celestial equator; the path of the sun is Eym's orbital plane.",
   "celestialPole": [
-    0.01021,
-    -0.38254,
-    0.92388
+    0.01134,
+    -0.42151,
+    0.90675
   ],
   "sunPathPole": [
     0,
@@ -38,7 +38,7 @@
       "description": "The tankard of Cayden Cailean: four stars in an open V.",
       "tier": "lesser",
       "hemisphere": "north",
-      "declinationDeg": 10.2,
+      "declinationDeg": 8,
       "sunPath": null,
       "shape": "arc",
       "center": [
@@ -73,7 +73,7 @@
       "description": "The longbow of Erastil, god of farming and the hunt; the sun passes through it.",
       "tier": "lesser",
       "hemisphere": "north",
-      "declinationDeg": 12.1,
+      "declinationDeg": 13.2,
       "sunPath": {
         "order": 7,
         "longitudeDeg": 209
@@ -121,7 +121,7 @@
       "description": "The trident of Gozreh, god of nature, weather and the sea: a shaft splitting into tines.",
       "tier": "lesser",
       "hemisphere": "south",
-      "declinationDeg": -0.2,
+      "declinationDeg": -2.1,
       "sunPath": null,
       "shape": "branched",
       "center": [
@@ -161,7 +161,7 @@
       "description": "The longsword of Iomedae: a long blade with a short crossguard near its top.",
       "tier": "lesser",
       "hemisphere": "north",
-      "declinationDeg": 43,
+      "declinationDeg": 44.8,
       "sunPath": null,
       "shape": "branched",
       "center": [
@@ -201,7 +201,7 @@
       "description": "A small zigzag serpent on the path of the sun.",
       "tier": "chief",
       "hemisphere": "south",
-      "declinationDeg": -17.7,
+      "declinationDeg": -18.9,
       "sunPath": {
         "order": 3,
         "longitudeDeg": 33
@@ -239,7 +239,7 @@
       "description": "A crooked figure with a bent arm.",
       "tier": "lesser",
       "hemisphere": "north",
-      "declinationDeg": 19.7,
+      "declinationDeg": 18.3,
       "sunPath": null,
       "shape": "branched",
       "center": [
@@ -289,7 +289,7 @@
       "description": "A jagged stroke like lightning.",
       "tier": "lesser",
       "hemisphere": "south",
-      "declinationDeg": -8.2,
+      "declinationDeg": -7,
       "sunPath": null,
       "shape": "zigzag",
       "center": [
@@ -329,7 +329,7 @@
       "description": "Links hanging down to a bright pair.",
       "tier": "lesser",
       "hemisphere": "north",
-      "declinationDeg": 29.1,
+      "declinationDeg": 26.7,
       "sunPath": null,
       "shape": "chain",
       "center": [
@@ -379,7 +379,7 @@
       "description": "A long-legged bird near the southern pole.",
       "tier": "chief",
       "hemisphere": "south",
-      "declinationDeg": -69.3,
+      "declinationDeg": -67,
       "sunPath": null,
       "shape": "zigzag",
       "center": [
@@ -419,7 +419,7 @@
       "description": "A shepherd's crook with a bent head.",
       "tier": "lesser",
       "hemisphere": "south",
-      "declinationDeg": -37,
+      "declinationDeg": -34.8,
       "sunPath": null,
       "shape": "zigzag",
       "center": [
@@ -454,7 +454,7 @@
       "description": "A long wavering line of stars in the northern sky.",
       "tier": "lesser",
       "hemisphere": "north",
-      "declinationDeg": 49.2,
+      "declinationDeg": 47.1,
       "sunPath": null,
       "shape": "chain",
       "center": [
@@ -504,7 +504,7 @@
       "description": "A figure leaning on a long pole; Irori's Belt crosses him.",
       "tier": "lesser",
       "hemisphere": "south",
-      "declinationDeg": -33,
+      "declinationDeg": -30.5,
       "sunPath": null,
       "shape": "branched",
       "center": [
@@ -554,7 +554,7 @@
       "description": "A line with a barbed hook at its end.",
       "tier": "lesser",
       "hemisphere": "south",
-      "declinationDeg": -31.9,
+      "declinationDeg": -33.3,
       "sunPath": null,
       "shape": "chain",
       "center": [
@@ -594,7 +594,7 @@
       "description": "An arched neck curling into a loop.",
       "tier": "chief",
       "hemisphere": "south",
-      "declinationDeg": -34.8,
+      "declinationDeg": -34.4,
       "sunPath": null,
       "shape": "chain",
       "center": [
@@ -644,7 +644,7 @@
       "description": "Three bright stars bent at a joint.",
       "tier": "chief",
       "hemisphere": "north",
-      "declinationDeg": 5.7,
+      "declinationDeg": 7.8,
       "sunPath": null,
       "shape": "line",
       "center": [
@@ -674,7 +674,7 @@
       "description": "An open bent shape like a horseshoe.",
       "tier": "lesser",
       "hemisphere": "north",
-      "declinationDeg": 57.3,
+      "declinationDeg": 59.7,
       "sunPath": null,
       "shape": "hook",
       "center": [
@@ -714,7 +714,7 @@
       "description": "Four stars in a lopsided diamond.",
       "tier": "lesser",
       "hemisphere": "south",
-      "declinationDeg": -15.1,
+      "declinationDeg": -14.5,
       "sunPath": null,
       "shape": "box",
       "center": [
@@ -753,7 +753,7 @@
       "description": "A long handle ending in a small bent bowl.",
       "tier": "chief",
       "hemisphere": "north",
-      "declinationDeg": 52.7,
+      "declinationDeg": 51.5,
       "sunPath": null,
       "shape": "branched",
       "center": [
@@ -803,7 +803,7 @@
       "description": "A tall upright with a spar to one side.",
       "tier": "lesser",
       "hemisphere": "south",
-      "declinationDeg": -63,
+      "declinationDeg": -61.3,
       "sunPath": null,
       "shape": "branched",
       "center": [
@@ -848,7 +848,7 @@
       "description": "A long straight fish whose tail forks at the lower end.",
       "tier": "chief",
       "hemisphere": "south",
-      "declinationDeg": -15.3,
+      "declinationDeg": -17.3,
       "sunPath": {
         "order": 5,
         "longitudeDeg": 120.6
@@ -901,7 +901,7 @@
       "description": "A crooked share and handle lying on the path of the sun.",
       "tier": "chief",
       "hemisphere": "north",
-      "declinationDeg": 1.6,
+      "declinationDeg": 0.4,
       "sunPath": {
         "order": 2,
         "longitudeDeg": 26.6
@@ -954,7 +954,7 @@
       "description": "A long S-shaped curve of stars.",
       "tier": "lesser",
       "hemisphere": "north",
-      "declinationDeg": 22.7,
+      "declinationDeg": 20.6,
       "sunPath": null,
       "shape": "chain",
       "center": [
@@ -1004,7 +1004,7 @@
       "description": "A short blade with a long handle; the sun passes through it.",
       "tier": "chief",
       "hemisphere": "north",
-      "declinationDeg": 3.5,
+      "declinationDeg": 4.3,
       "sunPath": {
         "order": 8,
         "longitudeDeg": 341.5
@@ -1047,7 +1047,7 @@
       "description": "A walking figure high in the north, led by the brightest star in the sky.",
       "tier": "chief",
       "hemisphere": "north",
-      "declinationDeg": 73,
+      "declinationDeg": 70.9,
       "sunPath": null,
       "shape": "branched",
       "center": [
@@ -1097,7 +1097,7 @@
       "description": "A small forked sling.",
       "tier": "lesser",
       "hemisphere": "south",
-      "declinationDeg": -33.4,
+      "declinationDeg": -33.5,
       "sunPath": null,
       "shape": "branched",
       "center": [
@@ -1132,7 +1132,7 @@
       "description": "A long narrow spindle on the path of the sun.",
       "tier": "lesser",
       "hemisphere": "south",
-      "declinationDeg": -16,
+      "declinationDeg": -16.5,
       "sunPath": {
         "order": 6,
         "longitudeDeg": 163.8
@@ -1174,7 +1174,7 @@
       "description": "A short walking staff on the path of the sun, holding the Hearthstones.",
       "tier": "chief",
       "hemisphere": "south",
-      "declinationDeg": -20.8,
+      "declinationDeg": -22.9,
       "sunPath": {
         "order": 4,
         "longitudeDeg": 60.4
@@ -1217,7 +1217,7 @@
       "description": "A standing stem with branching antlers above.",
       "tier": "chief",
       "hemisphere": "south",
-      "declinationDeg": -20.5,
+      "declinationDeg": -18.7,
       "sunPath": null,
       "shape": "branched",
       "center": [
@@ -1267,7 +1267,7 @@
       "description": "A bird with outstretched neck and wings.",
       "tier": "lesser",
       "hemisphere": "north",
-      "declinationDeg": 30,
+      "declinationDeg": 31,
       "sunPath": null,
       "shape": "branched",
       "center": [
@@ -1317,7 +1317,7 @@
       "description": "Three stars in a clean triangle, low in the south.",
       "tier": "lesser",
       "hemisphere": "south",
-      "declinationDeg": -60.6,
+      "declinationDeg": -62.6,
       "sunPath": null,
       "shape": "triangle",
       "center": [
@@ -1351,7 +1351,7 @@
       "description": "A high back above a broad seat.",
       "tier": "lesser",
       "hemisphere": "south",
-      "declinationDeg": -47.8,
+      "declinationDeg": -46.2,
       "sunPath": null,
       "shape": "zigzag",
       "center": [
@@ -1401,7 +1401,7 @@
       "description": "A long wagon bed with its tongue reaching out to one side.",
       "tier": "chief",
       "hemisphere": "north",
-      "declinationDeg": 28.9,
+      "declinationDeg": 28.2,
       "sunPath": null,
       "shape": "chain",
       "center": [
@@ -1451,7 +1451,7 @@
       "description": "Crossed sails around the Twin Lamps.",
       "tier": "chief",
       "hemisphere": "north",
-      "declinationDeg": 27.1,
+      "declinationDeg": 26.8,
       "sunPath": null,
       "shape": "branched",
       "center": [
@@ -1501,7 +1501,7 @@
       "description": "A forked bone with a short stem, low in the south.",
       "tier": "chief",
       "hemisphere": "south",
-      "declinationDeg": -56.3,
+      "declinationDeg": -58.8,
       "sunPath": null,
       "shape": "branched",
       "center": [
@@ -1541,7 +1541,7 @@
       "description": "A shallow bowed beam on the path of the sun.",
       "tier": "lesser",
       "hemisphere": "south",
-      "declinationDeg": -14.4,
+      "declinationDeg": -14.8,
       "sunPath": {
         "order": 1,
         "longitudeDeg": 13.6

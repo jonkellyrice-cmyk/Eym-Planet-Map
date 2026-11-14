@@ -1,6 +1,5 @@
 export const UNIVERSAL_TIME_SETTING = "universalTimeState";
 export const UNION_EPOCH_MS = Date.UTC(5016, 8, 3, 10, 38, 0, 0);
-export const UNION_EPOCH_WEEKDAY_INDEX = 5; // Friday, with Sunday = 0.
 export const DAY_MS = 86_400_000;
 
 export const DEFAULT_UNIVERSAL_TIME_STATE = Object.freeze({
@@ -9,11 +8,22 @@ export const DEFAULT_UNIVERSAL_TIME_STATE = Object.freeze({
   running: true,
 });
 
-const MONTH_NAMES = [
+// Eym's calendar: twelve Gregorian-named months of exactly 28 days (4 weeks), then a 14-day year-end
+// holiday, for a 350-day year that matches Eym's tropical year exactly (no leap days). A day is 24 hours
+// of 60 minutes of 60 seconds, all in Eym units (one Eym second is 365.2422 / 350 SI seconds).
+// 28 days and 350 days are whole numbers of weeks, so every month and every year starts on the same weekday.
+export const MONTH_NAMES = Object.freeze([
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
-];
-const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+]);
+export const HOLIDAY_NAME = "Year's End";
+export const DAYS_PER_MONTH = 28;
+export const HOLIDAY_DAYS = 14;
+export const HOLIDAY_MONTH = MONTH_NAMES.length + 1; // the holiday is addressed as month 13
+export const DAYS_PER_YEAR = MONTH_NAMES.length * DAYS_PER_MONTH + HOLIDAY_DAYS; // 350
+export const WEEKDAY_NAMES = Object.freeze(["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]);
+/** Weekday of the first day of every month and of the holiday (Monday). */
+export const MONTH_START_WEEKDAY_INDEX = 1;
 
 const positiveModulo = (value, modulus) => ((value % modulus) + modulus) % modulus;
 const pad2 = (value) => String(value).padStart(2, "0");
@@ -63,19 +73,25 @@ export function adjustUniversalTime(state, deltaMs, realNowMs = Date.now()) {
   return { ...settled, baseMs: settled.baseMs + Number(deltaMs || 0) };
 }
 
+/** Days in a calendar month (1–12) or the year-end holiday (13). */
+export function daysInMonth(month) {
+  return month === HOLIDAY_MONTH ? HOLIDAY_DAYS : DAYS_PER_MONTH;
+}
+
+const dayIndexOf = (year, month, day) => (year - 1) * DAYS_PER_YEAR + (month - 1) * DAYS_PER_MONTH + (day - 1);
+// The internal timeline anchor (UNION_EPOCH_MS) keeps its calendar label: 3 September 5016, 10:38.
+const EPOCH_LABEL = Object.freeze({ year: 5016, month: 9, day: 3, hour: 10, minute: 38 });
+const CALENDAR_ZERO_MS = UNION_EPOCH_MS - ((EPOCH_LABEL.hour * 60 + EPOCH_LABEL.minute) * 60_000) - dayIndexOf(EPOCH_LABEL.year, EPOCH_LABEL.month, EPOCH_LABEL.day) * DAY_MS;
+
 export function makeUniversalTimeMs({ year, month, day, hour = 0, minute = 0, second = 0 }) {
   const values = [year, month, day, hour, minute, second].map(Number);
   if (!values.every(Number.isInteger)) throw new Error("Date and time values must be whole numbers.");
   const [y, m, d, h, min, sec] = values;
-  if (y < 1 || m < 1 || m > 12 || d < 1 || d > 31 || h < 0 || h > 23 || min < 0 || min > 59 || sec < 0 || sec > 59) {
+  if (y < 1 || m < 1 || m > HOLIDAY_MONTH || d < 1 || h < 0 || h > 23 || min < 0 || min > 59 || sec < 0 || sec > 59) {
     throw new Error("Date or time is outside the supported range.");
   }
-  const result = Date.UTC(y, m - 1, d, h, min, sec, 0);
-  const check = new Date(result);
-  if (check.getUTCFullYear() !== y || check.getUTCMonth() !== m - 1 || check.getUTCDate() !== d) {
-    throw new Error("That date does not exist in the Union calendar.");
-  }
-  return result;
+  if (d > daysInMonth(m)) throw new Error("That date does not exist in the calendar of Eym.");
+  return CALENDAR_ZERO_MS + dayIndexOf(y, m, d) * DAY_MS + ((h * 60 + min) * 60 + sec) * 1000;
 }
 
 export function setUniversalDateTime(state, parts, realNowMs = Date.now()) {
@@ -88,28 +104,34 @@ export function setUniversalDateTime(state, parts, realNowMs = Date.now()) {
 }
 
 export function universalTimeParts(ms) {
-  const date = new Date(Number(ms));
+  const elapsed = Number(ms) - CALENDAR_ZERO_MS;
+  const dayIndex = Math.floor(elapsed / DAY_MS);
+  const msOfDay = elapsed - dayIndex * DAY_MS;
+  const year = Math.floor(dayIndex / DAYS_PER_YEAR) + 1;
+  const dayOfYear = positiveModulo(dayIndex, DAYS_PER_YEAR); // 0-based
+  const month = Math.min(HOLIDAY_MONTH, Math.floor(dayOfYear / DAYS_PER_MONTH) + 1);
+  const day = dayOfYear - (month - 1) * DAYS_PER_MONTH + 1;
+  const totalSeconds = Math.floor(msOfDay / 1000);
   return {
-    year: date.getUTCFullYear(),
-    month: date.getUTCMonth() + 1,
-    day: date.getUTCDate(),
-    hour: date.getUTCHours(),
-    minute: date.getUTCMinutes(),
-    second: date.getUTCSeconds(),
+    year, month, day, dayOfYear: dayOfYear + 1,
+    hour: Math.floor(totalSeconds / 3600),
+    minute: Math.floor(totalSeconds / 60) % 60,
+    second: totalSeconds % 60,
   };
 }
 
-export function unionWeekdayIndex(ms) {
-  const current = universalTimeParts(ms);
-  const currentMidnight = Date.UTC(current.year, current.month - 1, current.day);
-  const epochMidnight = Date.UTC(5016, 8, 3);
-  const elapsedDays = Math.round((currentMidnight - epochMidnight) / DAY_MS);
-  return positiveModulo(UNION_EPOCH_WEEKDAY_INDEX + elapsedDays, 7);
+export function weekdayIndex(ms) {
+  const dayIndex = Math.floor((Number(ms) - CALENDAR_ZERO_MS) / DAY_MS);
+  return positiveModulo(MONTH_START_WEEKDAY_INDEX + dayIndex, 7);
+}
+
+export function monthName(month) {
+  return month === HOLIDAY_MONTH ? HOLIDAY_NAME : MONTH_NAMES[month - 1];
 }
 
 export function formatUniversalDate(ms) {
   const parts = universalTimeParts(ms);
-  return `${WEEKDAY_NAMES[unionWeekdayIndex(ms)]}, ${MONTH_NAMES[parts.month - 1]} ${parts.day}, ${parts.year} U`;
+  return `${WEEKDAY_NAMES[weekdayIndex(ms)]}, ${monthName(parts.month)} ${parts.day}, ${parts.year}`;
 }
 
 export function formatUniversalClock(ms) {

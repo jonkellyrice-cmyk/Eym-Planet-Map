@@ -2,6 +2,11 @@
 
 ## 0.12.0 — Eym Planet Map (single-system edition)
 
+- The star is now a twin of Earth's Sun (G2V) and Eym an Earth twin at 1 AU (Earth's radius, mass, gravity, 23.44° tilt with precession and obliquity metadata, eccentricity 0.0167, Earth-like magnetic field). Every heliocentric orbit was scaled by 1/0.68 so the system keeps its architecture; periods follow Kepler. Surface water and continents are unchanged pending the reseed.
+- Eym's year is exactly 350 days of 24 hours, so an Eym second is 1.0435 SI seconds; registry days and hours are now Eym units.
+- Added Eym's White Moon (sets the 28-day month) and Red Moon, with Earth-like average tides, Hill-stable non-resonant orbits, and occasional double full moons.
+- Removed all artificial objects: Vada Anchorage, the Thornwatch Array and Thornfield (and with them every superstructure identity).
+- The clock now uses Eym's calendar: twelve Gregorian-named 28-day months plus the 14-day Year's End holiday; every month starts on a Monday. The timeline epoch keeps its date (3 September 5016, 10:38), now a Wednesday.
 - Renamed the module to `eym-planet-map` (id, title, window id, CSS namespace, scene-control button and language key), so it installs alongside the original module. Manifest and download URLs point at the Eym-Planet-Map repository's releases; the release workflow packages `eym-planet-map-v<version>.zip` and requires only files that exist.
 - Removed the leftover Thebes/Jinyara body texture from `assets/`.
 - Targets the Pathfinder Second Edition system (`pf2e` 7.0+) instead of LANCER, on Foundry v13 (verified) through v14. The System Map button moved to the Token controls, which exist in both v13 and v14; Foundry v14 removed the measured-template controls it used to join.

@@ -67,7 +67,7 @@ test("the path of the sun is crossed by eight constellations in a fixed order", 
 });
 
 test("Eym's celestial pole leans exactly its axial tilt from the path of the sun's pole", () => {
-  assert.ok(Math.abs(angularDistanceDeg(data.celestialPole, data.sunPathPole) - 21) < 1e-3);
+  assert.ok(Math.abs(angularDistanceDeg(data.celestialPole, data.sunPathPole) - 23.44) < 1e-3);
   assert.ok(Math.abs(angularDistanceDeg(orbitNormal(0), [0, 0, 1])) < 1e-9);
   assert.ok(Math.abs(angularDistanceDeg(celestialPole({ inclinationDeg: 0, axialTiltDeg: 30, axialSeasonPhaseDeg: 90 }), [0, 0, 1]) - 30) < 1e-9);
 });

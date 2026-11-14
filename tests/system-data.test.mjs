@@ -19,8 +19,8 @@ const BINARY_FIXTURE_ROWS = [
   binaryRow("Test World", "habitable terrestrial", "Test barycenter", 1.0, 35, { orbital_period_days: "288.755", orbital_eccentricity: "0.0447" }),
 ];
 
-test("canonical registry parses all 13 Abydos objects in one system", () => {
-  assert.equal(rows.length, 13);
+test("canonical registry parses all 12 Abydos objects in one system", () => {
+  assert.equal(rows.length, 12);
   assert.deepEqual([...new Set(rows.map((row) => row.system))], ["Abydos"]);
 });
 
@@ -32,13 +32,15 @@ test("parent-relative moon positions convert canonical semi-major axes and apply
   assert.ok(Math.abs(physicalDistanceAu(tribune, enoch) - enoch.orbitalState.radiusAu) < 1e-12);
 });
 
-test("station infrastructure resolves through its planetary parent hierarchy", () => {
+test("Eym's moons resolve through their planetary parent hierarchy", () => {
   const model = buildSystemModel(rows, "Abydos");
   const eventide = model.byName.get("Eventide");
-  const anchorage = model.byName.get("Vada Anchorage");
-  assert.equal(anchorage.parentObject, eventide);
+  for (const name of ["White Moon", "Red Moon"]) {
+    const moon = model.byName.get(name);
+    assert.equal(moon.parentObject, eventide);
+    assert.ok(Math.abs(physicalDistanceAu(eventide, moon) - moon.orbitalState.radiusAu) < 1e-12);
+  }
   assert.equal(eventide.parentObject, model.byName.get("Abydos"));
-  assert.ok(Math.abs(physicalDistanceAu(eventide, anchorage) - anchorage.orbitalState.radiusAu) < 1e-12);
 });
 
 test("system models preserve canonical ownership and reject conflicting owners", () => {
@@ -52,12 +54,12 @@ test("system models preserve canonical ownership and reject conflicting owners",
 test("display compression does not alter physical route coordinates", () => {
   const model = buildSystemModel(rows, "Abydos");
   const eventide = model.byName.get("Eventide");
-  const station = model.byName.get("Vada Anchorage");
-  const physical = physicalDistanceAu(eventide, station);
-  const a = displayPosition(eventide, model), b = displayPosition(station, model);
+  const moon = model.byName.get("Red Moon");
+  const physical = physicalDistanceAu(eventide, moon);
+  const a = displayPosition(eventide, model), b = displayPosition(moon, model);
   assert.ok(Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) > physical * 100);
-  assert.ok(Math.abs(station.semiMajorAxisAu - 180_000 / AU_KM) < 1e-12);
-  assert.ok(Math.abs(physical - station.orbitalState.radiusAu) < 1e-12);
+  assert.ok(Math.abs(moon.semiMajorAxisAu - 195_000 / AU_KM) < 1e-12);
+  assert.ok(Math.abs(physical - moon.orbitalState.radiusAu) < 1e-12);
 });
 
 test("Abydos is a single-star system", () => {

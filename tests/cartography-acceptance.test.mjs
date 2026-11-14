@@ -38,10 +38,11 @@ test("accepted names follow controlling culture and remain collision-free per wo
   }
 });
 
-test("canonical CSV is unchanged from the audited v0.4.0 base trimmed to the Abydos rows", () => {
-  // The 13 Abydos rows are byte-identical to the audited v0.4.0 registry; only the other nine systems' rows were removed.
+test("canonical CSV is pinned to the Earth-twin canon edit", () => {
+  // Re-pinned deliberately after the Earth-twin edit (Sun-like star, Earth-twin Eym at 1 AU, orbits rescaled,
+  // White and Red Moons added, sci-fi objects removed). Any further registry change must re-pin this on purpose.
   const csv = readFileSync(new URL("docs/system-orbital-distances.csv", root));
-  assert.equal(createHash("sha256").update(csv).digest("hex"), "ca89b5aed481f1cc136e038cb1ce85e1c21c044ef08b959fc7cfe8e2579c4a4b");
+  assert.equal(createHash("sha256").update(csv).digest("hex"), "7a3a14dda0cfd1f17390980c8cb99a03fa4f2a37c77dc9a83db8e9a83bc6f6c8");
 });
 
 test("Eventide's accepted canon remains continent-free and ocean dominated", () => {

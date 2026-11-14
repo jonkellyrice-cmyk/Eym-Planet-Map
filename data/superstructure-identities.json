@@ -3,14 +3,14 @@
   "status": "accepted-working-canon",
   "modelVersion": "orphaned-sun-superstructure-identity-v1",
   "authority": "Orphaned-sun-cluster-map",
-  "count": 2,
+  "count": 0,
   "sourceRegistry": {
     "path": "docs/system-orbital-distances.csv",
-    "sha256": "ca89b5aed481f1cc136e038cb1ce85e1c21c044ef08b959fc7cfe8e2579c4a4b"
+    "sha256": "7a3a14dda0cfd1f17390980c8cb99a03fa4f2a37c77dc9a83db8e9a83bc6f6c8"
   },
   "sourceOperationsManifest": {
     "path": "data/body-operations/manifest.json",
-    "sha256": "a7fd920427d08b00b80b2df60757c6f3ab27c3054f782dd0f085cd4d0564f870",
+    "sha256": "c94f524ec0be4f8f0ab9f71f6f1a28f5e4d3966a206bc16f243ed57cdaba1608",
     "modelVersion": "orphaned-sun-body-operations-v1"
   },
   "policy": {
@@ -19,136 +19,7 @@
     "axiolith": "Axiolith reduces effective inertial/structural stress enough to permit these enormous mobile and fixed superstructures.",
     "inference": "system-art identity and existing canon constrain macroform; only unmapped local detail may be deterministically inferred"
   },
-  "factionCounts": {
-    "frontier": 2
-  },
-  "topologyCounts": {
-    "distributed-watch-array": 1,
-    "single-anchorage": 1
-  },
-  "entries": [
-    {
-      "schemaVersion": 1,
-      "modelVersion": "orphaned-sun-superstructure-identity-v1",
-      "status": "accepted-working-canon",
-      "system": "Abydos",
-      "body": "Thornwatch Array",
-      "factionFamily": "frontier",
-      "factionLabel": "Abydos / Eventide / unaffiliated",
-      "canonicalType": "installation array",
-      "operationalKind": "station",
-      "superstructureRule": "Every listed artificial body is a permanent-enough, strategically significant city-scale-or-larger superstructure with a large resident/working population; Axiolith reduces effective inertial/structural stress enough to make this scale practical.",
-      "topology": "distributed-watch-array",
-      "scaleClass": "distributed megacity-scale defense network",
-      "effectiveDimensions": "individual watch citadels roughly 20–50 km; network extends across a system-scale Thornfield surveillance corridor",
-      "populationBand": "~1–5 million distributed residents, crews and support population",
-      "legacyRegistryDimensions": "individual nodes ~1-3 km; network spans millions of km",
-      "legacyRegistryPopulation": "~1,000-10,000 distributed",
-      "primaryAxis": "distributed chain along the Thornfield boundary",
-      "symmetry": "network repetition rather than one-body symmetry",
-      "silhouetteFamily": "watch-citadel chain",
-      "massing": "multiple inhabited sensor-defense citadels with broad array planes and compact armored hubs",
-      "signatureStructures": [
-        "repeating city-scale watch citadels",
-        "sensor-array planes",
-        "defense and docking hubs",
-        "long distributed surveillance chain"
-      ],
-      "interiorZones": [
-        "sensor and command precincts",
-        "habitation districts",
-        "defense batteries",
-        "maintenance and docking districts",
-        "Axiolith/power infrastructure"
-      ],
-      "circulationLogic": "local hub circulation within each citadel plus long-range shuttle/traffic links between nodes",
-      "factionDesignGrammar": "plausible sleek frontier eco-punk/space-punk construction; logical modular growth, robust maintenance access, strong local self-sufficiency and clear operational purpose",
-      "materialLanguage": "weathered but well-kept structural metal, modular pressure volumes, visible service trusses, practical lights and locally maintained surface variation",
-      "factionInteriorLogic": "self-sufficient habitation, repair, logistics, civic and emergency districts with conservative redundancy",
-      "militaryLogic": "practical defensive design emphasizing maintainability, sensor coverage and local autonomy",
-      "visualCanonNotes": "System art establishes a chain of separate watch installations tracking the Thornfield rather than one station.",
-      "registryFunction": "sensor coverage, navigation warning, border watch, likely defensive support",
-      "registryStrategicRole": "monitors approaches to the Thornfield",
-      "registryVisualArchetype": "sparse chain of watch stations",
-      "registryPalette": "weathered metal / pale neutral / blue-green accents",
-      "axiolithRole": "distributed mass/inertia and structural-stress management integrated with primary power/drive architecture",
-      "mustPreserve": [
-        "distributed chain along the Thornfield boundary",
-        "network repetition rather than one-body symmetry",
-        "multiple inhabited sensor-defense citadels with broad array planes and compact armored hubs",
-        "repeating city-scale watch citadels",
-        "sensor-array planes",
-        "defense and docking hubs",
-        "long distributed surveillance chain"
-      ],
-      "prohibitedMisreadings": [
-        "conventional small spacecraft/station scale",
-        "primitive frontier shack aesthetic",
-        "generic military gray box",
-        "unnecessary factional ornament"
-      ],
-      "provenance": "campaign-author system atlas art + canonical registry + body-operations metadata; exact unmapped local detail may be deterministically inferred within these constraints"
-    },
-    {
-      "schemaVersion": 1,
-      "modelVersion": "orphaned-sun-superstructure-identity-v1",
-      "status": "accepted-working-canon",
-      "system": "Abydos",
-      "body": "Vada Anchorage",
-      "factionFamily": "frontier",
-      "factionLabel": "Abydos / Eventide / unaffiliated",
-      "canonicalType": "major station",
-      "operationalKind": "station",
-      "superstructureRule": "Every listed artificial body is a permanent-enough, strategically significant city-scale-or-larger superstructure with a large resident/working population; Axiolith reduces effective inertial/structural stress enough to make this scale practical.",
-      "topology": "single-anchorage",
-      "scaleClass": "major-city-scale orbital anchorage",
-      "effectiveDimensions": "roughly 40–70 km principal inhabited/docking span",
-      "populationBand": "~0.5–2 million permanent and transient population",
-      "legacyRegistryDimensions": "~10-15 km principal span",
-      "legacyRegistryPopulation": "~10,000-30,000 permanent/transient",
-      "primaryAxis": "horizontal docking spine",
-      "symmetry": "functional bilateral tendency with asymmetric service growth",
-      "silhouetteFamily": "frontier-anchorage",
-      "massing": "compact inhabited core with elongated docking and logistics arms",
-      "signatureStructures": [
-        "horizontal anchorage spine",
-        "multiple heavy docking collars",
-        "compact civic/logistics core"
-      ],
-      "interiorZones": [
-        "port administration",
-        "habitation districts",
-        "cargo and customs",
-        "repair yards",
-        "traffic control",
-        "Axiolith/power infrastructure"
-      ],
-      "circulationLogic": "central port concourses feeding radial/axial dock transit",
-      "factionDesignGrammar": "plausible sleek frontier eco-punk/space-punk construction; logical modular growth, robust maintenance access, strong local self-sufficiency and clear operational purpose",
-      "materialLanguage": "weathered but well-kept structural metal, modular pressure volumes, visible service trusses, practical lights and locally maintained surface variation",
-      "factionInteriorLogic": "self-sufficient habitation, repair, logistics, civic and emergency districts with conservative redundancy",
-      "militaryLogic": "practical defensive design emphasizing maintainability, sensor coverage and local autonomy",
-      "visualCanonNotes": "System art shows a compact practical anchorage adjacent to Eventide.",
-      "registryFunction": "civilian docking, logistics, customs, local traffic control",
-      "registryStrategicRole": "Eventide's principal orbital interface",
-      "registryVisualArchetype": "compact docking lattice / anchorage",
-      "registryPalette": "weathered metal / pale neutral / blue-green accents",
-      "axiolithRole": "distributed mass/inertia and structural-stress management integrated with primary power/drive architecture",
-      "mustPreserve": [
-        "horizontal docking spine",
-        "functional bilateral tendency with asymmetric service growth",
-        "compact inhabited core with elongated docking and logistics arms",
-        "horizontal anchorage spine",
-        "multiple heavy docking collars",
-        "compact civic/logistics core"
-      ],
-      "prohibitedMisreadings": [
-        "conventional small spacecraft/station scale",
-        "primitive frontier shack aesthetic",
-        "generic military gray box",
-        "unnecessary factional ornament"
-      ],
-      "provenance": "campaign-author system atlas art + canonical registry + body-operations metadata; exact unmapped local detail may be deterministically inferred within these constraints"
-    }
-  ]
+  "factionCounts": {},
+  "topologyCounts": {},
+  "entries": []
 }

@@ -14,7 +14,8 @@ test("people on Eym call their world Eym and their star the Sun", () => {
   assert.equal(systemDisplayName("Abydos"), "The Sun");
   assert.equal(objectDisplayName(model.byName.get("Ramses")), "Ramses", "unrenamed bodies keep their names");
   assert.equal(parentDisplayName(model.byName.get("Ramses")), "Sun");
-  assert.equal(parentDisplayName(model.byName.get("Vada Anchorage")), "Eym");
+  assert.equal(parentDisplayName(model.byName.get("White Moon")), "Eym");
+  assert.equal(parentDisplayName(model.byName.get("Red Moon")), "Eym");
   assert.equal(displayNameFor("Abydos", "Eventide"), "Eym");
 });
 
