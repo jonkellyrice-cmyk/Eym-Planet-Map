@@ -2,7 +2,11 @@
   "schemaVersion": 1,
   "modelVersion": "eym-constellations-v1",
   "status": "working-canon",
-  "language": "English (the common tongue of Eym)",
+  "language": "English (the common tongue of Eym); proper names from Pathfinder 2e canon",
+  "galacticBand": {
+    "name": "Desna's Path",
+    "description": "The bright band of the home galaxy across the sky; a name some Golarion cultures give it, after Desna, goddess of stars and travelers."
+  },
   "sourceStarfield": {
     "path": "data/stellar/starfield.json",
     "modelVersion": "eym-starfield-v1",
@@ -28,6 +32,169 @@
     "asterisms": 4
   },
   "constellations": [
+    {
+      "id": "cayden-tankard",
+      "name": "Cayden's Tankard",
+      "description": "The tankard of Cayden Cailean: four stars in an open V.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 10.2,
+      "sunPath": null,
+      "shape": "arc",
+      "center": [
+        0.35961,
+        0.78058,
+        0.51125
+      ],
+      "stars": [
+        "star-0131",
+        "star-0155",
+        "star-0241",
+        "star-0294"
+      ],
+      "lines": [
+        [
+          "star-0131",
+          "star-0155"
+        ],
+        [
+          "star-0155",
+          "star-0241"
+        ],
+        [
+          "star-0131",
+          "star-0294"
+        ]
+      ]
+    },
+    {
+      "id": "erastil-bow",
+      "name": "Erastil's Bow",
+      "description": "The longbow of Erastil, god of farming and the hunt; the sun passes through it.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 12.1,
+      "sunPath": {
+        "order": 7,
+        "longitudeDeg": 209
+      },
+      "shape": "chain",
+      "center": [
+        -0.85967,
+        -0.5102,
+        0.02563
+      ],
+      "stars": [
+        "star-0054",
+        "star-0112",
+        "star-0380",
+        "star-0345",
+        "star-0149",
+        "star-0341"
+      ],
+      "lines": [
+        [
+          "star-0054",
+          "star-0112"
+        ],
+        [
+          "star-0112",
+          "star-0380"
+        ],
+        [
+          "star-0380",
+          "star-0345"
+        ],
+        [
+          "star-0345",
+          "star-0149"
+        ],
+        [
+          "star-0149",
+          "star-0341"
+        ]
+      ]
+    },
+    {
+      "id": "gozreh-trident",
+      "name": "Gozreh's Trident",
+      "description": "The trident of Gozreh, god of nature, weather and the sea: a shaft splitting into tines.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -0.2,
+      "sunPath": null,
+      "shape": "branched",
+      "center": [
+        0.5615,
+        0.76778,
+        0.3086
+      ],
+      "stars": [
+        "star-0049",
+        "star-0076",
+        "star-0198",
+        "star-0347",
+        "star-0115"
+      ],
+      "lines": [
+        [
+          "star-0049",
+          "star-0076"
+        ],
+        [
+          "star-0076",
+          "star-0347"
+        ],
+        [
+          "star-0076",
+          "star-0198"
+        ],
+        [
+          "star-0347",
+          "star-0115"
+        ]
+      ]
+    },
+    {
+      "id": "iomedae-sword",
+      "name": "Iomedae's Sword",
+      "description": "The longsword of Iomedae: a long blade with a short crossguard near its top.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 43,
+      "sunPath": null,
+      "shape": "branched",
+      "center": [
+        0.49238,
+        -0.76472,
+        0.41565
+      ],
+      "stars": [
+        "star-0161",
+        "star-0164",
+        "star-0211",
+        "star-0411",
+        "star-0327"
+      ],
+      "lines": [
+        [
+          "star-0161",
+          "star-0164"
+        ],
+        [
+          "star-0164",
+          "star-0211"
+        ],
+        [
+          "star-0161",
+          "star-0411"
+        ],
+        [
+          "star-0164",
+          "star-0327"
+        ]
+      ]
+    },
     {
       "id": "adder",
       "name": "The Adder",
@@ -157,54 +324,6 @@
       ]
     },
     {
-      "id": "bow",
-      "name": "The Bow",
-      "description": "A bent bow with a long arm; the sun passes through it.",
-      "tier": "lesser",
-      "hemisphere": "north",
-      "declinationDeg": 12.1,
-      "sunPath": {
-        "order": 7,
-        "longitudeDeg": 209
-      },
-      "shape": "chain",
-      "center": [
-        -0.85967,
-        -0.5102,
-        0.02563
-      ],
-      "stars": [
-        "star-0054",
-        "star-0112",
-        "star-0380",
-        "star-0345",
-        "star-0149",
-        "star-0341"
-      ],
-      "lines": [
-        [
-          "star-0054",
-          "star-0112"
-        ],
-        [
-          "star-0112",
-          "star-0380"
-        ],
-        [
-          "star-0380",
-          "star-0345"
-        ],
-        [
-          "star-0345",
-          "star-0149"
-        ],
-        [
-          "star-0149",
-          "star-0341"
-        ]
-      ]
-    },
-    {
       "id": "chain",
       "name": "The Chain",
       "description": "Links hanging down to a bright pair.",
@@ -330,41 +449,6 @@
       ]
     },
     {
-      "id": "cup",
-      "name": "The Cup",
-      "description": "Four stars in an open V.",
-      "tier": "lesser",
-      "hemisphere": "north",
-      "declinationDeg": 10.2,
-      "sunPath": null,
-      "shape": "arc",
-      "center": [
-        0.35961,
-        0.78058,
-        0.51125
-      ],
-      "stars": [
-        "star-0131",
-        "star-0155",
-        "star-0241",
-        "star-0294"
-      ],
-      "lines": [
-        [
-          "star-0131",
-          "star-0155"
-        ],
-        [
-          "star-0155",
-          "star-0241"
-        ],
-        [
-          "star-0131",
-          "star-0294"
-        ]
-      ]
-    },
-    {
       "id": "eel",
       "name": "The Eel",
       "description": "A long wavering line of stars in the northern sky.",
@@ -417,7 +501,7 @@
     {
       "id": "ferryman",
       "name": "The Ferryman",
-      "description": "A figure leaning on a long pole; the Belt crosses him.",
+      "description": "A figure leaning on a long pole; Irori's Belt crosses him.",
       "tier": "lesser",
       "hemisphere": "south",
       "declinationDeg": -33,
@@ -808,46 +892,6 @@
         [
           "star-0033",
           "star-0141"
-        ]
-      ]
-    },
-    {
-      "id": "pitchfork",
-      "name": "The Pitchfork",
-      "description": "A handle splitting into tines.",
-      "tier": "lesser",
-      "hemisphere": "south",
-      "declinationDeg": -0.2,
-      "sunPath": null,
-      "shape": "branched",
-      "center": [
-        0.5615,
-        0.76778,
-        0.3086
-      ],
-      "stars": [
-        "star-0049",
-        "star-0076",
-        "star-0198",
-        "star-0347",
-        "star-0115"
-      ],
-      "lines": [
-        [
-          "star-0049",
-          "star-0076"
-        ],
-        [
-          "star-0076",
-          "star-0347"
-        ],
-        [
-          "star-0076",
-          "star-0198"
-        ],
-        [
-          "star-0347",
-          "star-0115"
         ]
       ]
     },
@@ -1268,46 +1312,6 @@
       ]
     },
     {
-      "id": "sword",
-      "name": "The Sword",
-      "description": "A long blade with a short crossguard near its top.",
-      "tier": "lesser",
-      "hemisphere": "north",
-      "declinationDeg": 43,
-      "sunPath": null,
-      "shape": "branched",
-      "center": [
-        0.49238,
-        -0.76472,
-        0.41565
-      ],
-      "stars": [
-        "star-0161",
-        "star-0164",
-        "star-0211",
-        "star-0411",
-        "star-0327"
-      ],
-      "lines": [
-        [
-          "star-0161",
-          "star-0164"
-        ],
-        [
-          "star-0164",
-          "star-0211"
-        ],
-        [
-          "star-0161",
-          "star-0411"
-        ],
-        [
-          "star-0164",
-          "star-0327"
-        ]
-      ]
-    },
-    {
       "id": "tent",
       "name": "The Tent",
       "description": "Three stars in a clean triangle, low in the south.",
@@ -1640,8 +1644,8 @@
       ]
     },
     {
-      "id": "belt",
-      "name": "The Belt",
+      "id": "irori-belt",
+      "name": "Irori's Belt",
       "stars": [
         "star-0098",
         "star-0105",
@@ -1657,7 +1661,7 @@
           "star-0183"
         ]
       ],
-      "description": "Three evenly spaced stars of similar brightness in a straight row.",
+      "description": "Three evenly spaced stars of similar brightness in a straight row, the belt of Irori.",
       "within": [
         "ferryman"
       ]

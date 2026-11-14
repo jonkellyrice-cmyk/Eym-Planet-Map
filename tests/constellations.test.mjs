@@ -24,10 +24,10 @@ test("a pre-modern sky: about 20 constellations per hemisphere, 7 chief in each"
   }
 });
 
-test("names are unique plain-English names", () => {
+test("names are unique: plain English, or a canon deity's possessive", () => {
   const names = [...data.constellations, ...data.asterisms].map((c) => c.name);
   assert.equal(new Set(names).size, names.length);
-  for (const name of names) assert.match(name, /^The [A-Z][A-Za-z' ]+$/);
+  for (const name of names) assert.match(name, /^(The [A-Z][A-Za-z' ]+|[A-Z][a-z]+'s [A-Z][a-z]+)$/);
   assert.equal(new Set(data.constellations.map((c) => c.id)).size, data.constellations.length);
 });
 
