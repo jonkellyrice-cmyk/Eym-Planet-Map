@@ -134,3 +134,34 @@ export const POLE_STAR = Object.freeze({
   name: "Cynosure", figure: "hourglass", point: 2, pole: "north",
   description: "The pole star: it holds steady and marks north while the sky turns around it. Desna's palace is said to sit at its heart.",
 });
+
+/**
+ * Individually named bright stars: the 21 brightest, plus Cynosure (POLE_STAR), matching the 20-odd
+ * stars Earth cultures named for navigation and lore. A named star may also belong to a constellation
+ * or asterism. Plain English, except three Pathfinder 2e canon gods of the night sky (Pulura, the
+ * Shimmering Maiden of constellations and lost northern travellers; Ketephys, the Hunter; Ashava, the
+ * True Spark of lonely spirits and moonlight), placed where their portfolios fit.
+ */
+export const NAMED_STARS = Object.freeze({
+  "star-0001": ["Pulura", "The brightest star in the sky, high in the north in the Shepherd: the lost traveller's guide, named for the Shimmering Maiden."],
+  "star-0002": ["Reaper", "The blade of the Scythe, on the path of the sun; one corner of the Wayfarer's Triangle."],
+  "star-0003": ["Sower", "The share of the Plough, on the path of the sun; one corner of the Wayfarer's Triangle."],
+  "star-0004": ["Brim", "The bright lip of the Ladle, high in the north."],
+  "star-0005": ["Gleam", "The Pike's eye, on the path of the sun."],
+  "star-0006": ["Ketephys", "The brightest star of the Stag, named for the Hunter."],
+  "star-0007": ["Carter", "The driver of the Wagon."],
+  "star-0008": ["Elderlamp", "The brighter of the Twin Lamps in the Windmill; one corner of the Wayfarer's Triangle."],
+  "star-0009": ["Doorpost", "The bright post of the Hinge, near the celestial equator."],
+  "star-0010": ["Younglamp", "The fainter of the Twin Lamps in the Windmill."],
+  "star-0011": ["Ashava", "A brilliant star that belongs to no figure, named for the True Spark of lonely spirits."],
+  "star-0012": ["Cartwheel", "A wheel of the Wagon."],
+  "star-0013": ["Vigil", "A bright lone star keeping watch north of the path of the sun."],
+  "star-0014": ["Hearthfire", "The brightest of the Hearthstones in the Staff, on the path of the sun."],
+  "star-0015": ["Latch", "The second star of the Hinge."],
+  "star-0016": ["Ripple", "The brightest star of the Eel, high in the north."],
+  "star-0017": ["Southlight", "The Wishbone's bright star deep in the south: the southern sky's guide, as there is no southern pole star."],
+  "star-0018": ["Fang", "The Adder's fang, on the path of the sun."],
+  "star-0019": ["Axle", "The axle of the Wagon."],
+  "star-0020": ["Sandfall", "A bright star of the Hourglass, near Cynosure."],
+  "star-0021": ["Wayfire", "A lone bright star on the empty road of the sun; it marks the mansion of the Watchfire."],
+});

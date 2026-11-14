@@ -15,7 +15,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { angularDistanceDeg, cross, dot, latitudeDeg, normalize } from "../scripts/sky-frame.mjs";
 import { eymSky, findCandidates, starId } from "./find-constellation-candidates.mjs";
-import { ASTERISMS, CONSTELLATION_NAMES, LUNAR_MANSION_NAMES, POLE_STAR } from "./constellation-canon.mjs";
+import { ASTERISMS, CONSTELLATION_NAMES, LUNAR_MANSION_NAMES, NAMED_STARS, POLE_STAR } from "./constellation-canon.mjs";
 import { buildBaseStarfield } from "./generate-starfield.mjs";
 import { planSculpt } from "./sculpt-constellations.mjs";
 
@@ -126,6 +126,20 @@ export function buildConstellations(root = ROOT) {
     description: POLE_STAR.description,
   };
 
+  // Individually named stars: the brightest stars plus the pole star, with the figures they belong to.
+  const asterismsOf = (id) => ASTERISMS.filter((a) => a.stars.includes(id)).map((a) => a.id);
+  const namedStars = [...Object.entries(NAMED_STARS), [poleStarId, [POLE_STAR.name, POLE_STAR.description]]].map(([id, [name, description]]) => {
+    const row = starfield.stars[Number(id.slice(5)) - 1];
+    const declinationDeg = round(latitudeDeg(row.slice(0, 3), sky.celestialPole), 1);
+    return {
+      star: id, name, description, magnitude: row[3],
+      hemisphere: declinationDeg >= 0 ? "north" : "south", declinationDeg,
+      constellation: figureOf.get(id) ?? null,
+      asterisms: asterismsOf(id),
+      poleStar: id === poleStarId,
+    };
+  }).sort((a, b) => a.magnitude - b.magnitude);
+
   return {
     schemaVersion: 1,
     modelVersion: CONSTELLATIONS_MODEL_VERSION,
@@ -144,9 +158,11 @@ export function buildConstellations(root = ROOT) {
       sunPath: sunPathOrder.length,
       asterisms: asterisms.length,
       lunarMansions: lunarMansions.length,
+      namedStars: namedStars.length,
     },
     poleStar,
     southPoleStar: null,
+    namedStars,
     constellations,
     asterisms,
     lunarMansions,

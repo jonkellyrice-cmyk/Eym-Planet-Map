@@ -21,7 +21,7 @@ test("committed constellations are exactly what the deterministic generator prod
 });
 
 test("a Ptolemy-sized sky: 48 constellations, 24 per hemisphere, 7 chief in each", () => {
-  assert.deepEqual(data.counts, { constellations: 48, north: 24, south: 24, chief: 14, sunPath: 8, asterisms: 4, lunarMansions: 28 });
+  assert.deepEqual(data.counts, { constellations: 48, north: 24, south: 24, chief: 14, sunPath: 8, asterisms: 4, lunarMansions: 28, namedStars: 22 });
   assert.equal(data.constellations.filter((c) => c.origin === "discovered").length, 35);
   assert.equal(data.constellations.filter((c) => c.origin === "sculpted").length, 13);
   for (const hemisphere of ["north", "south"]) {
@@ -140,4 +140,29 @@ test("like Earth, Eym has no bright southern pole star", () => {
   assert.equal(data.southPoleStar, null);
   const south = data.celestialPole.map((v) => -v);
   assert.ok(!starfield.stars.some((r) => r[3] < 4.5 && angularDistanceDeg(r.slice(0, 3), south) < 2));
+});
+
+test("the 21 brightest stars and Cynosure carry their own names, like Earth's navigation stars", () => {
+  const named = data.namedStars;
+  assert.equal(named.length, 22);
+  const brightest = starfield.stars.map((row, i) => ({ id: `star-${String(i + 1).padStart(4, "0")}`, mag: row[3] })).sort((a, b) => a.mag - b.mag).slice(0, 21).map((s) => s.id);
+  assert.deepEqual(named.filter((s) => !s.poleStar).map((s) => s.star).sort(), brightest.sort());
+  const pole = named.filter((s) => s.poleStar);
+  assert.equal(pole.length, 1);
+  assert.equal(pole[0].name, "Cynosure");
+  assert.equal(pole[0].star, data.poleStar.star);
+  assert.deepEqual(named.map((s) => s.magnitude), [...named.map((s) => s.magnitude)].sort((a, b) => a - b));
+});
+
+test("star names are unique proper names that never clash with figures or mansions", () => {
+  const names = data.namedStars.map((s) => s.name);
+  assert.equal(new Set(names).size, names.length);
+  for (const name of names) assert.match(name, /^[A-Z][a-z]+$/);
+  const other = new Set([...data.constellations, ...data.asterisms, ...data.lunarMansions].map((x) => x.name.replace(/^The /, "").toLowerCase()));
+  for (const name of names) assert.ok(!other.has(name.toLowerCase()), name);
+  // A named star may also belong to a constellation, as Polaris belongs to the Little Dipper.
+  for (const s of data.namedStars.filter((s) => s.constellation)) {
+    assert.ok(data.constellations.find((c) => c.id === s.constellation).stars.includes(s.star), s.name);
+  }
+  assert.ok(data.namedStars.some((s) => s.hemisphere === "south" && s.declinationDeg < -45), "a deep-south guide star");
 });

@@ -2,6 +2,7 @@
 
 ## 0.12.0 — Eym Planet Map (single-system edition)
 
+- Named stars: the 21 brightest stars plus Cynosure (22, in `namedStars`), in plain English apart from Pulura, Ketephys and Ashava (Pathfinder 2e canon gods of the night sky).
 - Pole star: Cynosure (Pathfinder canon's North Star), magnitude 1.4 and 0.7° from Eym's north celestial pole, pinned at the waist of the re-sculpted Hourglass. No southern pole star, as on Earth.
 - Only four planets besides Eym remain, the four brightest wandering stars of Eym's sky (Thraximundus, Tribune, Kandahar, Ramses); Cataphract, Sumatra and Ventus were removed (Sumatra peaks at magnitude −0.3, Cataphract never leaves the twilight 30° from the Sun, Ventus is invisible to the eye).
 - Sky: 13 more constellations sculpted from spare stars (80 of 2,000 stars nudged a median 2.3°; the original 35 and the asterisms unchanged), for 48 in all, 24 per hemisphere; 28 lunar mansions along the path of the sun, each with a determinative star.

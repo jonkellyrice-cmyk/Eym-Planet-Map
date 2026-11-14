@@ -30,7 +30,8 @@
     "chief": 14,
     "sunPath": 8,
     "asterisms": 4,
-    "lunarMansions": 28
+    "lunarMansions": 28,
+    "namedStars": 22
   },
   "poleStar": {
     "name": "Cynosure",
@@ -42,6 +43,261 @@
     "description": "The pole star: it holds steady and marks north while the sky turns around it. Desna's palace is said to sit at its heart."
   },
   "southPoleStar": null,
+  "namedStars": [
+    {
+      "star": "star-0001",
+      "name": "Pulura",
+      "description": "The brightest star in the sky, high in the north in the Shepherd: the lost traveller's guide, named for the Shimmering Maiden.",
+      "magnitude": -1.209,
+      "hemisphere": "north",
+      "declinationDeg": 70.1,
+      "constellation": "shepherd",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0002",
+      "name": "Reaper",
+      "description": "The blade of the Scythe, on the path of the sun; one corner of the Wayfarer's Triangle.",
+      "magnitude": -0.466,
+      "hemisphere": "north",
+      "declinationDeg": 1.9,
+      "constellation": "scythe",
+      "asterisms": [
+        "wayfarers-triangle"
+      ],
+      "poleStar": false
+    },
+    {
+      "star": "star-0003",
+      "name": "Sower",
+      "description": "The share of the Plough, on the path of the sun; one corner of the Wayfarer's Triangle.",
+      "magnitude": -0.269,
+      "hemisphere": "south",
+      "declinationDeg": -5,
+      "constellation": "plough",
+      "asterisms": [
+        "wayfarers-triangle"
+      ],
+      "poleStar": false
+    },
+    {
+      "star": "star-0004",
+      "name": "Brim",
+      "description": "The bright lip of the Ladle, high in the north.",
+      "magnitude": -0.018,
+      "hemisphere": "north",
+      "declinationDeg": 50,
+      "constellation": "ladle",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0005",
+      "name": "Gleam",
+      "description": "The Pike's eye, on the path of the sun.",
+      "magnitude": 0.036,
+      "hemisphere": "south",
+      "declinationDeg": -15.4,
+      "constellation": "pike",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0006",
+      "name": "Ketephys",
+      "description": "The brightest star of the Stag, named for the Hunter.",
+      "magnitude": 0.11,
+      "hemisphere": "south",
+      "declinationDeg": -18.9,
+      "constellation": "stag",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0007",
+      "name": "Carter",
+      "description": "The driver of the Wagon.",
+      "magnitude": 0.408,
+      "hemisphere": "north",
+      "declinationDeg": 32.3,
+      "constellation": "wagon",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0008",
+      "name": "Elderlamp",
+      "description": "The brighter of the Twin Lamps in the Windmill; one corner of the Wayfarer's Triangle.",
+      "magnitude": 0.523,
+      "hemisphere": "north",
+      "declinationDeg": 28.3,
+      "constellation": "windmill",
+      "asterisms": [
+        "twin-lamps",
+        "wayfarers-triangle"
+      ],
+      "poleStar": false
+    },
+    {
+      "star": "star-0009",
+      "name": "Doorpost",
+      "description": "The bright post of the Hinge, near the celestial equator.",
+      "magnitude": 0.54,
+      "hemisphere": "north",
+      "declinationDeg": 8.8,
+      "constellation": "hinge",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0010",
+      "name": "Younglamp",
+      "description": "The fainter of the Twin Lamps in the Windmill.",
+      "magnitude": 0.59,
+      "hemisphere": "north",
+      "declinationDeg": 23.2,
+      "constellation": "windmill",
+      "asterisms": [
+        "twin-lamps"
+      ],
+      "poleStar": false
+    },
+    {
+      "star": "star-0011",
+      "name": "Ashava",
+      "description": "A brilliant star that belongs to no figure, named for the True Spark of lonely spirits.",
+      "magnitude": 0.837,
+      "hemisphere": "south",
+      "declinationDeg": -13.4,
+      "constellation": null,
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0012",
+      "name": "Cartwheel",
+      "description": "A wheel of the Wagon.",
+      "magnitude": 0.947,
+      "hemisphere": "north",
+      "declinationDeg": 28.1,
+      "constellation": "wagon",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0013",
+      "name": "Vigil",
+      "description": "A bright lone star keeping watch north of the path of the sun.",
+      "magnitude": 0.974,
+      "hemisphere": "north",
+      "declinationDeg": 21.2,
+      "constellation": null,
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0014",
+      "name": "Hearthfire",
+      "description": "The brightest of the Hearthstones in the Staff, on the path of the sun.",
+      "magnitude": 1.1,
+      "hemisphere": "south",
+      "declinationDeg": -22.9,
+      "constellation": "staff",
+      "asterisms": [
+        "hearthstones"
+      ],
+      "poleStar": false
+    },
+    {
+      "star": "star-0015",
+      "name": "Latch",
+      "description": "The second star of the Hinge.",
+      "magnitude": 1.118,
+      "hemisphere": "north",
+      "declinationDeg": 3.9,
+      "constellation": "hinge",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0016",
+      "name": "Ripple",
+      "description": "The brightest star of the Eel, high in the north.",
+      "magnitude": 1.256,
+      "hemisphere": "north",
+      "declinationDeg": 56.8,
+      "constellation": "eel",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0017",
+      "name": "Southlight",
+      "description": "The Wishbone's bright star deep in the south: the southern sky's guide, as there is no southern pole star.",
+      "magnitude": 1.275,
+      "hemisphere": "south",
+      "declinationDeg": -63.5,
+      "constellation": "wishbone",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0018",
+      "name": "Fang",
+      "description": "The Adder's fang, on the path of the sun.",
+      "magnitude": 1.386,
+      "hemisphere": "south",
+      "declinationDeg": -18.7,
+      "constellation": "adder",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0019",
+      "name": "Axle",
+      "description": "The axle of the Wagon.",
+      "magnitude": 1.391,
+      "hemisphere": "north",
+      "declinationDeg": 24.4,
+      "constellation": "wagon",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0020",
+      "name": "Sandfall",
+      "description": "A bright star of the Hourglass, near Cynosure.",
+      "magnitude": 1.412,
+      "hemisphere": "north",
+      "declinationDeg": 82.4,
+      "constellation": "hourglass",
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0021",
+      "name": "Wayfire",
+      "description": "A lone bright star on the empty road of the sun; it marks the mansion of the Watchfire.",
+      "magnitude": 1.413,
+      "hemisphere": "north",
+      "declinationDeg": 21.8,
+      "constellation": null,
+      "asterisms": [],
+      "poleStar": false
+    },
+    {
+      "star": "star-0022",
+      "name": "Cynosure",
+      "description": "The pole star: it holds steady and marks north while the sky turns around it. Desna's palace is said to sit at its heart.",
+      "magnitude": 1.423,
+      "hemisphere": "north",
+      "declinationDeg": 89.3,
+      "constellation": "hourglass",
+      "asterisms": [],
+      "poleStar": true
+    }
+  ],
   "constellations": [
     {
       "id": "abadar-crossbow",
