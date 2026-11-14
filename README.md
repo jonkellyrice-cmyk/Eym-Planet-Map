@@ -69,7 +69,7 @@ That URL resolves once a GitHub release exists. Releases are built by `.github/w
 
 ## Compatibility
 
-- Game system: **Pathfinder Second Edition** (`pf2e`) **7.0+**. Nothing in the module depends on PF2e rules; the system is declared so it is offered in PF2e worlds.
+- Game system: **Pathfinder Second Edition** (`pf2e`) **7.0+**, targeted at **8.6.1** (the campaign's version, which itself needs Foundry 14.361–14). Nothing in the module depends on PF2e rules; the system is declared so it is offered in PF2e worlds.
 - Foundry VTT: **14** (targeted at v14 Stable, build 370, the campaign's version; `verified` is set to 14.370) and **13** (still supported). PF2e 8.x runs on Foundry v14 and PF2e 7.x on v13. As of 0.12.0 the module has been checked in a headless browser, not yet in a live v14 world.
 - The **System Map** button sits in the Token controls, where it exists on both Foundry v13 and v14 (v14 replaced measured templates with Regions).
 
