@@ -10,12 +10,14 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { eymSky } from "./find-constellation-candidates.mjs";
+import { applySculpt, planSculpt } from "./sculpt-constellations.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const OUTPUT = resolve(ROOT, "data/stellar/starfield.json");
 
 export const STARFIELD_SEED = "eym-night-sky-v1";
-export const STARFIELD_MODEL_VERSION = "eym-starfield-v1";
+export const STARFIELD_MODEL_VERSION = "eym-starfield-v2";
 // About 2,000 stars over the whole sphere, so roughly 1,000 above any horizon: a good dark
 // pre-industrial sky as people actually perceive it, without the barely-visible faint tail.
 export const STAR_COUNT = 2000;
@@ -79,7 +81,8 @@ function fromGalactic(basis, longitudeRad, latitudeRad) {
   ));
 }
 
-export function buildStarfield() {
+/** The procedurally generated catalogue before any sculpting (the finder discovers the 35 figures here). */
+export function buildBaseStarfield() {
   const random = mulberry32(hash32(STARFIELD_SEED));
   const basis = galacticBasis();
   const stars = [];
@@ -126,6 +129,29 @@ export function buildStarfield() {
     columns: ["x", "y", "z", "magnitude", "depth"],
     stars: stars.map((star) => [...star.direction.map((v) => round(v)), round(star.magnitude, 3), round(star.depth, 3)]),
   };
+}
+
+/**
+ * The published catalogue: the base catalogue with a handful of spare stars nudged into the 13 sculpted
+ * figures (tools/sculpt-constellations.mjs). Only directions change; magnitudes and star ids do not.
+ */
+export function buildStarfield() {
+  const base = buildBaseStarfield();
+  const plan = planSculpt(base, eymSky(ROOT));
+  return {
+    ...base,
+    note: `${base.note} A few spare stars were nudged (median ${median(plan.moves.map((m) => m.moveDeg)).toFixed(1)}°) to form the sculpted constellations; see "sculpted".`,
+    sculpted: {
+      figures: plan.figures.map((f) => f.id),
+      moves: plan.moves.map((m) => ({ star: m.star, moveDeg: round(m.moveDeg, 2) })),
+    },
+    stars: applySculpt(base, plan),
+  };
+}
+
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)];
 }
 
 export function serializeStarfield(starfield) {

@@ -9,10 +9,10 @@
   },
   "sourceStarfield": {
     "path": "data/stellar/starfield.json",
-    "modelVersion": "eym-starfield-v1",
-    "sha256": "e9c78a3a57761edbee8d03a7c6eb4ffe4f763aa7a480596404affe54730fedf7"
+    "modelVersion": "eym-starfield-v2",
+    "sha256": "3d69564faea2fea3a83de79fe3307ca01c9741468ddb80e015e8df39da8db67f"
   },
-  "note": "Star ids index data/stellar/starfield.json (star-0001 is the brightest). Lines are drawn between listed stars. Hemisphere and declination are relative to Eym's celestial equator; the path of the sun is Eym's orbital plane.",
+  "note": "Star ids index data/stellar/starfield.json (star-0001 is the brightest). Lines are drawn between listed stars. Hemisphere and declination are relative to Eym's celestial equator; the path of the sun is Eym's orbital plane. 'discovered' figures were found in the generated stars; 'sculpted' ones were made by nudging spare stars into a template.",
   "celestialPole": [
     0.01134,
     -0.42151,
@@ -24,14 +24,63 @@
     0.99966
   ],
   "counts": {
-    "constellations": 35,
-    "north": 16,
-    "south": 19,
+    "constellations": 48,
+    "north": 24,
+    "south": 24,
     "chief": 14,
     "sunPath": 8,
     "asterisms": 4
   },
   "constellations": [
+    {
+      "id": "abadar-crossbow",
+      "name": "Abadar's Crossbow",
+      "description": "The crossbow of Abadar, god of cities and trade: a bent prod across a long stock.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -27.9,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        0.67968,
+        -0.30506,
+        -0.66706
+      ],
+      "stars": [
+        "star-0373",
+        "star-0452",
+        "star-0384",
+        "star-0529",
+        "star-0043"
+      ],
+      "lines": [
+        [
+          "star-0373",
+          "star-0452"
+        ],
+        [
+          "star-0452",
+          "star-0384"
+        ],
+        [
+          "star-0452",
+          "star-0529"
+        ],
+        [
+          "star-0529",
+          "star-0043"
+        ],
+        [
+          "star-0373",
+          "star-0529"
+        ],
+        [
+          "star-0384",
+          "star-0529"
+        ]
+      ],
+      "origin": "sculpted"
+    },
     {
       "id": "cayden-tankard",
       "name": "Cayden's Tankard",
@@ -65,7 +114,62 @@
           "star-0131",
           "star-0294"
         ]
-      ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "desna-butterfly",
+      "name": "Desna's Butterfly",
+      "description": "The butterfly of Desna, goddess of stars and travelers: two pairs of wings on a slender body.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 33.7,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.79795,
+        -0.42948,
+        0.42287
+      ],
+      "stars": [
+        "star-0560",
+        "star-0165",
+        "star-0509",
+        "star-0273",
+        "star-0552",
+        "star-0358"
+      ],
+      "lines": [
+        [
+          "star-0560",
+          "star-0165"
+        ],
+        [
+          "star-0560",
+          "star-0509"
+        ],
+        [
+          "star-0509",
+          "star-0273"
+        ],
+        [
+          "star-0273",
+          "star-0165"
+        ],
+        [
+          "star-0560",
+          "star-0552"
+        ],
+        [
+          "star-0552",
+          "star-0358"
+        ],
+        [
+          "star-0358",
+          "star-0165"
+        ]
+      ],
+      "origin": "sculpted"
     },
     {
       "id": "erastil-bow",
@@ -113,7 +217,8 @@
           "star-0149",
           "star-0341"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "gozreh-trident",
@@ -153,7 +258,8 @@
           "star-0347",
           "star-0115"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "iomedae-sword",
@@ -193,7 +299,59 @@
           "star-0164",
           "star-0327"
         ]
-      ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "sarenrae-scimitar",
+      "name": "Sarenrae's Scimitar",
+      "description": "The scimitar of Sarenrae, goddess of the sun: a curved blade above a short hilt and crossguard.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 61.2,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.46606,
+        -0.43864,
+        0.76837
+      ],
+      "stars": [
+        "star-0486",
+        "star-0414",
+        "star-0178",
+        "star-0186",
+        "star-0169",
+        "star-0572",
+        "star-0519"
+      ],
+      "lines": [
+        [
+          "star-0486",
+          "star-0414"
+        ],
+        [
+          "star-0178",
+          "star-0414"
+        ],
+        [
+          "star-0414",
+          "star-0186"
+        ],
+        [
+          "star-0414",
+          "star-0169"
+        ],
+        [
+          "star-0169",
+          "star-0572"
+        ],
+        [
+          "star-0572",
+          "star-0519"
+        ]
+      ],
+      "origin": "sculpted"
     },
     {
       "id": "adder",
@@ -231,7 +389,110 @@
           "star-0323",
           "star-0059"
         ]
-      ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "anchor",
+      "name": "The Anchor",
+      "description": "A ringed shank with a crossbar stock and two curved flukes.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -16.4,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.22052,
+        -0.72959,
+        -0.64736
+      ],
+      "stars": [
+        "star-0553",
+        "star-0514",
+        "star-0575",
+        "star-0103",
+        "star-0390",
+        "star-0498",
+        "star-0278"
+      ],
+      "lines": [
+        [
+          "star-0553",
+          "star-0514"
+        ],
+        [
+          "star-0553",
+          "star-0575"
+        ],
+        [
+          "star-0553",
+          "star-0103"
+        ],
+        [
+          "star-0103",
+          "star-0390"
+        ],
+        [
+          "star-0390",
+          "star-0498"
+        ],
+        [
+          "star-0390",
+          "star-0278"
+        ]
+      ],
+      "origin": "sculpted"
+    },
+    {
+      "id": "arrow",
+      "name": "The Arrow",
+      "description": "A long shaft with a barbed head at one end and fletching at the other.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 13.2,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.60119,
+        0.59344,
+        0.53517
+      ],
+      "stars": [
+        "star-0235",
+        "star-0032",
+        "star-0393",
+        "star-0510",
+        "star-0400",
+        "star-0057",
+        "star-0296"
+      ],
+      "lines": [
+        [
+          "star-0235",
+          "star-0032"
+        ],
+        [
+          "star-0235",
+          "star-0393"
+        ],
+        [
+          "star-0235",
+          "star-0510"
+        ],
+        [
+          "star-0510",
+          "star-0400"
+        ],
+        [
+          "star-0400",
+          "star-0057"
+        ],
+        [
+          "star-0400",
+          "star-0296"
+        ]
+      ],
+      "origin": "sculpted"
     },
     {
       "id": "beggar",
@@ -281,7 +542,58 @@
           "star-0225",
           "star-0081"
         ]
-      ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "bell",
+      "name": "The Bell",
+      "description": "A bell with sloping shoulders and a flared lip around its clapper.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -87.5,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        0.032,
+        0.42762,
+        -0.90339
+      ],
+      "stars": [
+        "star-0262",
+        "star-0332",
+        "star-0193",
+        "star-0136",
+        "star-0061",
+        "star-0320"
+      ],
+      "lines": [
+        [
+          "star-0262",
+          "star-0332"
+        ],
+        [
+          "star-0332",
+          "star-0136"
+        ],
+        [
+          "star-0136",
+          "star-0320"
+        ],
+        [
+          "star-0320",
+          "star-0061"
+        ],
+        [
+          "star-0061",
+          "star-0193"
+        ],
+        [
+          "star-0193",
+          "star-0262"
+        ]
+      ],
+      "origin": "sculpted"
     },
     {
       "id": "bolt",
@@ -321,7 +633,8 @@
           "star-0242",
           "star-0368"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "chain",
@@ -371,7 +684,8 @@
           "star-0093",
           "star-0099"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "crane",
@@ -411,7 +725,8 @@
           "star-0113",
           "star-0344"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "crook",
@@ -446,7 +761,59 @@
           "star-0233",
           "star-0234"
         ]
-      ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "crown",
+      "name": "The Crown",
+      "description": "A half-ring of seven stars, like a circlet seen from the side.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 15.2,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        0.77524,
+        0.4182,
+        0.47341
+      ],
+      "stars": [
+        "star-0126",
+        "star-0424",
+        "star-0109",
+        "star-0565",
+        "star-0299",
+        "star-0561",
+        "star-0292"
+      ],
+      "lines": [
+        [
+          "star-0126",
+          "star-0424"
+        ],
+        [
+          "star-0424",
+          "star-0109"
+        ],
+        [
+          "star-0109",
+          "star-0565"
+        ],
+        [
+          "star-0565",
+          "star-0299"
+        ],
+        [
+          "star-0299",
+          "star-0561"
+        ],
+        [
+          "star-0561",
+          "star-0292"
+        ]
+      ],
+      "origin": "sculpted"
     },
     {
       "id": "eel",
@@ -496,7 +863,8 @@
           "star-0181",
           "star-0027"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "ferryman",
@@ -546,7 +914,8 @@
           "star-0401",
           "star-0249"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "fishhook",
@@ -586,7 +955,8 @@
           "star-0142",
           "star-0330"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "heron",
@@ -636,7 +1006,8 @@
           "star-0107",
           "star-0223"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "hinge",
@@ -666,7 +1037,8 @@
           "star-0009",
           "star-0106"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "horseshoe",
@@ -706,7 +1078,57 @@
           "star-0398",
           "star-0201"
         ]
-      ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "hourglass",
+      "name": "The Hourglass",
+      "description": "Two triangles meeting point to point.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 85.4,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        0.0898,
+        -0.40775,
+        0.90867
+      ],
+      "stars": [
+        "star-0482",
+        "star-0020",
+        "star-0022",
+        "star-0158",
+        "star-0461"
+      ],
+      "lines": [
+        [
+          "star-0482",
+          "star-0020"
+        ],
+        [
+          "star-0020",
+          "star-0022"
+        ],
+        [
+          "star-0022",
+          "star-0482"
+        ],
+        [
+          "star-0158",
+          "star-0461"
+        ],
+        [
+          "star-0461",
+          "star-0022"
+        ],
+        [
+          "star-0022",
+          "star-0158"
+        ]
+      ],
+      "origin": "sculpted"
     },
     {
       "id": "kite",
@@ -745,7 +1167,62 @@
           "star-0073",
           "star-0276"
         ]
-      ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "ladder",
+      "name": "The Ladder",
+      "description": "Two rails joined by three rungs.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -40.3,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.48619,
+        -0.26825,
+        -0.83166
+      ],
+      "stars": [
+        "star-0139",
+        "star-0495",
+        "star-0493",
+        "star-0596",
+        "star-0124",
+        "star-0367"
+      ],
+      "lines": [
+        [
+          "star-0139",
+          "star-0493"
+        ],
+        [
+          "star-0493",
+          "star-0124"
+        ],
+        [
+          "star-0495",
+          "star-0596"
+        ],
+        [
+          "star-0596",
+          "star-0367"
+        ],
+        [
+          "star-0139",
+          "star-0495"
+        ],
+        [
+          "star-0493",
+          "star-0596"
+        ],
+        [
+          "star-0124",
+          "star-0367"
+        ]
+      ],
+      "origin": "sculpted"
     },
     {
       "id": "ladle",
@@ -795,7 +1272,111 @@
           "star-0004",
           "star-0084"
         ]
-      ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "lantern",
+      "name": "The Lantern",
+      "description": "A hanging ring above a tall lantern body.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 41.2,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.74293,
+        -0.22485,
+        0.63048
+      ],
+      "stars": [
+        "star-0387",
+        "star-0053",
+        "star-0280",
+        "star-0215",
+        "star-0184"
+      ],
+      "lines": [
+        [
+          "star-0387",
+          "star-0053"
+        ],
+        [
+          "star-0387",
+          "star-0280"
+        ],
+        [
+          "star-0053",
+          "star-0280"
+        ],
+        [
+          "star-0053",
+          "star-0215"
+        ],
+        [
+          "star-0280",
+          "star-0184"
+        ],
+        [
+          "star-0215",
+          "star-0184"
+        ]
+      ],
+      "origin": "sculpted"
+    },
+    {
+      "id": "lyre",
+      "name": "The Lyre",
+      "description": "Two curved arms rising from a base and joined by a crossbar.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 45.2,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.45009,
+        -0.78669,
+        0.42255
+      ],
+      "stars": [
+        "star-0494",
+        "star-0143",
+        "star-0554",
+        "star-0395",
+        "star-0078",
+        "star-0598"
+      ],
+      "lines": [
+        [
+          "star-0494",
+          "star-0143"
+        ],
+        [
+          "star-0143",
+          "star-0554"
+        ],
+        [
+          "star-0494",
+          "star-0395"
+        ],
+        [
+          "star-0395",
+          "star-0078"
+        ],
+        [
+          "star-0554",
+          "star-0598"
+        ],
+        [
+          "star-0598",
+          "star-0078"
+        ],
+        [
+          "star-0598",
+          "star-0494"
+        ]
+      ],
+      "origin": "sculpted"
     },
     {
       "id": "mast",
@@ -840,7 +1421,8 @@
           "star-0114",
           "star-0361"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "pike",
@@ -893,7 +1475,8 @@
           "star-0033",
           "star-0141"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "plough",
@@ -946,7 +1529,8 @@
           "star-0172",
           "star-0038"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "ribbon",
@@ -996,7 +1580,8 @@
           "star-0302",
           "star-0219"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "scythe",
@@ -1039,7 +1624,8 @@
           "star-0002",
           "star-0067"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "shepherd",
@@ -1089,7 +1675,58 @@
           "star-0173",
           "star-0072"
         ]
-      ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "ship",
+      "name": "The Ship",
+      "description": "A hull with a raised stern and bow beneath a single triangular sail.",
+      "tier": "lesser",
+      "hemisphere": "south",
+      "declinationDeg": -31.5,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.75393,
+        -0.15346,
+        -0.63878
+      ],
+      "stars": [
+        "star-0035",
+        "star-0528",
+        "star-0138",
+        "star-0216",
+        "star-0036",
+        "star-0202"
+      ],
+      "lines": [
+        [
+          "star-0035",
+          "star-0528"
+        ],
+        [
+          "star-0528",
+          "star-0138"
+        ],
+        [
+          "star-0138",
+          "star-0216"
+        ],
+        [
+          "star-0528",
+          "star-0036"
+        ],
+        [
+          "star-0036",
+          "star-0202"
+        ],
+        [
+          "star-0202",
+          "star-0138"
+        ]
+      ],
+      "origin": "sculpted"
     },
     {
       "id": "sling",
@@ -1124,7 +1761,8 @@
           "star-0145",
           "star-0154"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "spindle",
@@ -1166,7 +1804,8 @@
           "star-0119",
           "star-0376"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "staff",
@@ -1209,7 +1848,8 @@
           "star-0062",
           "star-0277"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "stag",
@@ -1259,7 +1899,8 @@
           "star-0194",
           "star-0039"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "swan",
@@ -1309,7 +1950,8 @@
           "star-0046",
           "star-0289"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "tent",
@@ -1343,7 +1985,8 @@
           "star-0065",
           "star-0066"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "throne",
@@ -1393,7 +2036,8 @@
           "star-0064",
           "star-0100"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "wagon",
@@ -1443,7 +2087,8 @@
           "star-0340",
           "star-0040"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "windmill",
@@ -1493,7 +2138,8 @@
           "star-0008",
           "star-0224"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "wishbone",
@@ -1533,7 +2179,8 @@
           "star-0255",
           "star-0298"
         ]
-      ]
+      ],
+      "origin": "discovered"
     },
     {
       "id": "yoke",
@@ -1576,7 +2223,63 @@
           "star-0177",
           "star-0377"
         ]
-      ]
+      ],
+      "origin": "discovered"
+    },
+    {
+      "id": "torag-hammer",
+      "name": "Torag's Hammer",
+      "description": "The warhammer of Torag, god of the forge: a broad head on a long haft.",
+      "tier": "lesser",
+      "hemisphere": "north",
+      "declinationDeg": 55.5,
+      "sunPath": null,
+      "shape": "sculpted",
+      "center": [
+        -0.0238,
+        0.16604,
+        0.98583
+      ],
+      "stars": [
+        "star-0356",
+        "star-0284",
+        "star-0448",
+        "star-0417",
+        "star-0259",
+        "star-0188",
+        "star-0263"
+      ],
+      "lines": [
+        [
+          "star-0356",
+          "star-0284"
+        ],
+        [
+          "star-0284",
+          "star-0448"
+        ],
+        [
+          "star-0448",
+          "star-0259"
+        ],
+        [
+          "star-0259",
+          "star-0417"
+        ],
+        [
+          "star-0417",
+          "star-0356"
+        ],
+        [
+          "star-0259",
+          "star-0188"
+        ],
+        [
+          "star-0188",
+          "star-0263"
+        ]
+      ],
+      "origin": "sculpted"
     }
   ],
   "asterisms": [
