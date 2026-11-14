@@ -21,7 +21,7 @@ test("committed constellations are exactly what the deterministic generator prod
 });
 
 test("a Ptolemy-sized sky: 48 constellations, 24 per hemisphere, 7 chief in each", () => {
-  assert.deepEqual(data.counts, { constellations: 48, north: 24, south: 24, chief: 14, sunPath: 8, asterisms: 4 });
+  assert.deepEqual(data.counts, { constellations: 48, north: 24, south: 24, chief: 14, sunPath: 8, asterisms: 4, lunarMansions: 28 });
   assert.equal(data.constellations.filter((c) => c.origin === "discovered").length, 35);
   assert.equal(data.constellations.filter((c) => c.origin === "sculpted").length, 13);
   for (const hemisphere of ["north", "south"]) {

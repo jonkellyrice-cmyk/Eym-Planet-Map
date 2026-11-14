@@ -29,7 +29,8 @@
     "south": 24,
     "chief": 14,
     "sunPath": 8,
-    "asterisms": 4
+    "asterisms": 4,
+    "lunarMansions": 28
   },
   "constellations": [
     {
@@ -2368,6 +2369,338 @@
       "within": [
         "ferryman"
       ]
+    }
+  ],
+  "lunarMansions": [
+    {
+      "number": 1,
+      "id": "yoke-pin",
+      "name": "The Yoke-Pin",
+      "description": "The bright pin of the Yoke, where the year's mansions begin.",
+      "startLongitudeDeg": 0,
+      "endLongitudeDeg": 12.8571,
+      "determinativeStar": "star-0058",
+      "determinativeMagnitude": 2.426,
+      "constellations": [
+        "yoke"
+      ]
+    },
+    {
+      "number": 2,
+      "id": "ox",
+      "name": "The Ox",
+      "description": "The faint stars trailing the Yoke, the beast in harness.",
+      "startLongitudeDeg": 12.8571,
+      "endLongitudeDeg": 25.7143,
+      "determinativeStar": "star-0177",
+      "determinativeMagnitude": 3.4,
+      "constellations": [
+        "yoke"
+      ]
+    },
+    {
+      "number": 3,
+      "id": "ploughshare",
+      "name": "The Ploughshare",
+      "description": "The blade of the Plough, beside the Adder's coils.",
+      "startLongitudeDeg": 25.7143,
+      "endLongitudeDeg": 38.5714,
+      "determinativeStar": "star-0003",
+      "determinativeMagnitude": -0.269,
+      "constellations": [
+        "adder",
+        "plough"
+      ]
+    },
+    {
+      "number": 4,
+      "id": "furrow",
+      "name": "The Furrow",
+      "description": "A dim stretch behind the Plough, the turned earth.",
+      "startLongitudeDeg": 38.5714,
+      "endLongitudeDeg": 51.4286,
+      "determinativeStar": "star-0394",
+      "determinativeMagnitude": 4.141,
+      "constellations": []
+    },
+    {
+      "number": 5,
+      "id": "hearth",
+      "name": "The Hearth",
+      "description": "The Hearthstones in the Staff, a tight knot of bright stars.",
+      "startLongitudeDeg": 51.4286,
+      "endLongitudeDeg": 64.2857,
+      "determinativeStar": "star-0014",
+      "determinativeMagnitude": 1.1,
+      "constellations": [
+        "gozreh-trident",
+        "staff"
+      ]
+    },
+    {
+      "number": 6,
+      "id": "smoke",
+      "name": "The Smoke",
+      "description": "A few faint stars rising beyond the Hearth.",
+      "startLongitudeDeg": 64.2857,
+      "endLongitudeDeg": 77.1429,
+      "determinativeStar": "star-0338",
+      "determinativeMagnitude": 3.979,
+      "constellations": []
+    },
+    {
+      "number": 7,
+      "id": "well",
+      "name": "The Well",
+      "description": "A lone modest star in an open field of sky.",
+      "startLongitudeDeg": 77.1429,
+      "endLongitudeDeg": 90,
+      "determinativeStar": "star-0180",
+      "determinativeMagnitude": 3.405,
+      "constellations": []
+    },
+    {
+      "number": 8,
+      "id": "beacon",
+      "name": "The Beacon",
+      "description": "A brilliant solitary star that belongs to no figure.",
+      "startLongitudeDeg": 90,
+      "endLongitudeDeg": 102.8571,
+      "determinativeStar": "star-0024",
+      "determinativeMagnitude": 1.544,
+      "constellations": []
+    },
+    {
+      "number": 9,
+      "id": "shallows",
+      "name": "The Shallows",
+      "description": "A bright star just ahead of the Pike.",
+      "startLongitudeDeg": 102.8571,
+      "endLongitudeDeg": 115.7143,
+      "determinativeStar": "star-0031",
+      "determinativeMagnitude": 1.722,
+      "constellations": [
+        "pike"
+      ]
+    },
+    {
+      "number": 10,
+      "id": "pike-eye",
+      "name": "The Pike's Eye",
+      "description": "The brightest star of the Pike.",
+      "startLongitudeDeg": 115.7143,
+      "endLongitudeDeg": 128.5714,
+      "determinativeStar": "star-0005",
+      "determinativeMagnitude": 0.036,
+      "constellations": [
+        "pike"
+      ]
+    },
+    {
+      "number": 11,
+      "id": "weir",
+      "name": "The Weir",
+      "description": "Open sky past the Pike's tail.",
+      "startLongitudeDeg": 128.5714,
+      "endLongitudeDeg": 141.4286,
+      "determinativeStar": "star-0190",
+      "determinativeMagnitude": 3.463,
+      "constellations": []
+    },
+    {
+      "number": 12,
+      "id": "net",
+      "name": "The Net",
+      "description": "A loose scatter of middling stars.",
+      "startLongitudeDeg": 141.4286,
+      "endLongitudeDeg": 154.2857,
+      "determinativeStar": "star-0182",
+      "determinativeMagnitude": 3.408,
+      "constellations": []
+    },
+    {
+      "number": 13,
+      "id": "distaff",
+      "name": "The Distaff",
+      "description": "The Spindle, where thread is spun.",
+      "startLongitudeDeg": 154.2857,
+      "endLongitudeDeg": 167.1429,
+      "determinativeStar": "star-0119",
+      "determinativeMagnitude": 3.02,
+      "constellations": [
+        "spindle"
+      ]
+    },
+    {
+      "number": 14,
+      "id": "loom",
+      "name": "The Loom",
+      "description": "A bright star on the edge of the path, beyond the Spindle.",
+      "startLongitudeDeg": 167.1429,
+      "endLongitudeDeg": 180,
+      "determinativeStar": "star-0071",
+      "determinativeMagnitude": 2.561,
+      "constellations": []
+    },
+    {
+      "number": 15,
+      "id": "hollow",
+      "name": "The Hollow",
+      "description": "An almost empty stretch of the path.",
+      "startLongitudeDeg": 180,
+      "endLongitudeDeg": 192.8571,
+      "determinativeStar": "star-0313",
+      "determinativeMagnitude": 3.907,
+      "constellations": []
+    },
+    {
+      "number": 16,
+      "id": "bowstring",
+      "name": "The Bowstring",
+      "description": "The trailing stars of Erastil's Bow.",
+      "startLongitudeDeg": 192.8571,
+      "endLongitudeDeg": 205.7143,
+      "determinativeStar": "star-0258",
+      "determinativeMagnitude": 3.706,
+      "constellations": [
+        "erastil-bow"
+      ]
+    },
+    {
+      "number": 17,
+      "id": "bow-belly",
+      "name": "The Bow's Belly",
+      "description": "The bright curve of Erastil's Bow.",
+      "startLongitudeDeg": 205.7143,
+      "endLongitudeDeg": 218.5714,
+      "determinativeStar": "star-0054",
+      "determinativeMagnitude": 2.374,
+      "constellations": [
+        "erastil-bow"
+      ]
+    },
+    {
+      "number": 18,
+      "id": "quiver",
+      "name": "The Quiver",
+      "description": "Middling stars beside the Bow.",
+      "startLongitudeDeg": 218.5714,
+      "endLongitudeDeg": 231.4286,
+      "determinativeStar": "star-0209",
+      "determinativeMagnitude": 3.535,
+      "constellations": []
+    },
+    {
+      "number": 19,
+      "id": "watchfire",
+      "name": "The Watchfire",
+      "description": "A brilliant lone star on the empty road of the sun.",
+      "startLongitudeDeg": 231.4286,
+      "endLongitudeDeg": 244.2857,
+      "determinativeStar": "star-0021",
+      "determinativeMagnitude": 1.413,
+      "constellations": []
+    },
+    {
+      "number": 20,
+      "id": "thicket",
+      "name": "The Thicket",
+      "description": "Faint stars clustered off the path.",
+      "startLongitudeDeg": 244.2857,
+      "endLongitudeDeg": 257.1429,
+      "determinativeStar": "star-0238",
+      "determinativeMagnitude": 3.633,
+      "constellations": []
+    },
+    {
+      "number": 21,
+      "id": "barren-field",
+      "name": "The Barren Field",
+      "description": "The dimmest mansion, with hardly a star to mark it.",
+      "startLongitudeDeg": 257.1429,
+      "endLongitudeDeg": 270,
+      "determinativeStar": "star-0496",
+      "determinativeMagnitude": 4.33,
+      "constellations": []
+    },
+    {
+      "number": 22,
+      "id": "hedge",
+      "name": "The Hedge",
+      "description": "A row of middling stars along the empty road.",
+      "startLongitudeDeg": 270,
+      "endLongitudeDeg": 282.8571,
+      "determinativeStar": "star-0189",
+      "determinativeMagnitude": 3.462,
+      "constellations": []
+    },
+    {
+      "number": 23,
+      "id": "fallow",
+      "name": "The Fallow",
+      "description": "Faint stars in the heart of the sun's empty road.",
+      "startLongitudeDeg": 282.8571,
+      "endLongitudeDeg": 295.7143,
+      "determinativeStar": "star-0382",
+      "determinativeMagnitude": 4.098,
+      "constellations": []
+    },
+    {
+      "number": 24,
+      "id": "milestone",
+      "name": "The Milestone",
+      "description": "A bright star standing at the edge of the path.",
+      "startLongitudeDeg": 295.7143,
+      "endLongitudeDeg": 308.5714,
+      "determinativeStar": "star-0044",
+      "determinativeMagnitude": 2.001,
+      "constellations": []
+    },
+    {
+      "number": 25,
+      "id": "crossroads",
+      "name": "The Crossroads",
+      "description": "Scattered faint stars where the road turns.",
+      "startLongitudeDeg": 308.5714,
+      "endLongitudeDeg": 321.4286,
+      "determinativeStar": "star-0362",
+      "determinativeMagnitude": 4.043,
+      "constellations": []
+    },
+    {
+      "number": 26,
+      "id": "gate",
+      "name": "The Gate",
+      "description": "A lone star before the Scythe.",
+      "startLongitudeDeg": 321.4286,
+      "endLongitudeDeg": 334.2857,
+      "determinativeStar": "star-0125",
+      "determinativeMagnitude": 3.048,
+      "constellations": []
+    },
+    {
+      "number": 27,
+      "id": "scythe-edge",
+      "name": "The Scythe's Edge",
+      "description": "The bright blade of the Scythe.",
+      "startLongitudeDeg": 334.2857,
+      "endLongitudeDeg": 347.1429,
+      "determinativeStar": "star-0002",
+      "determinativeMagnitude": -0.466,
+      "constellations": [
+        "scythe"
+      ]
+    },
+    {
+      "number": 28,
+      "id": "sheaf",
+      "name": "The Sheaf",
+      "description": "The gathered stars after the Scythe, closing the year's round.",
+      "startLongitudeDeg": 347.1429,
+      "endLongitudeDeg": 360,
+      "determinativeStar": "star-0175",
+      "determinativeMagnitude": 3.389,
+      "constellations": []
     }
   ]
 }

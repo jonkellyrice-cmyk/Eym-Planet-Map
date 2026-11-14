@@ -85,3 +85,40 @@ export const SCULPTED_FIGURES = Object.freeze([
   { id: "lantern", name: "The Lantern", hemisphere: "north", description: "A hanging ring above a tall lantern body.",
     points: [[0, 8], [-3, 5], [3, 5], [-3, -5], [3, -5]], lines: [[0, 1], [0, 2], [1, 2], [1, 3], [2, 4], [3, 4]] },
 ]);
+
+/**
+ * The 28 lunar mansions: equal 12.86° divisions of the path of the sun (where both moons travel),
+ * numbered from the northward equinox in the direction the sun and moons move. The White Moon crosses
+ * about one mansion a night. Each is named for its determinative star (the brightest within 10° of
+ * the path) and the figure or stretch of sky it lies in. Order matters: entry n is mansion n + 1.
+ */
+export const LUNAR_MANSION_NAMES = Object.freeze([
+  ["The Yoke-Pin", "The bright pin of the Yoke, where the year's mansions begin."],
+  ["The Ox", "The faint stars trailing the Yoke, the beast in harness."],
+  ["The Ploughshare", "The blade of the Plough, beside the Adder's coils."],
+  ["The Furrow", "A dim stretch behind the Plough, the turned earth."],
+  ["The Hearth", "The Hearthstones in the Staff, a tight knot of bright stars."],
+  ["The Smoke", "A few faint stars rising beyond the Hearth."],
+  ["The Well", "A lone modest star in an open field of sky."],
+  ["The Beacon", "A brilliant solitary star that belongs to no figure."],
+  ["The Shallows", "A bright star just ahead of the Pike."],
+  ["The Pike's Eye", "The brightest star of the Pike."],
+  ["The Weir", "Open sky past the Pike's tail."],
+  ["The Net", "A loose scatter of middling stars."],
+  ["The Distaff", "The Spindle, where thread is spun."],
+  ["The Loom", "A bright star on the edge of the path, beyond the Spindle."],
+  ["The Hollow", "An almost empty stretch of the path."],
+  ["The Bowstring", "The trailing stars of Erastil's Bow."],
+  ["The Bow's Belly", "The bright curve of Erastil's Bow."],
+  ["The Quiver", "Middling stars beside the Bow."],
+  ["The Watchfire", "A brilliant lone star on the empty road of the sun."],
+  ["The Thicket", "Faint stars clustered off the path."],
+  ["The Barren Field", "The dimmest mansion, with hardly a star to mark it."],
+  ["The Hedge", "A row of middling stars along the empty road."],
+  ["The Fallow", "Faint stars in the heart of the sun's empty road."],
+  ["The Milestone", "A bright star standing at the edge of the path."],
+  ["The Crossroads", "Scattered faint stars where the road turns."],
+  ["The Gate", "A lone star before the Scythe."],
+  ["The Scythe's Edge", "The bright blade of the Scythe."],
+  ["The Sheaf", "The gathered stars after the Scythe, closing the year's round."],
+]);

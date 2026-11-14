@@ -15,7 +15,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { angularDistanceDeg, cross, dot, latitudeDeg, normalize } from "../scripts/sky-frame.mjs";
 import { eymSky, findCandidates, starId } from "./find-constellation-candidates.mjs";
-import { ASTERISMS, CONSTELLATION_NAMES } from "./constellation-canon.mjs";
+import { ASTERISMS, CONSTELLATION_NAMES, LUNAR_MANSION_NAMES } from "./constellation-canon.mjs";
 import { buildBaseStarfield } from "./generate-starfield.mjs";
 import { planSculpt } from "./sculpt-constellations.mjs";
 
@@ -93,6 +93,27 @@ export function buildConstellations(root = ROOT) {
     return { ...a, within: [...new Set(a.stars.map((s) => owner.get(s)).filter(Boolean))].sort() };
   });
 
+  // Lunar mansions: 28 equal divisions of the path of the sun, from the northward equinox.
+  const MANSION_WIDTH = 360 / LUNAR_MANSION_NAMES.length, MANSION_HALF_WIDTH_DEG = 10;
+  const figureOf = new Map(constellations.flatMap((c) => c.stars.map((s) => [s, c.id])));
+  const lunarMansions = LUNAR_MANSION_NAMES.map(([name, description], index) => {
+    const start = index * MANSION_WIDTH, end = start + MANSION_WIDTH;
+    const members = starfield.stars.map((row, i) => ({ id: starId(i), d: row.slice(0, 3), mag: row[3] }))
+      .filter((star) => { const l = longitude(star.d); return l >= start && l < end && Math.abs(latitudeDeg(star.d, sky.sunPathPole)) <= MANSION_HALF_WIDTH_DEG; })
+      .sort((a, b) => a.mag - b.mag);
+    if (!members.length) throw new Error(`${name} has no stars`);
+    const determinative = members[0];
+    return {
+      number: index + 1,
+      id: name.toLowerCase().replace(/^the /, "").replace(/'s\b/g, "").replace(/[^a-z0-9]+/g, "-"),
+      name, description,
+      startLongitudeDeg: round(start, 4), endLongitudeDeg: round(end, 4),
+      determinativeStar: determinative.id,
+      determinativeMagnitude: determinative.mag,
+      constellations: [...new Set(members.map((star) => figureOf.get(star.id)).filter(Boolean))].sort(),
+    };
+  });
+
   return {
     schemaVersion: 1,
     modelVersion: CONSTELLATIONS_MODEL_VERSION,
@@ -110,9 +131,11 @@ export function buildConstellations(root = ROOT) {
       chief: constellations.filter((c) => c.tier === "chief").length,
       sunPath: sunPathOrder.length,
       asterisms: asterisms.length,
+      lunarMansions: lunarMansions.length,
     },
     constellations,
     asterisms,
+    lunarMansions,
   };
 }
 

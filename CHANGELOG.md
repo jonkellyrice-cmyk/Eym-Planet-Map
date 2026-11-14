@@ -2,6 +2,8 @@
 
 ## 0.12.0 — Eym Planet Map (single-system edition)
 
+- Sky: 13 more constellations sculpted from spare stars (80 of 2,000 stars nudged a median 2.3°; the original 35 and the asterisms unchanged), for 48 in all, 24 per hemisphere; 28 lunar mansions along the path of the sun, each with a determinative star.
+- Moons: the White Moon (radius 1,760 km, eccentricity 0.055) now gives both total and annular solar eclipses; the Red Moon is inclined 10° so it eclipses only near its nodes; both moons' nodes regress and periapses advance like Earth's Moon's. New moon-event model and almanac: phases, double full and double dark, solar and lunar eclipses, occultations of the White Moon by the Red, and tides that match Earth's on average.
 - The star is now a twin of Earth's Sun (G2V) and Eym an Earth twin at 1 AU (Earth's radius, mass, gravity, 23.44° tilt with precession and obliquity metadata, eccentricity 0.0167, Earth-like magnetic field). Every heliocentric orbit was scaled by 1/0.68 so the system keeps its architecture; periods follow Kepler. Surface water and continents are unchanged pending the reseed.
 - Eym's year is exactly 350 days of 24 hours, so an Eym second is 1.0435 SI seconds; registry days and hours are now Eym units.
 - Added Eym's White Moon (sets the 28-day month) and Red Moon, with Earth-like average tides, Hill-stable non-resonant orbits, and occasional double full moons.

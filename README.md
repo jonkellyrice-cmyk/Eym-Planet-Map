@@ -11,7 +11,7 @@ The module id is `eym-planet-map`, so it installs alongside the original Orphane
 - An interactive AU-scale map of all 12 objects of the Sun's system (the Sun, seven planets and dwarf worlds, Eym's White and Red Moons, and Tribune's moon Enoch), keeping physical hierarchical coordinates separate from compressed display coordinates.
 - The system is the outermost level: double-click/double-tap or zoom inward from system → body, with a breadcrumb back to the system; zooming out stops at the system.
 - A fixed night sky around the system: 2,000 naked-eye stars, the galactic band and a distant sister galaxy, drawn inside-looking-out behind the system view and turning with the camera (see `tools/generate-starfield.mjs`).
-- 35 named constellations and 4 asterisms in plain English (16 northern, 19 southern; 7 chief constellations in each hemisphere; 8 on the path of the sun, in order), stored as star-to-star line data in `data/stellar/constellations.json` (see `tools/generate-constellations.mjs`).
+- 48 named constellations (24 per hemisphere: 35 discovered in the generated stars plus 13 sculpted by nudging spare stars; 7 chief constellations per hemisphere; 8 on the path of the sun, in order), 4 asterisms and 28 lunar mansions, in plain English with Pathfinder 2e canon deity names where a figure matches a deity's symbol or favored weapon. Stored as star-to-star line data in `data/stellar/constellations.json` (see `tools/constellation-canon.mjs`, `tools/sculpt-constellations.mjs` and `tools/generate-constellations.mjs`).
 - Four inhabited terrestrial worlds (Ramses, Eventide, Thraximundus, Kandahar) with accepted deterministic 2° cartography: coastlines, elevation/contours, hydrology, ecoregions, soils, resources, settlements, permanent cultural gazetteers, and transport geometry.
 - Seven non-cartographic natural bodies with accepted deterministic local surveys (barren worlds, moons, giants).
 - Culture-aware permanent names (Vadan for Abydos; the Aurethic, Vostrann, Xuānhari and Union naming cultures remain available for new systems).
@@ -27,6 +27,7 @@ The module id is `eym-planet-map`, so it installs alongside the original Orphane
 - **Time.** Eym's year is exactly 350 days of 24 hours × 60 minutes × 60 seconds. Because Eym's year is as long as Earth's, each Eym second is 1.0435 SI seconds; every day and hour value in the registry is in Eym units.
 - **Calendar.** Twelve months with Gregorian names, each exactly 28 days (4 weeks), then the 14-day **Year's End** holiday (month 13 in the clock's date inputs). Every month and every year begins on a Monday.
 - **Moons.** The **White Moon** (382,029 km, 0.50° across) has phases that repeat every 28 days and set the month. The **Red Moon** (195,000 km, 0.40° across) cycles every 9.77 days, so the two are only full together roughly every 7½ months. Their combined tides equal Earth's on average: great tides (~1.35×) when they line up, slack tides (~0.4×) when they are 90° apart.
+- **Moon events.** `scripts/moon-events.mjs` computes phases, double full moons and double dark nights (both within 12 hours, about every 9 months), solar eclipses (the White Moon's are total or annular like Earth's Moon's; the Red Moon is too small to cover the Sun), lunar eclipses, the Red Moon passing in front of the White Moon, and combined tides. Both moons' nodes regress and periapses advance like Earth's Moon's, so eclipse seasons drift through the calendar. `npm run moons:almanac -- 5017` lists a year's events with the lunar mansion each falls in.
 - **The other worlds** keep their original architecture: every orbit was scaled by 1/0.68 when the star changed, and periods follow Kepler's third law.
 
 **Astral travel (dormant).** Routes, relativistic voyages, the ship marker, the navigation profile and the second (shipboard proper time) clock are commented out in place, marked `ASTRAL TRAVEL (dormant)`, so they can be revived later.
@@ -79,6 +80,7 @@ npm run astronomy:validate
 npm run atlas:snapshot:check
 npm run starfield:check
 npm run constellations:check
+npm run moons:almanac -- 5017
 ```
 
 ## Coordinate model
