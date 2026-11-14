@@ -2,6 +2,8 @@
 
 A Foundry VTT v13 module: an interactive three-dimensional SVG map of a single star system (currently the **Abydos** system), with orbital, planetary-surface and local operational views. It is a single-system edition of the Orphaned Sun Cluster Map, being retooled for a fantasy campaign.
 
+On screen the system is called **The Sun**: its star is the **Sun** and Eventide is **Eym** (display names in `scripts/display-names.mjs`; the registry keeps the canonical names Abydos and Eventide because data files and seeds are keyed by them).
+
 The module id is still `orphaned-sun-cluster-map`, so it cannot be installed alongside the original module.
 
 ## Features

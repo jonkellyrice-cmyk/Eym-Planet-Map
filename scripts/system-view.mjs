@@ -1,6 +1,7 @@
 import { displayPosition, vectorFromOrbit } from "./system-data.mjs";
 import { createFactionEmblem, factionPresentationForOwner } from "./capital-icons.mjs";
 import { STAR_CLASSES, TWINKLE_GROUPS, buildSkyFrame } from "./starfield.mjs";
+import { objectDisplayName, parentDisplayName, systemDisplayName } from "./display-names.mjs";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -156,7 +157,7 @@ export class SystemView {
       marker.append(svgElement("line", { class: "oscm-faction-context-leader", x1: 0, y1: 18, x2: 0, y2: 35 }));
       marker.append(createFactionEmblem(faction));
       const title = svgElement("title");
-      title.textContent = `${faction.factionName} jurisdiction — ${this.model.name} System`;
+      title.textContent = `${faction.factionName} jurisdiction — ${systemDisplayName(this.model.name)}`;
       marker.append(title); this.factionLayer.append(marker); this.factionMarker = marker;
     }
 
@@ -181,7 +182,7 @@ export class SystemView {
         class: `oscm-system-object is-${object.objectClass}${object.selectable ? " is-selectable" : ""}`,
         tabindex: object.selectable ? 0 : -1,
         role: object.selectable ? "button" : "img",
-        "aria-label": `${object.name}, ${object.type}`,
+        "aria-label": `${objectDisplayName(object)}, ${object.type}`,
         "data-object-id": object.id,
       });
       const radius = baseRadius(object), colors = paletteFor(object);
@@ -189,9 +190,9 @@ export class SystemView {
       const selection = svgElement("circle", { class: "oscm-system-selection-ring", r: radius + 5, fill: "none" });
       const glyph = svgElement("g", { class: "oscm-system-glyph" });
       appendGlyph(glyph, object, radius, colors);
-      const label = svgElement("text", { class: "oscm-system-object-label", x: radius + 8, y: -4 }); label.textContent = object.name;
+      const label = svgElement("text", { class: "oscm-system-object-label", x: radius + 8, y: -4 }); label.textContent = objectDisplayName(object);
       const type = svgElement("text", { class: "oscm-system-object-type", x: radius + 8, y: 9 }); type.textContent = object.type;
-      const title = svgElement("title"); title.textContent = `${object.name} — ${object.type}; parent: ${object.parent}; reference distance: ${object.distance_from_parent} ${object.distance_unit}`;
+      const title = svgElement("title"); title.textContent = `${objectDisplayName(object)} — ${object.type}; parent: ${parentDisplayName(object)}; reference distance: ${object.distance_from_parent} ${object.distance_unit}`;
       group.append(hit, selection, glyph, label, type, title); this.objectLayer.append(group);
       this.objectNodes.set(object.id, { group, glyph, label, type, selection, object });
       if (object.selectable) {

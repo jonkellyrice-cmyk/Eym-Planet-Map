@@ -7,6 +7,7 @@
 - Validators and generators now expect the Abydos inventory (13 registry rows, 4 cartographic worlds, 8 operational bodies, 2 superstructures).
 - Astral travel (routes, voyages, ship marker, navigation profile, shipboard clock) is commented out in place as dormant code; one campaign clock remains.
 - Added a fixed night sky: 2,000 deterministic naked-eye stars, the galactic band and a distant sister galaxy behind the system view.
+- On screen, Abydos (the star) is now the Sun, Eventide is Eym, and the system is The Sun. These are display names only; canonical registry names remain the data keys.
 - Added Eym's constellations: 35 named stick figures and 4 asterisms found in the star catalogue and named in plain English (proper names from Pathfinder 2e canon deities where the figure matches a deity's favored weapon or symbol: Erastil's Bow, Iomedae's Sword, Gozreh's Trident, Cayden's Tankard, Irori's Belt; the galactic band is Desna's Path), with hemisphere, chief/lesser tier and path-of-the-sun order. `scripts/sky-frame.mjs` defines Eym's celestial pole (21° tilt toward its season-phase direction) for these and the coming ground view.
 
 ## 0.8.1

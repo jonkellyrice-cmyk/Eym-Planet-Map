@@ -19,6 +19,7 @@ import { loadBodyOperationAsset } from "./body-operations.mjs";
 import { AstronomySnapshotCache, loadAstronomyOrientations } from "./astronomy.mjs";
 import { UNION_EPOCH_MS } from "./universal-time.mjs";
 import { loadStarfield } from "./starfield.mjs";
+import { objectDisplayName, parentDisplayName, systemDisplayName } from "./display-names.mjs";
 
 export const MODULE_ID = "orphaned-sun-cluster-map";
 /** The only system this module exposes. Its name must match the `system` column of the registry CSV. */
@@ -43,7 +44,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     classes: ["orphaned-sun-cluster-map", "standard-form"],
     position: { width: 1120, height: 760 },
     window: {
-      title: `${HOME_SYSTEM.name} System`,
+      title: systemDisplayName(HOME_SYSTEM.name),
       icon: "fa-solid fa-star",
       resizable: true,
       minimizable: true,
@@ -62,7 +63,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       ...context,
       // ASTRAL TRAVEL (dormant): accelerationG, cruiseBeta and gridSpacing fed the navigation profile card.
       isGM: game.user.isGM,
-      systemName: HOME_SYSTEM.name,
+      systemTitle: systemDisplayName(HOME_SYSTEM.name),
     };
   }
 
@@ -181,13 +182,13 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       root.classList.remove("has-geography");
       root.classList.remove("has-operations");
       root.querySelector('[data-action="back-to-system"]')?.classList.add("is-hidden");
-      const title = root.querySelector("[data-map-title]"); if (title) title.textContent = `${system.name} System`;
+      const title = root.querySelector("[data-map-title]"); if (title) title.textContent = systemDisplayName(system.name);
       const count = root.querySelector("[data-map-count]"); if (count) count.textContent = `${model.objects.length} mapped objects`;
       const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Click / tap to select; double-click / double-tap to open";
       this.#updateRoutePanel(null, null);
     } catch (error) {
       console.error(`${MODULE_ID} | Unable to enter system view`, error);
-      ui.notifications.error(`Unable to load ${system.name} system data.`);
+      ui.notifications.error(`Unable to load ${systemDisplayName(system.name)} system data.`);
     }
   }
 
@@ -219,7 +220,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       root.classList.toggle("has-geography", Boolean(geography));
       root.classList.toggle("has-operations", Boolean(operations));
       root.querySelector('[data-action="back-to-system"]')?.classList.remove("is-hidden");
-      const title = root.querySelector("[data-map-title]"); if (title) title.textContent = object.name;
+      const title = root.querySelector("[data-map-title]"); if (title) title.textContent = objectDisplayName(object);
       const count = root.querySelector("[data-map-count]"); if (count) count.textContent = geography ? geography.schemaVersion === 2 ? `${geography.gazetteer.length} named features · 2° survey` : `${geography.cells.length} surface cells` : operations ? `${operations.operationalSummary.featureCount} operational features` : object.type;
       const help = root.querySelector("[data-map-help]"); if (help) help.textContent = geography
         ? "Click / tap a mapped surface feature"
@@ -227,7 +228,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
         : "Click / tap docking approaches; drag to inspect";
       this.#updateRoutePanel(null, null);
       this.#updateBodyMetadata(object, model);
-    } catch (error) { console.error(`${MODULE_ID} | Unable to enter body view`, error); ui.notifications.error(`Unable to load ${object.name} orbital view.`); }
+    } catch (error) { console.error(`${MODULE_ID} | Unable to enter body view`, error); ui.notifications.error(`Unable to load ${objectDisplayName(object)} orbital view.`); }
   }
 
   #updateBodyFeature(feature) {
@@ -235,7 +236,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     if (!feature) { this.#updateBodyMetadata(this.activeBody, this._clusterView?.model); return; }
     card.classList.remove("is-hidden");
     const inspected = inspectSurfaceFeature(feature);
-    const values = { objectName: inspected.name, objectType: inspected.type, objectParent: this.activeBody?.name || "—", objectRole: inspected.detail, objectScale: inspected.scale ?? (feature.suitability != null ? `Settlement suitability ${feature.suitability}` : "Survey extent not fixed") };
+    const values = { objectName: inspected.name, objectType: inspected.type, objectParent: (this.activeBody && objectDisplayName(this.activeBody)) || "—", objectRole: inspected.detail, objectScale: inspected.scale ?? (feature.suitability != null ? `Settlement suitability ${feature.suitability}` : "Survey extent not fixed") };
     for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-field="${field}"]`); if (element) element.textContent = value; }
   }
 
@@ -243,9 +244,9 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const root = this.element?.querySelector?.(".oscm-shell"), card = root?.querySelector(".oscm-object-details"); if (!root || !card || !object || !model) return;
     card.classList.remove("is-hidden");
     const values = {
-      objectName: object.name,
+      objectName: objectDisplayName(object),
       objectType: model.structureClass || object.type,
-      objectParent: object.parent || "—",
+      objectParent: parentDisplayName(object) || "—",
       objectRole: model.function || model.resourceProfile || object.hz_or_role || "Mapped orbital body",
       objectScale: model.dimensions || (model.radiusKm ? `${model.radiusKm.toLocaleString()} km radius` : "Distributed mapped region"),
     };
@@ -461,9 +462,9 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     card.classList.toggle("is-hidden", this.mode !== "system" || (!origin && !destination));
     const object = destination ?? origin;
     const values = {
-      objectName: object?.name ?? "—",
+      objectName: object ? objectDisplayName(object) : "—",
       objectType: object?.type ?? "—",
-      objectParent: object?.parent ?? "—",
+      objectParent: (object && parentDisplayName(object)) ?? "—",
       objectRole: object?.hz_or_role || object?.primary_function || "—",
       objectScale: object?.dimensions_estimate || (object?.radiusRe ? `${object.radiusRe} Earth radii` : "Schematic marker"),
     };

@@ -2,6 +2,7 @@ import { BodyView as CoreBodyView } from "../scripts/body-view-core.mjs";
 export { schematicVisualProfile, orthographicProject, bodyVisualContract, liveSuperstructureIdentity } from "../scripts/body-view-core.mjs";
 import { buildBodyOperationsRenderPlan, inspectBodyOperationFeature, loadBodyOperationAsset, projectOperationPosition } from "../scripts/body-operations.mjs";
 import { createFactionEmblem, factionPresentationForOwner } from "../scripts/capital-icons.mjs";
+import { displayNameFor } from "../scripts/display-names.mjs";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const el = (name, attrs = {}) => { const node = document.createElementNS(SVG_NS, name); for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value)); return node; };
@@ -88,7 +89,7 @@ export class BodyView extends CoreBodyView {
     const marker = el("g", { class: `oscm-faction-context-marker is-${faction.factionId}` });
     marker.append(el("line", { class: "oscm-faction-context-leader", x1: 0, y1: 18, x2: 0, y2: 34 }));
     marker.append(createFactionEmblem(faction));
-    const title = el("title"); title.textContent = `${faction.factionName} jurisdiction — ${this.model.body}`; marker.append(title);
+    const title = el("title"); title.textContent = `${faction.factionName} jurisdiction — ${displayNameFor(this.model.system, this.model.body)}`; marker.append(title);
     this.factionContextLayer.append(marker); this.svg.append(this.factionContextLayer); this.factionContextMarker = marker;
   }
 
