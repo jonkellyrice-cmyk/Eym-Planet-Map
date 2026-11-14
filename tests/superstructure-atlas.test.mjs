@@ -102,9 +102,9 @@ test("distributed superstructures remain networks rather than generic single sta
 });
 
 test("natural bodies remain outside the superstructure rendering and packet contract", () => {
-  const row = rowFor("Abydos", "Cataphract");
+  const row = rowFor("Abydos", "Red Moon");
   assert.ok(row);
-  const { item, sourceText, asset } = assetFor("Abydos", "Cataphract");
+  const { item, sourceText, asset } = assetFor("Abydos", "Red Moon");
   const snapshot = snapshotOperationalRich(asset, buildNaturalBodyModel(row), item.path, sourceText);
   assert.doesNotMatch(snapshot.referenceSvg, /data-superstructure=/);
   assert.doesNotMatch(snapshot.informationPacket, /Superstructure generation contract/);

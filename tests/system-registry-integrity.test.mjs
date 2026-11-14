@@ -46,8 +46,8 @@ test("non-selectable regions remain visible but unavailable as route endpoints (
 
 test("all system objects retain canonical identity and reference measurements", () => {
   const objects = systems.flatMap((system) => buildSystemModel(rows, system).objects);
-  assert.equal(objects.length, 12);
-  assert.equal(new Set(objects.map((object) => object.id)).size, 12);
+  assert.equal(objects.length, 9);
+  assert.equal(new Set(objects.map((object) => object.id)).size, 9);
   for (const object of objects) {
     assert.ok(object.name && object.type && object.parent);
     assert.ok(object.distanceAu >= 0);

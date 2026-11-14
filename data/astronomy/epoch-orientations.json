@@ -4,13 +4,6 @@
   "modelVersion": "kepler-snapshot-v1",
   "note": "Only genuinely unconstrained epoch orientations are generated. Registry periods, tilts, reference orbital phases, and tidal locks remain authoritative.",
   "orientations": {
-    "abydos-cataphract": {
-      "spinPhaseAtEpochDeg": 320.200434811,
-      "axialSeasonPhaseAtEpochDeg": 202.486870587,
-      "spinPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + rotation-epoch-phase-v1",
-      "axialSeasonPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + axial-season-phase-v1",
-      "seedBasis": "DERIVED: immutable canonical identity fingerprint"
-    },
     "abydos-ramses": {
       "spinPhaseAtEpochDeg": 358.016386908,
       "axialSeasonPhaseAtEpochDeg": 11.191187035,
@@ -61,20 +54,6 @@
     "abydos-enoch": {
       "axialSeasonPhaseAtEpochDeg": 345.290174,
       "spinPhaseProvenance": "DERIVED: synchronous tidal lock to orbital geometry",
-      "axialSeasonPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + axial-season-phase-v1",
-      "seedBasis": "DERIVED: immutable canonical identity fingerprint"
-    },
-    "abydos-sumatra": {
-      "spinPhaseAtEpochDeg": 341.439098781,
-      "axialSeasonPhaseAtEpochDeg": 347.045920948,
-      "spinPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + rotation-epoch-phase-v1",
-      "axialSeasonPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + axial-season-phase-v1",
-      "seedBasis": "DERIVED: immutable canonical identity fingerprint"
-    },
-    "abydos-ventus": {
-      "spinPhaseAtEpochDeg": 84.958145432,
-      "axialSeasonPhaseAtEpochDeg": 325.831117071,
-      "spinPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + rotation-epoch-phase-v1",
       "axialSeasonPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + axial-season-phase-v1",
       "seedBasis": "DERIVED: immutable canonical identity fingerprint"
     }

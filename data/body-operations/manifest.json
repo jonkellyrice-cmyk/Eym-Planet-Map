@@ -4,18 +4,8 @@
   "modelVersion": "orphaned-sun-body-operations-v1",
   "sourceRegistry": "docs/system-orbital-distances.csv",
   "sourceCartographyManifest": "data/planet-cartography/manifest.json",
-  "targetCount": 7,
+  "targetCount": 4,
   "assets": [
-    {
-      "system": "Abydos",
-      "body": "Cataphract",
-      "canonicalType": "rocky planet",
-      "operationalKind": "natural-solid",
-      "path": "data/body-operations/abydos/cataphract.json",
-      "seed": "a3505837e24554ca",
-      "fingerprint": "66b7dae221341b3d35b5",
-      "featureCount": 11
-    },
     {
       "system": "Abydos",
       "body": "Enoch",
@@ -38,16 +28,6 @@
     },
     {
       "system": "Abydos",
-      "body": "Sumatra",
-      "canonicalType": "ice/gas giant",
-      "operationalKind": "giant",
-      "path": "data/body-operations/abydos/sumatra.json",
-      "seed": "3b965b31f6172ec0",
-      "fingerprint": "ef0486a5b4fe7ce2da88",
-      "featureCount": 13
-    },
-    {
-      "system": "Abydos",
       "body": "Tribune",
       "canonicalType": "gas giant",
       "operationalKind": "giant",
@@ -55,16 +35,6 @@
       "seed": "6da71cef11d5534a",
       "fingerprint": "dabc88a8338e3ecff059",
       "featureCount": 13
-    },
-    {
-      "system": "Abydos",
-      "body": "Ventus",
-      "canonicalType": "outer icy/dwarf world",
-      "operationalKind": "natural-solid",
-      "path": "data/body-operations/abydos/ventus.json",
-      "seed": "92e4fbaa636c3585",
-      "fingerprint": "747110352f5de4ecf9a5",
-      "featureCount": 15
     },
     {
       "system": "Abydos",

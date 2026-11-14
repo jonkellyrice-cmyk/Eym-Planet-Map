@@ -37,12 +37,12 @@ test("operational target classifier covers all Phase-2 families", () => {
 test("target derivation excludes worlds already represented by inhabited cartography", () => {
   const rows = [
     { system: "Abydos", object: "Ramses", type: "terrestrial world" },
-    { system: "Abydos", object: "Cataphract", type: "barren rocky planet" },
+    { system: "Abydos", object: "Synthetic Barren Planet", type: "barren rocky planet" },
     { system: "Seti", object: "Arrowfall Range", type: "military range / installation field" },
   ];
   const cartography = { worlds: [{ system: "Abydos", body: "Ramses" }] };
   const targets = deriveBodyOperationTargets(rows, cartography);
-  assert.deepEqual(targets.map(({ row }) => `${row.system}/${row.object}`), ["Abydos/Cataphract", "Seti/Arrowfall Range"]);
+  assert.deepEqual(targets.map(({ row }) => `${row.system}/${row.object}`), ["Abydos/Synthetic Barren Planet", "Seti/Arrowfall Range"]);
 });
 
 test("seeds, fingerprints, paths and model identity are deterministic contracts", () => {

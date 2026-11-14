@@ -6,12 +6,22 @@ import { buildNaturalBodyModel, buildNaturalBodyModels, naturalBodyKind } from "
 
 const rows = parseCsv(readFileSync(new URL("../docs/system-orbital-distances.csv", import.meta.url), "utf8"));
 
-test("natural body models cover terrestrial, moon, minor-world, and giant families in Abydos", () => {
+test("natural body models cover terrestrial, moon, and giant families in Abydos", () => {
   const models = buildNaturalBodyModels(rows);
   const kinds = new Set(models.map((model) => model.kind));
-  assert.deepEqual(kinds, new Set(["terrestrial", "moon", "minor-world", "giant"]));
+  assert.deepEqual(kinds, new Set(["terrestrial", "moon", "giant"]));
   assert.equal(models.length, rows.filter((row) => naturalBodyKind(row)).length);
-  assert.equal(models.length, 11);
+  assert.equal(models.length, 8);
+});
+
+test("minor-world bodies still build a natural-solid model (synthetic icy dwarf; Abydos has none)", () => {
+  const dwarf = { system: "Dwarf Test", object: "Test Dwarf", type: "icy dwarf planet", parent: "Test Star", distance_from_parent: "6.4", distance_unit: "AU" };
+  assert.equal(naturalBodyKind(dwarf), "minor-world");
+  const model = buildNaturalBodyModel(dwarf);
+  assert.equal(model.kind, "minor-world");
+  assert.ok(model.surfaceCharacter, "minor worlds keep a natural-solid surface profile");
+  assert.ok(model.radiusKm > 0 && model.palette && model.composition && model.regions.length);
+  assert.ok(model.resourceProfile && model.radiationProfile);
 });
 
 test("asteroid-field bodies still build a natural model (synthetic belt; Abydos has none)", () => {

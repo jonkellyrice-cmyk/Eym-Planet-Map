@@ -14,23 +14,23 @@ const row = (system, object) => rows.find((item) => item.system === system && it
 const asset = (path) => JSON.parse(fs.readFileSync(path, "utf8"));
 
 test("natural-solid reference renders a complete deterministic surface survey", () => {
-  const path = "data/body-operations/abydos/cataphract.json";
+  const path = "data/body-operations/abydos/red-moon.json";
   const source = fs.readFileSync(path, "utf8"), operations = JSON.parse(source);
-  const snapshot = snapshotOperationalRich(operations, buildNaturalBodyModel(row("Abydos", "Cataphract")), path, source);
+  const snapshot = snapshotOperationalRich(operations, buildNaturalBodyModel(row("Abydos", "Red Moon")), path, source);
   assert.match(snapshot.referenceSvg, /surface survey chart/);
   assert.match(snapshot.referenceSvg, /surface-bg/);
-  assert.match(snapshot.referenceSvg, /Crater Mariner Reach/);
+  assert.match(snapshot.referenceSvg, /Crater Mariner Rise/);
   assert.match(snapshot.informationPacket, /Visual \/ physical profile/);
-  assert.match(snapshot.informationPacket, /iron-rich silicate rock/);
+  assert.match(snapshot.informationPacket, /iron-oxide-rich basalt/);
 });
 
 test("giant reference renders atmospheric bands and canonical visual profile", () => {
-  const path = "data/body-operations/abydos/sumatra.json";
+  const path = "data/body-operations/abydos/tribune.json";
   const source = fs.readFileSync(path, "utf8"), operations = JSON.parse(source);
-  const snapshot = snapshotOperationalRich(operations, buildNaturalBodyModel(row("Abydos", "Sumatra")), path, source);
+  const snapshot = snapshotOperationalRich(operations, buildNaturalBodyModel(row("Abydos", "Tribune")), path, source);
   assert.match(snapshot.referenceSvg, /atmospheric survey chart/);
   assert.match(snapshot.referenceSvg, /stroke-width=/);
-  assert.match(snapshot.informationPacket, /blue-gray \/ charcoal bands/);
+  assert.match(snapshot.informationPacket, /cream \/ tan \/ rust bands/);
 });
 
 // The setting has no stations; a synthetic (non-canon) distributed watch array, with an identity shaped like the entries

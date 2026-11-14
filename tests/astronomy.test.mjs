@@ -68,9 +68,10 @@ test("all canonical orbit hierarchies and ellipse metadata validate", () => {
 test("fabricated orientations are frozen, provenance-labelled, and irregular", () => {
   const entries = Object.values(orientationDocument.orientations);
   const spins = entries.flatMap((entry) => entry.spinPhaseAtEpochDeg == null ? [] : [entry.spinPhaseAtEpochDeg]);
-  assert.equal(entries.length, 11);
-  assert.equal(spins.length, 8);
-  assert.ok(new Set(spins.map((value) => Math.floor(value / 30))).size >= 6);
+  assert.equal(entries.length, 8);
+  assert.equal(spins.length, 5);
+  // Five free spins (White Moon, Red Moon and Enoch are tidally locked): all but one fall in distinct 30-degree sectors.
+  assert.ok(new Set(spins.map((value) => Math.floor(value / 30))).size >= spins.length - 1);
   assert.ok(entries.every((entry) => /DETERMINISTIC WORKING CANON/.test(entry.axialSeasonPhaseProvenance)));
   assert.ok(entries.filter((entry) => entry.spinPhaseAtEpochDeg == null).every((entry) => /DERIVED: synchronous tidal lock/.test(entry.spinPhaseProvenance)));
 });

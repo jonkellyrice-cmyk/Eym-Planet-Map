@@ -29,9 +29,9 @@ const required = [
   "DO_NOT=",
 ];
 
-test("the committed bundle has no superstructures and none of its 11 entries leaks the superstructure style contract", () => {
+test("the committed bundle has no superstructures and none of its 8 entries leaks the superstructure style contract", () => {
   assert.equal(superstructures.length, 0);
-  assert.equal(naturalOrLegacy.length, 11);
+  assert.equal(naturalOrLegacy.length, 8);
   assert.deepEqual(superstructures.map((entry) => entry.name).sort(), []);
   for (const entry of naturalOrLegacy) {
     assert.equal(entry.informationPacket.includes("RENDER=high-fidelity Orphaned Sun superstructure atlas artwork"), false, `${entry.name} leaked superstructure style contract`);

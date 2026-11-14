@@ -38,11 +38,13 @@ test("accepted names follow controlling culture and remain collision-free per wo
   }
 });
 
-test("canonical CSV is pinned to the Earth-twin canon edit", () => {
+test("canonical CSV is pinned to the four-wandering-stars canon edit", () => {
   // Re-pinned deliberately after the Earth-twin edit (Sun-like star, Earth-twin Eym at 1 AU, orbits rescaled,
-  // White and Red Moons added, sci-fi objects removed). Any further registry change must re-pin this on purpose.
+  // White and Red Moons added, sci-fi objects removed), then re-pinned deliberately again after removing Cataphract,
+  // Sumatra and Ventus: the four "wandering stars" Ramses, Thraximundus, Kandahar and Tribune remain besides Eventide.
+  // Any further registry change must re-pin this on purpose.
   const csv = readFileSync(new URL("docs/system-orbital-distances.csv", root));
-  assert.equal(createHash("sha256").update(csv).digest("hex"), "e47c3d0cc8fee751a5d368eb80e4bc36bf2cb63ad3100faf8df206afd50e9479");
+  assert.equal(createHash("sha256").update(csv).digest("hex"), "18be33039386b763053fd66c83e12618ccaa859eb3a33089db6d288b1c8e1f86");
 });
 
 test("Eventide's accepted canon remains continent-free and ocean dominated", () => {

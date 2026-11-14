@@ -34,13 +34,18 @@ test("one Eym second is 1.0435 SI seconds, so Earth's year holds exactly 350 Eym
 });
 
 test("the rest of the system keeps its architecture: every heliocentric orbit scaled by 1/0.68, periods from Kepler", () => {
-  const before = { Cataphract: 0.33, Ramses: 0.52, Thraximundus: 0.82, Kandahar: 1.04, Tribune: 1.95, Sumatra: 3.65, Ventus: 6.40 };
+  const before = { Ramses: 0.52, Thraximundus: 0.82, Kandahar: 1.04, Tribune: 1.95 };
   for (const [name, old] of Object.entries(before)) {
     const a = num(name, "distance_from_parent");
     assert.ok(Math.abs(a - old / 0.68) < 1e-4, name);
     // Distances are stored to 4 decimals, so compare periods to 1 part in 10,000.
     assert.ok(Math.abs(num(name, "orbital_period_days") / (350 * a ** 1.5) - 1) < 1e-4, `${name} period`);
   }
+});
+
+test("exactly four planets besides Eventide orbit the Sun: the wandering stars Ramses, Thraximundus, Kandahar and Tribune", () => {
+  const planets = rows.filter((r) => r.parent === "Abydos" && r.object !== "Eventide").map((r) => r.object).sort();
+  assert.deepEqual(planets, ["Kandahar", "Ramses", "Thraximundus", "Tribune"]);
 });
 
 test("the White Moon's phases make the 28-day month; the Red Moon's do not line up with it", () => {

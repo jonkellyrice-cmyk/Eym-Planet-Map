@@ -19,8 +19,8 @@ const BINARY_FIXTURE_ROWS = [
   binaryRow("Test World", "habitable terrestrial", "Test barycenter", 1.0, 35, { orbital_period_days: "288.755", orbital_eccentricity: "0.0447" }),
 ];
 
-test("canonical registry parses all 12 Abydos objects in one system", () => {
-  assert.equal(rows.length, 12);
+test("canonical registry parses all 9 Abydos objects in one system", () => {
+  assert.equal(rows.length, 9);
   assert.deepEqual([...new Set(rows.map((row) => row.system))], ["Abydos"]);
 });
 

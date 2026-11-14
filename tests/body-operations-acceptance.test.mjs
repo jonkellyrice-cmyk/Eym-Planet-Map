@@ -16,8 +16,9 @@ test("all accepted assets regenerate byte-for-byte from the current canonical re
 const synthetic = (object, type) => generateBodyOperationAsset({ system: "Abydos", object, type, parent: "Abydos" });
 
 test("gas giants keep an atmospheric survey with no solid-surface routes", () => {
-  for (const body of ["Tribune", "Sumatra"]) {
-    const giant = assetFor(body);
+  // Tribune is the canonical gas giant; Abydos has no ice/gas giant, so a synthetic row keeps that type under test.
+  const giants = { Tribune: assetFor("Tribune"), "Synthetic Ice Giant": synthetic("Synthetic Ice Giant", "ice/gas giant") };
+  for (const [body, giant] of Object.entries(giants)) {
     assert.equal(giant.operationalKind, "giant", body);
     assert.ok(giant.features.some((feature) => feature.layer === "storms"), body);
     assert.ok(!giant.features.some((feature) => feature.layer === "routes" || /surface route/i.test(feature.operationalRole)), body);

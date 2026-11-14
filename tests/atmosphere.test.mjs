@@ -84,7 +84,8 @@ test("known nonhabitable atmosphere cases remain nonhabitable", () => {
   assert.equal(tribuneAtmosphere.breathability.longTermUnassistedHumanCompatible, false);
   assert.ok(tribuneAtmosphere.dryCompositionPct.H2 > 70);
 
-  const cataphract = deriveAtmosphereMetadata(rows.find((row) => row.object === "Cataphract"));
-  assert.equal(cataphract.breathability.longTermUnassistedHumanCompatible, false);
-  assert.equal(cataphract.pressureAtm, 0.08);
+  // Enoch's tenuous exosphere is the surviving thin, nonzero-pressure, nonbreathable case.
+  const enoch = deriveAtmosphereMetadata(rows.find((row) => row.object === "Enoch"));
+  assert.equal(enoch.breathability.longTermUnassistedHumanCompatible, false);
+  assert.equal(enoch.pressureAtm, 0.02);
 });

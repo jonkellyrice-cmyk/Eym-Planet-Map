@@ -6,11 +6,11 @@
   "count": 0,
   "sourceRegistry": {
     "path": "docs/system-orbital-distances.csv",
-    "sha256": "7a3a14dda0cfd1f17390980c8cb99a03fa4f2a37c77dc9a83db8e9a83bc6f6c8"
+    "sha256": "18be33039386b763053fd66c83e12618ccaa859eb3a33089db6d288b1c8e1f86"
   },
   "sourceOperationsManifest": {
     "path": "data/body-operations/manifest.json",
-    "sha256": "c94f524ec0be4f8f0ab9f71f6f1a28f5e4d3966a206bc16f243ed57cdaba1608",
+    "sha256": "88c2cb2e20c6b78d1568b7eb016449593c98f9732c59cedc4fe2ccb7d70fd28d",
     "modelVersion": "orphaned-sun-body-operations-v1"
   },
   "policy": {
