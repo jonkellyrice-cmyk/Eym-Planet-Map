@@ -1,0 +1,395 @@
+{
+  "schemaVersion": 1,
+  "system": "Iunu",
+  "body": "Vostara",
+  "canonicalType": "moon",
+  "operationalKind": "natural-solid",
+  "permanentOperationalSeed": "675b2348221aa827",
+  "operationalModelVersion": "orphaned-sun-body-operations-v1",
+  "canonicalSourceFingerprint": "bc90d3c0fc9cc0878d78",
+  "acceptedCanonStatus": "accepted-generated-canon",
+  "coordinateFrame": {
+    "id": "body-fixed-spherical",
+    "axes": "+lat north; +lon east",
+    "origin": "body center / IAU-style reference meridian",
+    "units": {
+      "latitude": "deg",
+      "longitude": "deg",
+      "elevation": "km"
+    },
+    "geometryKind": "constrained estimate"
+  },
+  "namingProfile": "vostrann",
+  "layers": [
+    {
+      "id": "terrain",
+      "label": "Terrain",
+      "defaultVisible": true
+    },
+    {
+      "id": "landmarks",
+      "label": "Named landmarks",
+      "defaultVisible": true
+    },
+    {
+      "id": "resources",
+      "label": "Resources",
+      "defaultVisible": false
+    },
+    {
+      "id": "installations",
+      "label": "Installations",
+      "defaultVisible": true
+    },
+    {
+      "id": "hazards",
+      "label": "Hazards",
+      "defaultVisible": true
+    },
+    {
+      "id": "routes",
+      "label": "Surface routes",
+      "defaultVisible": true
+    }
+  ],
+  "features": [
+    {
+      "id": "natural-solid-crater-01",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Morozgrad Crater",
+      "position": {
+        "lat": 31.34,
+        "lon": -137.636,
+        "elevation": 0.12
+      },
+      "dimensions": {
+        "radius": 22.8,
+        "unit": "km"
+      },
+      "operationalRole": "major retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-02",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Muirgrad Crater",
+      "position": {
+        "lat": 8.56,
+        "lon": -5.244,
+        "elevation": 0.54
+      },
+      "dimensions": {
+        "radius": 31.37,
+        "unit": "km"
+      },
+      "operationalRole": "major retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-03",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Krasova Crater",
+      "position": {
+        "lat": 1,
+        "lon": 132.397,
+        "elevation": -0.53
+      },
+      "dimensions": {
+        "radius": 8.8,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-04",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Blackwakereach Crater",
+      "position": {
+        "lat": 49.562,
+        "lon": -74.004,
+        "elevation": -0.71
+      },
+      "dimensions": {
+        "radius": 16.21,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-05",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Glenreach Crater",
+      "position": {
+        "lat": -58.825,
+        "lon": 61.749,
+        "elevation": -0.31
+      },
+      "dimensions": {
+        "radius": 14.85,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 3,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-06",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Blackwakeova Crater",
+      "position": {
+        "lat": 10.643,
+        "lon": -174.684,
+        "elevation": 0.21
+      },
+      "dimensions": {
+        "radius": 35.65,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 3,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-basin-07",
+      "type": "basin",
+      "layer": "landmarks",
+      "name": "Krasgrad Basin",
+      "position": {
+        "lat": 8.032,
+        "lon": -27.413,
+        "elevation": 0.27
+      },
+      "dimensions": {
+        "radius": 112.88,
+        "unit": "km"
+      },
+      "operationalRole": "major impact basin / regional datum",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded basin constrained by body scale and surface age.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-ridge-08",
+      "type": "ridge",
+      "layer": "terrain",
+      "name": "Glenova Ridge",
+      "position": {
+        "lat": -28.615,
+        "lon": 105.138,
+        "elevation": -0.62
+      },
+      "dimensions": {
+        "radius": 106.11,
+        "unit": "km"
+      },
+      "operationalRole": "major relief / traverse landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded relief consistent with the activity regime.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-scarp-09",
+      "type": "scarp",
+      "layer": "terrain",
+      "name": "Cairngrad Scarp",
+      "position": {
+        "lat": -3.176,
+        "lon": -105.738,
+        "elevation": 0.13
+      },
+      "dimensions": {
+        "radius": 108.17,
+        "unit": "km"
+      },
+      "operationalRole": "regional fault/impact scarp",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Seeded broad scarp; no fine fault network implied.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-ice-10",
+      "type": "ice",
+      "layer": "resources",
+      "name": "Cold Trap 10",
+      "position": {
+        "lat": -69.738,
+        "lon": 35.797,
+        "elevation": -0.69
+      },
+      "dimensions": {
+        "radius": 117.85,
+        "unit": "km"
+      },
+      "operationalRole": "major volatile reserve / cold-trap province",
+      "resource": "water ice; likely CO2, ammonia and minor carbon-bearing ices in cold traps/regolith",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Volatile province constrained by canonical abundance.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-ice-11",
+      "type": "ice",
+      "layer": "resources",
+      "name": "Cold Trap 11",
+      "position": {
+        "lat": 80.622,
+        "lon": 159.527,
+        "elevation": -0.7
+      },
+      "dimensions": {
+        "radius": 71.12,
+        "unit": "km"
+      },
+      "operationalRole": "secondary ice/volatile province",
+      "resource": "water ice; likely CO2, ammonia and minor carbon-bearing ices in cold traps/regolith",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Volatile province constrained by canonical abundance.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-deposit-12",
+      "type": "deposit",
+      "layer": "resources",
+      "name": "Province 12",
+      "position": {
+        "lat": 38.318,
+        "lon": -66.911,
+        "elevation": -0.6
+      },
+      "dimensions": {
+        "radius": 56.95,
+        "unit": "km"
+      },
+      "operationalRole": "surveyed resource-bearing province",
+      "resource": "Fe-Ni-Co ores; silicates; construction feedstock; water ice; ammonia/CO2-bearing volatiles",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Resource province constrained by canonical material metadata.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-deposit-13",
+      "type": "deposit",
+      "layer": "resources",
+      "name": "Province 13",
+      "position": {
+        "lat": 9.485,
+        "lon": 88.507,
+        "elevation": -0.21
+      },
+      "dimensions": {
+        "radius": 82.06,
+        "unit": "km"
+      },
+      "operationalRole": "surveyed resource-bearing province",
+      "resource": "Fe-Ni-Co ores; silicates; construction feedstock; water ice; ammonia/CO2-bearing volatiles",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Resource province constrained by canonical material metadata.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-hazard-14",
+      "type": "hazard",
+      "layer": "hazards",
+      "name": "Exclusion 14",
+      "position": {
+        "lat": 12.889,
+        "lon": -149.052,
+        "elevation": -0.29
+      },
+      "dimensions": {
+        "radius": 85.14,
+        "unit": "km"
+      },
+      "operationalRole": "mapped operational exclusion / caution zone",
+      "resource": null,
+      "hazard": "low-to-moderate; rock, metals and water ice; vacuum, radiation, thermal extremes",
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Localized zone from a supported environmental hazard.",
+      "provenance": "working-surface-v1"
+    }
+  ],
+  "operationalSummary": {
+    "featureCount": 14,
+    "layerCounts": {
+      "hazards": 1,
+      "landmarks": 7,
+      "resources": 4,
+      "terrain": 2
+    },
+    "keyFeatures": [
+      "natural-solid-crater-01",
+      "natural-solid-crater-02",
+      "natural-solid-basin-07",
+      "natural-solid-ridge-08",
+      "natural-solid-ice-10",
+      "natural-solid-deposit-12",
+      "natural-solid-hazard-14"
+    ],
+    "geometryStatement": "constrained estimate",
+    "note": "Accepted generated operational survey; display compression must not be used for physical calculations."
+  },
+  "surfaceSurvey": {
+    "modelVersion": "orphaned-sun-natural-solid-survey-v1",
+    "provenance": "deterministic-working-canon/metadata-conditioned-natural-surface-v1",
+    "surfaceFamily": "mixed ice-rock cratered surface",
+    "activity": "geologically quiet / impact-retaining",
+    "craterRetention": "dense ancient crater retention",
+    "volatiles": "substantial ice/volatile provinces",
+    "exploitation": "none-established",
+    "basis": "canonical-metadata+permanent-seed"
+  }
+}

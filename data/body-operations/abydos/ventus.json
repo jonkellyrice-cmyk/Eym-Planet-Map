@@ -1,0 +1,416 @@
+{
+  "schemaVersion": 1,
+  "system": "Abydos",
+  "body": "Ventus",
+  "canonicalType": "outer icy/dwarf world",
+  "operationalKind": "natural-solid",
+  "permanentOperationalSeed": "92e4fbaa636c3585",
+  "operationalModelVersion": "orphaned-sun-body-operations-v1",
+  "canonicalSourceFingerprint": "23c6573ae6eff68525b9",
+  "acceptedCanonStatus": "accepted-generated-canon",
+  "coordinateFrame": {
+    "id": "body-fixed-spherical",
+    "axes": "+lat north; +lon east",
+    "origin": "body center / IAU-style reference meridian",
+    "units": {
+      "latitude": "deg",
+      "longitude": "deg",
+      "elevation": "km"
+    },
+    "geometryKind": "constrained estimate"
+  },
+  "namingProfile": "vadan",
+  "layers": [
+    {
+      "id": "terrain",
+      "label": "Terrain",
+      "defaultVisible": true
+    },
+    {
+      "id": "landmarks",
+      "label": "Named landmarks",
+      "defaultVisible": true
+    },
+    {
+      "id": "resources",
+      "label": "Resources",
+      "defaultVisible": false
+    },
+    {
+      "id": "installations",
+      "label": "Installations",
+      "defaultVisible": true
+    },
+    {
+      "id": "hazards",
+      "label": "Hazards",
+      "defaultVisible": true
+    },
+    {
+      "id": "routes",
+      "label": "Surface routes",
+      "defaultVisible": true
+    }
+  ],
+  "features": [
+    {
+      "id": "natural-solid-crater-01",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Crater Sundown Ward",
+      "position": {
+        "lat": 12.024,
+        "lon": -137.779,
+        "elevation": -1
+      },
+      "dimensions": {
+        "radius": 25.98,
+        "unit": "km"
+      },
+      "operationalRole": "major retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-02",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Crater Sundown Rise",
+      "position": {
+        "lat": 47.681,
+        "lon": 1.413,
+        "elevation": 1.07
+      },
+      "dimensions": {
+        "radius": 35.21,
+        "unit": "km"
+      },
+      "operationalRole": "major retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-03",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Crater Kandar Reach",
+      "position": {
+        "lat": -4.259,
+        "lon": 148.14,
+        "elevation": 0.79
+      },
+      "dimensions": {
+        "radius": 28.98,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-04",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Crater Vada Ward",
+      "position": {
+        "lat": -16.38,
+        "lon": -83.736,
+        "elevation": -0.5
+      },
+      "dimensions": {
+        "radius": 14.82,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-05",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Crater Caldera Crown",
+      "position": {
+        "lat": 0.8,
+        "lon": 62.705,
+        "elevation": -0.22
+      },
+      "dimensions": {
+        "radius": 33.27,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 3,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-06",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Crater Sundown Crown",
+      "position": {
+        "lat": -7.02,
+        "lon": -174.367,
+        "elevation": -1.01
+      },
+      "dimensions": {
+        "radius": 41.85,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 3,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-basin-07",
+      "type": "basin",
+      "layer": "landmarks",
+      "name": "Basin Orison Rise",
+      "position": {
+        "lat": 4.273,
+        "lon": -24.681,
+        "elevation": 0.65
+      },
+      "dimensions": {
+        "radius": 120.49,
+        "unit": "km"
+      },
+      "operationalRole": "major impact basin / regional datum",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded basin constrained by body scale and surface age.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-ridge-08",
+      "type": "ridge",
+      "layer": "terrain",
+      "name": "Ridge Vada Ward",
+      "position": {
+        "lat": -55.469,
+        "lon": 120.986,
+        "elevation": 0.73
+      },
+      "dimensions": {
+        "radius": 180.34,
+        "unit": "km"
+      },
+      "operationalRole": "major relief / traverse landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded relief consistent with the activity regime.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-scarp-09",
+      "type": "scarp",
+      "layer": "terrain",
+      "name": "Scarp Orison Ward",
+      "position": {
+        "lat": 4.501,
+        "lon": -112.768,
+        "elevation": -0.82
+      },
+      "dimensions": {
+        "radius": 85.65,
+        "unit": "km"
+      },
+      "operationalRole": "regional fault/impact scarp",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Seeded broad scarp; no fine fault network implied.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-volcanic-10",
+      "type": "volcanic",
+      "layer": "terrain",
+      "name": "Caldera Vesper Reach",
+      "position": {
+        "lat": -11.518,
+        "lon": 16.436,
+        "elevation": 0.94
+      },
+      "dimensions": {
+        "radius": 100.08,
+        "unit": "km"
+      },
+      "operationalRole": "cryovolcanic/resurfacing center",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Generated only where activity supports resurfacing.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-ice-11",
+      "type": "ice",
+      "layer": "resources",
+      "name": "Cold Trap 11",
+      "position": {
+        "lat": -68.976,
+        "lon": 169.599,
+        "elevation": 0.92
+      },
+      "dimensions": {
+        "radius": 113.68,
+        "unit": "km"
+      },
+      "operationalRole": "major volatile reserve / cold-trap province",
+      "resource": "water ice dominant with ammonia, CO2, methane/organics and other cryogenic volatiles likely",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Volatile province constrained by canonical abundance.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-ice-12",
+      "type": "ice",
+      "layer": "resources",
+      "name": "Cold Trap 12",
+      "position": {
+        "lat": 33.589,
+        "lon": -62.928,
+        "elevation": -0.51
+      },
+      "dimensions": {
+        "radius": 72.82,
+        "unit": "km"
+      },
+      "operationalRole": "secondary ice/volatile province",
+      "resource": "water ice dominant with ammonia, CO2, methane/organics and other cryogenic volatiles likely",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Volatile province constrained by canonical abundance.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-ice-13",
+      "type": "ice",
+      "layer": "resources",
+      "name": "Cold Trap 13",
+      "position": {
+        "lat": 25.962,
+        "lon": 84.385,
+        "elevation": -0.07
+      },
+      "dimensions": {
+        "radius": 119.56,
+        "unit": "km"
+      },
+      "operationalRole": "secondary ice/volatile province",
+      "resource": "water ice dominant with ammonia, CO2, methane/organics and other cryogenic volatiles likely",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Volatile province constrained by canonical abundance.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-deposit-14",
+      "type": "deposit",
+      "layer": "resources",
+      "name": "Province 14",
+      "position": {
+        "lat": 59.74,
+        "lon": -150.51,
+        "elevation": -0.93
+      },
+      "dimensions": {
+        "radius": 141.02,
+        "unit": "km"
+      },
+      "operationalRole": "surveyed resource-bearing province",
+      "resource": "large water-ice reserve; silicates; ammonia-bearing volatiles; carbonaceous compounds; modest Fe-Ni metal fraction",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Resource province constrained by canonical material metadata.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-deposit-15",
+      "type": "deposit",
+      "layer": "resources",
+      "name": "Province 15",
+      "position": {
+        "lat": -26.076,
+        "lon": -7.542,
+        "elevation": -0.11
+      },
+      "dimensions": {
+        "radius": 91.84,
+        "unit": "km"
+      },
+      "operationalRole": "surveyed resource-bearing province",
+      "resource": "large water-ice reserve; silicates; ammonia-bearing volatiles; carbonaceous compounds; modest Fe-Ni metal fraction",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Resource province constrained by canonical material metadata.",
+      "provenance": "working-surface-v1"
+    }
+  ],
+  "operationalSummary": {
+    "featureCount": 15,
+    "layerCounts": {
+      "landmarks": 7,
+      "resources": 5,
+      "terrain": 3
+    },
+    "keyFeatures": [
+      "natural-solid-crater-01",
+      "natural-solid-crater-02",
+      "natural-solid-basin-07",
+      "natural-solid-ridge-08",
+      "natural-solid-volcanic-10",
+      "natural-solid-ice-11",
+      "natural-solid-deposit-14"
+    ],
+    "geometryStatement": "constrained estimate",
+    "note": "Accepted generated operational survey; display compression must not be used for physical calculations."
+  },
+  "surfaceSurvey": {
+    "modelVersion": "orphaned-sun-natural-solid-survey-v1",
+    "provenance": "deterministic-working-canon/metadata-conditioned-natural-surface-v1",
+    "surfaceFamily": "ice-rich cryogenic surface",
+    "activity": "geologically quiet / impact-retaining",
+    "craterRetention": "dense ancient crater retention",
+    "volatiles": "extensive ice/volatile terrain",
+    "exploitation": "none-established",
+    "basis": "canonical-metadata+permanent-seed"
+  }
+}

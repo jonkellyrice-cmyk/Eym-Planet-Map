@@ -1,0 +1,328 @@
+{
+  "schemaVersion": 1,
+  "system": "Abydos",
+  "body": "Cataphract",
+  "canonicalType": "rocky planet",
+  "operationalKind": "natural-solid",
+  "permanentOperationalSeed": "a3505837e24554ca",
+  "operationalModelVersion": "orphaned-sun-body-operations-v1",
+  "canonicalSourceFingerprint": "f401c47d8afef3005ac6",
+  "acceptedCanonStatus": "accepted-generated-canon",
+  "coordinateFrame": {
+    "id": "body-fixed-spherical",
+    "axes": "+lat north; +lon east",
+    "origin": "body center / IAU-style reference meridian",
+    "units": {
+      "latitude": "deg",
+      "longitude": "deg",
+      "elevation": "km"
+    },
+    "geometryKind": "constrained estimate"
+  },
+  "namingProfile": "vadan",
+  "layers": [
+    {
+      "id": "terrain",
+      "label": "Terrain",
+      "defaultVisible": true
+    },
+    {
+      "id": "landmarks",
+      "label": "Named landmarks",
+      "defaultVisible": true
+    },
+    {
+      "id": "resources",
+      "label": "Resources",
+      "defaultVisible": false
+    },
+    {
+      "id": "installations",
+      "label": "Installations",
+      "defaultVisible": true
+    },
+    {
+      "id": "hazards",
+      "label": "Hazards",
+      "defaultVisible": true
+    },
+    {
+      "id": "routes",
+      "label": "Surface routes",
+      "defaultVisible": true
+    }
+  ],
+  "features": [
+    {
+      "id": "natural-solid-crater-01",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Crater Mariner Reach",
+      "position": {
+        "lat": -32.517,
+        "lon": -63.492,
+        "elevation": -1.73
+      },
+      "dimensions": {
+        "radius": 18.2,
+        "unit": "km"
+      },
+      "operationalRole": "major retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-02",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Crater Halcyon Rise",
+      "position": {
+        "lat": 69.799,
+        "lon": 67.094,
+        "elevation": 0.51
+      },
+      "dimensions": {
+        "radius": 97.07,
+        "unit": "km"
+      },
+      "operationalRole": "major retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-03",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Crater Nacre Reach",
+      "position": {
+        "lat": -47.005,
+        "lon": -155.373,
+        "elevation": -1.35
+      },
+      "dimensions": {
+        "radius": 108.07,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-04",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Crater Orison",
+      "position": {
+        "lat": -11.98,
+        "lon": -15.887,
+        "elevation": -2.14
+      },
+      "dimensions": {
+        "radius": 99.09,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-05",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Crater Tide",
+      "position": {
+        "lat": -21.017,
+        "lon": 134.895,
+        "elevation": -2.02
+      },
+      "dimensions": {
+        "radius": 41.92,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 3,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-basin-06",
+      "type": "basin",
+      "layer": "landmarks",
+      "name": "Basin Kandar Ward",
+      "position": {
+        "lat": -51.247,
+        "lon": -82.799,
+        "elevation": -0.42
+      },
+      "dimensions": {
+        "radius": 198.82,
+        "unit": "km"
+      },
+      "operationalRole": "major impact basin / regional datum",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded basin constrained by body scale and surface age.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-ridge-07",
+      "type": "ridge",
+      "layer": "terrain",
+      "name": "Ridge Eventide",
+      "position": {
+        "lat": 31.27,
+        "lon": 49.583,
+        "elevation": 0.09
+      },
+      "dimensions": {
+        "radius": 509.74,
+        "unit": "km"
+      },
+      "operationalRole": "major relief / traverse landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded relief consistent with the activity regime.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-scarp-08",
+      "type": "scarp",
+      "layer": "terrain",
+      "name": "Scarp Orison",
+      "position": {
+        "lat": 29.239,
+        "lon": 171.744,
+        "elevation": -1.54
+      },
+      "dimensions": {
+        "radius": 123.16,
+        "unit": "km"
+      },
+      "operationalRole": "regional fault/impact scarp",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Seeded broad scarp; no fine fault network implied.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-dune-09",
+      "type": "dune",
+      "layer": "terrain",
+      "name": "Dune Sea Nacre Reach",
+      "position": {
+        "lat": 8.635,
+        "lon": -38.789,
+        "elevation": -1.45
+      },
+      "dimensions": {
+        "radius": 151.89,
+        "unit": "km"
+      },
+      "operationalRole": "wind-worked sediment province",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Generated only where atmosphere supports aeolian transport.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-deposit-10",
+      "type": "deposit",
+      "layer": "resources",
+      "name": "Province 10",
+      "position": {
+        "lat": 38.427,
+        "lon": 100.641,
+        "elevation": -0.33
+      },
+      "dimensions": {
+        "radius": 172.91,
+        "unit": "km"
+      },
+      "operationalRole": "surveyed resource-bearing province",
+      "resource": "metals and refractory ores; heat and radiation",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Resource province constrained by canonical material metadata.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-hazard-11",
+      "type": "hazard",
+      "layer": "hazards",
+      "name": "Exclusion 11",
+      "position": {
+        "lat": -35.075,
+        "lon": -116.114,
+        "elevation": -0.76
+      },
+      "dimensions": {
+        "radius": 166.1,
+        "unit": "km"
+      },
+      "operationalRole": "mapped operational exclusion / caution zone",
+      "resource": null,
+      "hazard": "metals and refractory ores; heat and radiation",
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Localized zone from a supported environmental hazard.",
+      "provenance": "working-surface-v1"
+    }
+  ],
+  "operationalSummary": {
+    "featureCount": 11,
+    "layerCounts": {
+      "hazards": 1,
+      "landmarks": 6,
+      "resources": 1,
+      "terrain": 3
+    },
+    "keyFeatures": [
+      "natural-solid-crater-01",
+      "natural-solid-crater-02",
+      "natural-solid-basin-06",
+      "natural-solid-ridge-07",
+      "natural-solid-deposit-10",
+      "natural-solid-hazard-11"
+    ],
+    "geometryStatement": "constrained estimate",
+    "note": "Accepted generated operational survey; display compression must not be used for physical calculations."
+  },
+  "surfaceSurvey": {
+    "modelVersion": "orphaned-sun-natural-solid-survey-v1",
+    "provenance": "deterministic-working-canon/metadata-conditioned-natural-surface-v1",
+    "surfaceFamily": "atmosphere-worked dry rocky surface",
+    "activity": "geologically quiet / impact-retaining",
+    "craterRetention": "moderate-to-dense crater retention",
+    "volatiles": "minimal mapped surface volatiles",
+    "exploitation": "none-established",
+    "basis": "canonical-metadata+permanent-seed"
+  }
+}

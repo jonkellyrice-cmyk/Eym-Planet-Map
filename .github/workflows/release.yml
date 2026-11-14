@@ -1,0 +1,73 @@
+name: Release Foundry Module
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test
+        run: npm test
+      - name: Validate accepted body operations
+        run: npm run body-operations:validate && npm run body-operations:check
+      - name: Validate deterministic astronomy
+        run: npm run astronomy:validate && npm run astronomy:check
+
+  release:
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Package module
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          ARCHIVE="orphaned-sun-cluster-map-v${VERSION}.zip"
+          zip -r "$ARCHIVE" \
+            module.json scripts templates styles lang README.md docs data assets \
+            -x "*.DS_Store"
+          for required in \
+            data/planet-geography/manifest.json \
+            data/planet-geography/sais/nalini.json \
+            data/planet-geography/sais/shanvara.json \
+            data/planet-cartography/manifest.json \
+            data/planet-cartography/abydos/eventide.json \
+            data/planet-cartography/amarna/cordoba.json \
+            data/body-operations/manifest.json \
+            data/body-operations/abydos/cataphract.json \
+            data/body-operations/amarna/akhetan.json \
+            data/body-operations/seti/arrowfall-range.json \
+            data/astronomy/epoch-orientations.json \
+            data/surface-art/manifest.json \
+            assets/body-textures/thebes/jinyara.webp; do
+            unzip -Z1 "$ARCHIVE" | grep -Fx "$required"
+          done
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${VERSION}" \
+            "${ARCHIVE}" \
+            module.json \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title "v${VERSION}" \
+            --generate-notes

@@ -1,0 +1,508 @@
+{
+  "schemaVersion": 1,
+  "system": "Saqqara",
+  "body": "Old Kestrel",
+  "canonicalType": "industrialized planetoid/habitat",
+  "operationalKind": "natural-solid",
+  "permanentOperationalSeed": "01dc078460b606d5",
+  "operationalModelVersion": "orphaned-sun-body-operations-v1",
+  "canonicalSourceFingerprint": "96db90d23b4e41c19fc1",
+  "acceptedCanonStatus": "accepted-generated-canon",
+  "coordinateFrame": {
+    "id": "body-fixed-spherical",
+    "axes": "+lat north; +lon east",
+    "origin": "body center / IAU-style reference meridian",
+    "units": {
+      "latitude": "deg",
+      "longitude": "deg",
+      "elevation": "km"
+    },
+    "geometryKind": "constrained estimate"
+  },
+  "namingProfile": "vostrann",
+  "layers": [
+    {
+      "id": "terrain",
+      "label": "Terrain",
+      "defaultVisible": true
+    },
+    {
+      "id": "landmarks",
+      "label": "Named landmarks",
+      "defaultVisible": true
+    },
+    {
+      "id": "resources",
+      "label": "Resources",
+      "defaultVisible": false
+    },
+    {
+      "id": "installations",
+      "label": "Installations",
+      "defaultVisible": true
+    },
+    {
+      "id": "hazards",
+      "label": "Hazards",
+      "defaultVisible": true
+    },
+    {
+      "id": "routes",
+      "label": "Surface routes",
+      "defaultVisible": true
+    }
+  ],
+  "features": [
+    {
+      "id": "natural-solid-crater-01",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Muirgrad Crater",
+      "position": {
+        "lat": 6.67,
+        "lon": 115.491,
+        "elevation": -1.31
+      },
+      "dimensions": {
+        "radius": 30.99,
+        "unit": "km"
+      },
+      "operationalRole": "major retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-02",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Krasova Crater",
+      "position": {
+        "lat": 23.895,
+        "lon": -109.444,
+        "elevation": -0.5
+      },
+      "dimensions": {
+        "radius": 61.12,
+        "unit": "km"
+      },
+      "operationalRole": "major retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-03",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Volnask Crater",
+      "position": {
+        "lat": -59.372,
+        "lon": 27.933,
+        "elevation": -0.67
+      },
+      "dimensions": {
+        "radius": 56.42,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-04",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Volnaova Crater",
+      "position": {
+        "lat": 5.761,
+        "lon": 169.295,
+        "elevation": -1.29
+      },
+      "dimensions": {
+        "radius": 23.69,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-05",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Muirbrae Crater",
+      "position": {
+        "lat": 28.994,
+        "lon": -45.83,
+        "elevation": 1.29
+      },
+      "dimensions": {
+        "radius": 80.26,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 3,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-basin-06",
+      "type": "basin",
+      "layer": "landmarks",
+      "name": "Blackwakeova Basin",
+      "position": {
+        "lat": -10.95,
+        "lon": 80.131,
+        "elevation": 1.14
+      },
+      "dimensions": {
+        "radius": 94.26,
+        "unit": "km"
+      },
+      "operationalRole": "major impact basin / regional datum",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded basin constrained by body scale and surface age.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-ridge-07",
+      "type": "ridge",
+      "layer": "terrain",
+      "name": "Muirgrad Ridge",
+      "position": {
+        "lat": -83.457,
+        "lon": -143.857,
+        "elevation": -1.11
+      },
+      "dimensions": {
+        "radius": 135.43,
+        "unit": "km"
+      },
+      "operationalRole": "major relief / traverse landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded relief consistent with the activity regime.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-scarp-08",
+      "type": "scarp",
+      "layer": "terrain",
+      "name": "Dunsk Scarp",
+      "position": {
+        "lat": -41.847,
+        "lon": 12.645,
+        "elevation": -0.77
+      },
+      "dimensions": {
+        "radius": 127.99,
+        "unit": "km"
+      },
+      "operationalRole": "regional fault/impact scarp",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Seeded broad scarp; no fine fault network implied.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-deposit-09",
+      "type": "deposit",
+      "layer": "resources",
+      "name": "Province 9",
+      "position": {
+        "lat": -15.26,
+        "lon": 137.791,
+        "elevation": -0.54
+      },
+      "dimensions": {
+        "radius": 77.13,
+        "unit": "km"
+      },
+      "operationalRole": "surveyed resource-bearing province",
+      "resource": "exceptionally rich Fe-Ni-Co ores; platinum-group and siderophile trace metals; titanium/refractory metals; industrial silicates; minor cold-trap volatiles",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Resource province constrained by canonical material metadata.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-deposit-10",
+      "type": "deposit",
+      "layer": "resources",
+      "name": "Province 10",
+      "position": {
+        "lat": -6.204,
+        "lon": -93.081,
+        "elevation": 1.02
+      },
+      "dimensions": {
+        "radius": 144.1,
+        "unit": "km"
+      },
+      "operationalRole": "surveyed resource-bearing province",
+      "resource": "exceptionally rich Fe-Ni-Co ores; platinum-group and siderophile trace metals; titanium/refractory metals; industrial silicates; minor cold-trap volatiles",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Resource province constrained by canonical material metadata.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-hazard-11",
+      "type": "hazard",
+      "layer": "hazards",
+      "name": "Exclusion 11",
+      "position": {
+        "lat": -6.984,
+        "lon": 56.789,
+        "elevation": -0.36
+      },
+      "dimensions": {
+        "radius": 179.17,
+        "unit": "km"
+      },
+      "operationalRole": "mapped operational exclusion / caution zone",
+      "resource": null,
+      "hazard": "moderate; exceptionally metal-rich; mining, debris and industrial hazards",
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Localized zone from a supported environmental hazard.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-mine-12",
+      "type": "mine",
+      "layer": "resources",
+      "name": "Claim 12",
+      "position": {
+        "lat": -71.276,
+        "lon": -168.371,
+        "elevation": 0.09
+      },
+      "dimensions": null,
+      "operationalRole": "active or automated extraction site",
+      "resource": "exceptionally rich Fe-Ni-Co ores; platinum-group and siderophile trace metals; titanium/refractory metals; industrial silicates; minor cold-trap volatiles",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Established extraction node.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-mine-13",
+      "type": "mine",
+      "layer": "resources",
+      "name": "Claim 13",
+      "position": {
+        "lat": 68.651,
+        "lon": -28.852,
+        "elevation": 1.15
+      },
+      "dimensions": null,
+      "operationalRole": "secondary extraction site",
+      "resource": "exceptionally rich Fe-Ni-Co ores; platinum-group and siderophile trace metals; titanium/refractory metals; industrial silicates; minor cold-trap volatiles",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "secondary extraction site. Accepted operational survey feature for Old Kestrel.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-landing-14",
+      "type": "landing",
+      "layer": "installations",
+      "name": "Field 14",
+      "position": {
+        "lat": 3.385,
+        "lon": 113.677,
+        "elevation": 0.47
+      },
+      "dimensions": null,
+      "operationalRole": "landing/cargo transfer field",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Established surface access node.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-habitat-15",
+      "type": "habitat",
+      "layer": "installations",
+      "name": "Habitat 15",
+      "position": {
+        "lat": 13.497,
+        "lon": -117.656,
+        "elevation": -0.14
+      },
+      "dimensions": null,
+      "operationalRole": "sealed habitat/logistics node",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Sealed industrial/logistics habitat; no open-air habitability implied.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-corridor-16",
+      "type": "corridor",
+      "layer": "routes",
+      "name": "Corridor 16",
+      "position": {
+        "lat": -7.11,
+        "lon": 15.341,
+        "elevation": 1.05
+      },
+      "dimensions": null,
+      "operationalRole": "surface logistics traverse",
+      "resource": null,
+      "hazard": null,
+      "refs": [
+        "natural-solid-mine-12",
+        "natural-solid-mine-13",
+        "natural-solid-landing-14",
+        "natural-solid-habitat-15"
+      ],
+      "lodPriority": 2,
+      "description": "Local traverse between established surface nodes.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-mine-17",
+      "type": "mine",
+      "layer": "resources",
+      "name": "Black Kestrel Cut",
+      "position": {
+        "lat": 12.5,
+        "lon": -28.4,
+        "elevation": -1.4
+      },
+      "dimensions": null,
+      "operationalRole": "primary deep excavation and refinery feed",
+      "resource": "exceptionally metal-rich ore",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "primary deep excavation and refinery feed. Accepted operational survey feature for Old Kestrel.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-habitat-18",
+      "type": "habitat",
+      "layer": "installations",
+      "name": "Cairnreach Surface Annex",
+      "position": {
+        "lat": 8.2,
+        "lon": -20.1,
+        "elevation": -0.8
+      },
+      "dimensions": null,
+      "operationalRole": "sealed industrial habitat complex",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "sealed industrial habitat complex. Accepted operational survey feature for Old Kestrel.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-landing-19",
+      "type": "landing",
+      "layer": "installations",
+      "name": "Gannet Mass Driver",
+      "position": {
+        "lat": 5.6,
+        "lon": -15.2,
+        "elevation": -0.3
+      },
+      "dimensions": null,
+      "operationalRole": "mass-driver export terminus",
+      "resource": null,
+      "hazard": "high-velocity export lane",
+      "refs": [],
+      "lodPriority": 1,
+      "description": "mass-driver export terminus. Accepted operational survey feature for Old Kestrel.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-hazard-20",
+      "type": "hazard",
+      "layer": "hazards",
+      "name": "Old Cut Debris Zone",
+      "position": {
+        "lat": 15.8,
+        "lon": -36.7,
+        "elevation": -2.2
+      },
+      "dimensions": null,
+      "operationalRole": "worked spoil and debris exclusion field",
+      "resource": null,
+      "hazard": "excavation debris and unstable spoil",
+      "refs": [],
+      "lodPriority": 1,
+      "description": "worked spoil and debris exclusion field. Accepted operational survey feature for Old Kestrel.",
+      "provenance": "working-surface-v1"
+    }
+  ],
+  "operationalSummary": {
+    "featureCount": 20,
+    "layerCounts": {
+      "hazards": 2,
+      "installations": 4,
+      "landmarks": 6,
+      "resources": 5,
+      "routes": 1,
+      "terrain": 2
+    },
+    "keyFeatures": [
+      "natural-solid-crater-01",
+      "natural-solid-crater-02",
+      "natural-solid-basin-06",
+      "natural-solid-ridge-07",
+      "natural-solid-deposit-09",
+      "natural-solid-hazard-11",
+      "natural-solid-mine-12",
+      "natural-solid-landing-14"
+    ],
+    "geometryStatement": "constrained estimate",
+    "note": "Accepted generated operational survey; display compression must not be used for physical calculations."
+  },
+  "surfaceSurvey": {
+    "modelVersion": "orphaned-sun-natural-solid-survey-v1",
+    "provenance": "deterministic-working-canon/metadata-conditioned-natural-surface-v1",
+    "surfaceFamily": "metal-rich cratered rocky surface",
+    "activity": "geologically quiet / impact-retaining",
+    "craterRetention": "moderate-to-dense crater retention",
+    "volatiles": "minimal mapped surface volatiles",
+    "exploitation": "established",
+    "basis": "canonical-metadata+permanent-seed"
+  }
+}

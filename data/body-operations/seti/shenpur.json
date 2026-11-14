@@ -1,0 +1,395 @@
+{
+  "schemaVersion": 1,
+  "system": "Seti",
+  "body": "Shenpur",
+  "canonicalType": "moon",
+  "operationalKind": "natural-solid",
+  "permanentOperationalSeed": "096459e7ba2f04bc",
+  "operationalModelVersion": "orphaned-sun-body-operations-v1",
+  "canonicalSourceFingerprint": "d50ada171a2f2adab98e",
+  "acceptedCanonStatus": "accepted-generated-canon",
+  "coordinateFrame": {
+    "id": "body-fixed-spherical",
+    "axes": "+lat north; +lon east",
+    "origin": "body center / IAU-style reference meridian",
+    "units": {
+      "latitude": "deg",
+      "longitude": "deg",
+      "elevation": "km"
+    },
+    "geometryKind": "constrained estimate"
+  },
+  "namingProfile": "xuanhari",
+  "layers": [
+    {
+      "id": "terrain",
+      "label": "Terrain",
+      "defaultVisible": true
+    },
+    {
+      "id": "landmarks",
+      "label": "Named landmarks",
+      "defaultVisible": true
+    },
+    {
+      "id": "resources",
+      "label": "Resources",
+      "defaultVisible": false
+    },
+    {
+      "id": "installations",
+      "label": "Installations",
+      "defaultVisible": true
+    },
+    {
+      "id": "hazards",
+      "label": "Hazards",
+      "defaultVisible": true
+    },
+    {
+      "id": "routes",
+      "label": "Surface routes",
+      "defaultVisible": true
+    }
+  ],
+  "features": [
+    {
+      "id": "natural-solid-crater-01",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Jinpur Crater",
+      "position": {
+        "lat": -24.005,
+        "lon": 30.349,
+        "elevation": -0.56
+      },
+      "dimensions": {
+        "radius": 25.56,
+        "unit": "km"
+      },
+      "operationalRole": "major retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-02",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Lingvara Crater",
+      "position": {
+        "lat": 46.038,
+        "lon": 171.415,
+        "elevation": 0.64
+      },
+      "dimensions": {
+        "radius": 25.85,
+        "unit": "km"
+      },
+      "operationalRole": "major retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-03",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Tianvara Crater",
+      "position": {
+        "lat": 29.618,
+        "lon": -39.418,
+        "elevation": -0.57
+      },
+      "dimensions": {
+        "radius": 25.96,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-04",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Jyotishan Crater",
+      "position": {
+        "lat": 2.836,
+        "lon": 93.987,
+        "elevation": 0.21
+      },
+      "dimensions": {
+        "radius": 22.89,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-05",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Jyotipur Crater",
+      "position": {
+        "lat": 43.592,
+        "lon": -127.873,
+        "elevation": -0.39
+      },
+      "dimensions": {
+        "radius": 17.17,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 3,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-crater-06",
+      "type": "crater",
+      "layer": "landmarks",
+      "name": "Tianshan Crater",
+      "position": {
+        "lat": 48.026,
+        "lon": 1.84,
+        "elevation": -0.4
+      },
+      "dimensions": {
+        "radius": 5.91,
+        "unit": "km"
+      },
+      "operationalRole": "regional retained impact landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 3,
+      "description": "Seeded working geometry constrained by crater retention.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-basin-07",
+      "type": "basin",
+      "layer": "landmarks",
+      "name": "Shanling Basin",
+      "position": {
+        "lat": 25.713,
+        "lon": 140.42,
+        "elevation": 0.27
+      },
+      "dimensions": {
+        "radius": 95.51,
+        "unit": "km"
+      },
+      "operationalRole": "major impact basin / regional datum",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded basin constrained by body scale and surface age.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-ridge-08",
+      "type": "ridge",
+      "layer": "terrain",
+      "name": "Tianshan Ridge",
+      "position": {
+        "lat": -28.985,
+        "lon": -73.311,
+        "elevation": 0.02
+      },
+      "dimensions": {
+        "radius": 93.76,
+        "unit": "km"
+      },
+      "operationalRole": "major relief / traverse landmark",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Seeded relief consistent with the activity regime.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-scarp-09",
+      "type": "scarp",
+      "layer": "terrain",
+      "name": "Jinpur Scarp",
+      "position": {
+        "lat": 51.896,
+        "lon": 71.524,
+        "elevation": 0.59
+      },
+      "dimensions": {
+        "radius": 51.08,
+        "unit": "km"
+      },
+      "operationalRole": "regional fault/impact scarp",
+      "resource": null,
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Seeded broad scarp; no fine fault network implied.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-ice-10",
+      "type": "ice",
+      "layer": "resources",
+      "name": "Cold Trap 10",
+      "position": {
+        "lat": -77.007,
+        "lon": -152.603,
+        "elevation": -0.39
+      },
+      "dimensions": {
+        "radius": 91.7,
+        "unit": "km"
+      },
+      "operationalRole": "major volatile reserve / cold-trap province",
+      "resource": "water ice; minor CO2/carbon-bearing cold-trap volatiles",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Volatile province constrained by canonical abundance.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-ice-11",
+      "type": "ice",
+      "layer": "resources",
+      "name": "Cold Trap 11",
+      "position": {
+        "lat": -86.422,
+        "lon": -23.968,
+        "elevation": 0.33
+      },
+      "dimensions": {
+        "radius": 97.45,
+        "unit": "km"
+      },
+      "operationalRole": "secondary ice/volatile province",
+      "resource": "water ice; minor CO2/carbon-bearing cold-trap volatiles",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Volatile province constrained by canonical abundance.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-deposit-12",
+      "type": "deposit",
+      "layer": "resources",
+      "name": "Province 12",
+      "position": {
+        "lat": 23.889,
+        "lon": 120.601,
+        "elevation": 0.34
+      },
+      "dimensions": {
+        "radius": 64.52,
+        "unit": "km"
+      },
+      "operationalRole": "surveyed resource-bearing province",
+      "resource": "Fe-Ni-Co ores; silicates; construction feedstock; platinum-group/trace siderophile metals; water ice",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Resource province constrained by canonical material metadata.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-deposit-13",
+      "type": "deposit",
+      "layer": "resources",
+      "name": "Province 13",
+      "position": {
+        "lat": 53.763,
+        "lon": -115.331,
+        "elevation": 0.72
+      },
+      "dimensions": {
+        "radius": 56.75,
+        "unit": "km"
+      },
+      "operationalRole": "surveyed resource-bearing province",
+      "resource": "Fe-Ni-Co ores; silicates; construction feedstock; platinum-group/trace siderophile metals; water ice",
+      "hazard": null,
+      "refs": [],
+      "lodPriority": 2,
+      "description": "Resource province constrained by canonical material metadata.",
+      "provenance": "working-surface-v1"
+    },
+    {
+      "id": "natural-solid-hazard-14",
+      "type": "hazard",
+      "layer": "hazards",
+      "name": "Exclusion 14",
+      "position": {
+        "lat": 16.645,
+        "lon": 20.412,
+        "elevation": 0.12
+      },
+      "dimensions": {
+        "radius": 54.86,
+        "unit": "km"
+      },
+      "operationalRole": "mapped operational exclusion / caution zone",
+      "resource": null,
+      "hazard": "low-to-moderate; rock, metals and water ice; vacuum, radiation, thermal extremes",
+      "refs": [],
+      "lodPriority": 1,
+      "description": "Localized zone from a supported environmental hazard.",
+      "provenance": "working-surface-v1"
+    }
+  ],
+  "operationalSummary": {
+    "featureCount": 14,
+    "layerCounts": {
+      "hazards": 1,
+      "landmarks": 7,
+      "resources": 4,
+      "terrain": 2
+    },
+    "keyFeatures": [
+      "natural-solid-crater-01",
+      "natural-solid-crater-02",
+      "natural-solid-basin-07",
+      "natural-solid-ridge-08",
+      "natural-solid-ice-10",
+      "natural-solid-deposit-12",
+      "natural-solid-hazard-14"
+    ],
+    "geometryStatement": "constrained estimate",
+    "note": "Accepted generated operational survey; display compression must not be used for physical calculations."
+  },
+  "surfaceSurvey": {
+    "modelVersion": "orphaned-sun-natural-solid-survey-v1",
+    "provenance": "deterministic-working-canon/metadata-conditioned-natural-surface-v1",
+    "surfaceFamily": "mixed ice-rock cratered surface",
+    "activity": "geologically quiet / impact-retaining",
+    "craterRetention": "dense ancient crater retention",
+    "volatiles": "substantial ice/volatile provinces",
+    "exploitation": "none-established",
+    "basis": "canonical-metadata+permanent-seed"
+  }
+}
