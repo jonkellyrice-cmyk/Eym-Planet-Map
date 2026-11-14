@@ -25,7 +25,7 @@ test("ecoregion, soil and resource geometry is deterministic and provenance-boun
 });
 
 test("refinement preserves accepted categorical proportions within raster rounding", () => {
-  for (const body of ["Eventide", "Thraximundus", "Tlaloc", "Keshun"]) {
+  for (const body of ["Eventide", "Thraximundus", "Ramses", "Kandahar"]) {
     const { coarse, regions } = build(body);
     for (const field of ["biome", "soil", "resource"]) for (const ocean of [false, true]) {
       const accepted = proportions(coarse.cells, field, ocean), refined = proportions(regions.cells, field, ocean);
@@ -35,7 +35,7 @@ test("refinement preserves accepted categorical proportions within raster roundi
 });
 
 test("coastline displacement cannot put marine categories on land or land soils at sea", () => {
-  for (const body of ["Eventide", "Ramses", "Nansen"]) {
+  for (const body of ["Eventide", "Ramses", "Kandahar"]) {
     const { regions } = build(body);
     for (const cell of regions.cells) {
       assert.equal(cell.biome.includes("ocean") || cell.biome === "sea-ice", cell.ocean, `${body}/${cell.id}/biome`);
@@ -58,8 +58,8 @@ test("all categorical regions materialize as closed coordinate polygons", () => 
 });
 
 test("world extremes retain distinct canonical ecological identities", () => {
-  const eventide = build("Eventide").regions, nansen = build("Nansen").regions, keshun = build("Keshun").regions;
-  assert.ok(eventide.cells.filter((cell) => cell.biome.includes("ocean")).length > nansen.cells.filter((cell) => cell.biome.includes("ocean")).length * 4);
-  assert.ok(nansen.cells.filter((cell) => cell.biome.includes("desert")).length > eventide.cells.filter((cell) => cell.biome.includes("desert")).length);
-  assert.ok(keshun.cells.some((cell) => ["ice-cap", "tundra", "cold-desert"].includes(cell.biome)));
+  const eventide = build("Eventide").regions, ramses = build("Ramses").regions, kandahar = build("Kandahar").regions;
+  assert.ok(eventide.cells.filter((cell) => cell.biome.includes("ocean")).length > ramses.cells.filter((cell) => cell.biome.includes("ocean")).length * 4);
+  assert.ok(ramses.cells.filter((cell) => cell.biome.includes("desert")).length > eventide.cells.filter((cell) => cell.biome.includes("desert")).length);
+  assert.ok(kandahar.cells.some((cell) => ["ice-cap", "tundra", "cold-desert"].includes(cell.biome)));
 });

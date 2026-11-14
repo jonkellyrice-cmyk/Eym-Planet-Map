@@ -22,7 +22,7 @@ function build(body) {
 }
 
 test("civilization geometry is deterministic, provenance-bound and complete", () => {
-  const world = build("Serapha"), second = buildSettlementCartography(world);
+  const world = build("Ramses"), second = buildSettlementCartography(world);
   assert.deepEqual(world.civilization, second);
   assert.equal(world.civilization.settlements.length, 18);
   assert.equal(world.civilization.routes.length, 17);
@@ -30,7 +30,7 @@ test("civilization geometry is deterministic, provenance-bound and complete", ()
 });
 
 test("each inhabited world receives one named capital and a useful city hierarchy", () => {
-  for (const body of ["Eventide", "Krasna Brae", "Serapha", "Jinyara", "Nansen"]) {
+  for (const body of ["Ramses", "Eventide", "Thraximundus", "Kandahar"]) {
     const { coarse, civilization } = build(body);
     assert.equal(civilization.settlements.filter((site) => site.kind === "capital").length, 1, body);
     assert.ok(civilization.settlements.some((site) => site.role === "major city"), body);
@@ -41,7 +41,7 @@ test("each inhabited world receives one named capital and a useful city hierarch
 });
 
 test("surface corridors follow literal land cells and link named sites", () => {
-  const { regions, civilization } = build("Serapha"), byCoordinate = new Map(regions.cells.map((cell) => [`${cell.lat}:${cell.lon}`, cell]));
+  const { regions, civilization } = build("Ramses"), byCoordinate = new Map(regions.cells.map((cell) => [`${cell.lat}:${cell.lon}`, cell]));
   const sites = new Set(civilization.settlements.map((site) => site.id));
   assert.ok(civilization.routes.some((route) => route.mode === "surface"));
   for (const route of civilization.routes) {
@@ -67,7 +67,7 @@ test("capital placement follows suitability and recorded geographic drivers", ()
 
 
 test("settlements expose deterministic built-environment scale classes", () => {
-  const { civilization } = build("Jinyara");
+  const { civilization } = build("Ramses");
   const capital = civilization.settlements.find((site) => site.kind === "capital");
   assert.equal(capital.scaleClass, "superstructure");
   assert.ok(civilization.settlements.filter((site) => ["major city", "major port city"].includes(site.role)).every((site) => site.scaleClass === "superstructure"));
@@ -77,10 +77,13 @@ test("settlements expose deterministic built-environment scale classes", () => {
 });
 
 test("surface routes carry faction-specific routing doctrine", () => {
-  const mandate = build("Jinyara").civilization.routes.filter((route) => route.mode === "surface");
-  const conclave = build("Thessaron").civilization.routes.filter((route) => route.mode === "surface");
-  const accords = build("Kilmorov").civilization.routes.filter((route) => route.mode === "surface");
+  // Abydos has a single controlling faction, so the three doctrines are exercised by rebuilding one
+  // Abydos world under each faction's ownership through the public ownerFaction input.
+  const routesFor = (ownerFaction) => buildSettlementCartography({ ...build("Ramses"), ownerFaction }).routes.filter((route) => route.mode === "surface");
+  const mandate = routesFor("XUANJIA Mandate"), conclave = routesFor("Adanian Conclave"), accords = routesFor("Signatories of the Accords Paramount");
   assert.ok(mandate.length && mandate.every((route) => route.routingDoctrine === "direct"));
   assert.ok(conclave.length && conclave.every((route) => route.routingDoctrine === "ecological-avoidance"));
   assert.ok(accords.length && accords.every((route) => route.routingDoctrine === "least-resistance"));
+  const native = build("Ramses").civilization.routes.filter((route) => route.mode === "surface");
+  assert.ok(native.length && native.every((route) => route.routingDoctrine === "least-resistance"), "Eventide-owned Abydos worlds use least-resistance routing");
 });

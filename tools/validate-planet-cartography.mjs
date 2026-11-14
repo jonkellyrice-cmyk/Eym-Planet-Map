@@ -9,9 +9,9 @@ const fail = (message) => { throw new Error(message); };
 const SETTLEMENT_SCALE_CLASSES = new Set(["superstructure", "metropolitan", "regional"]);
 const CORRIDOR_CLASSES = new Set(["trunk", "primary", "regional"]);
 const ROUTING_DOCTRINES = new Set(["direct", "ecological-avoidance", "least-resistance", "not-applicable"]);
-if (manifest.schemaVersion !== 2 || manifest.worlds.length !== 43) fail("refined manifest must contain 43 schema-v2 worlds");
+if (manifest.schemaVersion !== 2 || manifest.worlds.length !== 4) fail("refined manifest must contain 4 schema-v2 worlds");
 if (args.has("--accepted") && manifest.status !== "accepted-working-canon") fail("manifest is not accepted working canon");
-if (new Set(manifest.worlds.map((world) => `${world.system}/${world.body}`)).size !== 43) fail("duplicate refined world identity");
+if (new Set(manifest.worlds.map((world) => `${world.system}/${world.body}`)).size !== 4) fail("duplicate refined world identity");
 for (const entry of manifest.worlds) {
   const text = readFileSync(new URL(entry.path, root), "utf8"), asset = JSON.parse(text), key = `${entry.system}/${entry.body}`, source = coarseByKey.get(key);
   if (!source) fail(`${key}: missing accepted coarse source`);

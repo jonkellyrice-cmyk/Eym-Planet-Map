@@ -55,93 +55,6 @@
 .oscm-cluster-svg.is-dragging,
 .oscm-cluster-svg.is-pinching { cursor: grabbing; }
 
-.oscm-grid-line {
-  stroke: var(--oscm-grid);
-  stroke-width: 0.55;
-  vector-effect: non-scaling-stroke;
-  pointer-events: none;
-}
-.oscm-grid-line.is-major { stroke-width: 0.9; }
-.oscm-grid-line.is-boundary { stroke-width: 1.05; }
-
-.oscm-axis {
-  stroke-width: 1.4;
-  vector-effect: non-scaling-stroke;
-  opacity: 0.72;
-  pointer-events: none;
-}
-.oscm-axis-x { stroke: #d16a6a; }
-.oscm-axis-y { stroke: #6ed08b; }
-.oscm-axis-z { stroke: #6a91d1; }
-.oscm-axis-label {
-  fill: var(--oscm-muted);
-  font: 700 12px/1 monospace;
-  pointer-events: none;
-}
-
-.oscm-star { cursor: pointer; outline: none; }
-.oscm-star-hit-target {
-  fill: transparent;
-  stroke: none;
-  pointer-events: all;
-}
-.oscm-star-selection-ring {
-  fill: none;
-  stroke: transparent;
-  stroke-width: 2;
-  vector-effect: non-scaling-stroke;
-  pointer-events: none;
-}
-.oscm-star-halo {
-  fill: var(--oscm-stellar-color, #d6f8fb);
-  opacity: 0.20;
-  filter: url(#oscm-star-glow);
-  transition: opacity 120ms ease;
-}
-.oscm-star-core {
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
-.oscm-star-inner-core {
-  pointer-events: none;
-}
-.oscm-stellar-component.is-anomalous .oscm-star-halo {
-  opacity: 0.28;
-}
-.oscm-star-label {
-  fill: #ecfbfc;
-  font: 700 13px/1.1 "Orbitron", "Arial Narrow", sans-serif;
-  letter-spacing: 0.04em;
-  paint-order: stroke;
-  stroke: rgba(3, 10, 12, 0.95);
-  stroke-width: 3px;
-  stroke-linejoin: round;
-}
-.oscm-star-coords {
-  fill: #86a9ad;
-  font: 9px/1 monospace;
-  paint-order: stroke;
-  stroke: rgba(3, 10, 12, 0.95);
-  stroke-width: 2.5px;
-}
-.oscm-star:hover .oscm-star-halo,
-.oscm-star:focus .oscm-star-halo { opacity: 0.42; }
-.oscm-star.is-origin .oscm-star-selection-ring {
-  stroke: var(--oscm-origin);
-  filter: url(#oscm-star-glow);
-}
-.oscm-star.is-destination .oscm-star-selection-ring {
-  stroke: var(--oscm-destination);
-  filter: url(#oscm-star-glow);
-}
-
-.oscm-route-line-shadow,
-.oscm-route-line {
-  vector-effect: non-scaling-stroke;
-  pointer-events: none;
-}
-.oscm-route-line-shadow { stroke: rgba(0,0,0,0.8); stroke-width: 6; }
-.oscm-route-line { stroke: #dffcff; stroke-width: 2.2; stroke-dasharray: 7 5; }
 .oscm-trajectory-marker { stroke: #061012; stroke-width: 2.25; pointer-events: auto; paint-order: stroke fill; }
 .oscm-trajectory-marker.is-speed-cap { fill: #43f078; filter: drop-shadow(0 0 4px rgba(67,240,120,.95)); }
 .oscm-trajectory-marker.is-braking { fill: #ff4f57; filter: drop-shadow(0 0 4px rgba(255,79,87,.95)); }
@@ -299,9 +212,6 @@
     gap: 7px 12px;
     font-size: 10px;
   }
-
-  .oscm-star-label { font-size: 14px; }
-  .oscm-star-coords { font-size: 10px; }
 }
 
 @media (max-width: 640px) {

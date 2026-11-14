@@ -28,7 +28,7 @@ test("elevation mesh and contour geometry are finite and renderer-ready", () => 
 });
 
 test("river centerlines follow decreasing relief to an ocean or a registered lake", () => {
-  for (const body of ["Ramses", "Tlaloc", "Keshun"]) {
+  for (const body of ["Ramses", "Thraximundus", "Kandahar"]) {
     const world = build(body);
     assert.ok(world.rivers.length > 0, body);
     for (const river of world.rivers) {
@@ -40,7 +40,7 @@ test("river centerlines follow decreasing relief to an ocean or a registered lak
 });
 
 test("lakes, wetlands and glaciers obey their physical classification", () => {
-  const wet = build("Thraximundus"), cold = build("Keshun");
+  const wet = build("Thraximundus"), cold = build("Kandahar");
   assert.ok(wet.wetlands.length > 0);
   for (const wetland of wet.wetlands) {
     const cell = wet.cells[wetland.cellId];

@@ -7,7 +7,7 @@ import { generatePlanetGeography, summarizeGeography } from "../scripts/planet-g
 const args = new Set(process.argv.slice(2));
 const rows = parseCsv(readFileSync(new URL("../docs/system-orbital-distances.csv", import.meta.url), "utf8"));
 const targets = rows.filter((row) => row.geography_seed);
-if (targets.length !== 43) throw new Error(`Expected 43 seeded terrestrial worlds; found ${targets.length}`);
+if (targets.length !== 4) throw new Error(`Expected 4 seeded terrestrial worlds; found ${targets.length}`);
 
 if (args.has("--self-test")) {
   const row = targets.find((candidate) => candidate.object === "Eventide");

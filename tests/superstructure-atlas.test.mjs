@@ -7,6 +7,7 @@ import { snapshotOperationalRich } from "../scripts/atlas-snapshot-v2.mjs";
 import { buildArtificialBodyModel } from "../scripts/artificial-body-data.mjs";
 import { buildNaturalBodyModel } from "../scripts/natural-body-data.mjs";
 import { parseCsv } from "../scripts/system-data.mjs";
+import { renderSuperstructureAtlas } from "../scripts/superstructure-atlas-visuals.mjs";
 
 const ROOT = path.resolve(".");
 const registry = parseCsv(fs.readFileSync(path.join(ROOT, "docs/system-orbital-distances.csv"), "utf8"));
@@ -26,42 +27,52 @@ function superstructureSnapshot(system, body) {
   return snapshotOperationalRich(asset, buildArtificialBodyModel(row, asset), item.path, sourceText);
 }
 
-test("Pilgrim's Lantern preserves its system-art Lantern/spindle identity and cross-section contract", () => {
-  const snapshot = superstructureSnapshot("Memphis", "Pilgrim's Lantern");
-  assert.match(snapshot.referenceSvg, /data-superstructure-family="conclave-lantern-spindle"/);
+// Abydos has two (frontier) superstructures. The other faction silhouette families are still supported by
+// the renderer, so they are exercised with synthetic (non-canon) identities.
+const FRAME = { x: -340, y: -260, width: 680, height: 520 };
+const syntheticRender = (silhouetteFamily, factionFamily) => renderSuperstructureAtlas({ system: "Synthetic", body: silhouetteFamily, silhouetteFamily, factionFamily }, FRAME, { includeSectionalBand: false });
+
+test("Vada Anchorage preserves its frontier anchorage identity and cross-section contract", () => {
+  const snapshot = superstructureSnapshot("Abydos", "Vada Anchorage");
+  assert.match(snapshot.referenceSvg, /data-superstructure-family="frontier-anchorage"/);
   assert.match(snapshot.referenceSvg, /data-section-logic="true"/);
   assert.match(snapshot.referenceSvg, /data-operational-overlay="true"/);
   assert.match(snapshot.informationPacket, /SCALE=city-scale or larger inhabited superstructure/);
-  assert.match(snapshot.informationPacket, /monumental lantern\/halo ring/i);
+  assert.match(snapshot.informationPacket, /major-city-scale orbital anchorage/i);
   assert.match(snapshot.informationPacket, /CROSS_SECTION=/);
-  assert.match(snapshot.informationPacket, /Gothic cathedral verticality fused with Tibetan shrine\/reliquary massing/i);
+  assert.match(snapshot.informationPacket, /frontier eco-punk\/space-punk construction/i);
 });
 
-test("major faction silhouettes remain structurally distinct", () => {
-  const pilgrim = superstructureSnapshot("Memphis", "Pilgrim's Lantern");
-  const crown = superstructureSnapshot("Iunu", "Asterion Crown");
-  const meridian = superstructureSnapshot("Sais", "Mandate Meridian");
-  assert.match(crown.referenceSvg, /data-superstructure-family="accord-crown-spindle"/);
-  assert.match(meridian.referenceSvg, /data-superstructure-family="mandate-concentric-meridian"/);
-  assert.notEqual(pilgrim.referenceSvg, crown.referenceSvg);
-  assert.notEqual(crown.referenceSvg, meridian.referenceSvg);
-  assert.match(crown.informationPacket, /outrun, outmaneuver and outgun/i);
-  assert.match(meridian.informationPacket, /perfected geometry/i);
+test("faction silhouettes remain structurally distinct", () => {
+  const watch = superstructureSnapshot("Abydos", "Thornwatch Array");
+  const anchorage = superstructureSnapshot("Abydos", "Vada Anchorage");
+  assert.notEqual(watch.referenceSvg, anchorage.referenceSvg);
+  const lantern = syntheticRender("conclave-lantern-spindle", "conclave");
+  const crown = syntheticRender("accord-crown-spindle", "accords");
+  const meridian = syntheticRender("mandate-concentric-meridian", "mandate");
+  assert.match(lantern, /data-superstructure-family="conclave-lantern-spindle"/);
+  assert.match(crown, /data-superstructure-family="accord-crown-spindle"/);
+  assert.match(meridian, /data-superstructure-family="mandate-concentric-meridian"/);
+  assert.notEqual(lantern, crown);
+  assert.notEqual(crown, meridian);
 });
 
 test("distributed superstructures remain networks rather than generic single stations", () => {
-  const arrowfall = superstructureSnapshot("Seti", "Arrowfall Range");
-  const halo = superstructureSnapshot("Nekhen", "Halo of Hierava");
-  assert.match(arrowfall.referenceSvg, /data-superstructure-family="mandate-distributed-range"/);
-  assert.match(halo.referenceSvg, /data-superstructure-family="conclave-orbital-halo"/);
-  assert.match(arrowfall.informationPacket, /distributed military megacity network/i);
-  assert.match(halo.informationPacket, /planetary-orbital megacity network/i);
+  const watch = superstructureSnapshot("Abydos", "Thornwatch Array");
+  assert.match(watch.informationPacket, /distributed megacity-scale defense network/i);
+  assert.match(watch.informationPacket, /Topology: distributed-watch-array/);
+  const single = syntheticRender("frontier-anchorage", "frontier");
+  for (const [family, faction] of [["watch-citadel-chain", "frontier"], ["mandate-distributed-range", "mandate"], ["conclave-orbital-halo", "conclave"]]) {
+    const rendered = syntheticRender(family, faction);
+    assert.match(rendered, new RegExp(`data-superstructure-family="${family}"`));
+    assert.notEqual(rendered.replace(/data-superstructure[^ >]*/g, ""), single.replace(/data-superstructure[^ >]*/g, ""), family);
+  }
 });
 
 test("natural bodies remain outside the superstructure rendering and packet contract", () => {
-  const row = rowFor("Iunu", "Eilevost");
+  const row = rowFor("Abydos", "Cataphract");
   assert.ok(row);
-  const { item, sourceText, asset } = assetFor("Iunu", "Eilevost");
+  const { item, sourceText, asset } = assetFor("Abydos", "Cataphract");
   const snapshot = snapshotOperationalRich(asset, buildNaturalBodyModel(row), item.path, sourceText);
   assert.doesNotMatch(snapshot.referenceSvg, /data-superstructure=/);
   assert.doesNotMatch(snapshot.informationPacket, /Superstructure generation contract/);

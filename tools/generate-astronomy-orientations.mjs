@@ -31,8 +31,10 @@ for (const row of rows) {
 
 const values = Object.values(orientations);
 const freeSpins = values.flatMap((entry) => entry.spinPhaseAtEpochDeg == null ? [] : [entry.spinPhaseAtEpochDeg]);
-assert(freeSpins.length >= 40, "Expected the canonical registry's free rotators");
-assert(new Set(freeSpins.map((value) => Math.floor(value / 15))).size >= 12, "Generated spin phases are pathologically clustered");
+const expectedFreeRotators = rows.filter((row) => naturalClasses.has(classifySystemObject(row.type)) && Number(row.rotation_hours) > 0 && !row.tidally_locked.toLowerCase().startsWith("yes")).length;
+assert.equal(freeSpins.length, expectedFreeRotators, "Expected one spin phase per free rotator in the canonical registry");
+// With only a handful of bodies, a clustering check is meaningless; just require distinct phases.
+assert.equal(new Set(freeSpins).size, freeSpins.length, "Generated spin phases collide");
 assert(freeSpins.every((value) => value >= 0 && value < 360), "Spin phase outside [0, 360)");
 
 const document = `${JSON.stringify({

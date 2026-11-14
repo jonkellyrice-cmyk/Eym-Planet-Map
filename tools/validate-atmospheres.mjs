@@ -9,7 +9,7 @@ import {
 
 const rows = parseCsv(readFileSync(new URL("../docs/system-orbital-distances.csv", import.meta.url), "utf8"));
 const seededWorlds = rows.filter((row) => row.geography_seed);
-if (seededWorlds.length !== 43) throw new Error(`Expected 43 Ra-seeded terrestrial worlds; found ${seededWorlds.length}`);
+if (seededWorlds.length !== 4) throw new Error(`Expected 4 Ra-seeded terrestrial worlds; found ${seededWorlds.length}`);
 
 const failures = [];
 const habitableSummary = [];

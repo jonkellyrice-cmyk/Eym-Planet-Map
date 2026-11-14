@@ -6,11 +6,21 @@ import { buildNaturalBodyModel, buildNaturalBodyModels, naturalBodyKind } from "
 
 const rows = parseCsv(readFileSync(new URL("../docs/system-orbital-distances.csv", import.meta.url), "utf8"));
 
-test("natural body models cover terrestrial, moon, minor-world, giant, and asteroid-field families", () => {
+test("natural body models cover terrestrial, moon, minor-world, and giant families in Abydos", () => {
   const models = buildNaturalBodyModels(rows);
   const kinds = new Set(models.map((model) => model.kind));
-  assert.deepEqual(kinds, new Set(["terrestrial", "moon", "minor-world", "giant", "asteroid-field"]));
+  assert.deepEqual(kinds, new Set(["terrestrial", "moon", "minor-world", "giant"]));
   assert.equal(models.length, rows.filter((row) => naturalBodyKind(row)).length);
+  assert.equal(models.length, 9);
+});
+
+test("asteroid-field bodies still build a natural model (synthetic belt; Abydos has none)", () => {
+  const belt = { system: "Belt Test", object: "Test Belt", type: "asteroid/debris belt", parent: "Test Star", distance_from_parent: "2.5", distance_unit: "AU" };
+  assert.equal(naturalBodyKind(belt), "asteroid-field");
+  const model = buildNaturalBodyModel(belt);
+  assert.equal(model.kind, "asteroid-field");
+  assert.ok(model.radiusKm > 0 && model.palette && model.composition && model.regions.length);
+  assert.ok(model.resourceProfile && model.radiationProfile);
 });
 
 test("natural bodies retain useful physical size and approach metadata", () => {

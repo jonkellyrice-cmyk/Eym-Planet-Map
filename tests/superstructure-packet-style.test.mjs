@@ -24,9 +24,10 @@ const required = [
   "DO_NOT=",
 ];
 
-test("all and only 28 artificial superstructures carry the normalized technical-atlas style contract", () => {
-  assert.equal(superstructures.length, 28);
-  assert.equal(naturalOrLegacy.length, 86);
+test("all and only the 2 Abydos artificial superstructures carry the normalized technical-atlas style contract", () => {
+  assert.equal(superstructures.length, 2);
+  assert.equal(naturalOrLegacy.length, 10);
+  assert.deepEqual(superstructures.map((entry) => entry.name).sort(), ["Thornwatch Array", "Vada Anchorage"]);
   for (const entry of superstructures) {
     for (const directive of required) assert.ok(entry.informationPacket.includes(directive), `${entry.name} missing ${directive}`);
   }

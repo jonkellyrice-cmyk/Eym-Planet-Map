@@ -5,11 +5,11 @@ import { readFileSync } from "node:fs";
 
 const root = new URL("../", import.meta.url), manifest = JSON.parse(readFileSync(new URL("data/planet-cartography/manifest.json", root), "utf8"));
 const load = (entry) => JSON.parse(readFileSync(new URL(entry.path, root), "utf8"));
-const expectedProfile = { Abydos: "vadan", Tanis: "vostrann", Saqqara: "vostrann", Iunu: "vostrann", Memphis: "aurethic", Nekhen: "aurethic", Thebes: "xuanhari", Sais: "xuanhari", Seti: "xuanhari", Amarna: "union" };
+const expectedProfile = { Abydos: "vadan" };
 
-test("all 43 refined surfaces and hashes are explicitly accepted as working canon", () => {
+test("all 4 Abydos refined surfaces and hashes are explicitly accepted as working canon", () => {
   assert.equal(manifest.status, "accepted-working-canon");
-  assert.equal(manifest.worlds.length, 43);
+  assert.equal(manifest.worlds.length, 4);
   for (const entry of manifest.worlds) {
     const text = readFileSync(new URL(entry.path, root), "utf8"), asset = JSON.parse(text);
     assert.equal(asset.status, "accepted-working-canon", entry.body);
@@ -38,9 +38,10 @@ test("accepted names follow controlling culture and remain collision-free per wo
   }
 });
 
-test("canonical CSV is unchanged from the audited v0.4.0 base", () => {
+test("canonical CSV is unchanged from the audited v0.4.0 base trimmed to the Abydos rows", () => {
+  // The 13 Abydos rows are byte-identical to the audited v0.4.0 registry; only the other nine systems' rows were removed.
   const csv = readFileSync(new URL("docs/system-orbital-distances.csv", root));
-  assert.equal(createHash("sha256").update(csv).digest("hex"), "d9367e4dd00f6e8a864d20ce04a396aa0d7938bfd0b35876e2efe2c683fe17b6");
+  assert.equal(createHash("sha256").update(csv).digest("hex"), "ca89b5aed481f1cc136e038cb1ce85e1c21c044ef08b959fc7cfe8e2579c4a4b");
 });
 
 test("Eventide's accepted canon remains continent-free and ocean dominated", () => {

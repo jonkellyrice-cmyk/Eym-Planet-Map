@@ -8,10 +8,10 @@ const coarse = JSON.parse(readFileSync(new URL(manifest.sourceManifest, root), "
 const coarseByKey = new Map(coarse.worlds.map((world) => [`${world.system}/${world.body}`, world]));
 const load = (entry) => JSON.parse(readFileSync(new URL(entry.path, root), "utf8"));
 
-test("refined manifest contains 43 unique fingerprinted worlds", () => {
+test("refined manifest contains 4 unique fingerprinted worlds", () => {
   assert.equal(manifest.schemaVersion, 2);
-  assert.equal(manifest.worlds.length, 43);
-  assert.equal(new Set(manifest.worlds.map((world) => `${world.system}/${world.body}`)).size, 43);
+  assert.equal(manifest.worlds.length, 4);
+  assert.equal(new Set(manifest.worlds.map((world) => `${world.system}/${world.body}`)).size, 4);
   for (const entry of manifest.worlds) {
     const text = readFileSync(new URL(entry.path, root), "utf8");
     assert.equal(createHash("sha256").update(text).digest("hex"), entry.sha256);

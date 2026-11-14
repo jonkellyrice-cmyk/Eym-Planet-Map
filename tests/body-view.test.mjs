@@ -64,7 +64,7 @@ test("body views propagate canonical jurisdiction emblems above every entered bo
 });
 
 test("live Foundry artificial-body renderer shares the frozen-atlas superstructure identity families", () => {
-  assert.equal(SUPERSTRUCTURE_KEYS.length, 28);
+  assert.equal(SUPERSTRUCTURE_KEYS.length, 2);
   for (const key of SUPERSTRUCTURE_KEYS) {
     const [system, body] = key.split("/");
     const identity = liveSuperstructureIdentity({ system, body });
@@ -74,9 +74,9 @@ test("live Foundry artificial-body renderer shares the frozen-atlas superstructu
     assert.doesNotMatch(rendered, /data-section-logic=\"true\"/, `Foundry live silhouette must not include the frozen atlas zoning strip for ${key}`);
   }
 
-  assert.equal(liveSuperstructureIdentity({ system: "Amarna", body: "Far Lantern" }).silhouetteFamily, "stacked-vertical-station");
-  assert.equal(liveSuperstructureIdentity({ system: "Memphis", body: "Pilgrim's Lantern" }).silhouetteFamily, "conclave-lantern-spindle");
-  assert.equal(liveSuperstructureIdentity({ system: "Iunu", body: "Asterion Crown" }).silhouetteFamily, "accord-crown-spindle");
+  assert.equal(liveSuperstructureIdentity({ system: "Abydos", body: "Vada Anchorage" }).silhouetteFamily, "frontier-anchorage");
+  assert.equal(liveSuperstructureIdentity({ system: "Abydos", body: "Vada Anchorage" }).factionFamily, "frontier");
+  assert.equal(liveSuperstructureIdentity({ system: "Abydos", body: "Thornwatch Array" }).topology, "distributed-watch-array");
   assert.equal(liveSuperstructureIdentity({ system: "Abydos", body: "Thornfield" }), null);
 
   const source = readFileSync(new URL("../scripts/body-view-core.mjs", import.meta.url), "utf8");

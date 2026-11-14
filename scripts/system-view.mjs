@@ -13,7 +13,6 @@ function svgElement(name, attrs = {}) {
 
 function paletteFor(object) {
   if (object.objectClass === "star") {
-    if (/memphis/i.test(object.system)) return { fill: "#159a63", core: "#c8ffe0" };
     if (/F\d/i.test(object.type)) return { fill: "#fff1c9", core: "#fffbed" };
     if (/G\d/i.test(object.type)) return { fill: "#f4ce68", core: "#fff0b7" };
     return { fill: "#e98d43", core: "#ffc687" };

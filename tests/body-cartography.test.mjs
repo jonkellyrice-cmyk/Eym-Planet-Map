@@ -30,20 +30,24 @@ test("geographic vectors project to smooth limb-clipped SVG paths", () => {
 });
 
 test("mobile render plans retain essential layers within a bounded DOM budget", () => {
-  const aurelios = load("Aurelios"), orbital = buildCartographyRenderPlan(aurelios, .8, true), surface = buildCartographyRenderPlan(aurelios, 3, true);
-  assert.ok(orbital.coastlines.length && orbital.rivers.length && orbital.settlements.length);
-  assert.ok(surface.ecoregions.length >= orbital.ecoregions.length);
-  assert.ok(surface.resources.length > 0);
-  assert.ok(cartographyFeatureBudget(orbital) < cartographyFeatureBudget(surface));
-  assert.ok(cartographyFeatureBudget(surface) < 1_600);
+  for (const body of ["Ramses", "Eventide", "Thraximundus", "Kandahar"]) {
+    const world = load(body), orbital = buildCartographyRenderPlan(world, .8, true), surface = buildCartographyRenderPlan(world, 3, true);
+    assert.ok(orbital.coastlines.length && orbital.rivers.length && orbital.settlements.length, body);
+    assert.ok(surface.ecoregions.length >= orbital.ecoregions.length, body);
+    assert.ok(surface.resources.length > 0, body);
+    assert.ok(cartographyFeatureBudget(orbital) < cartographyFeatureBudget(surface), body);
+    assert.ok(cartographyFeatureBudget(surface) < 1_600, body);
+  }
 });
 
 test("orbital labels prioritize permanent capital, ocean and continental names", () => {
-  const serapha = load("Serapha"), labels = selectCartographyLabels(serapha, .8, true);
-  assert.ok(labels.some((feature) => feature.featureClass === "capital"));
-  assert.ok(labels.some((feature) => feature.featureClass === "ocean"));
-  assert.ok(labels.every((feature) => feature.properName));
-  assert.equal(new Set(labels.map((feature) => feature.properName)).size, labels.length);
+  for (const body of ["Ramses", "Eventide", "Thraximundus", "Kandahar"]) {
+    const labels = selectCartographyLabels(load(body), .8, true);
+    assert.ok(labels.some((feature) => feature.featureClass === "capital"), body);
+    assert.ok(labels.some((feature) => feature.featureClass === "ocean"), body);
+    assert.ok(labels.every((feature) => feature.properName), body);
+    assert.equal(new Set(labels.map((feature) => feature.properName)).size, labels.length, body);
+  }
 });
 
 test("body viewer and controller consume refined vectors with cultural labels", () => {

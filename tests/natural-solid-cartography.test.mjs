@@ -13,7 +13,7 @@ const solidRows = rows.filter((row) => operationalKindForRow(row) === "natural-s
 const planFor = (row) => naturalSolidFeaturePlan(row, operationSeed(row.system, row.object, row.type));
 
 test("natural-solid metadata profiles are bounded and deterministic", () => {
-  assert.ok(solidRows.length > 10);
+  assert.equal(solidRows.length, 7);
   for (const row of solidRows) {
     const first = deriveNaturalSolidProfile(row);
     const second = deriveNaturalSolidProfile(row);
@@ -72,7 +72,7 @@ test("human surface infrastructure is conditional on actual exploitation metadat
 test("materialized natural-solid assets expose the Phase 2 survey contract", () => {
   const manifest = JSON.parse(readFileSync(new URL("data/body-operations/manifest.json", root), "utf8"));
   const natural = manifest.assets.filter((entry) => entry.operationalKind === "natural-solid");
-  assert.ok(natural.length > 10);
+  assert.deepEqual(natural.map((entry) => entry.body).sort(), ["Cataphract", "Enoch", "Ventus"]);
   for (const entry of natural) {
     const asset = JSON.parse(readFileSync(new URL(entry.path, root), "utf8"));
     assert.equal(asset.surfaceSurvey?.modelVersion, NATURAL_SOLID_SURVEY_MODEL_VERSION, entry.path);
@@ -86,8 +86,12 @@ test("materialized natural-solid assets expose the Phase 2 survey contract", () 
 test("canonical registry does not promote prospecting language into established industry", () => {
   const targetRows = solidRows.filter((row) => row.current_exploitation || row.infrastructure_profile);
   const established = targetRows.filter((row) => deriveNaturalSolidProfile(row).exploitationIndex > 0);
-  assert.ok(established.some((row) => row.object === "Old Kestrel"));
-  assert.ok(established.length <= 4, `expected conservative established-industry count, count must remain <= 4`);
+  // Abydos has no map-established surface industry: its prospecting bodies must stay unexploited.
+  assert.deepEqual(targetRows.map((row) => row.object).sort(), ["Enoch", "Ventus"]);
+  assert.equal(established.length, 0);
+  // Positive control (synthetic): genuinely established extraction does raise the index.
+  const worked = { system: "Test", object: "Worked", type: "rocky planet", radius_re: "0.5", bulk_composition: "iron-rich silicate rock", current_exploitation: "active industrial extraction", infrastructure_profile: "crewed sealed mining habitat, refinery and landing field", resource_profile: "metal-rich ore" };
+  assert.ok(deriveNaturalSolidProfile(worked).exploitationIndex > 0);
   for (const row of targetRows.filter((item) => /candidate|plausible|likely|prospect|no map-established/.test(String(item.current_exploitation + ";" + item.infrastructure_profile).toLowerCase()))) {
     assert.equal(deriveNaturalSolidProfile(row).exploitationIndex, 0, row.object);
   }

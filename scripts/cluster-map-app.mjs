@@ -1,10 +1,11 @@
-// Single-system edition: the app opens on HOME_SYSTEM and never leaves it. The cluster view
-// (cluster-view.mjs, cluster-data.mjs, faction-territories.mjs) is no longer wired in; those
-// files are left on disk untouched.
+// Single-system edition: the app opens on HOME_SYSTEM and never leaves it. The cluster view and
+// the other nine systems' data have been removed from this module.
 //
 // ASTRAL TRAVEL (dormant): routes, voyages, the ship marker and the relativistic travel solver
 // are commented out below, not deleted, so they can be revived later (e.g. for astral barges).
 // To revive, restore these imports and uncomment every block marked "ASTRAL TRAVEL (dormant)".
+// Branches for voyage.context === "cluster" (and the SYSTEMS / formatLightYears references) belong
+// to the removed cluster view and should be dropped when reviving; in-system routes are self-contained.
 // import { calculateTransit, formatDuration, formatVelocity, SECONDS_PER_JULIAN_YEAR, trajectoryMarkers } from "./relativity.mjs";
 // import { abortVoyage, advanceVoyageToRouteFraction, engageVoyage, evaluateVoyage } from "./campaign-time.mjs";
 // import { AU_KM, LIGHT_YEAR_KM, formatSystemDistance, physicalDistanceAu, physicalDistanceLy } from "./system-data.mjs";

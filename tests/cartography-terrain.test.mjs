@@ -15,7 +15,7 @@ test("accepted coarse geography deterministically anchors a two-degree terrain m
 });
 
 test("sea-level fitting preserves canonical water coverage at refined resolution", () => {
-  for (const body of ["Eventide", "Ramses", "Tlaloc", "Keshun"]) {
+  for (const body of ["Eventide", "Ramses", "Thraximundus", "Kandahar"]) {
     const coarse = load(body), refined = buildRefinedTerrain(coarse);
     assert.ok(Math.abs(refined.realizedWaterFraction - coarse.realizedWaterFraction) <= .001, body);
   }

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — single-system edition (Eym Planet Map)
+
+- The map opens on the Abydos system and treats it as the outermost level; the cluster view and its breadcrumb are removed.
+- Removed the other nine systems: their registry rows, planetary cartography and geography, operational surveys, epoch orientations, superstructure identities and reference sheets; the Thebes/Jinyara surface-art intake; the cluster view, cluster coordinates and faction-territory volumes; and the one-off migration tools written against the ten-system data. Abydos data is byte-identical to before.
+- Validators and generators now expect the Abydos inventory (13 registry rows, 4 cartographic worlds, 8 operational bodies, 2 superstructures).
+- Astral travel (routes, voyages, ship marker, navigation profile, shipboard clock) is commented out in place as dormant code; one campaign clock remains.
+- Added a fixed night sky: 2,000 deterministic naked-eye stars, the galactic band and a distant sister galaxy behind the system view.
+
 ## 0.8.1
 
 - Moved solver-derived speed-cap and braking/thrust-flip dots into a dedicated upper SVG layer so endpoint system/body markers cannot obscure them.

@@ -84,7 +84,7 @@ export function buildSystemModel(rows, systemName, { referenceTimestampMs = UNIO
     return object;
   });
 
-  // Preserve established binary barycentric opposition (currently Tanis A/B)
+  // Preserve established binary barycentric opposition for two-star systems
   // without inventing independent stellar trajectories around the barycenter.
   const binaryPrimaryFor = new Map();
   for (const parent of objects.filter((object) => object.objectClass === "barycenter")) {

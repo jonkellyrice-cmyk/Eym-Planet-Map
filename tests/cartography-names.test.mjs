@@ -15,8 +15,8 @@ function build(body) {
   const result = { coarse, terrain, hydrology, regions, names: buildNamedGeography({ coarse, terrain, hydrology, regions }) }; cache.set(body, result); return result;
 }
 
-test("the five controlling cultures govern permanent physical-feature names", () => {
-  const expected = { Eventide: ["vadan", "Vadan"], "Krasna Brae": ["vostrann", "Vostrann"], Serapha: ["aurethic", "Aurethic"], Jinyara: ["xuanhari", "Xuānhari"], Nansen: ["union", "Union cosmopolitan"] };
+test("the controlling Vadan culture governs every Abydos world's permanent physical-feature names", () => {
+  const expected = { Ramses: ["vadan", "Vadan"], Eventide: ["vadan", "Vadan"], Thraximundus: ["vadan", "Vadan"], Kandahar: ["vadan", "Vadan"] };
   for (const [body, [profile, language]] of Object.entries(expected)) {
     const { names } = build(body);
     assert.equal(names.namingProfile, profile, body);
@@ -26,7 +26,7 @@ test("the five controlling cultures govern permanent physical-feature names", ()
 });
 
 test("gazetteer identities and names are stable, unique and tied to literal geometry", () => {
-  const first = build("Serapha"), second = buildNamedGeography(first);
+  const first = build("Ramses"), second = buildNamedGeography(first);
   assert.deepEqual(first.names, second);
   assert.equal(new Set(first.names.features.map((feature) => feature.properName)).size, first.names.features.length);
   assert.ok(first.names.features.every((feature) => feature.at?.length === 2 && feature.at.every(Number.isFinite)));
