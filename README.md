@@ -9,6 +9,7 @@ The module id is still `orphaned-sun-cluster-map`, so it cannot be installed alo
 - An interactive AU-scale system map of all 13 canonical Abydos objects (star, planets, moon, giants, station, installation array, anomaly region), keeping physical hierarchical coordinates separate from compressed display coordinates.
 - The system is the outermost level: double-click/double-tap or zoom inward from system → body, with a breadcrumb back to the system; zooming out stops at the system.
 - A fixed night sky around the system: 2,000 naked-eye stars, the galactic band and a distant sister galaxy, drawn inside-looking-out behind the system view and turning with the camera (see `tools/generate-starfield.mjs`).
+- 35 named constellations and 4 asterisms in plain English (16 northern, 19 southern; 7 chief constellations in each hemisphere; 8 on the path of the sun, in order), stored as star-to-star line data in `data/stellar/constellations.json` (see `tools/generate-constellations.mjs`).
 - Four inhabited terrestrial worlds (Ramses, Eventide, Thraximundus, Kandahar) with accepted deterministic 2° cartography: coastlines, elevation/contours, hydrology, ecoregions, soils, resources, settlements, permanent cultural gazetteers, and transport geometry.
 - Eight non-cartographic bodies and orbital structures with accepted deterministic local operational surveys (barren worlds, moon, giants, station, installation array, anomaly region).
 - Culture-aware permanent names (Vadan for Abydos; the Aurethic, Vostrann, Xuānhari and Union naming cultures remain available for new systems).
@@ -57,6 +58,7 @@ npm run astronomy:check
 npm run astronomy:validate
 npm run atlas:snapshot:check
 npm run starfield:check
+npm run constellations:check
 ```
 
 ## Coordinate model
