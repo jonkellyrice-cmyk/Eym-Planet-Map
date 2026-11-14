@@ -38,8 +38,9 @@ That URL resolves once a GitHub release exists. Releases are built by `.github/w
 
 ## Compatibility
 
-- Foundry VTT: **13**
-- LANCER system: **3.1.3+**
+- Game system: **Pathfinder Second Edition** (`pf2e`) **7.0+**. Nothing in the module depends on PF2e rules; the system is declared so it is offered in PF2e worlds.
+- Foundry VTT: **13** (verified) and **14** (allowed, not yet verified in a live world). PF2e 7.x runs on Foundry v13 and PF2e 8.x on Foundry v14.
+- The **System Map** button sits in the Token controls, where it exists on both Foundry v13 and v14 (v14 replaced measured templates with Regions).
 
 ## Development / local install
 
@@ -47,7 +48,7 @@ Copy this folder into:
 
 `{Foundry user data}/Data/modules/eym-planet-map/`
 
-Restart Foundry, enable the module, then use the **System Map** button in the Measurement controls. It may also be opened from the browser console or a macro:
+Restart Foundry, enable the module, then use the **System Map** button in the Token controls. It may also be opened from the browser console or a macro:
 
 ```js
 game.modules.get("eym-planet-map").api.open();
