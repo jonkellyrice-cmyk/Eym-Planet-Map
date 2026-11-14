@@ -22,6 +22,14 @@ const SUNRISE_ALTITUDE_DEG = -0.833;
 /** Annual mean sea-level temperature (°C) on an Earth-like, mostly ocean world. */
 export function seaLevelTemperatureC(lat) { const s2 = Math.sin(lat * DEG) ** 2; return 27.5 - 30 * s2 - 10 * s2 * s2; }
 
+/** Zonal annual precipitation (mm): wet equatorial belt, dry subtropics, wet mid-latitudes, dry poles. */
+export function zonalPrecipitationMm(lat) {
+  const a = Math.abs(lat);
+  const p = 700 + 1500 * Math.exp(-(((lat - 4) / 11) ** 2)) + 550 * Math.exp(-(((a - 48) / 13) ** 2)) - 300 * Math.exp(-(((a - 27) / 7) ** 2));
+  const polar = a > 60 ? 1 - 0.6 * Math.min(1, (a - 60) / 25) : 1;
+  return Math.max(150, p * polar);
+}
+
 /** Annual mean temperature at a height (lapse rate 6.5 °C per km). */
 export function annualMeanTemperatureC(latDeg, elevationM = 0) { return seaLevelTemperatureC(latDeg) - Math.max(0, elevationM) * 0.0065; }
 
@@ -89,6 +97,11 @@ export function sunTimes(latDeg, declinationDeg) {
 
 // ---------------------------------------------------------------- seasons
 
+/** Where the tropical rain belt lies: it follows the Sun, a few degrees north of the equator. */
+export const rainBeltLat = (declinationDeg) => 4 + 0.6 * declinationDeg;
+/** The Sun's approximate declination from the date alone (for when no model snapshot is at hand). */
+export const approximateDeclinationDeg = (timeMs) => 23.44 * Math.sin(2 * Math.PI * yearFraction(timeMs));
+
 const THIRDS = ["early", "mid", "late"];
 
 /**
@@ -101,8 +114,8 @@ export function seasonAt(latDeg, timeMs, declinationDeg) {
   const northern = ["spring", "summer", "autumn", "winter"][quarter], southern = ["autumn", "winter", "spring", "summer"][quarter];
   const temperate = `${part} ${latDeg >= 0 ? northern : southern}`;
   if (Math.abs(latDeg) >= 23.5) return { name: temperate, kind: "temperate", quarter };
-  if (Math.abs(latDeg) < 5) return { name: Math.abs(declinationDeg) < 12 ? "the rains (equinox season)" : "the drier season", kind: "equatorial", quarter };
-  return { name: Math.sign(declinationDeg) === Math.sign(latDeg) ? "the wet season" : "the dry season", kind: "tropical", quarter };
+  // In the tropics the rainy season is when the rain belt stands overhead.
+  return { name: Math.abs(latDeg - rainBeltLat(declinationDeg)) < 10 ? "the wet season" : "the dry season", kind: "tropical", quarter };
 }
 
 // ---------------------------------------------------------------- the surface over the year
@@ -119,6 +132,7 @@ export function environmentField(asset) {
   if (fieldCache.has(asset)) return fieldCache.get(asset);
   const { latCount, lonCount } = asset.grid, res = asset.resolutionDeg, n = latCount * lonCount;
   const ocean = decodeBytes(asset.raster.oceanMaskBase64), elevation = asset.raster.elevationM;
+  const biomes = { categories: asset.raster.biome.categories, values: decodeBytes(asset.raster.biome.valuesBase64) };
   const distKm = new Float32Array(n).fill(Infinity), queue = [];
   for (let i = 0; i < n; i += 1) if (ocean[i]) { distKm[i] = 0; queue.push(i); }
   for (let head = 0; head < queue.length; head += 1) {
@@ -131,7 +145,7 @@ export function environmentField(asset) {
   }
   const cells = Array.from({ length: n }, (_, i) => {
     const latIndex = Math.floor(i / lonCount), lonIndex = i % lonCount, lat = -90 + res * (latIndex + 0.5);
-    return { id: i, latIndex, lonIndex, lat, lon: -180 + res * (lonIndex + 0.5), ocean: Boolean(ocean[i]), annualMeanC: annualMeanTemperatureC(lat, ocean[i] ? 0 : elevation[i]), continentality: ocean[i] ? 0 : clamp(distKm[i] / 1200, 0, 1) };
+    return { id: i, latIndex, lonIndex, lat, lon: -180 + res * (lonIndex + 0.5), ocean: Boolean(ocean[i]), elevationM: ocean[i] ? 0 : elevation[i], biome: biomes.categories[biomes.values[i]], annualMeanC: annualMeanTemperatureC(lat, ocean[i] ? 0 : elevation[i]), continentality: ocean[i] ? 0 : clamp(distKm[i] / 1200, 0, 1) };
   });
   const field = { grid: { latCount, lonCount }, resolutionDeg: res, cells, cellAt: (lat, lon) => cells[clamp(Math.floor((lat + 90) / res), 0, latCount - 1) * lonCount + ((Math.floor((lon + 180) / res) % lonCount) + lonCount) % lonCount] };
   fieldCache.set(asset, field);
@@ -161,6 +175,11 @@ function smoothRing(ring) {
   return [...points, points[0]];
 }
 
+/** Smoothed outline rings ([lat, lon]) around a set of the field's cells. */
+export function coverRings(field, cells) {
+  return polygonize(cells.map((cell) => ({ ...cell, cover: "cover" })), "cover", field.resolutionDeg, field.grid).flatMap((region) => region.polygons.map((ring) => densify(smoothRing(ring))));
+}
+
 /**
  * Seasonal snow on land (day-mean temperature below −1 °C) and sea ice (sea surface below −1.8 °C),
  * as smoothed [lat, lon] rings, plus the share of land under snow.
@@ -171,7 +190,7 @@ export function seasonalCover(field, timeMs) {
     const t = seasonalTemperature({ annualMeanC: cell.annualMeanC, latDeg: cell.lat, continentality: cell.continentality, ocean: cell.ocean, timeMs }).dayMeanC;
     if (cell.ocean ? t < -1.8 : t < -1) (cell.ocean ? iceCells : snowCells).push({ ...cell, cover: "cover" });
   }
-  const rings = (cells) => polygonize(cells, "cover", field.resolutionDeg, field.grid).flatMap((region) => region.polygons.map((ring) => densify(smoothRing(ring))));
+  const rings = (cells) => coverRings(field, cells);
   const land = field.cells.filter((cell) => !cell.ocean).length;
   return { snow: rings(snowCells), ice: rings(iceCells), snowShare: land ? snowCells.length / land : 0, iceCells: iceCells.length };
 }

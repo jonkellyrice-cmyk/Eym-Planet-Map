@@ -129,8 +129,15 @@
         <div><span>Sun time</span><strong data-place-field="localTime">—</strong></div>
         <div><span>Sunrise – sunset</span><strong data-place-field="sunriseSunset">—</strong></div>
         <div><span>Daylight</span><strong data-place-field="dayLength">—</strong></div>
+        <div><span>Weather</span><strong data-place-field="conditions">—</strong></div>
         <div><span>Temperature</span><strong data-place-field="temperature">—</strong></div>
+        <div><span>Wind</span><strong data-place-field="wind">—</strong></div>
+        <div><span>Pressure</span><strong data-place-field="pressure">—</strong></div>
+        <div><span>Humidity</span><strong data-place-field="humidity">—</strong></div>
+        <div><span>Last 7 days</span><strong data-place-field="lastWeek">—</strong></div>
         <div><span>Ground</span><strong data-place-field="ground">—</strong></div>
+        <div><span>Next 24 h</span><strong data-place-field="outlook">—</strong></div>
+        <div><span>Storms</span><strong data-place-field="storm">—</strong></div>
       </div>
       <div class="oscm-look-up-coords">
         <label><span>Latitude (°N)</span><input name="lookUpLat" type="number" min="-90" max="90" step="0.1" value="45"></label>
@@ -148,6 +155,7 @@
         <div><span>Mitkear</span><strong data-sky-field="sun">—</strong></div>
         <div><span>Season</span><strong data-sky-field="season">—</strong></div>
         <div><span>Sunrise – sunset</span><strong data-sky-field="sunriseSunset">—</strong></div>
+        <div><span>Weather</span><strong data-sky-field="weather">—</strong></div>
         <div><span>Temperature</span><strong data-sky-field="temperature">—</strong></div>
         <div><span>Austarm</span><strong data-sky-field="whiteMoon">—</strong></div>
         <div><span>Chatarm</span><strong data-sky-field="redMoon">—</strong></div>
@@ -165,6 +173,9 @@
       <label><input type="checkbox" data-body-layer="resources"> Resources &amp; soils</label>
       <label><input type="checkbox" data-body-layer="settlements" checked> Cities &amp; capital</label>
       <label><input type="checkbox" data-body-layer="transport" checked> Transport corridors</label>
+      <label><input type="checkbox" data-body-layer="weather-clouds" checked> Clouds &amp; rain</label>
+      <label><input type="checkbox" data-body-layer="weather-storms" checked> Storms, highs &amp; lows</label>
+      <label><input type="checkbox" data-body-layer="weather-wind"> Wind</label>
     </section>
 
 {{!-- ASTRAL TRAVEL (dormant): navigation profile (acceleration / speed cap / cluster grid)

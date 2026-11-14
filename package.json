@@ -18,6 +18,7 @@
     "starfield:check": "node tools/generate-starfield.mjs --check",
     "constellations:generate": "node tools/generate-constellations.mjs",
     "constellations:check": "node tools/generate-constellations.mjs --check",
-    "moons:almanac": "node tools/moon-almanac.mjs"
+    "moons:almanac": "node tools/moon-almanac.mjs",
+    "weather:calibrate": "node tools/calibrate-eym-weather.mjs"
   }
 }

@@ -158,6 +158,12 @@ export class BodyView {
       for (const region of regions.filter((item) => !oceanBiome(item.category))) drawRegion(region);
       for (const detail of asset.terrain.detail ?? []) addPath(this.layerGroups.get("terrain"), { id: detail.id, type: detail.kind, continent: detail.continent }, detail.rings, `oscm-cartography-detail is-${detail.kind}`, { minZoom: detail.kind === "forest" ? 1.6 : .46, closed: true, filled: true }).setAttribute("clip-path", "url(#oscm-land-clip)");
       this.snowLayer = svg("g", { class: "oscm-season-snow", "clip-path": "url(#oscm-land-clip)" }); this.layerGroups.get("terrain").append(this.snowLayer);
+      // Weather: clouds and rain, storms and pressure centres, and (off by default) wind.
+      this.weatherGroups = {};
+      // Clouds and rain are drawn as merged, blurred fields rather than separate discs.
+      const blur = svg("filter", { id: "oscm-weather-blur", filterUnits: "userSpaceOnUse", x: -200, y: -200, width: 1300, height: 1080 }); this.weatherBlur = svg("feGaussianBlur", { stdDeviation: 6 }); blur.append(this.weatherBlur); this.svg.querySelector("defs").append(blur);
+      for (const id of ["clouds", "storms", "wind"]) { const group = svg("g", { class: `oscm-body-layer oscm-weather-layer is-weather-${id}` }); this.surface.append(group); this.layerGroups.set(`weather-${id}`, group); this.weatherGroups[id] = group; }
+      this.weatherGroups.wind.classList.add("is-hidden");
       // Night and the three twilights, darkest last, over everything on the surface.
       this.nightLayer = svg("g", { class: "oscm-terminator is-hidden" }); this.surface.append(this.nightLayer);
       this.nightBands = TWILIGHT_STEPS.map((step) => { const node = svg("path", { class: `oscm-night-band below-${-step}` }); this.nightLayer.append(node); return { node, belowDeg: -step }; });
@@ -197,6 +203,43 @@ export class BodyView {
       const node = svg("path", { class: `oscm-season-cover is-${kind}` }); layer.append(node);
       this.featureNodes.push({ node, rings, feature: { type: kind === "ice" ? "sea ice" : "snow cover" }, minZoom: 0, closed: true, limbClose: true, cartographicPath: true, seasonal: true });
     }
+    this.render();
+  }
+
+  /**
+   * Show the weather (from globeWeather in scripts/eym-weather.mjs): cloud and rain, highs and lows,
+   * tropical cyclones, floods and wind.
+   */
+  setWeather(globe) {
+    if (!this.weatherGroups) return;
+    this.featureNodes = this.featureNodes.filter((item) => !item.weather);
+    for (const group of Object.values(this.weatherGroups)) group.replaceChildren();
+    const point = (group, node, lat, lon, extra = {}) => { group.append(node); this.featureNodes.push({ node, lat, lon, feature: extra.feature ?? {}, minZoom: extra.minZoom ?? 0, radiusDeg: extra.radiusDeg, weather: true, steadyOpacity: extra.steadyOpacity }); };
+    // One blurred group per cloud thickness and per kind of rain: discs merge instead of stacking.
+    const field = (name) => { const g = svg("g", { class: `oscm-weather-field is-${name}`, filter: "url(#oscm-weather-blur)" }); this.weatherGroups.clouds.append(g); return g; };
+    const fields = { thin: field("cloud-thin"), mid: field("cloud-mid"), thick: field("cloud-thick"), rain: field("rain"), sleet: field("sleet"), snow: field("snow"), heavy: field("rain-heavy"), thunder: field("thunder") };
+    for (const cell of globe.cells) {
+      if (cell.cloud > 0.4) point(cell.cloud > 0.85 ? fields.thick : cell.cloud > 0.62 ? fields.mid : fields.thin, svg("circle", { class: "oscm-weather-cloud" }), cell.lat, cell.lon, { radiusDeg: 3.9, steadyOpacity: true });
+      if (cell.precipKind && cell.precipMmH > 0.1) point(cell.thunder ? fields.thunder : cell.precipKind === "rain" && cell.precipMmH > 3 ? fields.heavy : fields[cell.precipKind], svg("circle", { class: "oscm-weather-precip" }), cell.lat, cell.lon, { radiusDeg: 2.6, steadyOpacity: true });
+      // Wind: an arrow downwind, its length growing with the speed.
+      const k = 0.09 * Math.min(cell.windMs, 30), cos = Math.max(0.2, Math.cos(cell.lat * Math.PI / 180)), speed = Math.hypot(cell.windE, cell.windN) || 1;
+      const dn = cell.windN / speed * k, de = cell.windE / speed * k / cos, end = [cell.lat + dn, cell.lon + de];
+      const head = (sign) => { const a = sign * 0.45, bn = -dn * 0.35, be = -de * 0.35 * cos; return [end[0] + bn * Math.cos(a) - be * Math.sin(a), end[1] + (bn * Math.sin(a) + be * Math.cos(a)) / cos]; };
+      const arrow = svg("path", { class: `oscm-weather-wind${cell.windMs >= 17 ? " is-gale" : ""}` }); this.weatherGroups.wind.append(arrow);
+      this.featureNodes.push({ node: arrow, rings: [[[cell.lat, cell.lon], end], [head(1), end, head(-1)]], feature: {}, minZoom: 0, cartographicPath: true, weather: true });
+    }
+    for (const centre of globe.centres) {
+      const text = svg("text", { class: `oscm-weather-centre is-${centre.kind}`, "text-anchor": "middle", "dominant-baseline": "middle" }); text.textContent = centre.kind === "low" ? "L" : "H";
+      const title = svg("title"); title.textContent = `${centre.kind === "low" ? "Low" : "High"} ${centre.pressureHpa} hPa`; text.append(title);
+      point(this.weatherGroups.storms, text, centre.lat, centre.lon);
+    }
+    for (const cyclone of globe.cyclones) {
+      const g = svg("g", { class: `oscm-weather-cyclone is-${cyclone.kind.replace(/ /g, "-")}` });
+      g.append(svg("circle", { r: 3 }), svg("path", { d: "M 0 -9 C 7 -9 9 -2 6 3 M 0 9 C -7 9 -9 2 -6 -3" }));
+      const label = svg("text", { x: 11, y: 4 }); label.textContent = `${cyclone.kind[0].toUpperCase()}${cyclone.kind.slice(1)}, ${Math.round(cyclone.maxWindMs * 3.6)} km/h`; g.append(label);
+      point(this.weatherGroups.storms, g, cyclone.lat, cyclone.lon, { feature: { type: cyclone.kind, scientificClassification: `${Math.round(cyclone.maxWindMs * 3.6)} km/h winds` } });
+    }
+    for (const flood of globe.floods) point(this.weatherGroups.storms, svg("circle", { class: "oscm-weather-flood" }), flood.lat, flood.lon, { radiusDeg: 0.45, minZoom: 1.5, feature: { type: "flooding" } });
     this.render();
   }
 
@@ -325,6 +368,7 @@ export class BodyView {
   render() {
     const radius = 250 * this.state.zoom; this.discClip?.setAttribute("r", radius);
     if (this.fadeNightWithZoom) this.night.style.opacity = String(clamp(1.8 - this.state.zoom * 0.8, 0, 1));
+    this.weatherBlur?.setAttribute("stdDeviation", (radius * 0.022).toFixed(1));
     if (this.environment?.subsolar && this.nightBands) {
       const sun = orthographicGeoPoint(this.environment.subsolar.latDeg, this.environment.subsolar.lonDeg, this.state.yaw, this.state.pitch, 1);
       for (const band of this.nightBands) band.node.setAttribute("d", nightOutlinePath({ x: sun.x, y: sun.y, z: sun.z }, radius, [450, 340], band.belowDeg));
@@ -337,7 +381,9 @@ export class BodyView {
         item.node.setAttribute("d", paths.join(" ")); item.node.hidden = !lodVisible || !paths.length; item.node.style.opacity = item.node.hidden ? "0" : "1"; continue;
       }
       const point = item.schematic ? { x: item.x * this.state.zoom, y: item.y * this.state.zoom, visible: true, z: 1 } : orthographicProject(item.lat, item.lon, this.state.yaw, this.state.pitch, radius);
-      item.node.setAttribute("transform", `translate(${450 + point.x} ${340 + point.y})`); item.node.hidden = !lodVisible || !point.visible; item.node.style.opacity = item.node.hidden ? "0" : String(clamp(.35 + point.z * .65, .35, 1));
+      item.node.setAttribute("transform", `translate(${450 + point.x} ${340 + point.y})`); item.node.hidden = !lodVisible || !point.visible;
+      if (item.radiusDeg) item.node.setAttribute("r", Math.max(0.8, radius * item.radiusDeg * Math.PI / 180).toFixed(1));
+      if (item.steadyOpacity) item.node.style.opacity = "1"; item.node.style.opacity = item.node.hidden ? "0" : String(clamp(.35 + point.z * .65, .35, 1));
       if (item.lat2 != null) { const end = orthographicProject(item.lat2, item.lon2, this.state.yaw, this.state.pitch, radius); item.node.removeAttribute("transform"); item.node.setAttribute("x1", 450 + point.x); item.node.setAttribute("y1", 340 + point.y); item.node.setAttribute("x2", 450 + end.x); item.node.setAttribute("y2", 340 + end.y); item.node.hidden = !point.visible || !end.visible; }
     }
   }

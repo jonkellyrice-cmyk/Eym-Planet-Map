@@ -59,6 +59,12 @@ export class SkyView {
   }
 
   update(snapshot) { this.snapshot = snapshot; this.render(); }
+  /** Cloud cover (0–1) over the observer, from the weather. */
+  setCloud(cloud) {
+    const day = (this.snapshot?.sun?.altDeg ?? -90) > -6;
+    this.cloudVeil.setAttribute("fill-opacity", (Math.max(0, cloud - 0.1) ** 1.3 * (day ? 0.8 : 0.93)).toFixed(2));
+    this.cloudVeil.style.fill = day ? "#c4ccd4" : "#1b2229";
+  }
   setLayerVisibility(layer, visible) { this.layers[layer] = Boolean(visible); this.render(); }
   resetView() { Object.assign(this.state, { rotationDeg: 0, zoom: 1 }); this.render(); }
   clearSelection() {}
@@ -92,7 +98,9 @@ export class SkyView {
     this.starPaths = STAR_CLASSES.map((entry, classIndex) => Array.from({ length: TWINKLE_GROUPS }, (_, twinkle) => el("path", { class: `oscm-sky-stars is-class-${classIndex} is-twinkle-${twinkle}`, fill: "none", stroke: "#ffffff", "stroke-linecap": "round", "stroke-width": entry.size * 1.15, "stroke-opacity": entry.opacity })));
     this.bodyLayer = el("g", { class: "oscm-ground-bodies" });
     this.labelLayer = el("g", { class: "oscm-ground-labels" });
-    this.dome.append(this.bandLayer, this.lineLayer, ...this.starPaths.flat(), this.bodyLayer, this.labelLayer);
+    // Cloud cover from the weather veils the sky: stars first, then the moons and planets.
+    this.cloudVeil = el("circle", { cx: CX, cy: CY, r: 2000, class: "oscm-sky-cloud", "fill-opacity": 0 });
+    this.dome.append(this.bandLayer, this.lineLayer, ...this.starPaths.flat(), this.bodyLayer, this.cloudVeil, this.labelLayer);
     this.horizon = el("circle", { cx: CX, cy: CY, class: "oscm-ground-horizon", fill: "none" });
     this.cardinals = ["N", "E", "S", "W"].map((label) => { const t = el("text", { class: "oscm-ground-cardinal", "text-anchor": "middle", "dominant-baseline": "middle" }); t.textContent = label; return t; });
     this.svg.append(defs, el("rect", { x: 0, y: 0, width: 900, height: 680, class: "oscm-ground-backdrop" }), this.background, this.dome, this.horizon, ...this.cardinals);

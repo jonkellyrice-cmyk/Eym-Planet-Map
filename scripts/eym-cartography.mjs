@@ -10,7 +10,7 @@ import { createRng, generatePlateModel } from "./planet-geography.mjs";
 import { buildElevationMesh, circlePolygon, smoothOpen } from "./planet-cartography.mjs";
 import { polygonize } from "./cartography-regions.mjs";
 import { EYM_LAYOUT, EYM_SURFACE_MODEL, fromLocal, greatCircleKm } from "./eym-surface.mjs";
-import { seaLevelTemperatureC } from "./eym-seasons.mjs";
+import { seaLevelTemperatureC, zonalPrecipitationMm } from "./eym-seasons.mjs";
 
 const DEG = Math.PI / 180;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -26,15 +26,7 @@ export function eymInputFingerprint(tracedText, layout = EYM_LAYOUT) {
 
 // ---------------------------------------------------------------- climate
 
-export { seaLevelTemperatureC };
-
-/** Zonal annual precipitation (mm): wet equatorial belt, dry subtropics, wet mid-latitudes, dry poles. */
-export function zonalPrecipitationMm(lat) {
-  const a = Math.abs(lat);
-  const p = 700 + 1500 * Math.exp(-(((lat - 4) / 11) ** 2)) + 550 * Math.exp(-(((a - 48) / 13) ** 2)) - 300 * Math.exp(-(((a - 27) / 7) ** 2));
-  const polar = a > 60 ? 1 - 0.6 * Math.min(1, (a - 60) / 25) : 1;
-  return Math.max(150, p * polar);
-}
+export { seaLevelTemperatureC, zonalPrecipitationMm };
 
 /** Prevailing wind comes from the east in the tropics and polar belts, from the west in the mid-latitudes. */
 const upwindStep = (lat) => (Math.abs(lat) < 30 || Math.abs(lat) > 60 ? 1 : -1);

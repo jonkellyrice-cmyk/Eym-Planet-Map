@@ -113,3 +113,27 @@
 .oscm-place-readout { display: grid; gap: .2rem; font-size: 11px; margin: .2rem 0 .4rem; }
 .oscm-place-readout div { display: flex; justify-content: space-between; gap: .5rem; }
 .oscm-place-readout span { color: var(--oscm-muted, #8aa); }
+
+/* Weather (Eym). */
+.oscm-weather-field { pointer-events: none; }
+.oscm-weather-field circle { stroke: none; }
+.oscm-weather-field.is-cloud-thin { fill: #eef3f7; opacity: .16; }
+.oscm-weather-field.is-cloud-mid { fill: #eef3f7; opacity: .28; }
+.oscm-weather-field.is-cloud-thick { fill: #f4f7fa; opacity: .42; }
+.oscm-weather-field.is-rain { fill: #3f8fe6; opacity: .32; }
+.oscm-weather-field.is-rain-heavy { fill: #2d6fe0; opacity: .5; }
+.oscm-weather-field.is-sleet { fill: #9fb4f2; opacity: .4; }
+.oscm-weather-field.is-snow { fill: #ffffff; opacity: .5; }
+.oscm-weather-field.is-thunder { fill: #a05ae6; opacity: .55; }
+.oscm-weather-centre { font: 700 15px var(--font-primary, sans-serif); paint-order: stroke; stroke: rgba(4,12,20,.8); stroke-width: 3px; pointer-events: visiblePainted; }
+.oscm-weather-centre.is-low { fill: #ff8a7a; }
+.oscm-weather-centre.is-high { fill: #8ac8ff; }
+.oscm-weather-cyclone circle { fill: #ff5a3c; }
+.oscm-weather-cyclone path { fill: none; stroke: #ff5a3c; stroke-width: 2.2; }
+.oscm-weather-cyclone.is-tropical-depression circle, .oscm-weather-cyclone.is-tropical-depression path { fill: none; stroke: #ffb24a; }
+.oscm-weather-cyclone.is-tropical-storm path { stroke: #ff8c3a; }
+.oscm-weather-cyclone text { fill: #ffd3c4; font: 600 10px var(--font-primary, sans-serif); paint-order: stroke; stroke: rgba(4,12,20,.85); stroke-width: 3px; }
+.oscm-weather-flood { fill: #3fb7ff; fill-opacity: .75; stroke: #e8fbff; stroke-width: .8; }
+.oscm-weather-wind { fill: none; stroke: rgba(230,245,255,.75); stroke-width: 1; pointer-events: none; }
+.oscm-weather-wind.is-gale { stroke: #ffcf6b; stroke-width: 1.4; }
+.oscm-sky-cloud { fill: #8a96a3; pointer-events: none; }

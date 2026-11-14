@@ -18,7 +18,8 @@ import { inspectSurfaceFeature } from "./body-layers.mjs";
 import { loadBodyOperationAsset } from "./body-operations.mjs";
 import { AstronomySnapshotCache, loadAstronomyOrientations } from "./astronomy.mjs";
 import { CAMPAIGN_START_MS, DAY_MS, formatUniversalClock, formatUniversalDate } from "./universal-time.mjs";
-import { environmentField, placeReport, seasonalCover, subsolarPoint } from "./eym-seasons.mjs";
+import { coverRings, environmentField, placeReport, seasonalCover, subsolarPoint } from "./eym-seasons.mjs";
+import { buildWeatherState, globeWeather, placeWeatherNow, STEP_HOURS, weatherReport } from "./eym-weather.mjs";
 import { loadStarfield } from "./starfield.mjs";
 import { displayNameFor, objectDisplayName, parentDisplayName, systemDisplayName } from "./display-names.mjs";
 import { groundSky, localSolarHours } from "./ground-sky.mjs";
@@ -283,8 +284,31 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const day = Math.floor(t / DAY_MS);
     if (this._coverDay !== day) { this._cover = seasonalCover(this._eymField, t); this._coverDay = day; }
     this._sun = { t, subsolar };
-    this._clusterView.setEnvironment({ subsolar, snow: this._cover.snow, ice: this._cover.ice });
+    if (this.#ensureWeather()) {
+      this._globeWeather = globeWeather(this._weather);
+      this._weatherSnow = coverRings(this._eymField, this._globeWeather.snow);
+      this._clusterView.setWeather?.(this._globeWeather);
+    }
+    // Snow on the ground comes from the weather (the last week's snowfall and thaw); sea ice from the season.
+    this._clusterView.setEnvironment({ subsolar, snow: this._weatherSnow ?? this._cover.snow, ice: this._cover.ice });
     this.#updatePlaceReadout();
+  }
+
+  /** Rebuild the weather state when the clock enters a new 3-hour step; true if it changed. */
+  #ensureWeather() {
+    if (!this._eymField || !this._sun) return false;
+    const step = Math.round(this._sun.t / (DAY_MS / 24) / STEP_HOURS);
+    if (this._weatherStep === step && this._weather) return false;
+    this._weather = buildWeatherState({ timeMs: this._sun.t, subsolar: this._sun.subsolar, field: this._eymField });
+    this._weatherStep = step;
+    return true;
+  }
+
+  /** The weather at a place now, in words (null before the weather is ready). */
+  #weatherHere(latDeg, lonDeg) {
+    if (!this._weather || !this._sun) return null;
+    const now = placeWeatherNow(this._weather, latDeg, lonDeg, { subsolar: this._sun.subsolar, timeMs: this._sun.t });
+    return weatherReport(this._weather, latDeg, lonDeg, now);
   }
 
   /** The "Here and now" card: date, season, sun and temperature at the chosen place. */
@@ -293,7 +317,12 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const latDeg = Number(root.querySelector('[name="lookUpLat"]')?.value), lonDeg = Number(root.querySelector('[name="lookUpLon"]')?.value);
     if (!(latDeg >= -90 && latDeg <= 90) || !(lonDeg >= -180 && lonDeg <= 180)) return;
     const report = placeReport({ field: this._eymField, subsolar: this._sun.subsolar, latDeg, lonDeg, timeMs: this._sun.t });
+    const weather = this.#weatherHere(latDeg, lonDeg);
     const values = { ...report, date: `${formatUniversalDate(this._sun.t)}, ${formatUniversalClock(this._sun.t).slice(0, 5)}` };
+    if (weather) {
+      const { values: ignored, ...words } = weather; void ignored;
+      Object.assign(values, words, { temperature: `${weather.weatherTemperature} (seasonal high ${Math.round(report.values.temperature.highC)}, low ${Math.round(report.values.temperature.lowC)})`, ground: weather.groundNow });
+    }
     for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-place-field="${field}"]`); if (element && typeof value === "string") element.textContent = value; }
   }
 
@@ -317,10 +346,18 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       return `${phase} (${Math.round(moon.illuminated * 100)}%) · ${where} · ${mansionForDirection(moon.dir, sky).name}${eclipse}`;
     };
     const sunEclipse = snapshot.sun.coverage > 0.995 ? " · TOTAL ECLIPSE" : snapshot.sun.coverage > 0.01 ? ` · ${Math.round(snapshot.sun.coverage * 100)}% eclipsed` : "";
-    let extra = {};
+    let extra = {}, cloud = 0;
     if (this._eymField && this._sun) {
       const report = placeReport({ field: this._eymField, subsolar: this._sun.subsolar, latDeg, lonDeg, timeMs: this._sun.t });
       extra = { season: report.season, sunriseSunset: `${report.sunriseSunset} (${report.dayLength})`, temperature: report.temperature };
+      this.#ensureWeather();
+      const weather = this.#weatherHere(latDeg, lonDeg);
+      if (weather) {
+        extra.weather = `${weather.conditions}; ${weather.wind}`;
+        extra.temperature = `${weather.weatherTemperature} (seasonal high ${Math.round(report.values.temperature.highC)}, low ${Math.round(report.values.temperature.lowC)})`;
+        cloud = weather.values.weather.cloud;
+        this._clusterView?.setCloud?.(cloud);
+      }
     }
     const visiblePlanets = snapshot.planets.filter((p) => p.visible).map((p) => displayNameFor(HOME_SYSTEM.name, p.name));
     const values = {
@@ -329,7 +366,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       sun: `${snapshot.twilight}, ${Math.round(snapshot.sun.altDeg)}°${sunEclipse}`,
       whiteMoon: moonText(snapshot.moons.find((m) => m.name === "White Moon")),
       redMoon: moonText(snapshot.moons.find((m) => m.name === "Red Moon")),
-      planets: visiblePlanets.length ? visiblePlanets.join(", ") : "none visible",
+      planets: visiblePlanets.length ? `${visiblePlanets.join(", ")}${cloud > 0.8 ? " (behind cloud)" : ""}` : "none visible",
       limit: `magnitude ${snapshot.limitingMagnitude.toFixed(1)}`,
       ...extra,
     };
@@ -363,7 +400,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       // Eym: real day and night and the seasons on the globe, kept current with the clock.
       window.clearInterval(this._bodyTicker); this._bodyTicker = null;
       if (object.name === "Eventide" && geography?.terrain?.coastlineSource === "vector") {
-        this._eymField = environmentField(geography); this._coverDay = null;
+        this._eymField = environmentField(geography); this._coverDay = null; this._weatherStep = null; this._weatherSnow = null;
         void this.#refreshBodyEnvironment().catch((error) => console.warn(`${MODULE_ID} | Unable to show day and night`, error));
         this._bodyTicker = window.setInterval(() => void this.#refreshBodyEnvironment().catch(() => {}), 10000);
       }
