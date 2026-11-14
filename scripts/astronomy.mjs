@@ -1,4 +1,4 @@
-import { DAY_MS, UNION_EPOCH_MS } from "./universal-time.mjs";
+import { DAY_MS, DAYS_PER_YEAR, UNION_EPOCH_MS } from "./universal-time.mjs";
 
 export const ASTRONOMY_MODEL_VERSION = "kepler-snapshot-v1";
 export const TWO_PI = Math.PI * 2;
@@ -83,7 +83,12 @@ export function orbitalStateAt(body, referenceTimestampMs, epochTimestampMs = UN
   const epochEccentric = trueToEccentricAnomaly(epochTrue, eccentricity);
   const epochMean = epochEccentric - eccentricity * Math.sin(epochEccentric);
   const elapsedDays = (Number(referenceTimestampMs) - Number(epochTimestampMs)) / DAY_MS;
-  const mean = epochMean + TWO_PI * elapsedDays / periodDays;
+  // orbital_period_days is the sidereal period. When the periapsis advances (a precessing moon), the
+  // mean anomaly runs at the slower anomalistic rate so the orbital longitude still completes in the
+  // sidereal period, as with Earth's Moon (27.32-day sidereal vs 27.55-day anomalistic month).
+  const apsidalYears = finiteNumber(body.apsidal_precession_period_years, null);
+  const meanMotion = TWO_PI / periodDays - (apsidalYears ? TWO_PI / (apsidalYears * DAYS_PER_YEAR) : 0);
+  const mean = epochMean + meanMotion * elapsedDays;
   const eccentric = solveKeplerEquation(mean, eccentricity);
   const trueAnomaly = eccentricToTrueAnomaly(eccentric, eccentricity);
   const radiusAu = semiMajorAxisAu * (1 - eccentricity * Math.cos(eccentric));

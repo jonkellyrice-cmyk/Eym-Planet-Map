@@ -42,7 +42,7 @@ test("canonical CSV is pinned to the Earth-twin canon edit", () => {
   // Re-pinned deliberately after the Earth-twin edit (Sun-like star, Earth-twin Eym at 1 AU, orbits rescaled,
   // White and Red Moons added, sci-fi objects removed). Any further registry change must re-pin this on purpose.
   const csv = readFileSync(new URL("docs/system-orbital-distances.csv", root));
-  assert.equal(createHash("sha256").update(csv).digest("hex"), "7a3a14dda0cfd1f17390980c8cb99a03fa4f2a37c77dc9a83db8e9a83bc6f6c8");
+  assert.equal(createHash("sha256").update(csv).digest("hex"), "e47c3d0cc8fee751a5d368eb80e4bc36bf2cb63ad3100faf8df206afd50e9479");
 });
 
 test("Eventide's accepted canon remains continent-free and ocean dominated", () => {

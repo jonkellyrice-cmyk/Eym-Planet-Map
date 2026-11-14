@@ -6,7 +6,7 @@
   "operationalKind": "natural-solid",
   "permanentOperationalSeed": "64b3df9196e7910c",
   "operationalModelVersion": "orphaned-sun-body-operations-v1",
-  "canonicalSourceFingerprint": "af5aa67f104a82a8a8b2",
+  "canonicalSourceFingerprint": "6cd0aeb5036f83b0ab1a",
   "acceptedCanonStatus": "accepted-generated-canon",
   "coordinateFrame": {
     "id": "body-fixed-spherical",
@@ -61,10 +61,10 @@
       "position": {
         "lat": 5.09,
         "lon": -90.514,
-        "elevation": 0.28
+        "elevation": 0.29
       },
       "dimensions": {
-        "radius": 31.83,
+        "radius": 33.87,
         "unit": "km"
       },
       "operationalRole": "major retained impact landmark",
@@ -83,10 +83,10 @@
       "position": {
         "lat": -55.225,
         "lon": 35.636,
-        "elevation": 0.69
+        "elevation": 0.73
       },
       "dimensions": {
-        "radius": 57.86,
+        "radius": 61.57,
         "unit": "km"
       },
       "operationalRole": "major retained impact landmark",
@@ -105,10 +105,10 @@
       "position": {
         "lat": -28.909,
         "lon": -173.035,
-        "elevation": -0.36
+        "elevation": -0.38
       },
       "dimensions": {
-        "radius": 22,
+        "radius": 23.41,
         "unit": "km"
       },
       "operationalRole": "regional retained impact landmark",
@@ -127,10 +127,10 @@
       "position": {
         "lat": -12.255,
         "lon": -48.302,
-        "elevation": 0.47
+        "elevation": 0.5
       },
       "dimensions": {
-        "radius": 31.95,
+        "radius": 33.99,
         "unit": "km"
       },
       "operationalRole": "regional retained impact landmark",
@@ -149,10 +149,10 @@
       "position": {
         "lat": 32.203,
         "lon": 94.977,
-        "elevation": 0.23
+        "elevation": 0.25
       },
       "dimensions": {
-        "radius": 39.18,
+        "radius": 41.69,
         "unit": "km"
       },
       "operationalRole": "regional retained impact landmark",
@@ -174,7 +174,7 @@
         "elevation": -0.01
       },
       "dimensions": {
-        "radius": 14.51,
+        "radius": 15.44,
         "unit": "km"
       },
       "operationalRole": "regional retained impact landmark",
@@ -193,10 +193,10 @@
       "position": {
         "lat": -26.086,
         "lon": 5.321,
-        "elevation": -0.19
+        "elevation": -0.21
       },
       "dimensions": {
-        "radius": 93.31,
+        "radius": 99.29,
         "unit": "km"
       },
       "operationalRole": "major impact basin / regional datum",
@@ -215,10 +215,10 @@
       "position": {
         "lat": 50.015,
         "lon": 155.833,
-        "elevation": -0.39
+        "elevation": -0.42
       },
       "dimensions": {
-        "radius": 131.95,
+        "radius": 140.4,
         "unit": "km"
       },
       "operationalRole": "major impact basin / regional datum",
@@ -237,10 +237,10 @@
       "position": {
         "lat": 9.913,
         "lon": -75.435,
-        "elevation": -0.66
+        "elevation": -0.7
       },
       "dimensions": {
-        "radius": 113.18,
+        "radius": 120.43,
         "unit": "km"
       },
       "operationalRole": "major relief / traverse landmark",
@@ -259,10 +259,10 @@
       "position": {
         "lat": -19.931,
         "lon": 67.377,
-        "elevation": 0.44
+        "elevation": 0.47
       },
       "dimensions": {
-        "radius": 173.29,
+        "radius": 184.4,
         "unit": "km"
       },
       "operationalRole": "regional fault/impact scarp",
@@ -281,10 +281,10 @@
       "position": {
         "lat": 46.649,
         "lon": -157.467,
-        "elevation": -0.18
+        "elevation": -0.19
       },
       "dimensions": {
-        "radius": 68.04,
+        "radius": 72.4,
         "unit": "km"
       },
       "operationalRole": "surveyed resource-bearing province",

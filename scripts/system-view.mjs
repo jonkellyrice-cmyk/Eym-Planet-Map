@@ -1,4 +1,4 @@
-import { displayPosition, vectorFromOrbit } from "./system-data.mjs";
+import { displayPosition, orbitVector } from "./system-data.mjs";
 import { createFactionEmblem, factionPresentationForOwner } from "./capital-icons.mjs";
 import { STAR_CLASSES, TWINKLE_GROUPS, buildSkyFrame } from "./starfield.mjs";
 import { objectDisplayName, parentDisplayName, systemDisplayName } from "./display-names.mjs";
@@ -172,7 +172,7 @@ export class SystemView {
         fill: "none",
       });
       this.orbitLayer.append(orbit);
-      this.orbitNodes.push({ orbit, center: parentDisplay, radius, inclinationDeg: object.inclinationDeg });
+      this.orbitNodes.push({ orbit, center: parentDisplay, radius, object });
     }
 
     this.objectNodes = new Map();
@@ -333,7 +333,7 @@ export class SystemView {
     this.#renderSky();
     for (const node of this.orbitNodes) {
       const points = Array.from({ length: 49 }, (_, index) => {
-        const local = vectorFromOrbit(node.radius, index * 7.5, node.inclinationDeg);
+        const local = orbitVector(node.object, node.radius, index * 7.5, this.model.referenceTimestampMs);
         return this.#project({ x: node.center.x + local.x, y: node.center.y + local.y, z: node.center.z + local.z });
       });
       node.orbit.setAttribute("d", points.map((point, index) => `${index ? "L" : "M"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ") + " Z");

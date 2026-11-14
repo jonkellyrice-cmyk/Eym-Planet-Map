@@ -13,7 +13,7 @@
       "operationalKind": "natural-solid",
       "path": "data/body-operations/abydos/cataphract.json",
       "seed": "a3505837e24554ca",
-      "fingerprint": "90224a96352ca6db5f73",
+      "fingerprint": "66b7dae221341b3d35b5",
       "featureCount": 11
     },
     {
@@ -23,7 +23,7 @@
       "operationalKind": "natural-solid",
       "path": "data/body-operations/abydos/enoch.json",
       "seed": "44a24b1e71c53369",
-      "fingerprint": "722c7a6dad86060e806f",
+      "fingerprint": "647b18979b74ba7afe5e",
       "featureCount": 16
     },
     {
@@ -33,7 +33,7 @@
       "operationalKind": "natural-solid",
       "path": "data/body-operations/abydos/red-moon.json",
       "seed": "5aa1bc9f65f477a6",
-      "fingerprint": "a5be2b9ccf06f3ef963c",
+      "fingerprint": "1e9b0720b2b8b3c7f552",
       "featureCount": 11
     },
     {
@@ -43,7 +43,7 @@
       "operationalKind": "giant",
       "path": "data/body-operations/abydos/sumatra.json",
       "seed": "3b965b31f6172ec0",
-      "fingerprint": "05cd53077ef120469833",
+      "fingerprint": "ef0486a5b4fe7ce2da88",
       "featureCount": 13
     },
     {
@@ -53,7 +53,7 @@
       "operationalKind": "giant",
       "path": "data/body-operations/abydos/tribune.json",
       "seed": "6da71cef11d5534a",
-      "fingerprint": "92c7b35e2c1d5943540c",
+      "fingerprint": "dabc88a8338e3ecff059",
       "featureCount": 13
     },
     {
@@ -63,7 +63,7 @@
       "operationalKind": "natural-solid",
       "path": "data/body-operations/abydos/ventus.json",
       "seed": "92e4fbaa636c3585",
-      "fingerprint": "769449453a0dc8ea7f86",
+      "fingerprint": "747110352f5de4ecf9a5",
       "featureCount": 15
     },
     {
@@ -73,7 +73,7 @@
       "operationalKind": "natural-solid",
       "path": "data/body-operations/abydos/white-moon.json",
       "seed": "64b3df9196e7910c",
-      "fingerprint": "af5aa67f104a82a8a8b2",
+      "fingerprint": "6cd0aeb5036f83b0ab1a",
       "featureCount": 11
     }
   ]

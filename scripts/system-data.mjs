@@ -1,6 +1,6 @@
 import { normalizeDegrees, orbitalPeriodDays, orbitalStateAt, rotationStateAt } from "./astronomy.mjs";
 import { deriveAtmosphereMetadata } from "./atmosphere.mjs";
-import { UNION_EPOCH_MS } from "./universal-time.mjs";
+import { DAY_MS, DAYS_PER_YEAR, UNION_EPOCH_MS } from "./universal-time.mjs";
 
 export const AU_KM = 149_597_870.7;
 export const LIGHT_YEAR_KM = 9_460_730_472_580.8;
@@ -45,6 +45,27 @@ export function vectorFromOrbit(distanceAu, phaseDeg = 0, inclinationDeg = 0) {
   };
 }
 
+/**
+ * Position of a body relative to its parent. Most orbits are inclined about the system x axis with the
+ * node fixed there. A satellite whose registry row gives node/apsidal precession periods (Eym's moons)
+ * is instead inclined relative to its parent's orbital plane, and its node and line of apsides turn
+ * over time like Earth's Moon's: Ω(t) and ω(t) are zero at the epoch, so epoch positions are unchanged.
+ */
+export function orbitVector(object, radiusAu, trueAnomalyDeg, referenceTimestampMs = UNION_EPOCH_MS) {
+  if (!object.precession) return vectorFromOrbit(radiusAu, trueAnomalyDeg, object.inclinationDeg);
+  const years = (Number(referenceTimestampMs) - UNION_EPOCH_MS) / DAY_MS / DAYS_PER_YEAR;
+  const { nodePeriodYears, apsidalPeriodYears, parentInclinationDeg } = object.precession;
+  // Ω: longitude of the ascending node; ϖ: longitude of periapsis (Earth's Moon: Ω regresses in 18.6 yr,
+  // ϖ advances in 8.85 yr). The argument of periapsis within the orbit is ω = ϖ − Ω.
+  const nodeDeg = nodePeriodYears ? 360 * years / nodePeriodYears : 0;
+  const periapsisLongitudeDeg = apsidalPeriodYears ? 360 * years / apsidalPeriodYears : 0;
+  const node = nodeDeg * Math.PI / 180;
+  const v = vectorFromOrbit(radiusAu, trueAnomalyDeg + periapsisLongitudeDeg - nodeDeg, object.inclinationDeg);
+  const x1 = v.x * Math.cos(node) - v.y * Math.sin(node), y1 = v.x * Math.sin(node) + v.y * Math.cos(node);
+  const tilt = parentInclinationDeg * Math.PI / 180;
+  return { x: x1, y: y1 * Math.cos(tilt) - v.z * Math.sin(tilt), z: y1 * Math.sin(tilt) + v.z * Math.cos(tilt) };
+}
+
 export function classifySystemObject(type) {
   const value = String(type).toLowerCase();
   if (value.includes("star")) return "star";
@@ -77,6 +98,9 @@ export function buildSystemModel(rows, systemName, { referenceTimestampMs = UNIO
       phaseDeg: numeric(row.reference_phase_deg) ?? 0,
       inclinationDeg: numeric(row.inclination_deg) ?? 0,
       radiusRe: numeric(row.radius_re),
+      precession: numeric(row.node_precession_period_years) || numeric(row.apsidal_precession_period_years)
+        ? { nodePeriodYears: numeric(row.node_precession_period_years) ?? 0, apsidalPeriodYears: numeric(row.apsidal_precession_period_years) ?? 0, parentInclinationDeg: 0 }
+        : null,
       atmosphere: deriveAtmosphereMetadata(row),
       referenceTimestampMs,
     };
@@ -117,8 +141,9 @@ export function buildSystemModel(rows, systemName, { referenceTimestampMs = UNIO
     } else object.orbitalState = orbitalStateAt(object, referenceTimestampMs);
     object.distanceAu = object.orbitalState.radiusAu;
     object.phaseDeg = object.orbitalState.trueAnomalyDeg;
-    const local = vectorFromOrbit(object.distanceAu, object.phaseDeg, object.inclinationDeg);
     const parent = byName.get(object.parent);
+    if (object.precession) object.precession.parentInclinationDeg = parent?.inclinationDeg ?? 0;
+    const local = orbitVector(object, object.distanceAu, object.phaseDeg, referenceTimestampMs);
     const parentPosition = parent ? resolve(parent) : { x: 0, y: 0, z: 0 };
     object.physical = { x: parentPosition.x + local.x, y: parentPosition.y + local.y, z: parentPosition.z + local.z };
     object.parentObject = parent ?? null;
@@ -150,7 +175,7 @@ export function formatSystemDistance(distanceAu) {
 export function displayPosition(object, model) {
   if (!object.parentObject) return { x: 0, y: 0, z: 0 };
   const parent = displayPosition(object.parentObject, model);
-  const local = vectorFromOrbit(object.distanceAu, object.phaseDeg, object.inclinationDeg);
+  const local = orbitVector(object, object.distanceAu, object.phaseDeg, model.referenceTimestampMs);
   const localMagnitude = Math.max(object.distanceAu, 1e-12);
   const isLocal = object.distance_unit === "km";
   const displayRadius = isLocal
