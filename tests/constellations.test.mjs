@@ -120,3 +120,24 @@ test("the 13 sculpted figures keep their templates' names, place and the path of
     assert.equal(c.tier, "lesser");
   }
 });
+
+test("Cynosure is Eym's pole star: as bright as Polaris or brighter, within a degree of the north pole", () => {
+  const pole = data.poleStar;
+  assert.equal(pole.name, "Cynosure");
+  assert.equal(pole.pole, "north");
+  const row = star(pole.star);
+  const distance = angularDistanceDeg(row.slice(0, 3), data.celestialPole);
+  assert.ok(distance < 1, `${distance}° from the pole`);
+  assert.ok(Math.abs(distance - pole.distanceFromPoleDeg) < 1e-3);
+  assert.ok(row[3] <= 2.0, "at least as bright as Polaris");
+  assert.ok(data.constellations.find((c) => c.id === pole.figure).stars.includes(pole.star), "the Hourglass turns around it");
+  // It is the nearest naked-eye star to the pole, so it really does mark north.
+  const nearest = starfield.stars.filter((r) => r[3] < 4.5).map((r) => angularDistanceDeg(r.slice(0, 3), data.celestialPole)).sort((a, b) => a - b)[0];
+  assert.ok(Math.abs(nearest - distance) < 1e-9);
+});
+
+test("like Earth, Eym has no bright southern pole star", () => {
+  assert.equal(data.southPoleStar, null);
+  const south = data.celestialPole.map((v) => -v);
+  assert.ok(!starfield.stars.some((r) => r[3] < 4.5 && angularDistanceDeg(r.slice(0, 3), south) < 2));
+});

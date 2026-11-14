@@ -78,8 +78,10 @@ export const SCULPTED_FIGURES = Object.freeze([
     points: [[-9, 1], [-4.5, -3], [4.5, -3], [9, 1], [-4.5, 5.5], [3, 0]], lines: [[0, 1], [1, 2], [2, 3], [1, 4], [4, 5], [5, 2]] },
   { id: "bell", name: "The Bell", hemisphere: "south", description: "A bell with sloping shoulders and a flared lip around its clapper.",
     points: [[0, 7], [-3, 5], [3, 5], [-6, -3], [6, -3], [0, -6]], lines: [[0, 1], [1, 3], [3, 5], [5, 4], [4, 2], [2, 0]] },
-  { id: "hourglass", name: "The Hourglass", hemisphere: "north", description: "Two triangles meeting point to point.",
-    points: [[-5, 7], [5, 7], [0, 0], [-5, -7], [5, -7]], lines: [[0, 1], [1, 2], [2, 0], [3, 4], [4, 2], [2, 3]] },
+  { id: "hourglass", name: "The Hourglass", hemisphere: "north", description: "Two triangles meeting at Cynosure, the pole star; the whole figure turns around its waist through the night.",
+    points: [[-5, 7], [5, 7], [0, 0], [-5, -7], [5, -7]], lines: [[0, 1], [1, 2], [2, 0], [3, 4], [4, 2], [2, 3]],
+    // The waist (point 2) is pinned 0.7° from Eym's north celestial pole, Polaris's distance from Earth's.
+    anchor: { point: 2, pole: "north", offsetDeg: 0.7 } },
   { id: "ladder", name: "The Ladder", hemisphere: "south", description: "Two rails joined by three rungs.",
     points: [[-3, 8], [3, 8], [-3, 0], [3, 0], [-3, -8], [3, -8]], lines: [[0, 2], [2, 4], [1, 3], [3, 5], [0, 1], [2, 3], [4, 5]] },
   { id: "lantern", name: "The Lantern", hemisphere: "north", description: "A hanging ring above a tall lantern body.",
@@ -122,3 +124,13 @@ export const LUNAR_MANSION_NAMES = Object.freeze([
   ["The Scythe's Edge", "The bright blade of the Scythe."],
   ["The Sheaf", "The gathered stars after the Scythe, closing the year's round."],
 ]);
+
+/**
+ * Named individual stars. Cynosure is Golarion's North Star in Pathfinder canon (Desna's palace, the
+ * Sevenfold Cynosure, sits at its heart); here it is the brightest star of the Hourglass, held at the
+ * waist 0.7° from Eym's north celestial pole. Eym, like Earth, has no southern pole star.
+ */
+export const POLE_STAR = Object.freeze({
+  name: "Cynosure", figure: "hourglass", point: 2, pole: "north",
+  description: "The pole star: it holds steady and marks north while the sky turns around it. Desna's palace is said to sit at its heart.",
+});

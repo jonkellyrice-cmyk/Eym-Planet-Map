@@ -10,7 +10,7 @@
   "sourceStarfield": {
     "path": "data/stellar/starfield.json",
     "modelVersion": "eym-starfield-v2",
-    "sha256": "3d69564faea2fea3a83de79fe3307ca01c9741468ddb80e015e8df39da8db67f"
+    "sha256": "9fe2278c44cbe978c7d13d12d8013c46247ea69f7ad5371d1e325b4eb3220554"
   },
   "note": "Star ids index data/stellar/starfield.json (star-0001 is the brightest). Lines are drawn between listed stars. Hemisphere and declination are relative to Eym's celestial equator; the path of the sun is Eym's orbital plane. 'discovered' figures were found in the generated stars; 'sculpted' ones were made by nudging spare stars into a template.",
   "celestialPole": [
@@ -32,6 +32,16 @@
     "asterisms": 4,
     "lunarMansions": 28
   },
+  "poleStar": {
+    "name": "Cynosure",
+    "star": "star-0022",
+    "pole": "north",
+    "figure": "hourglass",
+    "magnitude": 1.423,
+    "distanceFromPoleDeg": 0.708,
+    "description": "The pole star: it holds steady and marks north while the sky turns around it. Desna's palace is said to sit at its heart."
+  },
+  "southPoleStar": null,
   "constellations": [
     {
       "id": "abadar-crossbow",
@@ -1085,23 +1095,23 @@
     {
       "id": "hourglass",
       "name": "The Hourglass",
-      "description": "Two triangles meeting point to point.",
+      "description": "Two triangles meeting at Cynosure, the pole star; the whole figure turns around its waist through the night.",
       "tier": "lesser",
       "hemisphere": "north",
-      "declinationDeg": 85.4,
+      "declinationDeg": 89.3,
       "sunPath": null,
       "shape": "sculpted",
       "center": [
-        0.0898,
-        -0.40775,
-        0.90867
+        0.01102,
+        -0.4104,
+        0.91184
       ],
       "stars": [
         "star-0482",
         "star-0020",
         "star-0022",
         "star-0158",
-        "star-0461"
+        "star-0265"
       ],
       "lines": [
         [
@@ -1118,10 +1128,10 @@
         ],
         [
           "star-0158",
-          "star-0461"
+          "star-0265"
         ],
         [
-          "star-0461",
+          "star-0265",
           "star-0022"
         ],
         [

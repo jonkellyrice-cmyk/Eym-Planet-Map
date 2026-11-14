@@ -29,6 +29,14 @@ export function scaledTemplate(figure) {
   return { points, radius, scale: k };
 }
 
+/** A direction `offsetDeg` from `pole`, displaced toward the path of the sun's pole (a fixed, reproducible side). */
+function poleOffset(pole, reference, offsetDeg) {
+  const p = normalize(pole);
+  const side = normalize(cross(cross(p, reference), p));
+  const a = offsetDeg * DEG;
+  return normalize([0, 1, 2].map((k) => p[k] * Math.cos(a) + side[k] * Math.sin(a)));
+}
+
 function fibonacciSphere(n) {
   const golden = Math.PI * (3 - Math.sqrt(5));
   return Array.from({ length: n }, (_, i) => {
@@ -63,7 +71,9 @@ export function planSculpt(baseStarfield, sky) {
   for (const figure of order) {
     const { points, radius } = scaledTemplate(figure);
     const north = figure.hemisphere === "north";
-    const centers = grid
+    // An anchored figure has exactly one candidate centre: its anchor point pinned near a celestial pole.
+    const anchorTarget = figure.anchor ? poleOffset(figure.anchor.pole === "north" ? sky.celestialPole : sky.celestialPole.map((v) => -v), sky.sunPathPole, figure.anchor.offsetDeg) : null;
+    const centers = anchorTarget ? [{ c: anchorTarget }] : grid
       .filter((c) => (latitudeDeg(c, sky.celestialPole) >= 0) === north)
       .filter((c) => Math.abs(latitudeDeg(c, sky.sunPathPole)) >= MIN_SUN_PATH_LATITUDE_DEG + radius)
       .map((c) => ({ c, clearance: Math.min(...anchors.map((a) => angularDistanceDeg(a, c))) }))
@@ -74,20 +84,25 @@ export function planSculpt(baseStarfield, sky) {
       const nearby = spare.filter((s) => angularDistanceDeg(s.d, c) <= radius + MAX_MOVE_DEG);
       if (nearby.length < points.length) continue;
       for (let rotation = 0; rotation < 360; rotation += ROTATION_STEP_DEG) {
-        const targets = placeTemplate(points, c, rotation);
-        const used = new Set(), assignment = [];
+        const targets = figure.anchor ? placeTemplate(points.map(([x, y]) => [x - points[figure.anchor.point][0], y - points[figure.anchor.point][1]]), c, rotation) : placeTemplate(points, c, rotation);
+        const used = new Set(), assignment = new Array(targets.length);
         let cost = 0, ok = true;
-        for (const target of targets) {
+        // The anchor point (if any) is assigned first so it gets first pick of bright stars.
+        const orderOfPoints = [...targets.keys()].sort((a, b) => (b === figure.anchor?.point) - (a === figure.anchor?.point));
+        for (const pointIndex of orderOfPoints) {
+          const target = targets[pointIndex];
           let pick = null;
+          // The anchor point takes the brightest spare star in reach: a pole star should stand out.
+          const anchored = figure.anchor?.point === pointIndex;
           for (const s of nearby) {
             if (used.has(s.id)) continue;
             const move = angularDistanceDeg(s.d, target);
             if (move > MAX_MOVE_DEG) continue;
-            const score = move + 1.5 * Math.max(0, s.mag - 3.6);
+            const score = anchored ? s.mag : move + 1.5 * Math.max(0, s.mag - 3.6);
             if (!pick || score < pick.score) pick = { i: s.i, id: s.id, move, score };
           }
           if (!pick) { ok = false; break; }
-          used.add(pick.id); assignment.push({ ...pick, target }); cost += pick.score;
+          used.add(pick.id); assignment[pointIndex] = { ...pick, target }; cost += pick.score;
         }
         if (ok && (!best || cost < best.cost)) best = { cost, assignment, center: c, rotation };
       }

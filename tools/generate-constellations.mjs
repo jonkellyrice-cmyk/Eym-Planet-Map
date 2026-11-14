@@ -15,7 +15,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { angularDistanceDeg, cross, dot, latitudeDeg, normalize } from "../scripts/sky-frame.mjs";
 import { eymSky, findCandidates, starId } from "./find-constellation-candidates.mjs";
-import { ASTERISMS, CONSTELLATION_NAMES, LUNAR_MANSION_NAMES } from "./constellation-canon.mjs";
+import { ASTERISMS, CONSTELLATION_NAMES, LUNAR_MANSION_NAMES, POLE_STAR } from "./constellation-canon.mjs";
 import { buildBaseStarfield } from "./generate-starfield.mjs";
 import { planSculpt } from "./sculpt-constellations.mjs";
 
@@ -114,6 +114,18 @@ export function buildConstellations(root = ROOT) {
     };
   });
 
+  // The pole star: the star at the anchored point of its sculpted figure.
+  const poleFigure = plan.figures.find((f) => f.id === POLE_STAR.figure);
+  const poleStarId = poleFigure.stars[POLE_STAR.point];
+  const poleStarRow = starfield.stars[Number(poleStarId.slice(5)) - 1];
+  const poleStar = {
+    name: POLE_STAR.name, star: poleStarId, pole: POLE_STAR.pole, figure: POLE_STAR.figure,
+    magnitude: poleStarRow[3],
+    // Measured against the pole as stored in this document (rounded), so the file is self-consistent.
+    distanceFromPoleDeg: round(angularDistanceDeg(poleStarRow.slice(0, 3), sky.celestialPole.map((v) => round(v))), 3),
+    description: POLE_STAR.description,
+  };
+
   return {
     schemaVersion: 1,
     modelVersion: CONSTELLATIONS_MODEL_VERSION,
@@ -133,6 +145,8 @@ export function buildConstellations(root = ROOT) {
       asterisms: asterisms.length,
       lunarMansions: lunarMansions.length,
     },
+    poleStar,
+    southPoleStar: null,
     constellations,
     asterisms,
     lunarMansions,
