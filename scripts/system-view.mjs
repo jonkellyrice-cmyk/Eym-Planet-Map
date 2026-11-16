@@ -65,6 +65,11 @@ function appendGlyph(group, object, radius, colors) {
   group.append(halo, body, highlight);
 }
 
+/** A point seen from a pivot: the camera turns and zooms about the pivot, which sits at the view's centre. */
+export function recenterPoint(point, pivot) {
+  return { x: point.x - pivot.x, y: point.y - pivot.y, z: point.z - pivot.z };
+}
+
 export class SystemView {
   constructor(svg, options) {
     this.svg = svg;
@@ -75,6 +80,8 @@ export class SystemView {
     this.onObjectActivate = options.onObjectActivate ?? (() => {});
     this.onShipDrag = options.onShipDrag ?? null;
     this.state = { yaw: -0.62, pitch: 0.82, zoom: 1, panX: 0, panY: 0 };
+    // What the camera centres and pivots on: Mictir (the origin) until a body is selected.
+    this.pivot = { x: 0, y: 0, z: 0 };
     this.origin = null;
     this.destination = null;
     this.activePointers = new Map();
@@ -93,6 +100,7 @@ export class SystemView {
   }
 
   destroy() {
+    this._destroyed = true;
     clearTimeout(this.pendingSelectionTimer);
     for (const [name, handler] of Object.entries(this._listeners ?? {})) this.svg.removeEventListener(name, handler);
     this.svg.replaceChildren();
@@ -100,12 +108,28 @@ export class SystemView {
 
   resetView() {
     Object.assign(this.state, { yaw: -0.62, pitch: 0.82, zoom: 1, panX: 0, panY: 0 });
+    this.#pivotTo(null);
     this.render();
+  }
+
+  /** Glide the camera's centre and pivot to a body (null: back to Mictir). */
+  #pivotTo(object) {
+    const target = (object && this.displayPositions?.get(object.id)) || { x: 0, y: 0, z: 0 }, from = { ...this.pivot }, token = (this._pivotToken = (this._pivotToken ?? 0) + 1);
+    this.state.panX = 0; this.state.panY = 0;
+    if (typeof requestAnimationFrame !== "function" || typeof performance === "undefined") { this.pivot = { x: target.x, y: target.y, z: target.z }; return; }
+    const start = performance.now(), step = (now) => {
+      if (this._destroyed || token !== this._pivotToken) return;
+      const t = Math.min(1, (now - start) / 330), k = 1 - (1 - t) ** 3;
+      this.pivot = { x: from.x + (target.x - from.x) * k, y: from.y + (target.y - from.y) * k, z: from.z + (target.z - from.z) * k };
+      this.render(); if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   clearSelection() {
     this.origin = null;
     this.destination = null;
+    this.#pivotTo(null);
     this.#syncSelection();
     this.onSelectionChange(null, null);
     this.render();
@@ -279,6 +303,8 @@ export class SystemView {
     if (!this.origin || this.destination) { this.origin = object; this.destination = null; }
     else if (this.origin.id === object.id) { this.origin = null; this.destination = null; }
     else this.destination = object;
+    // The camera follows the selection: the body just chosen, or Mictir when nothing is.
+    this.#pivotTo(this.destination ?? this.origin);
     this.#syncSelection(); this.onSelectionChange(this.origin, this.destination); this.render();
   }
 
@@ -289,8 +315,8 @@ export class SystemView {
     }
   }
 
-  #project(point) {
-    const { yaw, pitch, zoom, panX, panY } = this.state;
+  #project(worldPoint) {
+    const { yaw, pitch, zoom, panX, panY } = this.state, point = recenterPoint(worldPoint, this.pivot);
     const cosY = Math.cos(yaw), sinY = Math.sin(yaw), cosP = Math.cos(pitch), sinP = Math.sin(pitch);
     const x1 = point.x * cosY - point.z * sinY, z1 = point.x * sinY + point.z * cosY;
     const y2 = point.y * cosP - z1 * sinP, z2 = point.y * sinP + z1 * cosP;
