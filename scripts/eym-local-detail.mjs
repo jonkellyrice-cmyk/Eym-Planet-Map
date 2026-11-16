@@ -165,7 +165,7 @@ const SETTLEMENT_RADIUS_M = { capital: 1200, city: 750, port: 420, town: 380, fo
 const FARMLAND_KM = { capital: 9, city: 6, port: 3, town: 3.5, fort: 1.2, village: 2 };
 
 /** Roads between settlements: each joined to its two nearest neighbours by a least-cost path on the pinned lattice. */
-function roadsNear(ctx, center, reachKm) {
+export function roadsNear(ctx, center, reachKm) {
   const near = ctx.settlements.filter((s) => greatCircleKm([s.lat, s.lon], center) < reachKm + 250);
   const pairs = new Set();
   for (const s of near) {
