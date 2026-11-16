@@ -116,8 +116,35 @@ test("a server that never saw a map rebuilds it from its id alone (as a cold Ver
 test("deployable on Vercel: one function for /api, the page as static files, the world data bundled", () => {
   const config = JSON.parse(read("vercel.json"));
   assert.equal(config.outputDirectory, "webapp/public");
-  assert.deepEqual(config.rewrites, [{ source: "/api/:path*", destination: "/api/map-server" }]);
-  assert.match(config.functions["api/map-server.mjs"].includeFiles, /eventide\.json/);
+  assert.deepEqual(config.rewrites[0], { source: "/api/:path*", destination: "/api/map-server" });
+  assert.match(config.functions["api/map-server.mjs"].includeFiles, /data\/\*\*/);
   assert.match(read("api/map-server.mjs"), /createMapHandler/);
   assert.match(read("scripts/cluster-map-app.mjs"), /size=native/);
+});
+
+test("module preview: the server serves the module's own files at Foundry's paths, and only those", async () => {
+  const cacheDir = mkdtempSync(join(tmpdir(), "eym-preview-")), server = createMapServer({ asset, cacheDir });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const base = `http://127.0.0.1:${server.address().port}`, get = (p) => fetch(base + p, { redirect: "manual" });
+  try {
+    const manifest = await (await get("/modules/eym-planet-map/module.json")).json();
+    assert.equal(manifest.id, "eym-planet-map");
+    // Everything the manifest loads, the template and the data the module fetches are there, byte for byte.
+    for (const path of [...manifest.esmodules, ...manifest.styles, "templates/cluster-map.hbs", "docs/system-orbital-distances.csv", "data/planet-cartography/abydos/eventide.json"]) {
+      const res = await get(`/modules/eym-planet-map/${path}`); assert.equal(res.status, 200, path);
+      assert.equal(await res.text(), read(path), `${path} is the module's own file`);
+    }
+    for (const path of ["/modules/eym-planet-map/package.json", "/modules/eym-planet-map/tests/eym-webapp.test.mjs", "/modules/eym-planet-map/webapp/server.mjs", "/modules/eym-planet-map/scripts/../package.json", "/modules/other/module.json"]) assert.equal((await get(path)).status, 404, path);
+    assert.equal((await get("/module/")).status, 302);
+    const page = await (await get("/module/index.html")).text();
+    assert.match(page, /<base href="\/">/, "the module fetches its data relative to the site root, as in Foundry");
+    assert.equal((await get("/module/foundry-shim.js")).status, 200); assert.equal((await get("/module/preview.css")).status, 200);
+  } finally { server.close(); rmSync(cacheDir, { recursive: true, force: true }); }
+});
+
+test("module preview: the Foundry stand-in covers what the module uses, and Vercel routes the module's files", () => {
+  const shim = read("webapp/public/module/foundry-shim.js"), config = JSON.parse(read("vercel.json"));
+  for (const name of ["globalThis.Hooks", "globalThis.game", "globalThis.ui", "globalThis.foundry", "HandlebarsApplicationMixin", "DialogV2", "randomID", "localStorage"]) assert.ok(shim.includes(name), name);
+  assert.ok(config.rewrites.some((r) => r.source === "/modules/:path*" && r.destination === "/api/map-server"));
+  for (const dir of ["data", "docs", "scripts", "templates", "styles", "lang"]) assert.match(config.functions["api/map-server.mjs"].includeFiles, new RegExp(`${dir}/\\*\\*`));
 });

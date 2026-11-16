@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<base href="/">
+<title>Eym Planet Map: module preview</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="/module/preview.css">
+</head>
+<body>
+<header class="preview-bar">
+  <strong>Eym Planet Map</strong> <span id="version" class="muted"></span>
+  <span class="muted">module preview: the module's own code and data, outside Foundry</span>
+  <span class="spacer"></span>
+  <button type="button" id="open"><i class="fa-solid fa-map"></i> Open the map</button>
+  <button type="button" id="settings"><i class="fa-solid fa-gears"></i> Settings</button>
+  <a href="/">Map server</a>
+</header>
+<ol id="notifications"></ol>
+<main id="app-host"><p id="boot" class="muted">Loading the module…</p></main>
+<dialog id="settings-panel" class="application dialog"><header class="window-header"><h1 class="window-title">Module settings (kept in this browser)</h1></header><form method="dialog" class="window-content"><div id="settings-list" class="standard-form"></div><footer class="form-footer"><button type="submit">Close</button></footer></form></dialog>
+<script type="module" src="/module/preview.js"></script>
+</body>
+</html>

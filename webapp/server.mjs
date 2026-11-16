@@ -132,6 +132,18 @@ export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (p
         const file = join(HERE, "public", path === "/" ? "index.html" : path.slice(1)), type = file.endsWith(".js") ? "text/javascript" : file.endsWith(".css") ? "text/css" : "text/html";
         return send(res, 200, readFileSync(file), `${type}; charset=utf-8`);
       }
+      // The module's own files, at the paths Foundry serves them from, for the module preview page.
+      const moduleFile = /^\/modules\/eym-planet-map\/((?:scripts|templates|styles|lang|data|docs)\/[A-Za-z0-9._\/-]+|module\.json)$/.exec(path);
+      if (req.method === "GET" && moduleFile && !moduleFile[1].includes("..")) {
+        const file = join(HERE, "..", moduleFile[1]); if (!existsSync(file)) return send(res, 404, { error: "not found" });
+        const ext = moduleFile[1].split(".").pop(), type = { mjs: "text/javascript", js: "text/javascript", json: "application/json", css: "text/css", hbs: "text/plain", csv: "text/csv", svg: "image/svg+xml", png: "image/png", webp: "image/webp", jpg: "image/jpeg" }[ext] ?? "application/octet-stream";
+        res.writeHead(200, { "content-type": /^text|json|javascript/.test(type) ? `${type}; charset=utf-8` : type, "cache-control": "public, max-age=300" }); res.end(readFileSync(file)); return;
+      }
+      if (req.method === "GET" && (path === "/module" || path === "/module/")) { res.writeHead(302, { location: "/module/index.html" }); res.end(); return; }
+      if (req.method === "GET" && /^\/module\/[a-z-]+\.(html|js|css)$/.test(path)) {
+        const file = join(HERE, "public", path.slice(1)); if (!existsSync(file)) return send(res, 404, { error: "not found" });
+        return send(res, 200, readFileSync(file), `${path.endsWith(".js") ? "text/javascript" : path.endsWith(".css") ? "text/css" : "text/html"}; charset=utf-8`);
+      }
       if (req.method === "GET" && path === "/api/health") return send(res, 200, { ok: true, renderer: RENDERER, tiers: TIERS });
       if (req.method === "GET" && path === "/api/options") return send(res, 200, {
         tiers: TIERS, styles: Object.values(BUILDING_STYLES).map((st) => ({ id: st.id, label: st.label, places: (st.places ?? []).map((p) => p.name) })), settings: Object.entries(SETTINGS).map(([id, s]) => ({ id, label: s.label, group: s.group ?? "natural" })), sizes: BATTLE_SIZE_PRESETS, densities: GRID_DENSITY_PRESETS,
