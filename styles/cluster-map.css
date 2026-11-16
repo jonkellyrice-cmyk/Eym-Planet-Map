@@ -198,10 +198,14 @@
 .oscm-swatch.origin { background: var(--oscm-origin); color: var(--oscm-origin); }
 .oscm-swatch.destination { background: var(--oscm-destination); color: var(--oscm-destination); }
 
+/* Narrow screens: the map on top, the panel under it, and the whole window scrolls (the map itself takes
+   touches for turning and zooming, so it is kept short enough that the panel below can always be reached). */
 @media (max-width: 900px) {
-  .oscm-shell { grid-template-columns: 1fr; grid-template-rows: minmax(430px, 60vh) auto; }
+  .eym-planet-map .window-content { overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .oscm-shell { height: auto; min-height: 100%; grid-template-columns: 1fr; grid-template-rows: clamp(300px, 52vh, 520px) auto; }
   .oscm-view { border-right: 0; border-bottom: 1px solid var(--oscm-border); }
-  .oscm-panel { max-height: 40vh; }
+  .oscm-cluster-svg { min-height: 0; }
+  .oscm-panel { max-height: none; overflow: visible; }
 }
 
 @media (pointer: coarse) {
@@ -215,11 +219,5 @@
 }
 
 @media (max-width: 640px) {
-  .oscm-shell {
-    min-height: 480px;
-    grid-template-rows: minmax(360px, 58vh) auto;
-  }
-
-  .oscm-cluster-svg { min-height: 360px; }
-  .oscm-panel { max-height: none; }
+  .oscm-shell { grid-template-rows: clamp(280px, 50vh, 460px) auto; }
 }

@@ -1,0 +1,70 @@
+/* The look of the panel: a scholar's parchment in place of the old instrument panel. Ink on vellum,
+   an old-style serif that stays easy to read, rubricated headings, leather buttons. Loaded last, so it
+   re-dresses what the other stylesheets lay out. The map itself (the night sky, the globe) is untouched. */
+.eym-planet-map {
+  --oscm-parch: #eadfc4; --oscm-parch-deep: #d6c39a; --oscm-ink: #2c2014; --oscm-ink-soft: #5f4b33; --oscm-rule: rgba(88, 60, 30, 0.38);
+  --oscm-oxblood: #7b2a1c; --oscm-leather: #5a3d22; --oscm-vellum: #f6efdc;
+  --oscm-serif: "Palatino Linotype", Palatino, "Book Antiqua", "Iowan Old Style", "URW Palladio L", "P052", Georgia, serif;
+  --oscm-display: "Modesto Condensed", "IM Fell English", "Palatino Linotype", Palatino, "Book Antiqua", "URW Palladio L", "P052", Georgia, serif;
+}
+.eym-planet-map .oscm-panel {
+  --oscm-text: var(--oscm-ink); --oscm-muted: var(--oscm-ink-soft); --oscm-border: var(--oscm-rule); --oscm-accent: var(--oscm-oxblood);
+  padding: 18px 16px 24px; color: var(--oscm-ink); font: 14px/1.45 var(--oscm-serif);
+  background:
+    radial-gradient(ellipse at 22% 8%, rgba(255, 250, 232, 0.55), transparent 55%),
+    radial-gradient(ellipse at 85% 96%, rgba(120, 84, 40, 0.28), transparent 58%),
+    radial-gradient(ellipse at 6% 70%, rgba(120, 84, 40, 0.16), transparent 45%),
+    repeating-linear-gradient(93deg, rgba(120, 90, 50, 0.035) 0 2px, transparent 2px 7px),
+    linear-gradient(180deg, var(--oscm-parch), var(--oscm-parch-deep));
+  box-shadow: inset 0 0 46px rgba(96, 64, 28, 0.32);
+  border-left: 4px double rgba(70, 46, 20, 0.7);
+}
+/* Whatever is written on the parchment is written in ink, in the book hand. */
+.eym-planet-map .oscm-panel :is(div, span, p, dt, dd, label, strong, b, em, small, li, td, th, summary, legend, h2, h3, h4, output, a, pre, code) { color: var(--oscm-ink); font-family: var(--oscm-serif); text-shadow: none; }
+.eym-planet-map .oscm-panel :is(.oscm-selection-row, .oscm-stats dt, .oscm-stats dd, .oscm-muted, .oscm-selection-prompt, .oscm-legend, .oscm-legend p, label, p, li, summary, td, th) { font-size: 13.5px; line-height: 1.45; letter-spacing: 0; }
+.eym-planet-map .oscm-panel :is(.oscm-muted, .oscm-selection-prompt, .oscm-legend p, .oscm-stats dt, .oscm-selection-row) { color: var(--oscm-ink-soft); }
+.eym-planet-map .oscm-panel :is(.oscm-muted, .oscm-selection-prompt) { font-style: italic; }
+.eym-planet-map .oscm-panel :is(.oscm-stats dd, .oscm-selection-row strong) { font: 600 13.5px/1.3 var(--oscm-serif); color: var(--oscm-ink); }
+.eym-planet-map .oscm-panel .oscm-stats .is-primary dd { color: var(--oscm-oxblood); font-size: 14.5px; }
+.eym-planet-map .oscm-panel .oscm-stats > div { border-top: 1px solid var(--oscm-rule); }
+
+/* Headings: the title in the display hand, the small labels rubricated. */
+.eym-planet-map .oscm-panel .oscm-panel-header h2 { color: var(--oscm-ink); font: 700 30px/1.05 var(--oscm-display); letter-spacing: 0.01em; }
+.eym-planet-map .oscm-panel :is(.oscm-kicker, .oscm-clock-status, .oscm-clock-standard, .oscm-clock-set-label, .oscm-profile-line) { color: var(--oscm-ink-soft); font: 600 11px/1.3 var(--oscm-serif); letter-spacing: 0.14em; text-transform: uppercase; }
+.eym-planet-map .oscm-panel .oscm-card-title { margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid var(--oscm-rule); color: var(--oscm-oxblood); font: 700 14px/1.2 var(--oscm-display); letter-spacing: 0.12em; text-transform: uppercase; }
+.eym-planet-map .oscm-panel .oscm-clock-heading .oscm-card-title { border-bottom: 0; padding-bottom: 0; }
+.eym-planet-map .oscm-panel .oscm-system-count { padding: 4px 9px; border: 1px solid var(--oscm-rule); border-radius: 2px; color: var(--oscm-ink-soft); font: italic 13px/1.2 var(--oscm-serif); background: rgba(255, 250, 235, 0.35); }
+.eym-planet-map .oscm-panel .oscm-clock-status { padding: 2px 7px; border: 1px solid var(--oscm-rule); border-radius: 2px; }
+.eym-planet-map .oscm-panel .oscm-clock-date { color: var(--oscm-ink); font: 700 17px/1.3 var(--oscm-display); letter-spacing: 0.01em; }
+.eym-planet-map .oscm-panel .oscm-clock-time { color: var(--oscm-oxblood); font: 700 30px/1.1 var(--oscm-display); letter-spacing: 0.04em; text-shadow: none; }
+.eym-planet-map .oscm-panel .oscm-universal-clock::before { background: none; }
+.eym-planet-map .oscm-panel :is(.oscm-clock-readout-divider) { background: var(--oscm-rule); }
+.eym-planet-map .oscm-panel :is(.oscm-clock-gm-controls, .oscm-clock-set) { border-top: 1px solid var(--oscm-rule); }
+
+/* Cards: leaves laid on the page. */
+.eym-planet-map .oscm-panel .oscm-card { margin-bottom: 14px; padding: 13px 13px 12px; border: 1px solid var(--oscm-rule); border-radius: 2px; background: rgba(255, 250, 235, 0.36); box-shadow: inset 0 0 20px rgba(120, 84, 40, 0.12), 0 1px 0 rgba(255, 255, 255, 0.4); }
+
+/* Buttons in leather; fields in clean vellum. */
+.eym-planet-map .oscm-panel button { min-height: 34px; padding: 5px 10px; border: 1px solid #36240f; border-radius: 3px; background: linear-gradient(180deg, #6b4a2a, var(--oscm-leather)); color: #f6ecd2; font: 600 13.5px/1.2 var(--oscm-serif); letter-spacing: 0.03em; box-shadow: inset 0 1px 0 rgba(255, 235, 190, 0.22), 0 1px 2px rgba(40, 24, 8, 0.35); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); }
+.eym-planet-map .oscm-panel button:hover, .eym-planet-map .oscm-panel button:focus-visible { border-color: #1e1306; background: linear-gradient(180deg, #7d5832, #654526); color: #fff7e0; }
+.eym-planet-map .oscm-panel button:disabled { opacity: 0.55; }
+.eym-planet-map .oscm-panel button :is(span, strong, b, em, small, i) { color: inherit; }
+.eym-planet-map .oscm-panel :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) { min-height: 32px; height: auto; padding: 4px 7px; border: 1px solid rgba(88, 60, 30, 0.5); border-radius: 2px; background: var(--oscm-vellum); color: var(--oscm-ink); font: 14px/1.3 var(--oscm-serif); box-shadow: inset 0 1px 3px rgba(96, 64, 28, 0.18); }
+.eym-planet-map .oscm-panel :is(input, select, textarea):focus { outline: 2px solid rgba(123, 42, 28, 0.45); outline-offset: 1px; }
+.eym-planet-map .oscm-panel :is(input[type="checkbox"], input[type="radio"], input[type="range"]) { accent-color: var(--oscm-oxblood); }
+.eym-planet-map .oscm-panel textarea, .eym-planet-map .oscm-panel pre { font: 13px/1.4 var(--oscm-serif); }
+.eym-planet-map .oscm-panel .oscm-input-with-unit span { color: var(--oscm-ink-soft); font: italic 12px var(--oscm-serif); }
+.eym-planet-map .oscm-panel a { color: var(--oscm-oxblood); }
+.eym-planet-map .oscm-panel i { color: var(--oscm-oxblood); }
+.eym-planet-map .oscm-panel button i { color: inherit; }
+.eym-planet-map .oscm-panel hr { border: 0; border-top: 1px solid var(--oscm-rule); }
+
+/* The note over the map: a scrap of parchment. */
+.eym-planet-map .oscm-view-help { border: 1px solid rgba(70, 46, 20, 0.7); border-radius: 2px; background: rgba(234, 223, 196, 0.93); color: var(--oscm-ink-soft); font: 13px/1.35 var(--oscm-serif); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45), inset 0 0 14px rgba(120, 84, 40, 0.2); }
+.eym-planet-map .oscm-view-help i { color: var(--oscm-oxblood); }
+.eym-planet-map .oscm-view { border-right: 0; }
+
+@media (pointer: coarse) { .eym-planet-map .oscm-view-help { font-size: 12.5px; } }
+@media (max-width: 900px) { .eym-planet-map .oscm-panel { border-left: 0; border-top: 4px double rgba(70, 46, 20, 0.7); } }
+.eym-planet-map .oscm-panel .oscm-clock-date-inputs { align-items: end; }
+@media (max-width: 640px) { .eym-planet-map .oscm-view-help { left: 6px; right: 6px; bottom: 6px; padding: 5px 8px; gap: 2px 12px; font-size: 11.5px; line-height: 1.25; } }
