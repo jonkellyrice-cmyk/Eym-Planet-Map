@@ -21,7 +21,8 @@ Everything lives in this module. Maps are made top-down, each level grounded in 
 
 1. **Planet → continent → region → local/city reference maps** — deterministic, from Eym's data. *Done (step 1)*: the Atlas maps card makes the reference image, a name layer and a packet with the art direction; presets for map sizes and battle-map grids, adjustable in Game Settings.
 2. **Painting them in the module** — an image-generator adapter (OpenAI's image model first; later an open-weight model on Dave's GPU or the Glassbox inference service), the API key kept in the GM's browser only, painted maps saved to the world's data (not the module folder) and registered as canon; lower levels use the painted level above as their reference. *Next.*
-3. **Battle maps** — pick a place, date and time: terrain, slope, water, plants, season, weather, light and nearby structures are already known; a deterministic 5-ft layout becomes a painted image and a ready Foundry scene (grid, darkness, weather effects). Defaults: 140 px per square, 24×30 squares (Flip-Mat), all adjustable.
+   - *Done*: the **ground-detail layer** below the 1° data (`scripts/eym-local-detail.mjs`): fields, woods, streams, ponds, marsh, roads, built-up areas and farmsteads at 10–50 m, pinned to the world; shown on the local level.
+3. **Battle maps** — pick a place, date and time: terrain, slope, water, plants, season, weather, light and nearby structures are already known; a deterministic 5-ft layout becomes a painted image and a ready Foundry scene (grid, darkness, weather effects). *Started*: the deterministic 5-ft layout (`buildBattleSite`: cover and height per square, trees, bushes, boulders, buildings, streams, rivers and roads). Defaults: 140 px per square, 24×30 squares (Flip-Mat), all adjustable.
 
 ## Weather design (agreed 3 September 2026)
 

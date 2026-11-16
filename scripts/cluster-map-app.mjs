@@ -30,6 +30,7 @@ import { groundSky, localSolarHours } from "./ground-sky.mjs";
 import { SkyView } from "./sky-view.mjs";
 import { mansionForDirection, sunPathLongitudeDeg } from "./lunar-mansions.mjs";
 import { phaseName } from "./moon-events.mjs";
+import { buildLocalTile, localDetailLayout, localDetailOverlaySvg, tileRgba } from "./eym-local-detail.mjs";
 
 export const MODULE_ID = "eym-planet-map";
 /** The only system this module exposes. Its name must match the `system` column of the registry CSV. */
@@ -348,6 +349,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     root.querySelector('[data-action="atlas-download-labelled"]')?.addEventListener("click", download("labelledPng", "-with-names.png"));
     root.querySelector('[data-action="atlas-download-labels"]')?.addEventListener("click", download("labelSvgBlob", "-names.svg"));
     root.querySelector('[data-action="atlas-download-packet"]')?.addEventListener("click", download("packetBlob", "-packet.md"));
+    root.querySelector('[data-action="atlas-download-detail"]')?.addEventListener("click", download("detailPng", "-ground.png"));
     root.querySelector('[data-action="atlas-copy-prompt"]')?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(this._atlasResult?.prompt ?? ""); ui.notifications.info("Prompt copied."); } catch { ui.notifications.warn("Could not copy; download the packet instead."); } });
   }
 
@@ -368,14 +370,24 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const map = buildReferenceMap(this._eymGeography, spec, { center: [lat, lon], continentId, title });
     const packet = mapPacket({ asset: this._eymGeography, spec, frame: map.frame, features: map.features, title });
     const [basePng, labelledPng] = await Promise.all([svgToPng(map.baseSvg, spec.widthPx, spec.heightPx), svgToPng(map.labelledSvg, spec.widthPx, spec.heightPx)]);
+    // The local level also gets the ground in detail: fields, woods, streams, lanes and farmsteads.
+    let detailPng = null;
+    if (spec.level === "local") {
+      ui.notifications.info("Working out the ground in detail…");
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      const layout = localDetailLayout(map.frame), tile = buildLocalTile(this._eymGeography, { center: layout.center, sizeKm: layout.sizeKm, resolutionM: layout.resolutionM, marginFraction: 0.15 });
+      detailPng = await detailToPng(tile, layout, spec.widthPx, spec.heightPx, [localDetailOverlaySvg(tile, layout, spec.widthPx, spec.heightPx), map.labelSvg]);
+    }
     for (const url of this._atlasResult?.urls ?? []) URL.revokeObjectURL(url);
-    const urls = { base: URL.createObjectURL(basePng), labelled: URL.createObjectURL(labelledPng) };
+    const urls = { base: URL.createObjectURL(basePng), labelled: URL.createObjectURL(labelledPng), ...(detailPng ? { detail: URL.createObjectURL(detailPng) } : {}) };
     const fileStem = `eym-${spec.level}-${title.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
-    this._atlasResult = { basePng, labelledPng, labelSvgBlob: new Blob([map.labelSvg], { type: "image/svg+xml" }), packetBlob: new Blob([packet.markdown], { type: "text/markdown" }), prompt: packet.prompt, urls: Object.values(urls), previews: urls, fileStem };
+    this._atlasResult = { basePng, labelledPng, detailPng, labelSvgBlob: new Blob([map.labelSvg], { type: "image/svg+xml" }), packetBlob: new Blob([packet.markdown], { type: "text/markdown" }), prompt: packet.prompt, urls: Object.values(urls), previews: urls, fileStem };
     root.querySelector("[data-atlas-title]").textContent = title;
     root.querySelector("[data-atlas-result-summary]").textContent = `${spec.summary} · ${map.features.length} named features`;
+    root.querySelector('[data-atlas-view="detail"]')?.classList.toggle("is-hidden", !detailPng);
+    root.querySelector('[data-action="atlas-download-detail"]')?.classList.toggle("is-hidden", !detailPng);
     root.querySelector("[data-atlas-result]")?.classList.remove("is-hidden");
-    this.#showAtlasView("labelled");
+    this.#showAtlasView(detailPng ? "detail" : "labelled");
   }
 
   #showAtlasView(view) {
@@ -755,6 +767,20 @@ async function svgToPng(svgText, width, height) {
     canvas.getContext("2d").drawImage(image, 0, 0, width, height);
     return await new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("PNG encoding failed"))), "image/png"));
   } finally { URL.revokeObjectURL(url); }
+}
+
+/** The ground in detail as a PNG: the tile's cover raster scaled onto the frame, then the SVG layers on top. */
+async function detailToPng(tile, layout, width, height, svgLayers) {
+  const source = document.createElement("canvas"); source.width = tile.cols; source.height = tile.rows;
+  source.getContext("2d").putImageData(new ImageData(tileRgba(tile), tile.cols, tile.rows), 0, 0);
+  const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height;
+  const context = canvas.getContext("2d"); context.imageSmoothingEnabled = true;
+  context.drawImage(source, layout.x0, layout.y0, tile.cols * layout.scale, tile.rows * layout.scale);
+  for (const svg of svgLayers) {
+    const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+    try { const image = new Image(); await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = () => reject(new Error("the detail layer could not be drawn")); image.src = url; }); context.drawImage(image, 0, 0, width, height); } finally { URL.revokeObjectURL(url); }
+  }
+  return await new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("PNG encoding failed"))), "image/png"));
 }
 
 /** Offer a blob as a download. */

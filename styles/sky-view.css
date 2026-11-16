@@ -35,7 +35,7 @@
 .oscm-atlas-card label { display: grid; gap: .15rem; font-size: 11px; }
 .oscm-atlas-card label span { color: var(--oscm-muted, #8aa); font-size: 10px; }
 .oscm-atlas-custom { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
-.oscm-atlas-card .is-hidden, .oscm-atlas-result.is-hidden { display: none; }
+.oscm-atlas-card .is-hidden, .oscm-atlas-result.is-hidden, .oscm-atlas-result .is-hidden { display: none; }
 .oscm-atlas-result { position: absolute; inset: 8px; z-index: 30; display: grid; grid-template-rows: auto auto 1fr auto; gap: .4rem; padding: .6rem; background: rgba(6, 12, 18, .96); border: 1px solid rgba(160, 200, 220, .35); border-radius: 6px; }
 .oscm-atlas-result-head { display: flex; gap: .6rem; align-items: baseline; }
 .oscm-atlas-result-head button { margin-left: auto; width: auto; }

@@ -2,7 +2,7 @@
   <section class="oscm-view" aria-label="3D system map">
     <div class="oscm-atlas-result is-hidden" data-atlas-result>
       <div class="oscm-atlas-result-head"><strong data-atlas-title>Reference map</strong><span class="oscm-muted" data-atlas-result-summary></span><button type="button" data-action="atlas-close" title="Close"><i class="fa-solid fa-xmark"></i></button></div>
-      <div class="oscm-atlas-tabs"><button type="button" data-atlas-view="labelled" class="is-active">With names</button><button type="button" data-atlas-view="base">For the image model</button></div>
+      <div class="oscm-atlas-tabs"><button type="button" data-atlas-view="labelled" class="is-active">With names</button><button type="button" data-atlas-view="base">For the image model</button><button type="button" data-atlas-view="detail" class="is-hidden">Ground detail</button></div>
       <img data-atlas-preview alt="Reference map preview">
       <div class="oscm-atlas-actions">
         <button type="button" data-action="atlas-download-base"><i class="fa-solid fa-download"></i> Reference PNG (no text)</button>
@@ -10,6 +10,7 @@
         <button type="button" data-action="atlas-download-labels"><i class="fa-solid fa-download"></i> Name layer (SVG)</button>
         <button type="button" data-action="atlas-copy-prompt"><i class="fa-solid fa-copy"></i> Copy prompt</button>
         <button type="button" data-action="atlas-download-packet"><i class="fa-solid fa-download"></i> Packet (.md)</button>
+        <button type="button" data-action="atlas-download-detail" class="is-hidden"><i class="fa-solid fa-download"></i> Ground detail PNG</button>
       </div>
     </div>
     <svg class="oscm-cluster-svg" role="img" aria-label="Interactive three-dimensional star system"></svg>
