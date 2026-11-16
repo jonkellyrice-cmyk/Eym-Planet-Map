@@ -12,6 +12,9 @@
 //   POST /api/battle-maps          render (or fetch from cache) → manifest
 //   GET  /api/battle-maps/:id      manifest
 //   GET  /api/battle-maps/:id/files/:name   a layer (PNG)
+//   GET  /api/region/frames        the region layer's frames and tile ranges, and whether a store is set up
+//   GET  /api/region/tile/:frame/:tx/:ty.png   a region tile (?kind=pixels|flat): from the store, or made (and kept)
+//   GET  /api/region/fill?frame=&start=&count=   make and keep the next tiles of a frame not yet in the store
 
 import { createServer } from "node:http";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -27,6 +30,9 @@ import { normalizeSeason } from "../scripts/eym-battle-season.mjs";
 import { BUILDING_STYLES, styleForPlace } from "../scripts/eym-building-styles.mjs";
 import { decodePng, encodePng } from "./render/png.mjs";
 import { Framebuffer } from "./render/framebuffer.mjs";
+import { gzipSync } from "node:zlib";
+import { REGION_CELL_KM, REGION_MODEL, REGION_TILE_CELLS, buildRegionTile, flatRegionTile, regionFrames, renderRegionTile } from "../scripts/eym-region-layer.mjs";
+import { regionStore, sha256 } from "./region-store.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const hashText = (text) => { let a = 2166136261, b = 5381; for (let i = 0; i < text.length; i += 1) { const c = text.charCodeAt(i); a = Math.imul(a ^ c, 16777619); b = (Math.imul(b, 33) + c) | 0; } return (a >>> 0).toString(16).padStart(8, "0") + (b >>> 0).toString(16).padStart(8, "0"); };
@@ -112,13 +118,46 @@ export async function renderRequest(asset, request, cacheDir) {
 /** The web server (a Node http server around the request handler). */
 export function createMapServer(options = {}) { return createServer(createMapHandler(options)); }
 
+// ---------------------------------------------------------------- the region layer
+
+const REGION_KINDS = Object.freeze({ pixels: renderRegionTile, flat: flatRegionTile });
+/** Where a region tile's picture is kept (the rules' version is in the path: new rules, new tiles). */
+export const regionTilePath = (frame, kind, tx, ty) => `region/${REGION_MODEL}/${frame}/${kind}/${tx}_${ty}.png`;
+const b64 = (array) => Buffer.from(array.buffer, array.byteOffset, array.byteLength).toString("base64");
+/** A tile's shapes as a file: JSON (the arrays in base64), gzipped. */
+export function regionShapesFile(tile) {
+  return gzipSync(JSON.stringify({ model: tile.model, frame: tile.frame, tx: tile.tx, ty: tile.ty, cells: tile.cells, pad: tile.pad, sea: tile.sea, cover: b64(tile.cover), elevationInt16: b64(tile.elevation), shade: b64(tile.shade), coastKm: b64(tile.coastKm), rivers: tile.rivers, roads: tile.roads, settlements: tile.settlements }));
+}
+/**
+ * One region tile's picture. Land tiles are kept in the store once made (the pixel art with its shapes
+ * beside it); open sea is never kept, being quicker to make than to fetch.
+ * @returns { png, source: "store" | "made" | "made and kept", sea, error? }
+ */
+export async function regionTilePicture(asset, frames, store, frameId, tx, ty, kind = "pixels", { read = true } = {}) {
+  const frame = frames.find((f) => f.id === frameId), index = frames.indexOf(frame), path = regionTilePath(frameId, kind, tx, ty);
+  if (store && read) { const kept = await store.read(path); if (kept) return { png: kept, source: "store", sea: false }; }
+  const tile = buildRegionTile(asset, frame, tx, ty), png = encodePng({ width: tile.cells, height: tile.cells, data: REGION_KINDS[kind](tile) });
+  if (!store || tile.sea) return { png, source: "made", sea: tile.sea };
+  try {
+    await store.write(store.buckets.tiles, path, png, "image/png");
+    await store.record({ layer: "region", kind, z: index, x: tx, y: ty, rules_version: REGION_MODEL, bucket: store.buckets.tiles, path, bytes: png.length, sha256: sha256(png), is_sea: false });
+    if (kind === "pixels") {
+      const shapes = regionShapesFile(tile), shapesPath = `region/${REGION_MODEL}/${frameId}/shapes/${tx}_${ty}.json.gz`;
+      await store.write(store.buckets.shapes, shapesPath, shapes, "application/gzip");
+      await store.record({ layer: "region", kind: "shapes", z: index, x: tx, y: ty, rules_version: REGION_MODEL, bucket: store.buckets.shapes, path: shapesPath, bytes: shapes.length, sha256: sha256(shapes), is_sea: false });
+    }
+    return { png, source: "made and kept", sea: false };
+  } catch (error) { return { png, source: "made", sea: false, error: error.message }; }
+}
+
 /** The request handler: (req, res), for a Node server or a Vercel function. */
-export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (process.env.VERCEL ? "/tmp/eym-map-cache" : join(HERE, "cache")), corsOrigins = process.env.CORS_ORIGINS ?? "*" } = {}) {
+export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (process.env.VERCEL ? "/tmp/eym-map-cache" : join(HERE, "cache")), corsOrigins = process.env.CORS_ORIGINS ?? "*", store = regionStore() } = {}) {
   const data = asset ?? JSON.parse(readFileSync(join(HERE, "..", "data", "planet-cartography", "abydos", "eventide.json"), "utf8"));
   mkdirSync(cacheDir, { recursive: true });
   const allowed = corsOrigins === "*" ? null : new Set(String(corsOrigins).split(",").map((s) => s.trim()).filter(Boolean));
   const inflight = new Map();
-  let queue = Promise.resolve();
+  let queue = Promise.resolve(), frames = null;
+  const regionFramesOnce = () => (frames ??= regionFrames(data));
   const send = (res, status, body, type = "application/json") => { res.writeHead(status, { "content-type": type, "cache-control": type === "image/png" ? "public, max-age=31536000, immutable" : "no-store" }); res.end(type === "application/json" ? JSON.stringify(body) : body); };
   return async (req, res) => {
     const origin = req.headers.origin;
@@ -150,6 +189,32 @@ export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (p
         featureCategories: MAP_FEATURE_CATEGORIES, features: MAP_FEATURES.map((f) => ({ id: f.id, label: f.label, category: f.category })),
         settlements: data.settlements.filter((s) => s.properName).map((s) => ({ name: s.properName, kind: s.kind, lat: s.lat, lon: s.lon })).sort((a, b) => a.name.localeCompare(b.name)),
       });
+      if (req.method === "GET" && path === "/api/region/frames") return send(res, 200, { model: REGION_MODEL, cellKm: REGION_CELL_KM, tileCells: REGION_TILE_CELLS, kinds: Object.keys(REGION_KINDS), stored: Boolean(store), frames: regionFramesOnce() });
+      const tileMatch = /^\/api\/region\/tile\/([a-z0-9-]+)\/(-?\d{1,4})\/(-?\d{1,4})\.png$/.exec(path);
+      if (req.method === "GET" && tileMatch) {
+        const kind = url.searchParams.get("kind") ?? "pixels"; if (!REGION_KINDS[kind]) return send(res, 400, { error: "kind is pixels or flat" });
+        if (!regionFramesOnce().some((f) => f.id === tileMatch[1])) return send(res, 404, { error: "no such frame" });
+        const made = await (queue = queue.then(() => regionTilePicture(data, regionFramesOnce(), store, tileMatch[1], Number(tileMatch[2]), Number(tileMatch[3]), kind)));
+        res.setHeader("x-eym-source", made.source); if (made.error) res.setHeader("x-eym-store-error", made.error.replace(/[^ -~]/g, " ").slice(0, 200));
+        res.writeHead(200, { "content-type": "image/png", "cache-control": made.source === "made" && !made.sea ? "no-store" : "public, max-age=86400" }); res.end(made.png); return;
+      }
+      // Make and keep the next tiles of a frame that are not in the store yet, for as long as this request may run.
+      if (req.method === "GET" && path === "/api/region/fill") {
+        if (!store) return send(res, 503, { error: "no store is set up (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)" });
+        const all = regionFramesOnce(), frame = all.find((f) => f.id === url.searchParams.get("frame")); if (!frame) return send(res, 404, { error: "no such frame" });
+        const { tx0, tx1, ty0, ty1 } = frame.tiles, width = tx1 - tx0 + 1, total = width * (ty1 - ty0 + 1), start = Math.max(0, Number(url.searchParams.get("start") ?? 0) | 0), count = Math.min(400, Math.max(1, Number(url.searchParams.get("count") ?? 60) | 0)), budgetMs = Math.min(50000, Math.max(1000, Number(url.searchParams.get("ms") ?? 40000) | 0));
+        const report = await (queue = queue.then(async () => {
+          const began = Date.now(), have = await store.listed("region", "pixels", all.indexOf(frame)), out = { frame: frame.id, total, start, next: start, kept: 0, already: 0, sea: 0, errors: [] };
+          for (let k = start; k < total && out.kept < count && Date.now() - began < budgetMs; k += 1) {
+            const tx = tx0 + (k % width), ty = ty0 + Math.floor(k / width); out.next = k + 1;
+            if (have.has(`${tx},${ty}`)) { out.already += 1; continue; }
+            const made = await regionTilePicture(data, all, store, frame.id, tx, ty, "pixels", { read: false }); // the list above says it is not kept
+            if (made.sea) out.sea += 1; else if (made.source === "made and kept" || made.source === "store") out.kept += 1; else { out.errors.push(`${tx},${ty}: ${made.error ?? "not kept"}`); if (out.errors.length >= 3) break; }
+          }
+          return { ...out, done: out.next >= total, ms: Date.now() - began };
+        }));
+        return send(res, 200, report);
+      }
       if (req.method === "POST" && path === "/api/battle-maps") {
         let raw = ""; for await (const chunk of req) { raw += chunk; if (raw.length > 65536) return send(res, 413, { error: "request too large" }); }
         let request; try { request = parseRequest(JSON.parse(raw || "{}")); } catch (error) { return send(res, 400, { error: error.message }); }
