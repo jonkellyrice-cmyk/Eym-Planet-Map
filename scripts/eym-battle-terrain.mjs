@@ -108,6 +108,8 @@ export function lineOfSight(grid, a, b, { eyeA = 5, eyeB = 5 } = {}) {
     const h = ha + (hb - ha) * t;
     if (!grid.void[i] && h < grid.elevationFt[i]) return { visible: false, concealed };
     if (h < grid.solidFt[i]) return { visible: false, concealed };
+    // An overhanging upper floor or a skybridge: a slab over the street, from its underside to its top.
+    if (grid.overUnder?.[i] && h >= grid.overUnder[i] && h < grid.overTop[i]) return { visible: false, concealed };
     // Canopy hides what is in or above the crowns (from 10 ft up); undergrowth hides what is low in it.
     if ((h < grid.canopyFt[i] && h > grid.elevationFt[i] + 10) || (grid.concealed[i] && h < grid.elevationFt[i] + 6)) concealed = true;
   }

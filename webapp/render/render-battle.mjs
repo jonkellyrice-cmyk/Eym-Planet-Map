@@ -9,17 +9,17 @@
 
 import { Framebuffer, bayer, rgb } from "./framebuffer.mjs";
 import { groundPixel, h2, mixc, noise, ramp } from "./materials.mjs";
-import { drawBlock, drawBuilding, drawBush, drawFeature, drawFurniture, drawRock, drawStreetLamp, drawTree, setBuildingStyle, setSpriteLight } from "./sprites.mjs";
+import { drawBlock, drawBuilding, drawSkybridge, drawLift, drawBush, drawFeature, drawFurniture, drawRock, drawStreetLamp, drawTree, setBuildingStyle, setSpriteLight } from "./sprites.mjs";
 import { buildingStyle, styleStreetLamps } from "../../scripts/eym-building-styles.mjs";
 import { inFootprint } from "./footprint.mjs";
 import { applyShadows, occlusionMask } from "./light.mjs";
 import { normalizeSeason } from "../../scripts/eym-battle-season.mjs";
 import { FEATURES } from "../../scripts/eym-battle-settings.mjs";
-import { FURNITURE } from "../../scripts/eym-battle-interiors.mjs";
+import { FURNITURE, floorOutline, outlines } from "../../scripts/eym-battle-interiors.mjs";
 import { standHeightFt } from "../../scripts/eym-battle-oblique.mjs";
 import { footprintPolygon } from "../../scripts/eym-battle-buildings.mjs";
 
-export const RENDERER = Object.freeze({ tier: 2, name: "Traditional RPG pixel art", version: "eym-pixel-t2-v5" });
+export const RENDERER = Object.freeze({ tier: 2, name: "Traditional RPG pixel art", version: "eym-pixel-t2-v6" });
 
 /** Native pixels per square and a whole-number scale that gives the scene's grid size. */
 export function pixelPlan(gridPx) {
@@ -122,7 +122,7 @@ function drawFlat(fb, f, def, P, map) {
   }
 }
 
-function drawStanding(fb, map, P, styleId = "default") {
+function drawStanding(fb, map, P, styleId = "default", { buildings = true } = {}) {
   const items = [], style = TREE_STYLE[map.setting] ?? "broadleaf";
   for (const o of map.objects) items.push({ y: o.y, x: o.x, draw: () => (o.kind === "tree" ? drawTree(fb, o.x * P, o.y * P, o.size, P, style, Math.round(o.x * 97 + o.y * 13)) : o.kind === "bush" ? drawBush(fb, o.x * P, o.y * P, o.size, P, Math.round(o.x * 31 + o.y)) : drawRock(fb, o.x * P, o.y * P, o.size, P, Math.round(o.x * 7 + o.y * 3))) });
   for (const f of map.features) {
@@ -132,7 +132,8 @@ function drawStanding(fb, map, P, styleId = "default") {
     items.push({ y: f.y + f.h, x: f.x, draw: () => { if (!drawFeature(fb, f, def, P, f.x * 17 + f.y, ft)) drawBlock(fb, f.x * P + 1, f.y * P + 1, f.w * P - 2, f.h * P - 2, Math.min(3, ft / 10) * P * 0.85, def.color, f.x * 17 + f.y, def.shape === "round" || def.shape === "mushroom" || def.shape === "crystal"); } });
   }
   for (const l of styleStreetLamps(map, styleId)) items.push({ y: l.y, x: l.x, draw: () => drawStreetLamp(fb, l.x * P, l.y * P, P, l.kind) });
-  for (const b of map.buildings) items.push({ y: b.y1 + 1, x: b.x0, draw: () => drawBuilding(fb, b, P, b.chamfers?.length ? footprintPolygon(b) : null, b.id * 101 + 7) });
+  if (buildings) for (const k of map.skybridges ?? []) items.push({ y: k.y1 + 1, x: k.x0, draw: () => drawSkybridge(fb, k, P, k.x0 * 31 + k.y0) });
+  if (buildings) for (const b of map.buildings) items.push({ y: Math.max(b.y1, ...Object.values(b.floorRects ?? {}).map((r) => r.y1)) + 1, x: b.x0, draw: () => drawBuilding(fb, b, P, b.chamfers?.length ? footprintPolygon(b) : null, b.id * 101 + 7) });
   items.sort((a, b) => a.y - b.y || a.x - b.x);
   for (const it of items) it.draw();
 }
@@ -143,7 +144,7 @@ const ROOM_FLOOR = { "common room": "floor", shop: "floor", bedroom: "floor", st
 
 function drawInterior(fb, map, building, floor, P) {
   const f = building.floors.find((x) => x.floor === floor); if (!f) return;
-  const [ox, oy] = map.origin, inside = (x, y) => inFootprint({ ...building.rect, rects: building.rects, chamfers: building.chamfers }, (x + 0.5) / P, (y + 0.5) / P);
+  const [ox, oy] = map.origin, outline = floorOutline(building, floor), inside = (x, y) => inFootprint(outline, (x + 0.5) / P, (y + 0.5) / P);
   const wallTone = ramp(floor < 0 ? "#6a6058" : "#d8c8a4", 4, 0.45);
   for (const room of f.rooms) {
     const mat = ROOM_FLOOR[room.use] ?? "floor";
@@ -151,7 +152,8 @@ function drawInterior(fb, map, building, floor, P) {
       const back = y - room.y0 * P < P * 0.42; fb.set(x, y, back ? (y - room.y0 * P > P * 0.36 ? wallTone[0] : wallTone[2 + ((x >> 2) & 1)]) : groundPixel(mat, ox * P + x, oy * P + y));
     }
   }
-  if (building.stairs) { const s = building.stairs; for (let y = s.y * P; y < (s.y + s.h) * P; y += 1) for (let x = s.x * P; x < (s.x + s.w) * P; x += 1) fb.set(x, y, ((s.w > s.h ? x - s.x * P : y - s.y * P) % 4) === 0 ? rgb("#6e604a") : rgb("#d6c7a8")); }
+  if (building.stairs?.kind === "lift") drawLift(fb, building.stairs, P);
+  else if (building.stairs) { const s = building.stairs; for (let y = s.y * P; y < (s.y + s.h) * P; y += 1) for (let x = s.x * P; x < (s.x + s.w) * P; x += 1) fb.set(x, y, ((s.w > s.h ? x - s.x * P : y - s.y * P) % 4) === 0 ? rgb("#6e604a") : rgb("#d6c7a8")); }
   // Shadows the rooms make of themselves: along the foot of every wall, and under the furniture.
   for (const wl of f.walls) {
     const [a, b, c, d] = (wl.diag ?? (wl.dir === "e" ? [wl.x + 1, wl.y, wl.x + 1, wl.y + 1] : [wl.x, wl.y + 1, wl.x + 1, wl.y + 1])).map((v) => v * P);
@@ -188,13 +190,24 @@ export function renderBattleLayers(map, interiors, { gridPx = map.spec.gridPx, s
   const exterior = new Framebuffer(W, H);
   drawGround(exterior, map, P, theSeason, theStyle.street); drawFaces(exterior, map, P); applyShadows(exterior, occlusionMask(map, P)); drawStanding(exterior, map, P, theStyle.id);
   const floors = [...new Set(interiors.flatMap((b) => b.floors.map((f) => f.floor)))].sort((a, b) => a - b);
-  const footprintMask = (list) => { const m = new Uint8Array(W * H); for (const b of list) { const fb = { ...b.rect, rects: b.rects, chamfers: b.chamfers }; for (let y = b.rect.y0 * P; y < (b.rect.y1 + 1) * P; y += 1) for (let x = b.rect.x0 * P; x < (b.rect.x1 + 1) * P; x += 1) if (x >= 0 && y >= 0 && x < W && y < H && inFootprint(fb, (x + 0.5) / P, (y + 0.5) / P)) m[y * W + x] = 1; } return m; };
+  // Masks of outlines: a floor's (floor given) or every floor's together (null: the roof over all of it).
+  const footprintMask = (list, floor = null) => { const m = new Uint8Array(W * H); for (const b of list) for (const o of floor == null ? outlines(b) : [floorOutline(b, floor)]) { for (let y = Math.max(0, o.y0 * P); y < Math.min(H, (o.y1 + 1) * P); y += 1) for (let x = Math.max(0, o.x0 * P); x < Math.min(W, (o.x1 + 1) * P); x += 1) if (inFootprint(o, (x + 0.5) / P, (y + 0.5) / P)) m[y * W + x] = 1; } return m; };
   const copyMasked = (src, mask) => { const out = new Framebuffer(W, H); for (let k = 0; k < W * H; k += 1) if (mask[k]) { out.data.set(src.data.subarray(k * 4, k * 4 + 4), k * 4); } return out; };
   // Ground: the outside with each building's ground floor in place of its roof.
   const ground = new Framebuffer(W, H); ground.data.set(exterior.data);
   if (interiors.length) {
+    // Under overhangs and skybridges the ground shows the street beneath, in their shade.
+    // The outer triangle of a cut corner shows the ground too (the exterior has the roof's eave there).
+    const over = map.grid.overUnder, cutSquares = new Set(map.buildings.flatMap((b) => (b.chamfers ?? []).map((c) => c.y * map.spec.columns + c.x)));
+    if (over?.some(Boolean) || cutSquares.size) {
+      const bare = new Framebuffer(W, H); drawGround(bare, map, P, theSeason, theStyle.street); drawFaces(bare, map, P); applyShadows(bare, occlusionMask(map, P)); drawStanding(bare, map, P, theStyle.id, { buildings: false });
+      for (let y = 0; y < H; y += 1) for (let x = 0; x < W; x += 1) {
+        const i = Math.floor(y / P) * map.spec.columns + Math.floor(x / P), k = (y * W + x) * 4;
+        if (over?.[i]) { ground.data.set(bare.data.subarray(k, k + 4), k); ground.tone(x, y, -0.3); } else if (cutSquares.has(i)) ground.data.set(bare.data.subarray(k, k + 4), k);
+      }
+    }
     const inner = new Framebuffer(W, H); for (const b of interiors) drawInterior(inner, map, b, 0, P);
-    const all = footprintMask(interiors); for (let k = 0; k < W * H; k += 1) if (all[k] && inner.data[k * 4 + 3]) ground.data.set(inner.data.subarray(k * 4, k * 4 + 4), k * 4);
+    const all = footprintMask(interiors, 0); for (let k = 0; k < W * H; k += 1) if (all[k] && inner.data[k * 4 + 3]) ground.data.set(inner.data.subarray(k * 4, k * 4 + 4), k * 4);
   }
   const roofs = {}, floorLayers = {};
   if (interiors.length) roofs[0] = copyMasked(exterior, footprintMask(interiors));
@@ -203,7 +216,7 @@ export function renderBattleLayers(map, interiors, { gridPx = map.spec.gridPx, s
     if (floor < 0) for (let y = 0; y < H; y += 1) for (let x = 0; x < W; x += 1) if (h2(x, y, 99) < 0.04) layer.set(x, y, rgb("#22201c"));
     const inner = new Framebuffer(W, H); for (const b of having) drawInterior(inner, map, b, floor, P);
 
-    const m = footprintMask(having); for (let k = 0; k < W * H; k += 1) if (m[k] && inner.data[k * 4 + 3]) layer.data.set(inner.data.subarray(k * 4, k * 4 + 4), k * 4);
+    const m = footprintMask(having, floor); for (let k = 0; k < W * H; k += 1) if (m[k] && inner.data[k * 4 + 3]) layer.data.set(inner.data.subarray(k * 4, k * 4 + 4), k * 4);
     floorLayers[floor] = layer;
     if (floor > 0) roofs[floor] = copyMasked(exterior, footprintMask(interiors.filter((b) => Math.max(...b.floors.map((f) => f.floor)) === floor)));
   }

@@ -11,6 +11,7 @@ const hash = (text) => { let h = 2166136261; for (let i = 0; i < text.length; i 
 const edgeKey = (x, y, dir) => `${x},${y},${dir}`;
 import { shade } from "./eym-battle-oblique.mjs";
 import { chamferSegment, doorEdge, footprintShapes, shapeEdges } from "./eym-battle-buildings.mjs";
+import { buildingStyle } from "./eym-building-styles.mjs";
 
 /** Furniture: footprint in squares, PF2e movement and cover, how it looks. */
 export const FURNITURE = Object.freeze({
@@ -85,27 +86,39 @@ function roomUse(b, floor, index, count, key) {
  * outer walls with doors and windows, and the inner ones), stairs and furniture, in map squares.
  */
 export function buildInteriors(map) {
-  const out = [];
+  const out = [], lifts = Boolean(buildingStyle(map.style).lifts);
   for (const b of map.buildings) {
     const bKey = `${map.version}|interior|${map.anchor.join(",")}|${b.gx0 ?? b.x0 + map.origin[0]},${b.gy0 ?? b.y0 + map.origin[1]}`;
     const rect = { x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1 }, shape = { rects: b.rects ?? [rect], chamfers: b.chamfers ?? [] }, main = shape.rects[0];
     const cut = new Set(shape.chamfers.map((c) => `${c.x},${c.y}`)), w = main.x1 - main.x0 + 1, h = main.y1 - main.y0 + 1;
     const floors = buildingFloors(b, bKey), multi = floors.length > 1;
+    // Doors onto skybridges, on the first floor (and the squares inside them, kept clear of the stairs).
+    const bridgeDoors = new Set(), bridgeLanding = new Set();
+    for (const k of map.skybridges ?? []) {
+      if (k.a !== b.id && k.b !== b.id) continue; const r = (b.floorRects?.[1]) ?? rect;
+      if (k.dir === "ns") { const north = r.y1 < k.y0; bridgeDoors.add(north ? `${k.x0},${k.y0 - 1},s` : `${k.x0},${k.y1},s`); bridgeLanding.add(north ? `${k.x0},${k.y0 - 1}` : `${k.x0},${k.y1 + 1}`); }
+      else { const west = r.x1 < k.x0; bridgeDoors.add(west ? `${k.x0 - 1},${k.y0},e` : `${k.x1},${k.y0},e`); bridgeLanding.add(west ? `${k.x0 - 1},${k.y0}` : `${k.x1 + 1},${k.y0}`); }
+    }
     // Stairs: a 1×2 flight in a corner of the main block (not a cut corner), the same on every floor.
     const vertical = h >= w, sw = vertical ? 1 : 2, sh = vertical ? 2 : 1;
     const corners = [0, 1, 2, 3].map((k) => (Math.floor(hash(`${bKey}|stair`) * 4) + k) % 4).map((corner) => ({ x: corner % 2 ? main.x1 - sw + 1 : main.x0, y: corner >= 2 ? main.y1 - sh + 1 : main.y0, w: sw, h: sh }));
-    const clearOfCuts = (st) => { for (let y = st.y; y < st.y + st.h; y += 1) for (let x = st.x; x < st.x + st.w; x += 1) if (cut.has(`${x},${y}`)) return false; return true; };
+    const clearOfCuts = (st) => { for (let y = st.y; y < st.y + st.h; y += 1) for (let x = st.x; x < st.x + st.w; x += 1) if (cut.has(`${x},${y}`) || bridgeLanding.has(`${x},${y}`)) return false; return true; };
     const stairs = multi && w >= 2 && h >= 2 ? corners.find(clearOfCuts) ?? null : null;
     const onStairs = (x, y) => stairs && x >= stairs.x && x < stairs.x + stairs.w && y >= stairs.y && y < stairs.y + stairs.h;
+    // The tallest buildings of a style with lifts have a lift (a brass cage) where the stairs would be.
+    if (stairs && lifts && (b.storeys ?? 1) >= 3) stairs.kind = "lift";
     const building = { id: b.id, label: b.label ?? "building", rect, rects: shape.rects, chamfers: shape.chamfers, floors: [], stairs };
-    const edges = shapeEdges(shape), door0 = b.doorEdge ?? doorEdge(shape, b.door ?? "s");
+    const door0 = b.doorEdge ?? doorEdge(shape, b.door ?? "s");
     for (const floor of floors) {
       const fKey = `${bKey}|floor|${floor}`;
+      // Upper floors that overhang the street have their own, larger outline.
+      const upper = floor > 0 && b.floorRects?.[floor], fShape = upper ? { rects: [upper], chamfers: [] } : shape, edges = shapeEdges(fShape);
+      const outline = upper ? { ...upper, rects: [upper], chamfers: [] } : { ...rect, rects: shape.rects, chamfers: shape.chamfers };
       // Rooms: each block of the shape split on its own; a wall with a door where an L's two wings meet.
       const rooms = [], inner = [];
-      for (const [k, r] of shape.rects.entries()) { const split = b.label === "temple" && floor === 0 ? { rooms: [r], walls: [] } : splitRooms(r, `${fKey}|block|${k}`, 2, floor < 0 ? 5 : 4); rooms.push(...split.rooms); inner.push(...split.walls); }
-      for (let k = 1; k < shape.rects.length; k += 1) {
-        const A = shape.rects[0], B = shape.rects[k], joins = [];
+      for (const [k, r] of fShape.rects.entries()) { const split = b.label === "temple" && floor === 0 ? { rooms: [r], walls: [] } : splitRooms(r, `${fKey}|block|${k}`, 2, floor < 0 ? 5 : 4); rooms.push(...split.rooms); inner.push(...split.walls); }
+      for (let k = 1; k < fShape.rects.length; k += 1) {
+        const A = fShape.rects[0], B = fShape.rects[k], joins = [];
         for (let y = B.y0; y <= B.y1; y += 1) for (let x = B.x0; x <= B.x1; x += 1) for (const [dx, dy, dir] of [[1, 0, "e"], [-1, 0, "e"], [0, 1, "s"], [0, -1, "s"]]) {
           const nx = x + dx, ny = y + dy; if (nx < A.x0 || nx > A.x1 || ny < A.y0 || ny > A.y1) continue;
           joins.push(dir === "e" ? { x: Math.min(x, nx), y, dir } : { x, y: Math.min(y, ny), dir });
@@ -117,10 +130,10 @@ export function buildInteriors(map) {
       // ground, and a diagonal wall across each cut corner.
       const walls = [];
       edges.filter((e) => !e.chamfer).forEach((e, k) => {
-        const door = floor === 0 && door0 && e.x === door0.x && e.y === door0.y && e.dir === door0.dir;
+        const door = (floor === 0 && door0 && e.x === door0.x && e.y === door0.y && e.dir === door0.dir) || (floor === 1 && bridgeDoors.has(`${e.x},${e.y},${e.dir}`));
         walls.push({ x: e.x, y: e.y, dir: e.dir, door, window: !door && floor >= 0 && b.label !== "mausoleum" && k % 3 === 1, outer: true });
       });
-      for (const c of shape.chamfers) walls.push({ diag: chamferSegment(c), door: false, window: floor >= 0 && b.label !== "mausoleum", outer: true });
+      for (const c of fShape.chamfers) walls.push({ diag: chamferSegment(c), door: false, window: floor >= 0 && b.label !== "mausoleum", outer: true });
       for (const wl of inner) walls.push({ ...wl, window: false, outer: false });
       // Squares next to a door (either side) stay clear.
       const nearDoor = new Set();
@@ -147,11 +160,29 @@ export function buildInteriors(map) {
           furniture.push({ kind, ...spot, room: index, ...def });
         }
       }
-      building.floors.push({ floor, name: floor < 0 ? "basement" : floor === 0 ? "ground floor" : floor === 1 ? "upper floor" : `floor ${floor + 1}`, rooms: roomList, walls, furniture });
+      building.floors.push({ floor, name: floor < 0 ? "basement" : floor === 0 ? "ground floor" : floor === 1 ? "upper floor" : `floor ${floor + 1}`, outline, rooms: roomList, walls, furniture });
     }
     out.push(building);
   }
+  // Skybridges: one enclosed room on the first floor, windows along both long sides, doors at the ends
+  // (the buildings' own walls carry those doors).
+  for (const k of map.skybridges ?? []) {
+    const r = { x0: k.x0, y0: k.y0, x1: k.x1, y1: k.y1 }, walls = [];
+    if (k.dir === "ns") for (let y = r.y0; y <= r.y1; y += 1) walls.push({ x: r.x0 - 1, y, dir: "e", door: false, window: true, outer: true }, { x: r.x1, y, dir: "e", door: false, window: true, outer: true });
+    else for (let x = r.x0; x <= r.x1; x += 1) walls.push({ x, y: r.y0 - 1, dir: "s", door: false, window: true, outer: true }, { x, y: r.y1, dir: "s", door: false, window: true, outer: true });
+    out.push({ id: k.id, label: "skybridge", rect: r, rects: [r], chamfers: [], stairs: null, skybridge: k, floors: [{ floor: 1, name: "skybridge", outline: { ...r, rects: [r], chamfers: [] }, rooms: [{ ...r, use: "bridge" }], walls, furniture: [] }] });
+  }
   return out;
+}
+
+/** A building's outline on a floor (squares, with rects and chamfers): upper floors may overhang. */
+export function floorOutline(building, floor) {
+  return building.floors.find((f) => f.floor === floor)?.outline ?? { ...building.rect, rects: building.rects, chamfers: building.chamfers };
+}
+/** Every outline a building has (for masks of all its floors and its roof). */
+export function outlines(building) {
+  const seen = new Map(); for (const f of building.floors) if (f.outline) seen.set(JSON.stringify([f.outline.rects, f.outline.chamfers]), f.outline);
+  return [...seen.values()];
 }
 
 /** The floors present anywhere on the map, lowest first. */
@@ -165,7 +196,7 @@ const FLOOR_FILL = Object.freeze({ "common room": "#9a7448", shop: "#9a7448", ki
 export function floorPlanSvg(building, floor) {
   const f = building.floors.find((x) => x.floor === floor); if (!f) return "";
   // Everything inside is cut to the building's true outline (an L, cut corners).
-  const clipId = `eym-bld-${building.id}-${floor < 0 ? "b" : floor}`, parts = [`<clipPath id="${clipId}">${footprintShapes({ ...building.rect, rects: building.rects, chamfers: building.chamfers })}</clipPath><g clip-path="url(#${clipId})">`];
+  const clipId = `eym-bld-${building.id}-${floor < 0 ? "b" : floor}`, parts = [`<clipPath id="${clipId}">${footprintShapes(floorOutline(building, floor))}</clipPath><g clip-path="url(#${clipId})">`];
   for (const r of f.rooms) {
     // Three-quarter view inside too: each room's north wall shows its face, a band along the top of the room.
     const fill = FLOOR_FILL[r.use] ?? "#9a7448", wallFace = f.floor < 0 ? "#6a6058" : "#cdbb98";
@@ -209,7 +240,7 @@ export function floorSvg(map, interiors, floor, { outdoorSvg = "", fill = null, 
 /** The roofs alone (transparent elsewhere), cut from an outdoor drawing: one overhead layer for a floor. */
 export function roofMaskSvg(map, interiors, floor, gridPx = map.spec.gridPx) {
   const { columns, rows } = map.spec, parts = [`<svg xmlns="http://www.w3.org/2000/svg" width="${columns * gridPx}" height="${rows * gridPx}" viewBox="0 0 ${columns} ${rows}">`];
-  for (const b of interiors) { const top = Math.max(...b.floors.map((f) => f.floor)); if (floor === 0 || top === floor) parts.push(footprintShapes({ ...b.rect, rects: b.rects, chamfers: b.chamfers })); }
+  for (const b of interiors) { const top = Math.max(...b.floors.map((f) => f.floor)); if (floor === 0 || top === floor) for (const o of outlines(b)) parts.push(footprintShapes(o)); }
   parts.push("</svg>");
   return parts.join("");
 }
@@ -230,7 +261,7 @@ export function interiorArtDirection(map, interiors, floor, { architecture = "" 
 /** White where buildings have the given floor (for cutting a painting to their footprints). */
 export function footprintMaskSvg(map, interiors, floor, gridPx = map.spec.gridPx) {
   const { columns, rows } = map.spec, parts = [`<svg xmlns="http://www.w3.org/2000/svg" width="${columns * gridPx}" height="${rows * gridPx}" viewBox="0 0 ${columns} ${rows}">`];
-  for (const b of interiors) if (b.floors.some((f) => f.floor === floor)) parts.push(footprintShapes({ ...b.rect, rects: b.rects, chamfers: b.chamfers }));
+  for (const b of interiors) if (b.floors.some((f) => f.floor === floor)) parts.push(footprintShapes(floorOutline(b, floor)));
   parts.push("</svg>");
   return parts.join("");
 }

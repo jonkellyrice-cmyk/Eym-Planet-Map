@@ -52,7 +52,8 @@ export function parseRequest(body) {
   const spec = battleMapSpec({ size: "custom", columns, rows, density: "custom", gridPx });
   // Only the season: light, shadows, darkness and lamps are Foundry's, live.
   const season = normalizeSeason(body.season ?? body.light?.season, center[0]);
-  // The building style: named, or the one linked to the place. Visual only (the map is the same).
+  // The building style: named, or the one linked to the place. It shapes the buildings too (Dree's
+  // overhanging upper floors, skybridges, lifts), so the module sends the one it built its map with.
   if (body.style != null && body.style !== "" && !BUILDING_STYLES[body.style]) throw new Error("unknown building style");
   const style = body.style || styleForPlace(center[0], center[1]);
   return { center, spec, setting, extras, conditions, tier, season, style };
@@ -63,7 +64,7 @@ export async function renderRequest(asset, request, cacheDir) {
   // A repeat of the same request goes straight to its cached render, without rebuilding the map.
   const { tier } = request, renderer = RENDERERS[tier], requestKey = hashText(`${JSON.stringify(request)}|${renderer.info.version}`), indexPath = join(cacheDir, "requests", `${requestKey}.json`);
   if (existsSync(indexPath)) { const { id } = JSON.parse(readFileSync(indexPath, "utf8")), cached = join(cacheDir, id, "manifest.json"); if (existsSync(cached)) return JSON.parse(readFileSync(cached, "utf8")); }
-  const { style, ...mapRequest } = request, map = buildBattleMap(asset, mapRequest), geometry = geometryHash(map), lightKey = request.season;
+  const { style } = request, map = buildBattleMap(asset, request), geometry = geometryHash(map), lightKey = request.season;
   const id = `${geometry}-t${tier}-${request.spec.gridPx}-${lightKey}-${style}-${renderer.info.version}`.replace(/[^a-z0-9.-]/gi, "_"), dir = join(cacheDir, id), manifestPath = join(dir, "manifest.json");
   const remember = () => { mkdirSync(join(cacheDir, "requests"), { recursive: true }); writeFileSync(indexPath, JSON.stringify({ id })); };
   if (existsSync(manifestPath)) { remember(); return JSON.parse(readFileSync(manifestPath, "utf8")); }

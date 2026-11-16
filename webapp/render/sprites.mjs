@@ -183,6 +183,7 @@ function drawWall(fb, quad, look, { storeys, front, doorPx = null, P, seed, x0, 
  * cut corners as the true outline; roofs tiled and hipped, the south-facing walls shown.
  */
 export function drawBuilding(fb, b, P, polygon, seed) {
+  if (b.floorRects) return drawStoreys(fb, b, P, seed, lookFor(b.label));
   const look = lookFor(b.label), storeys = b.storeys ?? 1;
   const blocks = b.chamfers?.length ? [{ poly: polygon.map(([x, y]) => [x * P, y * P]), y1: b.y1, x0: b.x0, x1: b.x1 }] : [...(b.rects ?? [b])].sort((p, q) => p.y1 - q.y1).map((r) => ({ poly: [[r.x0 * P, r.y0 * P], [(r.x1 + 1) * P, r.y0 * P], [(r.x1 + 1) * P, (r.y1 + 1) * P], [r.x0 * P, (r.y1 + 1) * P]], y1: r.y1, x0: r.x0, x1: r.x1, rect: r }));
   for (const blk of blocks) {
@@ -317,4 +318,70 @@ export function drawStreetLamp(fb, x, y, P, kind = "lantern-post") {
   } else {
     const glass = R("#e8c890", 4, 0.4); fb.rect(px - 2, top - 5, 4, 4, glass[2]); fb.rect(px - 3, top - 6, 6, 1, iron[2]); fb.rect(px - 3, top - 1, 6, 1, iron[1]);
   }
+}
+
+// ---------------------------------------------------------------- overhangs, skybridges, lifts
+
+const sqPoly = (r, P) => [[r.x0 * P, r.y0 * P], [(r.x1 + 1) * P, r.y0 * P], [(r.x1 + 1) * P, (r.y1 + 1) * P], [r.x0 * P, (r.y1 + 1) * P]];
+
+/**
+ * A building whose storeys differ (pixels): `rects[s]` is storey s's outline (null: none, as under a
+ * skybridge). In the three-quarter view the top storey's outline carries the roof; each storey whose
+ * front stands on the outline's south edge shows its wall, stepping out above the one below; under an
+ * overhang the street shows in deep shade, with the joist ends and brackets that hold it up. Storeys set
+ * back behind an overhang are hidden by it, as they would be.
+ */
+function drawStoreysOf(fb, rects, look, P, seed, { truss = false, storeyPx = null, clip = true } = {}) {
+  const storeys = rects.length, T = rects[storeys - 1], d = T.y1 - T.y0 + 1;
+  const fh = storeyPx ? Math.round(storeyPx * storeys) : Math.round(Math.min(0.85 * storeys, Math.max(0.6 * storeys * 0.5, d * 0.45)) * P), band = fh / storeys, south = (T.y1 + 1) * P;
+  // Straight beneath an overhang the ground is in its shade (most of it is then hidden by what is drawn above).
+  const base = rects.find(Boolean) === rects[0] ? rects[0] : null;
+  for (let y = T.y0 * P; y < south; y += 1) for (let x = T.x0 * P; x < (T.x1 + 1) * P; x += 1) { const sx = Math.floor(x / P), sy = Math.floor(y / P); if (!base || sx < base.x0 || sx > base.x1 || sy < base.y0 || sy > base.y1) fb.tone(x, y, -0.3); }
+  const visible = rects.map((r) => r && r.y1 === T.y1);
+  const lowest = visible.findIndex(Boolean);
+  // The shade beneath: the street under the overhang, between the ground and the lowest storey over it.
+  const shadeUnder = (x0, x1, yTop) => { for (let y = Math.round(yTop); y < south; y += 1) for (let x = Math.round(x0); x < Math.round(x1); x += 1) fb.tone(x, y, -0.34 - 0.12 * ((south - y) / Math.max(1, south - yTop))); };
+  for (let s = 0; s < storeys; s += 1) {
+    if (!visible[s] || s === 0) continue;
+    const r = rects[s], below = s === lowest ? null : rects[s - 1], bottom = south - s * band;
+    const spans = below && visible[s - 1] ? [[r.x0 * P, below.x0 * P], [(below.x1 + 1) * P, (r.x1 + 1) * P]] : [[r.x0 * P, (r.x1 + 1) * P]];
+    for (const [a, b] of spans) if (b > a) shadeUnder(a, b, bottom);
+  }
+  // The roof over the top storey's outline.
+  // A building's roof stays inside its squares (cut at its north edge); a bridge rises clear of its shadow.
+  const roof = sqPoly(T, P).map(([x, y]) => [x, y - fh]), roofPoly = clip ? clipBelow(roof, T.y0 * P) : roof;
+  drawRoof(fb, roofPoly, look.roof, seed + T.x0 * 7 + T.y1, look.flat, look.slate);
+  if (look.chimneys && !look.flat) drawChimneys(fb, roofPoly, look, P, seed + T.x0 * 5);
+  // The fronts, each storey on its own (a storey's band), bottom up.
+  for (let s = 0; s < storeys; s += 1) {
+    if (!visible[s]) continue;
+    const r = rects[s], x0 = r.x0 * P, x1 = (r.x1 + 1) * P, yBase = south - s * band;
+    drawWall(fb, [[x1, yBase], [x0, yBase], [x0, yBase - band], [x1, yBase - band]], look, { storeys: 1, front: true, doorPx: null, P, seed: seed + s, x0, x1, yBase, fh: band });
+    // Where this storey overhangs the one below: joist ends along its foot and brackets beneath.
+    const below = s > 0 ? rects[s - 1] : null, overhangs = s > 0 && (!below || !visible[s - 1] || below.x0 > r.x0 || below.x1 < r.x1);
+    if (!overhangs) continue;
+    const wood = R(look.timber ?? "#3c2a20", 4, 0.45), brass = R(look.metal ?? "#b87333", 4, 0.5), foot = Math.round(yBase);
+    for (let x = Math.round(x0) + 1; x < x1 - 1; x += 5) { fb.set(x, foot, wood[1]); fb.set(x + 1, foot, wood[1]); fb.set(x, foot + 1, wood[0]); fb.set(x + 1, foot - 1, wood[2]); }
+    for (let x = Math.round(x0) + 3; x < x1 - 3; x += P) for (let k = 0; k < Math.min(5, Math.round(band * 0.4)); k += 1) { fb.set(x + k, foot + 1 + k, (truss ? brass : wood)[k === 0 ? 3 : 1]); fb.set(x + k + 1, foot + 1 + k, (truss ? brass : wood)[0]); }
+    if (truss) for (let x = Math.round(x0) + 3; x < x1 - 3; x += P) for (let k = 0; k < Math.min(5, Math.round(band * 0.4)); k += 1) fb.set(x + Math.round(P * 0.5) - 2 - k, foot + 1 + k, brass[1]);
+  }
+}
+
+export function drawStoreys(fb, b, P, seed, look) {
+  const rects = Array.from({ length: b.storeys ?? 1 }, (_, s) => (s === 0 ? { x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1 } : b.floorRects[s]));
+  drawStoreysOf(fb, rects, look, P, seed);
+}
+
+/** A skybridge: an enclosed span at the first floor, brass trusses beneath, the street in its shade. */
+export function drawSkybridge(fb, k, P, seed) {
+  drawStoreysOf(fb, [null, { x0: k.x0, y0: k.y0, x1: k.x1, y1: k.y1 }], { ...lookFor("house"), chimneys: false, sash: true }, P, seed, { truss: true, storeyPx: P * 0.42, clip: false });
+}
+
+/** A lift inside (pixels from squares): a brass cage with a crystal-lit floor plate, where the stairs would be. */
+export function drawLift(fb, s, P) {
+  const brass = R("#c9a24a", 4, 0.5), x0 = Math.round(s.x * P) + 2, y0 = Math.round(s.y * P) + 2, w = Math.round(s.w * P) - 4, h = Math.round(s.h * P) - 4;
+  for (let y = y0; y < y0 + h; y += 1) for (let x = x0; x < x0 + w; x += 1) fb.set(x, y, (x + y) % 4 === 0 ? rgb("#8fd0ff") : rgb("#2c2a26"));
+  for (let x = x0; x < x0 + w; x += 1) { fb.set(x, y0, brass[3]); fb.set(x, y0 + h - 1, brass[1]); }
+  for (let y = y0; y < y0 + h; y += 1) { fb.set(x0, y, brass[2]); fb.set(x0 + w - 1, y, brass[1]); }
+  for (let x = x0 + 3; x < x0 + w - 2; x += 3) for (let y = y0 + 1; y < y0 + h - 1; y += 1) if (y % 2) fb.set(x, y, brass[2]);
 }

@@ -105,7 +105,9 @@ export function battleReferenceSvg(map, gridPx = map.spec.gridPx) {
   const standing = [];
   for (const f of map.features) { const def = FEATURES[f.kind]; if (def.shape === "tree") { standing.push({ y: f.y + f.h, x: f.x, svg: (f.kind === "planter-tree" ? `<rect x="${f2(f.x + 0.2)}" y="${f2(f.y + 0.55)}" width="0.6" height="0.35" fill="#8f877a"/>` : "") + obliqueTree({ x: f.x + f.w / 2, y: f.y + f.h - 0.2, size: f.kind === "planter-tree" ? 0.62 : 0.95 }) }); continue; } if (standHeightFt(f.kind, def) > 0) standing.push({ y: f.y + f.h, x: f.x, svg: obliqueFeature(f, def, featureShape(f)) }); else out.push(featureShape(f)); }
   for (const o of map.objects) standing.push({ y: o.y, x: o.x, svg: o.kind === "tree" ? obliqueTree(o) : o.kind === "bush" ? obliqueBush(o) : obliqueBoulder(o) });
-  for (const b of map.buildings) standing.push({ y: b.y1 + 1, x: b.x0, svg: obliqueShapedBuilding(b, columns, rows, b.chamfers?.length ? footprintPolygon(b) : null) });
+  // An overhanging building shows its widest (top) outline: the painter is told its upper floors step out.
+  for (const b of map.buildings) { const top = b.floorRects ? b.floorRects[(b.storeys ?? 2) - 1] : null, shown = top ? { ...b, ...top, rects: [top], chamfers: [] } : b; standing.push({ y: shown.y1 + 1, x: shown.x0, svg: obliqueShapedBuilding(shown, columns, rows, shown.chamfers?.length ? footprintPolygon(shown) : null) }); }
+  for (const k of map.skybridges ?? []) { const r = { x0: k.x0, y0: k.y0, x1: k.x1, y1: k.y1 }; standing.push({ y: k.y1 + 1, x: k.x0, svg: obliqueShapedBuilding({ ...r, rects: [r], chamfers: [], storeys: 2, label: "house", door: null }, columns, rows, null) }); }
   for (const face of obliqueFaces(grid)) standing.push({ y: face.y - 0.01, x: 0, svg: face.svg });
   standing.sort((a, b) => a.y - b.y || a.x - b.x);
   for (const item of standing) out.push(item.svg);
@@ -199,6 +201,8 @@ export function battleArtDirection(map, { timeWords = "", weatherWords = "", arc
     ...(heightWords(map) ? [heightWords(map)] : []),
     ...(chosen.length ? [`The map must clearly show these features, where the reference has them: ${chosen.join("; ")}.`] : []),
     ...(architecture ? [architecture] : []),
+    ...(map.buildings.some((b) => b.floorRects) ? ["Where a roof in the reference is wider than the walls beneath it, the building's upper floors overhang the street (jettied): each storey steps out over the one below on heavy beams, braces and brass brackets, top-heavy, with the street in deep shade beneath."] : []),
+    ...((map.skybridges ?? []).length ? ["The narrow roofed spans between upper floors are enclosed skybridges at first-floor height, on brass trusses, with the street visible and shaded beneath them."] : []),
     `Draw no grid lines, text, labels, numbers, tokens, people, creatures, compass or border. Fill the whole image to the edges, at ${widthPx}×${heightPx} pixels.`,
   ].join("\n\n");
 }

@@ -31,7 +31,7 @@ test("a dossier can name a style; its own choice wins over the place's", () => {
   assert.match(styleArchitecturePrompt("dree"), /brick.*slate.*sash/s); assert.equal(styleArchitecturePrompt("default"), "");
 });
 
-test("a style is visual only: the map and its fingerprint do not change; lamps line the streets as Foundry lights", () => {
+test("the same request builds the same map; lamps line the streets as Foundry lights", () => {
   assert.equal(geometryHash(buildBattleMap(asset, { center: [dree.lat, dree.lon], spec, setting: "urban" })), geometryHash(map));
   const lamps = styleStreetLamps(map, "dree");
   assert.ok(lamps.length > 0); assert.deepEqual(styleStreetLamps(map, "default"), []);

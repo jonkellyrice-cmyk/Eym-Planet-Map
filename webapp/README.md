@@ -117,11 +117,19 @@ choice from each shared kit:
 | chimneys | none, brick |
 | lamps | none, lantern-post, arc-lamp |
 
-A style may also map the plain street grounds to its own paving. Most peoples are a new combination of
-these kits; only the truly distinctive places will need pieces of their own. A request takes `style` (a
-style id). Without one, the server uses the style linked to the place, else the generic one. In the
-module, a dossier's "Pixel-art building style" wins over the place's. A style never changes the map, so
-the geometry fingerprint is the same whatever style is drawn.
+A style may also map the plain street grounds to its own paving, and it can shape the buildings:
+
+- the mix of storeys;
+- how often houses are plain rectangles;
+- overhanging upper floors (jetties);
+- skybridges;
+- lifts.
+
+Because it shapes buildings, a style is an input to the map: the module sends the style it built with,
+and the server builds the same map. Most peoples are a new combination of these kits; only the truly
+distinctive places will need pieces of their own. A request takes `style` (a style id). Without one,
+the server uses the style linked to the place, else the generic one. In the module, a dossier's
+"Pixel-art building style" wins over the place's.
 
 **Dree** (south Caren), magic-punk Victorian:
 
@@ -132,7 +140,13 @@ the geometry fingerprint is the same whatever style is drawn.
 - chimney stacks with copper pots, and copper downpipes going green;
 - granite setts on the streets;
 - iron arc-lamp posts along the streets, each a Foundry light (cold crystal light, coming on as the
-  scene darkens).
+  scene darkens);
+- top-heavy houses, mostly two and three storeys. Their upper floors step out over the street, a square
+  per storey, on joists, brackets and braces. The street beneath stays walkable, with a ceiling;
+- enclosed skybridges between first floors, on brass trusses;
+- brass-and-crystal lifts in the three-storey houses.
+
+Building into rock faces is also a Dree motif, kept for when a map has cliffs.
 
 ## Tier 2 rendering (`render/`)
 

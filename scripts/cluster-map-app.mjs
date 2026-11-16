@@ -713,9 +713,10 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     await new Promise((resolve) => setTimeout(resolve, 30));
     const env = useClock ? await this.#battleConditions(lat, lon) : { conditions: {}, season: null, words: { time: "", weather: "", light: "" } };
     const extras = [...root.querySelectorAll('[name="battleExtra"]:checked')].map((box) => box.value), settingChoice = root.querySelector('[name="battleSetting"]')?.value ?? "auto";
-    const map = buildBattleMap(this._eymGeography, { center: [lat, lon], spec, conditions: env.conditions, setting: settingChoice, extras });
-    // Exactly what built this map, so the map server can build the same one.
+    // The people's way of building: the dossier's style, else the place's. It shapes the buildings too.
     const dossier = await this.#dossierForBattle(root, lat, lon), style = styleForDossier(dossier, styleForPlace(lat, lon));
+    const map = buildBattleMap(this._eymGeography, { center: [lat, lon], spec, conditions: env.conditions, setting: settingChoice, extras, style });
+    // Exactly what built this map, so the map server can build the same one.
     const serverRequest = { center: [lat, lon], columns: spec.columns, rows: spec.rows, gridPx: spec.gridPx, setting: settingChoice, extras, conditions: env.conditions, season: env.season, style };
     const architecture = architecturePrompt(dossier) || styleArchitecturePrompt(style);
     const nearest = this._eymGeography.settlements.filter((s) => s.properName).reduce((best, s) => { const d = Math.hypot(s.lat - lat, (s.lon - lon) * Math.cos(lat * Math.PI / 180)); return d < best.d ? { s, d } : best; }, { s: null, d: Infinity });

@@ -22,6 +22,8 @@ import { fromLocal, toLocal } from "./eym-surface.mjs";
 import { FEATURES, MOVE, MOVE_COST, SETTINGS } from "./eym-battle-settings.mjs";
 import { placeExtras } from "./eym-battle-features.mjs";
 import { buildingShape, placeShapedBuilding, shapeSquares } from "./eym-battle-buildings.mjs";
+import { addJettiesAndBridges } from "./eym-battle-jetties.mjs";
+import { buildingStyle } from "./eym-building-styles.mjs";
 import { SCULPTS, applyInclines, cliffEdges, computeTops, inclineDegrees, levelStep, viewShare } from "./eym-battle-terrain.mjs";
 
 export const BATTLE_RULES_VERSION = "eym-battle-v1";
@@ -119,7 +121,13 @@ function lots(rect, key, minSide = 3, maxSide = 6) {
 }
 
 /** Lay out streets, buildings, yards and a square on the built-up squares (world-pinned). */
-function layOutTown(grid, built, origin, setting, townKey, features) {
+/** Storeys of a town house: the style's mix (Dree: mostly two and three), else two in a city 40% of the time. */
+function storeysFor(style, urban, u) {
+  if (!style.storeys) return urban && u < 0.4 ? 2 : 1;
+  const [p1, p2] = style.storeys, n = u < p1 ? 1 : u < p1 + p2 ? 2 : 3; return urban ? n : Math.min(2, n);
+}
+
+function layOutTown(grid, built, origin, setting, townKey, features, style = buildingStyle("default")) {
   const urban = setting === "urban", { columns, rows } = grid, buildings = [];
   const px = urban ? 11 : 15, py = urban ? 10 : 14;
   const at = (col, row) => [origin[0] + col, origin[1] + row];
@@ -154,9 +162,10 @@ function layOutTown(grid, built, origin, setting, townKey, features) {
       // The building's shape (a rectangle, an L or cut corners), on squares that are all built-up land.
       const mapRect = { x0: rect.x0 - origin[0], y0: rect.y0 - origin[1], x1: rect.x1 - origin[0], y1: rect.y1 - origin[1] };
       const usable = (shape) => { let n = 0; for (const k of shapeSquares(shape)) { const [x, y] = k.split(",").map(Number); if (x < 0 || y < 0 || x >= columns || y >= rows) continue; const i = y * columns + x; if (!built[i] || grid.street[i]) return 0; n += 1; } return n; };
-      let shape = buildingShape(mapRect, { door, label: "house", key: lotKey });
+      // A style may prefer plain rectangles (so upper floors can overhang).
+      let shape = style.rectangular && hashUnit(`${lotKey}|rect`) < style.rectangular ? { rects: [mapRect], chamfers: [] } : buildingShape(mapRect, { door, label: "house", key: lotKey });
       if (usable(shape) < 2) { shape = { rects: [mapRect], chamfers: [] }; if (usable(shape) < 2) continue; }
-      placeShapedBuilding(grid, buildings, { rect: mapRect, door, storeys: urban && hashUnit(`${lotKey}|h`) < 0.4 ? 2 : 1, label: "house", shape, extra: { gx0: rect.x0, gy0: rect.y0, gx1: rect.x1, gy1: rect.y1 } });
+      placeShapedBuilding(grid, buildings, { rect: mapRect, door, storeys: storeysFor(style, urban, hashUnit(`${lotKey}|h`)), label: "house", shape, extra: { gx0: rect.x0, gy0: rect.y0, gx1: rect.x1, gy1: rect.y1 } });
     }
   }
   // Greenery: trees in planters along streets, beside the houses (pinned to the world grid).
@@ -272,7 +281,8 @@ function weighted(weights, u) {
  * @param conditions optional { snowDepthCm, ground, tempC, precipKind, sunAltitudeDeg, cloud, windMs, season }
  * @param setting "auto" or a SETTINGS id (e.g. "volcanic" where the world has no volcano of its own)
  */
-export function buildBattleMap(asset, { center, spec, conditions = {}, setting = "auto", extras = [] }) {
+export function buildBattleMap(asset, { center, spec, conditions = {}, setting = "auto", extras = [], style: styleId = "default" }) {
+  const style = buildingStyle(styleId);
   const snap = snapToWorldGrid(center, spec), site = buildBattleSite(asset, { center: snap.center, spec });
   const { columns, rows } = spec, n = columns * rows, cell = environmentField(asset).cellAt(...snap.center);
   const sorted = [...site.heights].sort((a, b) => a - b), median = sorted[Math.floor(n / 2)], reliefFt = (sorted[n - 1] - sorted[0]) / 0.3048;
@@ -299,7 +309,7 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
   // A city or village chosen by hand is built wherever there is dry land, even if the world has fields there.
   const forceTown = setting !== "auto" && (chosen === "urban" || chosen === "village") && (site.summary.built ?? 0) < 30;
   const built = Uint8Array.from(site.squares, (v) => (v === COVER.built || (forceTown && !WATER.has(v) && v !== COVER.road) ? 1 : 0));
-  const buildings = rules.sculpt ? sculptBuildings : built.some(Boolean) ? layOutTown(grid, built, snap.origin, chosen === "urban" ? "urban" : "village", `${BATTLE_RULES_VERSION}|town|${snap.anchor.join(",")}`, fixedFeatures) : [];
+  const buildings = rules.sculpt ? sculptBuildings : built.some(Boolean) ? layOutTown(grid, built, snap.origin, chosen === "urban" ? "urban" : "village", `${BATTLE_RULES_VERSION}|town|${snap.anchor.join(",")}`, fixedFeatures, style) : [];
   if (!rules.sculpt) for (let i = 0; i < n; i += 1) if (site.squares[i] === COVER.road) grid.street[i] = 1;
   // The world's objects: trunks of big trees and big boulders block; small trees, bushes and stones slow and shelter.
   const objects = [];
@@ -419,6 +429,8 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
   };
   // Height and sight: what stands on each square, the cliffs, and how far one can see from where.
   const mapFeatures = placed.map(({ remove, ...p }) => ({ ...p, ...FEATURES[p.kind], kind: p.kind, squares: p.squares, extra: Boolean(p.extra) }));
+  // The style's upper floors: overhangs over the street, skybridges between upper floors.
+  const skybridges = addJettiesAndBridges(grid, buildings, { style, key: `${key}|${style.id}`, objects, features: mapFeatures });
   computeTops(grid, { buildings, objects, features: mapFeatures });
   const cliffs = cliffEdges(grid), walkSq = (i) => Number.isFinite(MOVE_COST[grid.move[i]]) && !grid.void[i];
   let highest = -1; for (let i = 0; i < n; i += 1) if (walkSq(i) && grid.building[i] < 0 && (highest < 0 || grid.elevationFt[i] > grid.elevationFt[highest])) highest = i;
@@ -435,7 +447,7 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
   notes.push(...extraResult.notes);
   return {
     version: BATTLE_RULES_VERSION, key, center: snap.center, anchor: snap.anchor, origin: snap.origin, spec, setting: chosen, biome: cell.biome, conditions,
-    site, grid, buildings, objects, features: mapFeatures, cliffs, flattened: Boolean(sculpt.flatten), underground: Boolean(sculpt.underground), ceilingFt: sculpt.ceilingFt ?? null, dimLight: Boolean(sculpt.dim), traps: extraResult.traps, extras: extraResult.placed, zones, axis,
+    style: style.id, skybridges, site, grid, buildings, objects, features: mapFeatures, cliffs, flattened: Boolean(sculpt.flatten), underground: Boolean(sculpt.underground), ceilingFt: sculpt.ceilingFt ?? null, dimLight: Boolean(sculpt.dim), traps: extraResult.traps, extras: extraResult.placed, zones, axis,
     routes: finalRoutes.map((r) => r.squares), chokepoints, analysis, notes,
   };
 }
@@ -463,7 +475,7 @@ export { COVER_NAMES };
  */
 export function geometryHash(map) {
   const g = map.grid, parts = [map.version, map.key, map.spec.columns, map.spec.rows, g.ground.join("|"), g.move.join("|"), [...g.levelFt].join(","),
-    map.features.map((f) => `${f.kind}@${f.x},${f.y},${f.w},${f.h}`).join(";"), map.buildings.map((b) => `${JSON.stringify(b.rects ?? [b])}${JSON.stringify(b.chamfers ?? [])}${b.door}`).join(";"), (map.traps ?? []).map((t) => `${t.kind}@${t.x},${t.y}`).join(";")];
+    map.features.map((f) => `${f.kind}@${f.x},${f.y},${f.w},${f.h}`).join(";"), map.buildings.map((b) => `${JSON.stringify(b.rects ?? [b])}${JSON.stringify(b.chamfers ?? [])}${b.door}^${b.storeys ?? 1}${b.floorRects ? JSON.stringify(b.floorRects) : ""}`).join(";"), (map.traps ?? []).map((t) => `${t.kind}@${t.x},${t.y}`).join(";"), (map.skybridges ?? []).map((k) => `${k.x0},${k.y0},${k.x1},${k.y1},${k.a},${k.b}`).join(";")];
   let a = 2166136261, b = 5381; const text = parts.join("#");
   for (let i = 0; i < text.length; i += 1) { const c = text.charCodeAt(i); a = Math.imul(a ^ c, 16777619); b = (Math.imul(b, 33) + c) | 0; }
   return (a >>> 0).toString(16).padStart(8, "0") + (b >>> 0).toString(16).padStart(8, "0");

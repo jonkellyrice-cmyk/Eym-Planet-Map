@@ -163,10 +163,13 @@ export function battleScenePlan(map, interiors, { name, images, gridPx = map.spe
   region("Deep water (swim)", "#2f80ed", (i) => g.move[i] === MOVE.swim && !g.void[i], null);
   region("Open air: a fall", "#000000", (i) => g.void[i] === 1, null);
   for (const v of [...new Set(g.levelFt)].filter((v) => v !== 0 && v > -60).sort((a, b) => a - b)) region(`Ground at ${v > 0 ? "+" : ""}${v} ft`, v > 0 ? "#9b51e0" : "#56ccf2", (i) => g.levelFt[i] === v && !g.void[i] && g.move[i] !== MOVE.swim, null);
+  // Under an overhanging upper floor or a skybridge: a ceiling (10 ft, or 20 under a second step), for the GM.
+  for (const v of [...new Set(g.overUnder ?? [])].filter((v) => v > 0).sort((a, b) => a - b)) region(`Overhead: upper floor or skybridge (ceiling ${v - (g.levelFt[(g.overUnder ?? []).indexOf(v)] ?? 0)} ft)`, "#8a6a4a", (i) => g.overUnder[i] === v, null, { flags: { "eym-planet-map": { overhead: v } } });
   for (const t of map.traps ?? []) regions.push({ levelKeys: ["floor0"], name: `Hidden trap: ${FEATURES[t.kind].label}`, color: "#d0342c", shapes: [rect(t)], behaviors: [], visibility: 0, flags: { "eym-planet-map": { trap: t.hazard } } });
   for (const b of interiors) if (b.stairs) {
     const keys = b.floors.map((f) => byFloor.get(f.floor)?.key).filter(Boolean); if (keys.length < 2) continue;
-    regions.push({ levelKeys: keys, name: `Stairs (${b.floors.map((f) => f.name).join(" – ")})`, color: "#27ae60", shapes: [rect(b.stairs)], elevation: { bottom: null, top: null }, behaviors: [{ type: "changeLevel", name: "Stairs", system: { movementActions: MOVEMENT_ACTIONS } }], visibility: 0 });
+    const what = b.stairs.kind === "lift" ? "Lift" : "Stairs";
+    regions.push({ levelKeys: keys, name: `${what} (${b.floors.map((f) => f.name).join(" – ")})`, color: what === "Lift" ? "#c9a24a" : "#27ae60", shapes: [rect(b.stairs)], elevation: { bottom: null, top: null }, behaviors: [{ type: "changeLevel", name: what, system: { movementActions: MOVEMENT_ACTIONS } }], visibility: 0 });
   }
   const lights = battleLights(map, interiors, { gridPx, style }).filter((l) => l.levelKeys.every((k) => byFloor.has(Number(k.slice(5)))));
   // Objects in the way of those lights: light-blocking walls where an object stands taller than a light near it.
