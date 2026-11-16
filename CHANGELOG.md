@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.2 (2026-11-16)
+
+- System view: clicking a planet or moon now recenters the camera on it and makes it the pivot for turning and zooming (a short glide). Deselecting, clearing the selection or resetting the view returns to Mictir.
+
 ## 0.13.1 (2026-11-16)
 
 - Eym's globe: click anywhere to choose a place. A click on or near a settlement selects it (Dree, for instance); a click on open ground or sea selects that latitude and longitude, shown in the selection card with the nearest settlement and its distance. Either way it becomes the place for the sky view, Here and now, atlas and battle maps, to four decimals (it was one, about 11 km). Fixed: clicks never reached the markers, because the globe captures the pointer to drag it; the globe now picks for them, and a drag never selects.
