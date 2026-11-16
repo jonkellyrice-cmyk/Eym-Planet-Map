@@ -141,3 +141,10 @@
 /* The latitude and longitude under the cursor on Eym's globe. */
 .oscm-cursor-readout rect { fill: rgba(10, 14, 22, 0.86); stroke: rgba(242, 239, 230, 0.35); stroke-width: 1; }
 .oscm-cursor-readout text { fill: #f2efe6; font: 600 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+/* Eym's globe as pixel art: it stands in for the surveyed map's ground, water, cloud and night until the view is close. */
+.oscm-globe-pixels { image-rendering: crisp-edges; image-rendering: pixelated; pointer-events: none; display: none; }
+.oscm-body-view.is-pixel-globe .oscm-globe-pixels { display: inline; }
+.oscm-body-view.is-pixel-globe .oscm-body-layer.is-terrain, .oscm-body-view.is-pixel-globe .oscm-body-layer.is-hydrology,
+.oscm-body-view.is-pixel-globe .oscm-weather-field, .oscm-body-view.is-pixel-globe .oscm-terminator, .oscm-body-view.is-pixel-globe .oscm-body-night,
+.oscm-body-view.is-pixel-globe .oscm-weather-cyclone circle, .oscm-body-view.is-pixel-globe .oscm-weather-cyclone path { display: none; }

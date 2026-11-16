@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.0 (2026-11-16)
+
+- Eym's globe is drawn as pixel art (Tier 2), by rule from the same coastlines, biomes, mountains, rivers and lakes as the surveyed map: the sea in bands by depth, land by biome with a dark coast, the season's snow and sea ice, and day and night with a dithered twilight. Zoom in past 6× and the surveyed (vector) map takes over.
+- The polar ice has a ragged, lobed edge that breaks into floes, in place of a perfect circle about each pole; the two poles differ.
+- The weather is drawn the same way from the weather simulation: cloud in clumps with lit and shaded edges, rain, snow and lightning under the heavy cloud, cloud shadows on the ground, clear skies under a high, a comma of cloud about a low, and tropical cyclones as spiral bands about an eye. The same world, moment and view always give the same pixels.
+
 ## 0.14.2 (2026-11-16)
 
 - The ownership badge that floated above a body (over Eym's globe, and over a star in the system view) is gone everywhere.
