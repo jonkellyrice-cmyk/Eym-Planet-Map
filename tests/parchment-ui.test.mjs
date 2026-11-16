@@ -28,5 +28,6 @@ test("on a narrow screen the window scrolls, and the map is short enough to reac
 
 test("the pixel globe covers all of the view that shows, not only the 900×680 frame", () => {
   const view = read("scripts/body-view-core.mjs");
-  assert.match(view, /getBoundingClientRect\?\.\(\)/); assert.match(view, /\["x", 450 - W \* 1\.25\], \["y", 340 - H \* 1\.25\]/);
+  // The drawing is sized from the view's own box, and the canvas is laid over exactly that box.
+  assert.match(view, /getBoundingClientRect\?\.\(\)/); assert.match(view, /Math\.ceil\(box\.width \/ fit \/ unit\)/); assert.match(view, /left: `\$\{this\.svg\.offsetLeft \+ \(box\.width - shown\[0\]\) \/ 2\}px`/);
 });

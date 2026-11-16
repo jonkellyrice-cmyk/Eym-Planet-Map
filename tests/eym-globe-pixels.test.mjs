@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { CLOUD_AT, GLOBE_PALETTE, PIXEL_GLOBE_MAX_ZOOM, THICK_AT, buildSurfaceRaster, cloudDensity, coverAt, coverMask, fillRings, renderGlobe, weatherGrid } from "../scripts/eym-globe-pixels.mjs";
+import { CLOUD_AT, CLOUD_VEIL_ZOOM, GLOBE_PALETTE, PIXEL_GLOBE_MAX_ZOOM, THICK_AT, buildSurfacePatch, buildSurfaceRaster, cloudDensity, coverAt, coverMask, fillRings, patchServes, patchWindow, renderGlobe, weatherGrid } from "../scripts/eym-globe-pixels.mjs";
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json")), raster = buildSurfaceRaster(asset);
@@ -76,10 +76,50 @@ test("weather by rule: a hurricane is a spiral about a clear eye, a high is clea
   assert.ok(white / drawn > 0.9); assert.notDeepEqual(frame({ weather: stormy }), frame());
 });
 
-test("the globe view paints the pixel globe until the view is close, then hands over to the surveyed map", () => {
+test("a close view takes its land from a patch made at the view's own sharpness, kept while the view stays inside it", () => {
+  const far = patchWindow({ lat: DREE[0], lon: DREE[1], radius: 100, width: 360, height: 272 }); assert.equal(far, null, "the whole globe: the raster serves");
+  assert.equal(patchWindow({ lat: 80, lon: 0, radius: 2000, width: 360, height: 272 }), null, "too near a pole");
+  const win = patchWindow({ lat: DREE[0], lon: DREE[1], radius: 2000, width: 360, height: 272 });
+  assert.ok(Math.abs(win.cell - win.need) < 1e-9 && win.cell < 0.03, "a square to each art pixel, far finer than the raster's quarter degree");
+  assert.ok(win.W <= 1300 && win.H <= 1300 && win.W > 360 && win.H > 272, "room to turn before it must be made again");
+  const patch = buildSurfacePatch(raster, win), at = (lat, lon) => patch.land[Math.floor((patch.lat0 - lat) / patch.cell) * patch.W + Math.floor((lon - patch.lon0) / patch.cell)];
+  assert.equal(at(...DREE), 1, "Dree is on land in the patch too");
+  let land = 0, sea = 0; for (const v of patch.land) { if (v) land += 1; else sea += 1; } assert.ok(land > 0 && sea > 0, "a coast runs through it");
+  assert.equal(patchServes(patch, win), true);
+  assert.equal(patchServes(patch, patchWindow({ lat: DREE[0] + 1, lon: DREE[1] + 1, radius: 2000, width: 360, height: 272 })), true, "turned a little: still inside");
+  assert.equal(patchServes(patch, patchWindow({ lat: DREE[0] + 12, lon: DREE[1], radius: 2000, width: 360, height: 272 })), false, "turned away: outside");
+  assert.equal(patchServes(patch, patchWindow({ lat: DREE[0], lon: DREE[1], radius: 3000, width: 360, height: 272 })), false, "zoomed in: too coarse at rest");
+  assert.equal(patchServes(patch, patchWindow({ lat: DREE[0], lon: DREE[1], radius: 3000, width: 360, height: 272 }), 2.4), true, "but good enough while moving");
+  assert.equal(patchServes(null, win), false);
+  // The same frame with and without the patch: both show land at Dree; the patch draws a finer coast.
+  const view = { raster, width: 180, height: 136, cx: 90, cy: 68, radius: 2000, yaw: -DREE[1] * DEG, pitch: DREE[0] * DEG }, fine = renderGlobe({ ...view, patch }), coarse = renderGlobe(view);
+  assert.deepEqual(fine, renderGlobe({ ...view, patch }), "the same every time"); assert.notDeepEqual(fine, coarse);
+  assert.ok(fine.every((v, i) => i % 4 !== 3 || v === 255), "the view is filled");
+});
+
+test("a ring fills a window on the globe as it does the whole of it", () => {
+  const ring = [[10, 10], [10, 20], [20, 20], [20, 10], [10, 10]], win = { lat0: 25, lon0: 5, cell: 0.5 }, W = 40, H = 40;
+  const m = fillRings(new Uint8Array(W * H), W, H, [ring], 1, win), at = (lat, lon) => m[Math.floor((win.lat0 - lat) / win.cell) * W + Math.floor((lon - win.lon0) / win.cell)];
+  assert.equal(at(15, 15), 1); assert.equal(at(22, 15), 0); assert.equal(at(15, 8), 0); assert.equal(at(15, 22), 0);
+  // A ring given the long way round the globe (longitudes 370–380) is the same ring.
+  const far = fillRings(new Uint8Array(W * H), W, H, [ring.map(([la, lo]) => [la, lo + 360])], 1, win); assert.deepEqual(far, m);
+  assert.equal(fillRings(new Uint8Array(W * H), W, H, [[[10, 100], [10, 110], [20, 110], [20, 100], [10, 100]]], 1, win).some(Boolean), false, "a ring outside the window leaves it empty");
+});
+
+test("close in, the cloud is a veil the ground can be read through", () => {
+  const cells = []; for (let lat = -87; lat < 90; lat += 6) for (let lon = -177; lon < 180; lon += 6) cells.push({ lat, lon, cloud: 1.4, precipMmH: 0, precipKind: null, thunder: false });
+  const overcast = weatherGrid({ cells, centres: [], cyclones: [] }), body = GLOBE_PALETTE.cloud.body.join();
+  const share = (d) => { let k = 0, n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3]) { n += 1; if ([d[i], d[i + 1], d[i + 2]].join() === body) k += 1; } return k / n; };
+  const veiled = frame({ weather: overcast, veil: true }); assert.ok(share(veiled) > 0.15 && share(veiled) < 0.35, "a quarter of the pixels under heavy cloud");
+  assert.equal(CLOUD_VEIL_ZOOM, 6); assert.equal(coverMask(null).reach, 90); assert.ok(coverMask([Array.from({ length: 73 }, (_, k) => [70, -180 + k * 5])]).reach < 71);
+});
+
+test("the globe view paints the pixel globe at every zoom, on a canvas under the map, and cheaply while it moves", () => {
   const view = read("scripts/body-view-core.mjs"), css = read("styles/body-map.css");
-  assert.equal(PIXEL_GLOBE_MAX_ZOOM, 6);
-  for (const token of ["renderGlobe(", "buildSurfaceRaster(this.geography)", "weatherGrid(globe)", "coverMask(environment.snow)", "this.state.zoom <= PIXEL_GLOBE_MAX_ZOOM", "oscm-globe-pixels"]) assert.ok(view.includes(token), token);
-  assert.match(css, /\.oscm-globe-pixels \{[^}]*image-rendering: pixelated/);
+  assert.equal(PIXEL_GLOBE_MAX_ZOOM, 30, "the same as the closest the globe can be brought");
+  assert.match(view, /this\.maxZoom = 30;/);
+  for (const token of ["renderGlobe(", "buildSurfaceRaster(this.geography)", "weatherGrid(globe)", "coverMask(environment.snow)", "oscm-globe-canvas", "buildSurfacePatch(p.raster, win)", "patchServes(p.patch, win, moving ? 2.4 : 1.25)", "const unit = moving ? 5 : 2.5", "putImageData(", "veil: zoom > CLOUD_VEIL_ZOOM", "item.pixelHidden ??=", "this.pixel.canvas.remove()"]) assert.ok(view.includes(token), token);
+  assert.ok(!view.includes("toDataURL"), "no image is encoded for each frame");
+  assert.match(css, /\.oscm-globe-canvas \{[^}]*image-rendering: pixelated/);
   assert.match(css, /\.is-pixel-globe \.oscm-body-layer\.is-terrain/); assert.match(css, /\.is-pixel-globe \.oscm-weather-field/);
 });

@@ -2,7 +2,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 import { buildBodyLayers } from "./body-layers.mjs";
 import { orthographicGeoPoint, projectGeoPath, selectCartographyLabels } from "./body-cartography.mjs";
 import { nightOutlinePath, TWILIGHT_STEPS } from "./eym-seasons.mjs";
-import { PIXEL_GLOBE_MAX_ZOOM, buildSurfaceRaster, coverMask, renderGlobe, weatherGrid } from "./eym-globe-pixels.mjs";
+import { CLOUD_VEIL_ZOOM, PIXEL_GLOBE_MAX_ZOOM, buildSurfacePatch, buildSurfaceRaster, coverMask, patchServes, patchWindow, renderGlobe, weatherGrid } from "./eym-globe-pixels.mjs";
 import { renderSuperstructureAtlas } from "./superstructure-atlas-visuals.mjs";
 import { factionFamilyFor, superstructureProfile, SUPERSTRUCTURE_MODEL_VERSION } from "./superstructure-identities.mjs";
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -93,7 +93,10 @@ export class BodyView {
     this.build(); this.attachEvents(); this.render();
   }
 
-  destroy() { for (const [event, handler] of Object.entries(this.listeners)) this.svg.removeEventListener(event, handler); this.svg.replaceChildren(); }
+  destroy() {
+    for (const [event, handler] of Object.entries(this.listeners)) this.svg.removeEventListener(event, handler); this.svg.replaceChildren();
+    if (this.pixel) { clearTimeout(this.pixel.sharpTimer); this.pixel.canvas.remove(); this.pixel = null; this.svg.classList.remove("is-pixel-globe"); }
+  }
   resetView() { Object.assign(this.state, { yaw: -.35, pitch: .18, zoom: 1 }); this.render(); }
   clearSelection() { this.onFeatureSelected(null); }
   setLayerVisibility(layer, visible) { this.layerGroups?.get(layer)?.classList.toggle("is-hidden", !visible); if (this.pixel) this.#queuePixels(); }
@@ -186,8 +189,11 @@ export class BodyView {
       this.weatherGroups.wind.classList.add("is-hidden");
       // The globe as pixel art (scripts/eym-globe-pixels.mjs): it stands in for the ground, water, cloud and night
       // until the view is close enough for the surveyed map to take over.
-      this.pixel = { image: svg("image", { class: "oscm-globe-pixels", x: 0, y: 0, width: 900, height: 680, preserveAspectRatio: "none" }), rivers: asset.hydrology.rivers.map((river) => river.points) };
-      this.layerGroups.get("hydrology").after(this.pixel.image);
+      // It is painted on a canvas laid under the (see-through) map, which costs far less than an image in it.
+      if (this.svg.parentNode) {
+        this.pixel = { canvas: Object.assign(document.createElement("canvas"), { className: "oscm-globe-canvas" }), rivers: asset.hydrology.rivers.map((river) => river.points) };
+        this.svg.parentNode.insertBefore(this.pixel.canvas, this.svg);
+      }
       // Night and the three twilights, darkest last, over everything on the surface.
       this.nightLayer = svg("g", { class: "oscm-terminator is-hidden" }); this.surface.append(this.nightLayer);
       this.nightBands = TWILIGHT_STEPS.map((step) => { const node = svg("path", { class: `oscm-night-band below-${-step}` }); this.nightLayer.append(node); return { node, belowDeg: -step }; });
@@ -445,29 +451,46 @@ export class BodyView {
     this.pixelFrame = null; const p = this.pixel; if (!p || this.state.zoom > PIXEL_GLOBE_MAX_ZOOM) return;
     const { yaw, pitch, zoom } = this.state, s = this.environment?.subsolar, clouds = !this.weatherGroups?.clouds?.classList.contains("is-hidden");
     // The drawing covers all of the view that shows, which on a tall or wide window is more than the 900×680 frame.
-    const box = this.svg.getBoundingClientRect?.(), fit = box?.width && box?.height ? Math.min(box.width / 900, box.height / 680) : 0;
-    const W = fit ? Math.min(520, Math.ceil(box.width / fit / 2.5)) : 360, H = fit ? Math.min(640, Math.ceil(box.height / fit / 2.5)) : 272;
-    const key = [yaw.toFixed(4), pitch.toFixed(4), zoom.toFixed(3), s ? `${s.latDeg.toFixed(1)},${s.lonDeg.toFixed(1)}` : "", clouds, p.stamp ?? 0, W, H].join("|");
+    const box = this.svg.getBoundingClientRect?.(), fit = box?.width && box?.height ? Math.min(box.width / 900, box.height / 680) : 0; if (!fit) return;
+    // While the globe is being turned or zoomed it is drawn at half the sharpness (a quarter of the work),
+    // and drawn sharp once it has rested a moment.
+    const view = [yaw.toFixed(4), pitch.toFixed(4), zoom.toFixed(3)].join("|"), moving = p.view != null && view !== p.view; p.view = view;
+    clearTimeout(p.sharpTimer); if (moving) p.sharpTimer = setTimeout(() => this.#queuePixels(), 170);
+    const unit = moving ? 5 : 2.5, W = Math.min(520, Math.ceil(box.width / fit / unit)), H = Math.min(640, Math.ceil(box.height / fit / unit));
+    const key = [view, s ? `${s.latDeg.toFixed(1)},${s.lonDeg.toFixed(1)}` : "", clouds, p.stamp ?? 0, W, H, unit].join("|");
     if (key === p.key) return; p.key = key;
     p.raster ??= buildSurfaceRaster(this.geography);
+    // Close in, the land is taken from a patch made at the view's own sharpness. A patch is kept and used again
+    // while the view stays inside it; in motion a rather coarser one will do, so it is seldom made mid-turn.
+    const win = patchWindow({ lat: pitch * 180 / Math.PI, lon: -yaw * 180 / Math.PI, radius: 100 * zoom, width: Math.ceil(box.width / fit / 2.5), height: Math.ceil(box.height / fit / 2.5) });
+    if (!win) p.patch = null; else if (!patchServes(p.patch, win, moving ? 2.4 : 1.25)) p.patch = buildSurfacePatch(p.raster, win);
     const sun = s ? orthographicGeoPoint(s.latDeg, s.lonDeg, yaw, pitch, 1) : null;
-    const data = renderGlobe({ raster: p.raster, width: W, height: H, cx: W / 2, cy: H / 2, radius: 100 * zoom, yaw, pitch, sun, snow: p.snow, ice: p.ice, weather: clouds ? p.weather : null, rivers: p.rivers });
-    p.canvas ??= document.createElement("canvas"); if (p.canvas.width !== W || p.canvas.height !== H) { p.canvas.width = W; p.canvas.height = H; }
-    for (const [name, value] of [["x", 450 - W * 1.25], ["y", 340 - H * 1.25], ["width", W * 2.5], ["height", H * 2.5]]) p.image.setAttribute(name, value);
-    p.canvas.getContext("2d").putImageData(new ImageData(data, W, H), 0, 0); p.image.setAttribute("href", p.canvas.toDataURL("image/png"));
+    const data = renderGlobe({ raster: p.raster, width: W, height: H, cx: W / 2, cy: H / 2, radius: 250 * zoom / unit, yaw, pitch, sun, snow: p.snow, ice: p.ice, weather: clouds ? p.weather : null, rivers: p.rivers, patch: p.patch, veil: zoom > CLOUD_VEIL_ZOOM });
+    if (p.canvas.width !== W || p.canvas.height !== H) { p.canvas.width = W; p.canvas.height = H; }
+    const shown = [W * unit * fit, H * unit * fit];
+    Object.assign(p.canvas.style, { width: `${shown[0]}px`, height: `${shown[1]}px`, left: `${this.svg.offsetLeft + (box.width - shown[0]) / 2}px`, top: `${this.svg.offsetTop + (box.height - shown[1]) / 2}px` });
+    p.canvas.getContext("2d").putImageData(new ImageData(data, W, H), 0, 0);
   }
 
   render() {
+    // With the pixel globe, many changes in one frame (a finger moving) are drawn once, at the next frame.
+    if (this.pixel && !this.renderingNow) {
+      if (this.renderFrame == null) this.renderFrame = (globalThis.requestAnimationFrame ?? ((run) => setTimeout(run, 16)))(() => { this.renderFrame = null; if (!this.pixel) return; this.renderingNow = true; try { this.render(); } finally { this.renderingNow = false; } });
+      return;
+    }
     const radius = 250 * this.state.zoom; this.discClip?.setAttribute("r", radius);
-    if (this.pixel) { const on = this.state.zoom <= PIXEL_GLOBE_MAX_ZOOM; this.svg.classList.toggle("is-pixel-globe", on); if (on) this.#queuePixels(); }
+    const pixels = Boolean(this.pixel) && this.state.zoom <= PIXEL_GLOBE_MAX_ZOOM, windHidden = this.weatherGroups?.wind?.classList.contains("is-hidden");
+    if (this.pixel) { this.svg.classList.toggle("is-pixel-globe", pixels); this.pixel.canvas.classList.toggle("is-on", pixels); if (pixels) this.#queuePixels(); }
     if (this.fadeNightWithZoom) this.night.style.opacity = String(clamp(1.8 - this.state.zoom * 0.8, 0, 1));
     this.weatherBlur?.setAttribute("stdDeviation", (radius * 0.022).toFixed(1));
-    if (this.environment?.subsolar && this.nightBands) {
+    if (!pixels && this.environment?.subsolar && this.nightBands) {
       const sun = orthographicGeoPoint(this.environment.subsolar.latDeg, this.environment.subsolar.lonDeg, this.state.yaw, this.state.pitch, 1);
       for (const band of this.nightBands) band.node.setAttribute("d", nightOutlinePath({ x: sun.x, y: sun.y, z: sun.z }, radius, [450, 340], band.belowDeg));
     } for (const node of [this.disc, this.atmosphere]) node.setAttribute("r", radius + (node === this.atmosphere ? 6 : 0));
     if (this.structure) this.structure.setAttribute("transform", `translate(450 340) scale(${this.state.zoom}) rotate(${this.state.yaw * 28}) skewX(${this.state.pitch * 7})`);
     for (const item of this.featureNodes) {
+      // What the pixel globe stands in for (the vector ground, water and cloud) is hidden, so it is not worked out.
+      if (pixels && ((item.pixelHidden ??= Boolean(item.node.closest?.(".oscm-body-layer.is-terrain, .oscm-body-layer.is-hydrology, .oscm-weather-field, clipPath"))) || (windHidden && item.node.parentNode === this.weatherGroups.wind))) continue;
       const lodVisible = this.state.zoom >= (item.minZoom ?? .46) && this.state.zoom <= (item.maxZoom ?? Infinity);
       if (item.cartographicPath) {
         const paths = item.rings.map((ring) => projectGeoPath(ring, this.state.yaw, this.state.pitch, radius, [450, 340], item.closed, item.limbClose)).filter(Boolean);

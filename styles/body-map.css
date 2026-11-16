@@ -143,8 +143,10 @@
 .oscm-cursor-readout text { fill: #f2efe6; font: 600 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
 /* Eym's globe as pixel art: it stands in for the surveyed map's ground, water, cloud and night until the view is close. */
-.oscm-globe-pixels { image-rendering: crisp-edges; image-rendering: pixelated; pointer-events: none; display: none; }
-.oscm-body-view.is-pixel-globe .oscm-globe-pixels { display: inline; }
+.oscm-globe-canvas { position: absolute; display: none; image-rendering: crisp-edges; image-rendering: pixelated; pointer-events: none; }
+.oscm-globe-canvas.is-on { display: block; }
+.oscm-body-view.is-pixel-globe { position: relative; background: transparent; }
+.oscm-body-view.is-pixel-globe .oscm-body-disc, .oscm-body-view.is-pixel-globe .oscm-body-atmosphere,
 .oscm-body-view.is-pixel-globe .oscm-body-layer.is-terrain, .oscm-body-view.is-pixel-globe .oscm-body-layer.is-hydrology,
 .oscm-body-view.is-pixel-globe .oscm-weather-field, .oscm-body-view.is-pixel-globe .oscm-terminator, .oscm-body-view.is-pixel-globe .oscm-body-night,
 .oscm-body-view.is-pixel-globe .oscm-weather-cyclone circle, .oscm-body-view.is-pixel-globe .oscm-weather-cyclone path { display: none; }
