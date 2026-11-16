@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Map server: a module preview at `/module/` runs the module's own scripts, template, styles and data outside Foundry (for phones, or without a world), on a small stand-in for the parts of Foundry the module uses. Settings are kept in the browser; creating scenes still needs Foundry.
+
 ## 0.13.2 (2026-11-16)
 
 - System view: clicking a planet or moon now recenters the camera on it and makes it the pivot for turning and zooming (a short glide). Deselecting, clearing the selection or resetting the view returns to Mictir.

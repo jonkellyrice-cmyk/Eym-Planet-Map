@@ -7,9 +7,12 @@
   "functions": {
     "api/map-server.mjs": {
       "maxDuration": 60,
-      "includeFiles": "data/planet-cartography/abydos/eventide.json"
+      "includeFiles": "{module.json,data/**,docs/**,scripts/**,templates/**,styles/**,lang/**}"
     }
   },
-  "rewrites": [{ "source": "/api/:path*", "destination": "/api/map-server" }],
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/map-server" },
+    { "source": "/modules/:path*", "destination": "/api/map-server" }
+  ],
   "headers": [{ "source": "/(.*)", "headers": [{ "key": "x-content-type-options", "value": "nosniff" }] }]
 }

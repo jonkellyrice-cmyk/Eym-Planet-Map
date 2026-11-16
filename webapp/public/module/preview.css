@@ -1,0 +1,30 @@
+/* The page around the module, and a stand-in for the Foundry styles the module's window sits in
+   (dark theme, window frame, form controls). The module's own stylesheets are loaded from the module. */
+:root { color-scheme: dark; --bg: #1b1d24; --panel: #23262f; --line: #3a3e4a; --text: #e7e5df; --muted: #9ba0ab; --accent: #c9a24a; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+body { display: flex; flex-direction: column; }
+.muted { color: var(--muted); }
+.preview-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 16px; background: #14161b; border-bottom: 1px solid var(--line); }
+.preview-bar .spacer { flex: 1; }
+.preview-bar a { color: var(--accent); }
+button, select, input, textarea { font: inherit; color: var(--text); background: #2c303b; border: 1px solid var(--line); border-radius: 4px; padding: 5px 9px; }
+button { cursor: pointer; } button:hover { border-color: var(--accent); }
+input[type="checkbox"], input[type="radio"] { padding: 0; accent-color: var(--accent); }
+#app-host { flex: 1; min-height: 0; display: flex; padding: 8px; }
+#boot { margin: auto; }
+.application { display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; color: var(--text); min-width: 0; }
+#app-host > .application { flex: 1; min-height: 0; }
+.window-header { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #14161b; border-bottom: 1px solid var(--line); border-radius: 6px 6px 0 0; }
+.window-title { flex: 1; margin: 0; font-size: 14px; font-weight: 600; }
+.header-control { background: none; border: 0; padding: 2px 6px; }
+.window-content { flex: 1; min-height: 0; overflow: auto; padding: 8px; }
+dialog.application { padding: 0; max-width: min(560px, 94vw); width: 100%; }
+dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+.form-group { display: grid; grid-template-columns: minmax(120px, 1fr) 2fr; gap: 4px 10px; align-items: center; margin: 8px 0; }
+.form-group .hint, p.hint { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 12px; }
+.form-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+#notifications { position: fixed; z-index: 50; top: 8px; left: 50%; transform: translateX(-50%); width: min(520px, 92vw); margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; pointer-events: none; }
+.notification { padding: 8px 12px; border-radius: 4px; border: 1px solid var(--line); background: #2a3a55; }
+.notification.warning { background: #5a4a1c; } .notification.error { background: #5a2424; }
+dialog.application:not([open]) { display: none; }

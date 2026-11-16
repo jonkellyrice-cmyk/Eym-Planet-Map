@@ -118,6 +118,21 @@ address**. Two things make it fit a serverless host:
   it (a cold function, a cleared `/tmp`) rebuilds the same map from the id alone; the geometry fingerprint
   and the pixels come out identical.
 
+## Module preview (`/module/`)
+
+The page at `/module/` runs the Foundry module itself outside Foundry, for looking at it on a phone or
+without a Foundry world: https://eym-planet-map.vercel.app/module/. It loads the module's own scripts,
+template, stylesheets and data (the server serves them at `/modules/eym-planet-map/…`, the paths Foundry
+uses), so what it shows is what the module does. A small stand-in (`public/module/foundry-shim.js`)
+provides the parts of Foundry the module uses: settings, one GM user, notifications, dialogs, hooks and a
+window frame.
+
+- **The same:** the module's code, layout, data, clock, globe, sky, atlas and battle maps, and pixel-art
+  rendering through this server.
+- **Different:** settings are kept in this browser, not a world. Foundry's own window frame, fonts and
+  form controls are approximated. There are no scenes or files, so **Create scene** and saving a painted
+  map to the world's data folder need Foundry.
+
 ## Building styles
 
 A building style (`scripts/eym-building-styles.mjs`) is how a people builds, as numbers: a palette and a
