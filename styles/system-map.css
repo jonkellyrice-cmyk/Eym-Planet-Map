@@ -41,3 +41,9 @@
 .oscm-system-orbit.is-local { stroke: rgba(214, 190, 140, .5); stroke-dasharray: 2 3; }
 .oscm-system-sprite { image-rendering: pixelated; image-rendering: crisp-edges; pointer-events: none; }
 .oscm-system-sun-glow { pointer-events: none; }
+
+/* The model is left clear: a body is named only when it is chosen (or focused with the keyboard). */
+.oscm-system-object .oscm-system-object-label, .oscm-system-object .oscm-system-object-type { display: none; }
+.oscm-system-object.is-origin .oscm-system-object-label, .oscm-system-object.is-origin .oscm-system-object-type,
+.oscm-system-object.is-destination .oscm-system-object-label, .oscm-system-object.is-destination .oscm-system-object-type,
+.oscm-system-object:focus-visible .oscm-system-object-label, .oscm-system-object:focus-visible .oscm-system-object-type { display: inline; }
