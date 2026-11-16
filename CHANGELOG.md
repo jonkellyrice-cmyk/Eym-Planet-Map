@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.1 (2026-11-16)
+
+- System map: names no longer crowd the painted model. A body is named only when it is selected (or focused with the keyboard); hovering still gives its name as a tooltip.
+
 ## 0.14.0 (2026-11-16)
 
 - The system map is now the scholars' model of the heavens, in the manner of a Renaissance orrery (`scripts/scholars-model.mjs`). The bodies ride evenly spaced rings in their true order and true directions, so they still turn with the clock, but not at their true distances. The registry keeps the true orbits for the calendar, sky, eclipses and tides.

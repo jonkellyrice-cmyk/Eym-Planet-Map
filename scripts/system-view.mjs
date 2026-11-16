@@ -240,7 +240,7 @@ export class SystemView {
       const glyph = svgElement("g", { class: "oscm-system-glyph" });
       appendGlyph(glyph, object, radius, colors);
       const label = svgElement("text", { class: "oscm-system-object-label", x: radius + 8, y: -4 }); label.textContent = objectDisplayName(object);
-      const type = svgElement("text", { class: "oscm-system-object-type", x: radius + 8, y: 9 }); type.textContent = known.kind === "moon" ? "" : known.label;
+      const type = svgElement("text", { class: "oscm-system-object-type", x: radius + 8, y: 9 }); type.textContent = known.label;
       const title = svgElement("title"); title.textContent = `${objectDisplayName(object)}, ${known.label}; parent: ${parentDisplayName(object)}`;
       group.append(hit, selection, glyph, label, type, title); this.objectLayer.append(group);
       this.objectNodes.set(object.id, { group, glyph, label, type, selection, object });
@@ -394,8 +394,6 @@ export class SystemView {
       const point = this.#project(this.displayPositions.get(node.object.id)); projected.push({ ...node, point });
       node.group.setAttribute("transform", `translate(${point.x} ${point.y})`);
       node.glyph.setAttribute("transform", `scale(${clamp(point.scale, .72, 1.3)})`);
-      // Moons sit close to their world: their names show once zoomed in, or when one is chosen.
-      if (node.object.objectClass === "moon") node.label.style.display = this.state.zoom >= 1.5 || this.origin?.id === node.object.id || this.destination?.id === node.object.id ? "" : "none";
     }
     projected.sort((a, b) => a.point.z - b.point.z).forEach((node) => this.objectLayer.append(node.group));
     if (this.factionMarker && this.factionAnchorObjects.length) {

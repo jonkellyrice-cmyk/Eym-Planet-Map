@@ -53,4 +53,9 @@ test("the system view paints the model and opens only the world", () => {
   assert.match(view, /oscm-system-sprite/); assert.match(view, /imageRendering = "pixelated"/);
   assert.match(app, /!scholarEntry\(object\)\.openable\) return/);
   assert.match(app, /objectType: known\?\.label/);
+  // Names stay off the model until a body is chosen.
+  const css = read("styles/system-map.css");
+  assert.match(css, /\.oscm-system-object \.oscm-system-object-label, \.oscm-system-object \.oscm-system-object-type \{ display: none; \}/);
+  assert.match(css, /\.oscm-system-object\.is-origin \.oscm-system-object-label/);
+  assert.ok(!/node\.label\.style\.display/.test(view), "selection alone decides which name shows");
 });

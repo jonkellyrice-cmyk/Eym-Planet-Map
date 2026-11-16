@@ -241,7 +241,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       root.querySelector('[data-action="back-to-system"]')?.classList.add("is-hidden");
       const title = root.querySelector("[data-map-title]"); if (title) title.textContent = systemDisplayName(system.name);
       const count = root.querySelector("[data-map-count]"); if (count) count.textContent = `${knownCount(model.objects)} known bodies`;
-      const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Click / tap to select; double-click / double-tap Eym to open its map";
+      const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Click / tap a body to name it; double-click / double-tap Eym to open its map";
       this.#updateRoutePanel(null, null);
     } catch (error) {
       console.error(`${MODULE_ID} | Unable to enter system view`, error);
