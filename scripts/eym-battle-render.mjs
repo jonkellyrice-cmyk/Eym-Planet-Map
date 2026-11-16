@@ -260,7 +260,7 @@ function rectangles(columns, rows, test) {
  * (difficult, greater difficult, hazardous) and light and weather. `movementCost` adds Foundry's
  * movement-cost behaviour to the regions where the running Foundry has it.
  */
-export function battleSceneData(map, { name, imagePath, gridPx = map.spec.gridPx, darkness = 0, weather = "", movementCost = false, notes = "" } = {}) {
+export function battleSceneData(map, { name, imagePath, gridPx = map.spec.gridPx, darkness = 0, weather = "", movementCost = false, notes = "", style = "default" } = {}) {
   const { columns, rows } = map.spec, W = columns * gridPx, H = rows * gridPx, px = (v) => Math.round(v * gridPx);
   const walls = [...map.grid.walls].filter(([, w]) => !w.chamfer).map(([key, w]) => {
     const [x, y, dir] = key.split(",").map((v, k) => (k < 2 ? Number(v) : v)), c = dir === "e" ? [x + 1, y, x + 1, y + 1] : [x, y + 1, x + 1, y + 1];
@@ -286,7 +286,7 @@ export function battleSceneData(map, { name, imagePath, gridPx = map.spec.gridPx
     ...(map.traps ?? []).map((t) => ({ name: `Hidden trap: ${FEATURES[t.kind].label}`, color: "#d0342c", shapes: [{ type: "rectangle", x: px(t.x), y: px(t.y), width: px(t.w), height: px(t.h), rotation: 0, hole: false }], behaviors: [], visibility: 0, flags: { "eym-planet-map": { trap: t.hazard } } })),
   ].filter(Boolean);
   // Lights, and the objects standing taller than a light near them (light-blocking walls with their heights).
-  const lights = battleLights(map, [], { gridPx }), occluders = battleOccluders(map, []);
+  const lights = battleLights(map, [], { gridPx, style }), occluders = battleOccluders(map, []);
   return {
     name, width: W, height: H, padding: 0, backgroundColor: "#000000",
     background: { src: imagePath }, grid: { type: 1, size: gridPx, distance: 5, units: "ft" },

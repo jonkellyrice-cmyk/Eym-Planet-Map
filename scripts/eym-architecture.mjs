@@ -5,6 +5,7 @@
 // library (the app stores it in a world setting).
 
 import { greatCircleKm } from "./eym-surface.mjs";
+import { BUILDING_STYLES, STYLE_IDS } from "./eym-building-styles.mjs";
 
 export const ARCHITECTURE_SETTING = "architectureDossiers";
 export const DEFAULT_LINK_RADIUS_KM = 5;
@@ -36,7 +37,7 @@ export function normalizeLibrary(raw) {
   for (const f of folders) if (f.parentId && (!ids.has(f.parentId) || f.parentId === f.id)) f.parentId = null;
   const dossiers = (Array.isArray(lib.dossiers) ? lib.dossiers : []).filter((d) => d?.id).map((d) => ({
     id: String(d.id), name: nameOf(d.name, "Untitled dossier"), folderId: d.folderId && ids.has(String(d.folderId)) ? String(d.folderId) : null,
-    ...Object.fromEntries(DOSSIER_FIELDS.map(({ key }) => [key, clean(d[key])])), archived: Boolean(d.archived),
+    ...Object.fromEntries(DOSSIER_FIELDS.map(({ key }) => [key, clean(d[key])])), style: STYLE_IDS.includes(d.style) && d.style !== "default" ? d.style : "", archived: Boolean(d.archived),
     areas: (Array.isArray(d.areas) ? d.areas : []).filter((a) => Number.isFinite(a?.lat) && Number.isFinite(a?.lon)).map((a) => ({ lat: a.lat, lon: a.lon, radiusKm: Number(a.radiusKm) > 0 ? Number(a.radiusKm) : DEFAULT_LINK_RADIUS_KM, label: clean(a.label, MAX_NAME) })),
     createdAt: d.createdAt ?? null, updatedAt: d.updatedAt ?? null,
   }));
@@ -85,6 +86,7 @@ export function updateDossier(lib, id, fields, now) {
     if ("name" in fields) d.name = nameOf(fields.name, d.name);
     if ("folderId" in fields) d.folderId = fields.folderId || null;
     for (const { key } of DOSSIER_FIELDS) if (key in fields) d[key] = clean(fields[key]);
+    if ("style" in fields) d.style = String(fields.style ?? "");
     d.updatedAt = now;
   });
 }
@@ -141,4 +143,14 @@ export function architecturePrompt(dossier) {
   const parts = DOSSIER_FIELDS.filter(({ key }) => dossier[key]).map(({ key, label }) => (key === "overview" ? dossier[key] : `${label}: ${dossier[key]}`));
   if (!parts.length) return "";
   return `Architecture of the people who live here${dossier.people ? ` (${dossier.people})` : ""}, from the GM's dossier "${dossier.name}" — paint every building, wall, fortification, shrine, bridge and piece of street furniture in this style:\n${parts.filter((p) => !p.startsWith("People / culture:")).map((p) => `- ${p}`).join("\n")}`;
+}
+
+/**
+ * The pixel-art building style for a place: the dossier's own choice, else the style linked to the place
+ * (eym-building-styles.mjs), else the default. With no dossier text, the style's own words go to the painter.
+ */
+export function styleForDossier(dossier, placeStyle) { return dossier?.style || placeStyle || "default"; }
+export function styleArchitecturePrompt(styleId) {
+  const s = BUILDING_STYLES[styleId]; if (!s?.words) return "";
+  return `Architecture of the people who live here (built-in style "${s.label}") — paint every building, wall, bridge and piece of street furniture in this style:\n- ${s.words}`;
 }

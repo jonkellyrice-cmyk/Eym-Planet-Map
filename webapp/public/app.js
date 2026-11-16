@@ -9,6 +9,7 @@ async function load() {
   const natural = document.createElement("optgroup"), fantastic = document.createElement("optgroup"); natural.label = "The natural world"; fantastic.label = "The fantastic";
   natural.append(...options.settings.filter((s) => s.group !== "fantastic").map((s) => opt(s.id, s.label))); fantastic.append(...options.settings.filter((s) => s.group === "fantastic").map((s) => opt(s.id, s.label)));
   form.setting.replaceChildren(opt("auto", "From the ground (automatic)"), natural, fantastic);
+  form.style.append(...options.styles.filter((st) => st.id !== "default").map((st) => opt(st.id, `${st.label}${st.places.length ? ` — ${st.places.join(", ")}` : ""}`)), opt("default", "Generic (timbered, tiled)"));
   form.size.replaceChildren(...options.sizes.map((s) => opt(s.id, s.label)));
   form.density.replaceChildren(...options.densities.map((d) => opt(d.id, d.label))); form.density.value = "fa-140";
   form.tier.replaceChildren(...options.tiers.map((t) => Object.assign(opt(t.tier, `Tier ${t.tier} — ${t.name}${t.available ? "" : ` (${t.note ?? "planned"})`}`), { disabled: !t.available }))); form.tier.value = "2";
@@ -23,7 +24,7 @@ function request() {
   let lat = Number(form.lat.value), lon = Number(form.lon.value);
   if (!form.lat.value || !form.lon.value) { const [slat, slon] = form.settlement.value.split(",").map(Number); lat = slat + Number(form.dy.value || 0) / KM_LAT; lon = slon + Number(form.dx.value || 0) / (KM_LAT * Math.cos((slat * Math.PI) / 180)); }
   const conditions = {}; if (form.snowDepthCm.value) conditions.snowDepthCm = Number(form.snowDepthCm.value); if (form.ground.value) conditions.ground = form.ground.value;
-  return { center: [lat, lon], columns, rows, gridPx: density.px, season: form.season.value || undefined, setting: form.setting.value, extras: [...form.querySelectorAll('[name="extra"]:checked')].map((b) => b.value), conditions, tier: Number(form.tier.value) };
+  return { center: [lat, lon], columns, rows, gridPx: density.px, season: form.season.value || undefined, style: form.style.value || undefined, setting: form.setting.value, extras: [...form.querySelectorAll('[name="extra"]:checked')].map((b) => b.value), conditions, tier: Number(form.tier.value) };
 }
 
 form.addEventListener("submit", async (event) => {
@@ -33,7 +34,7 @@ form.addEventListener("submit", async (event) => {
     if (!res.ok) throw new Error(m.error ?? res.statusText);
     const base = `/api/battle-maps/${m.id}/files/`, link = (name, label) => { const li = document.createElement("li"), a = Object.assign(document.createElement("a"), { href: base + name, textContent: label, download: name }); li.append(a); return li; };
     $("#title").textContent = `${options.settings.find((s) => s.id === m.setting)?.label ?? m.setting} — Tier ${m.tier}`;
-    $("#summary").textContent = `${m.spec.columns}×${m.spec.rows} squares · ${m.width}×${m.height} px (${m.native} px per square, ×${m.scale}) · floors: ${m.floors.length ? m.floors.join(", ") : "ground only"} · ${m.season}`;
+    $("#summary").textContent = `${m.spec.columns}×${m.spec.rows} squares · ${m.width}×${m.height} px (${m.native} px per square, ×${m.scale}) · floors: ${m.floors.length ? m.floors.join(", ") : "ground only"} · ${m.season} · ${m.style}`;
     $("#preview").src = base + m.files.preview;
     $("#files").replaceChildren(link(m.files.exterior, "Outside with roofs"), link(m.files.ground, "Ground (buildings opened)"), ...Object.entries(m.files.roofs).map(([f, n]) => link(n, `Roofs over floor ${f}`)), ...Object.entries(m.files.floors).map(([f, n]) => link(n, Number(f) < 0 ? "Basement" : Number(f) === 1 ? "Upper floor" : `Floor ${Number(f) + 1}`)));
     $("#notes").replaceChildren(...m.notes.map((t) => Object.assign(document.createElement("li"), { textContent: t })));

@@ -21,6 +21,7 @@ import { MAP_FEATURE_CATEGORIES, MAP_FEATURES } from "../scripts/eym-battle-feat
 import { BATTLE_SIZE_PRESETS, GRID_DENSITY_PRESETS, battleMapSpec } from "../scripts/eym-map-presets.mjs";
 import { RENDERER, renderBattleLayers } from "./render/render-battle.mjs";
 import { normalizeSeason } from "../scripts/eym-battle-season.mjs";
+import { BUILDING_STYLES, styleForPlace } from "../scripts/eym-building-styles.mjs";
 import { encodePng } from "./render/png.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -51,7 +52,10 @@ export function parseRequest(body) {
   const spec = battleMapSpec({ size: "custom", columns, rows, density: "custom", gridPx });
   // Only the season: light, shadows, darkness and lamps are Foundry's, live.
   const season = normalizeSeason(body.season ?? body.light?.season, center[0]);
-  return { center, spec, setting, extras, conditions, tier, season };
+  // The building style: named, or the one linked to the place. Visual only (the map is the same).
+  if (body.style != null && body.style !== "" && !BUILDING_STYLES[body.style]) throw new Error("unknown building style");
+  const style = body.style || styleForPlace(center[0], center[1]);
+  return { center, spec, setting, extras, conditions, tier, season, style };
 }
 
 /** Render a request (or return the cached render). Returns the manifest. */
@@ -59,11 +63,11 @@ export async function renderRequest(asset, request, cacheDir) {
   // A repeat of the same request goes straight to its cached render, without rebuilding the map.
   const { tier } = request, renderer = RENDERERS[tier], requestKey = hashText(`${JSON.stringify(request)}|${renderer.info.version}`), indexPath = join(cacheDir, "requests", `${requestKey}.json`);
   if (existsSync(indexPath)) { const { id } = JSON.parse(readFileSync(indexPath, "utf8")), cached = join(cacheDir, id, "manifest.json"); if (existsSync(cached)) return JSON.parse(readFileSync(cached, "utf8")); }
-  const map = buildBattleMap(asset, request), geometry = geometryHash(map), lightKey = request.season;
-  const id = `${geometry}-t${tier}-${request.spec.gridPx}-${lightKey}-${renderer.info.version}`.replace(/[^a-z0-9.-]/gi, "_"), dir = join(cacheDir, id), manifestPath = join(dir, "manifest.json");
+  const { style, ...mapRequest } = request, map = buildBattleMap(asset, mapRequest), geometry = geometryHash(map), lightKey = request.season;
+  const id = `${geometry}-t${tier}-${request.spec.gridPx}-${lightKey}-${style}-${renderer.info.version}`.replace(/[^a-z0-9.-]/gi, "_"), dir = join(cacheDir, id), manifestPath = join(dir, "manifest.json");
   const remember = () => { mkdirSync(join(cacheDir, "requests"), { recursive: true }); writeFileSync(indexPath, JSON.stringify({ id })); };
   if (existsSync(manifestPath)) { remember(); return JSON.parse(readFileSync(manifestPath, "utf8")); }
-  const interiors = buildInteriors(map), layers = renderer.render(map, interiors, { gridPx: request.spec.gridPx, season: request.season });
+  const interiors = buildInteriors(map), layers = renderer.render(map, interiors, { gridPx: request.spec.gridPx, season: request.season, style });
   mkdirSync(dir, { recursive: true });
   const save = (name, fb, scale = layers.scale) => { writeFileSync(join(dir, name), encodePng(fb.upscale(scale))); return name; };
   const files = { exterior: save("exterior.png", layers.exterior), ground: save("ground.png", layers.ground), preview: save("preview.png", layers.exterior, 1), roofs: {}, floors: {} };
@@ -72,7 +76,7 @@ export async function renderRequest(asset, request, cacheDir) {
   const manifest = {
     id, tier, renderer: renderer.info, geometryHash: geometry, mapKey: map.key, mapVersion: map.version, setting: map.setting, center: map.center,
     spec: { columns: request.spec.columns, rows: request.spec.rows, gridPx: request.spec.gridPx }, native: layers.native, scale: layers.scale, width: layers.width, height: layers.height,
-    floors: layers.floorList, files, notes: map.notes, analysis: map.analysis, season: layers.season,
+    floors: layers.floorList, files, notes: map.notes, analysis: map.analysis, season: layers.season, style: layers.style,
   };
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2)); remember();
   return manifest;
@@ -100,7 +104,7 @@ export function createMapServer({ asset, cacheDir = join(HERE, "cache"), corsOri
       }
       if (req.method === "GET" && path === "/api/health") return send(res, 200, { ok: true, renderer: RENDERER, tiers: TIERS });
       if (req.method === "GET" && path === "/api/options") return send(res, 200, {
-        tiers: TIERS, settings: Object.entries(SETTINGS).map(([id, s]) => ({ id, label: s.label, group: s.group ?? "natural" })), sizes: BATTLE_SIZE_PRESETS, densities: GRID_DENSITY_PRESETS,
+        tiers: TIERS, styles: Object.values(BUILDING_STYLES).map((st) => ({ id: st.id, label: st.label, places: (st.places ?? []).map((p) => p.name) })), settings: Object.entries(SETTINGS).map(([id, s]) => ({ id, label: s.label, group: s.group ?? "natural" })), sizes: BATTLE_SIZE_PRESETS, densities: GRID_DENSITY_PRESETS,
         featureCategories: MAP_FEATURE_CATEGORIES, features: MAP_FEATURES.map((f) => ({ id: f.id, label: f.label, category: f.category })),
         settlements: data.settlements.filter((s) => s.properName).map((s) => ({ name: s.properName, kind: s.kind, lat: s.lat, lon: s.lon })).sort((a, b) => a.name.localeCompare(b.name)),
       });

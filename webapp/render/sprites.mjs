@@ -74,6 +74,16 @@ export function drawRock(fb, bx, by, size, P, seed = 0, base = "#8f877c") {
 
 // ---------------------------------------------------------------- buildings
 
+/** The building style being drawn (palette and kits from eym-building-styles.mjs). */
+const STYLE = { ...BUILDING_STYLES.default };
+export function setBuildingStyle(id) { Object.assign(STYLE, buildingStyle(id)); }
+const lookFor = (label) => {
+  const p = STYLE.palette, base = LOOK[label] ?? LOOK.building;
+  if (label === "house" || label === "building" || !LOOK[label]) return { ...base, wall: p.wall, timber: p.timber, roof: p.roof, trim: p.trim, door: p.door, mortar: p.mortar, stone: p.stone, metal: p.metal, verdigris: p.verdigris, timbered: STYLE.wall === "timbered", brick: STYLE.wall === "brick", blocks: STYLE.wall === "stone", slate: STYLE.roof === "slate", flat: STYLE.roof === "flat", sash: STYLE.windows === "sash", chimneys: STYLE.chimneys !== "none" };
+  if (label === "temple") return { ...base, roof: p.templeRoof ?? base.roof, slate: STYLE.roof === "slate" };
+  return base;
+};
+
 const LOOK = Object.freeze({
   house: { wall: "#e2d4b6", timber: "#5e3e26", roof: "#b8583c", trim: "#6e4a2a", timbered: true },
   building: { wall: "#e2d4b6", timber: "#5e3e26", roof: "#b8583c", trim: "#6e4a2a", timbered: true },
@@ -83,10 +93,11 @@ const LOOK = Object.freeze({
 });
 
 import { inPoly } from "./footprint.mjs";
+import { BUILDING_STYLES, buildingStyle } from "../../scripts/eym-building-styles.mjs";
 export { inPoly };
 
 /** Roof pixels for a polygon (pixels): hipped facets by nearest eave, tile rows along each eave, ridges and hips darker. */
-function drawRoof(fb, poly, base, seed, flat = false) {
+function drawRoof(fb, poly, base, seed, flat = false, slate = false) {
   const r = R(base, 6, 0.5), edges = poly.map((p, i) => [p, poly[(i + 1) % poly.length]]);
   fb.polygon(poly, null, (x, y) => {
     const px = x + 0.5, py = y + 0.5;
@@ -98,11 +109,12 @@ function drawRoof(fb, poly, base, seed, flat = false) {
     }
     if (second - best < 0.9) return r[0];
     // Facet tone by which way it faces: north (far, lit) lightest, east darkest; tiles in rows along the eave.
-    const facing = -(bn[0] * LIGHT.x + bn[1] * LIGHT.y) * 0.8 - 0.15, row = Math.floor(best / 3), tileEdge = Math.floor(best) % 3 === 2;
-    const along = Math.abs(bn[1]) > Math.abs(bn[0]) ? px : py, stagger = (Math.floor(along + (row & 1) * 2) % 4) === 0;
+    // Slate: narrower courses of flat, blue-grey slates, each its own shade, joints staggered.
+    const course = slate ? 2 : 3, facing = -(bn[0] * LIGHT.x + bn[1] * LIGHT.y) * 0.8 - 0.15, row = Math.floor(best / course), tileEdge = Math.floor(best) % course === course - 1;
+    const along = Math.abs(bn[1]) > Math.abs(bn[0]) ? px : py, stagger = (Math.floor(along + (row & 1) * 2) % (slate ? 3 : 4)) === 0;
     let k = clamp(Math.round(2.6 - facing * 1.6), 1, 4);
     if (tileEdge) k = Math.max(1, k - 1); else if (stagger) k = Math.max(1, k - 1);
-    if (h2(Math.floor(along / 4), row, seed) < 0.06 && !tileEdge) k = Math.min(5, k + 1);
+    if (h2(Math.floor(along / (slate ? 3 : 4)), row, seed) < (slate ? 0.12 : 0.06) && !tileEdge) k = Math.min(5, k + 1);
     return r[k];
   });
   for (const [a, b] of edges) fb.line(a[0], a[1], b[0], b[1], r[0]);
@@ -113,6 +125,13 @@ function drawWall(fb, quad, look, { storeys, front, doorPx = null, P, seed, x0, 
   const wall = R(look.wall, 5, 0.45), timber = R(look.timber, 4, 0.4);
   fb.polygon(quad, null, (x, y) => {
     const ly = yBase - (y + 0.5), lx = x - x0;
+    if (look.brick) {
+      // Brick in stretcher bond: 2-px courses, 5-px bricks, joints in mortar; a pale stone band at each floor.
+      const row = Math.floor(ly / 2), off = (row & 1) * 3, col = Math.floor((lx + off) / 6), band = fh / storeys;
+      if (storeys > 1 && Math.abs(ly % band) < 1.2 && ly > 2) return R(look.stone, 4, 0.35)[2];
+      if (Math.floor(ly) % 2 === 1 || ((Math.floor(lx) + off) % 6) === 0) return R(look.mortar, 3, 0.3)[1];
+      const t = h2(col, row, seed); return wall[t < 0.15 ? 1 : t > 0.88 ? 3 : 2];
+    }
     if (look.blocks) { const row = Math.floor(ly / 4), col = Math.floor((lx + (row & 1) * 3) / 6); return ((Math.floor(ly) % 4) === 0 || ((lx + (row & 1) * 3) % 6) === 0) ? wall[1] : wall[2 + (h2(col, row, seed) < 0.4 ? 1 : 0)]; }
     if (look.columns) return (Math.floor(lx) % P) < P * 0.22 || (Math.floor(lx) % P) > P * 0.78 ? wall[4] : wall[1];
     if (look.timbered && (Math.floor(lx) % P === 0 || Math.abs((ly % (fh / storeys))) < 1)) return timber[1];
@@ -131,15 +150,31 @@ function drawWall(fb, quad, look, { storeys, front, doorPx = null, P, seed, x0, 
     if (isDoor) {
       const dw = Math.max(4, Math.round(P * 0.42)), dh = Math.max(6, Math.round(band * 0.8)), dx0 = Math.round(cx - dw / 2), dy0 = Math.round(yBase - dh);
       fb.rect(dx0 - 1, dy0 - 1, dw + 2, dh + 1, frame[0]);
-      for (let y = dy0; y < yBase; y += 1) for (let x = dx0; x < dx0 + dw; x += 1) fb.set(x, y, (x - dx0) % 3 === 2 ? frame[1] : frame[2]);
+      const leaf = look.door ? R(look.door, 4, 0.45) : frame;
+      for (let y = dy0; y < yBase; y += 1) for (let x = dx0; x < dx0 + dw; x += 1) fb.set(x, y, (x - dx0) % 3 === 2 ? leaf[1] : leaf[2]);
+      if (look.sash) { const fan = Math.max(2, Math.round(dw / 2)); for (let y = dy0 - 3; y < dy0; y += 1) for (let x = dx0; x < dx0 + dw; x += 1) if (Math.hypot(x + 0.5 - (dx0 + dw / 2), (y - dy0) * 1.4) <= fan) fb.set(x, y, (x + y) % 2 ? glass[2] : glass[1]); fb.rect(dx0 - 2, yBase - 1, dw + 4, 1, R(look.stone, 4, 0.35)[1]); }
       fb.set(dx0 + dw - 2, dy0 + Math.round(dh / 2), rgb("#e8c860"));
       continue;
     }
     if (look.columns) continue;
+    if (look.sash) {
+      // A tall sash window: white frame, the meeting rail across the middle, small panes, a stone lintel and sill.
+      const ww = Math.max(3, Math.round(P * 0.28)), wh = Math.max(5, Math.round(band * 0.56)), wx0 = Math.round(cx - ww / 2), wy0 = Math.round(yBase - fh + s * band + band * 0.2), stone = R(look.stone, 4, 0.35);
+      fb.rect(wx0 - 1, wy0 - 1, ww + 2, wh + 2, frame[2]);
+      for (let y = wy0; y < wy0 + wh; y += 1) for (let x = wx0; x < wx0 + ww; x += 1) fb.set(x, y, y - wy0 === Math.floor(wh / 2) || (x - wx0) === Math.floor(ww / 2) ? frame[3] : (x - wx0 + y - wy0) < 2 ? glass[3] : glass[1]);
+      fb.rect(wx0 - 2, wy0 - 3, ww + 4, 2, stone[2]); fb.rect(wx0 - 2, wy0 - 3, ww + 4, 1, stone[3]);
+      fb.rect(wx0 - 2, wy0 + wh + 1, ww + 4, 1, stone[2]); fb.rect(wx0 - 1, wy0 + wh + 2, ww + 2, 1, stone[0]);
+      continue;
+    }
     const ww = Math.max(3, Math.round(P * 0.34)), wh = Math.max(3, Math.round(band * 0.38)), wx0 = Math.round(cx - ww / 2), wy0 = Math.round(yBase - fh + s * band + band * 0.25);
     fb.rect(wx0 - 1, wy0 - 1, ww + 2, wh + 2, frame[1]);
     for (let y = wy0; y < wy0 + wh; y += 1) for (let x = wx0; x < wx0 + ww; x += 1) fb.set(x, y, x - wx0 === Math.floor(ww / 2) || y - wy0 === Math.floor(wh / 2) ? frame[2] : (x - wx0 + y - wy0) < 2 ? glass[3] : glass[1]);
     fb.rect(wx0 - 1, wy0 + wh + 1, ww + 2, 1, frame[3]);
+  }
+  // Copper downpipes at the ends of a long front, gone green in streaks.
+  if (look.metal && look.verdigris && x1 - x0 > P * 1.5) {
+    const cu = R(look.metal, 4, 0.5), vg = R(look.verdigris, 4, 0.4);
+    for (const px of [Math.round(x0) + 1, Math.round(x1) - 2]) for (let y = Math.round(yBase - fh) + 1; y < yBase; y += 1) { const green = h2(px, y >> 2, seed) < 0.35; fb.set(px, y, green ? vg[2] : cu[2]); fb.set(px + 1, y, green ? vg[1] : cu[1]); }
   }
 }
 
@@ -148,20 +183,36 @@ function drawWall(fb, quad, look, { storeys, front, doorPx = null, P, seed, x0, 
  * cut corners as the true outline; roofs tiled and hipped, the south-facing walls shown.
  */
 export function drawBuilding(fb, b, P, polygon, seed) {
-  const look = LOOK[b.label] ?? LOOK.building, storeys = b.storeys ?? 1;
+  const look = lookFor(b.label), storeys = b.storeys ?? 1;
   const blocks = b.chamfers?.length ? [{ poly: polygon.map(([x, y]) => [x * P, y * P]), y1: b.y1, x0: b.x0, x1: b.x1 }] : [...(b.rects ?? [b])].sort((p, q) => p.y1 - q.y1).map((r) => ({ poly: [[r.x0 * P, r.y0 * P], [(r.x1 + 1) * P, r.y0 * P], [(r.x1 + 1) * P, (r.y1 + 1) * P], [r.x0 * P, (r.y1 + 1) * P]], y1: r.y1, x0: r.x0, x1: r.x1, rect: r }));
   for (const blk of blocks) {
     const ys = blk.poly.map((p) => p[1]), top = Math.min(...ys), bottom = Math.max(...ys), d = (bottom - top) / P;
     const fh = Math.round(Math.min(0.85 * storeys, Math.max(0.6, d * 0.45)) * P);
     // Roof: the outline raised by the wall height, cut at the building's north edge.
     const roof = clipBelow(blk.poly.map(([x, y]) => [x, y - fh]), top);
-    drawRoof(fb, roof, look.roof, seed + blk.x0 * 7 + blk.y1, look.flat);
+    drawRoof(fb, roof, look.roof, seed + blk.x0 * 7 + blk.y1, look.flat, look.slate);
     // South-facing walls: straight fronts and angled corners.
     for (let i = 0; i < blk.poly.length; i += 1) {
       const p = blk.poly[i], q = blk.poly[(i + 1) % blk.poly.length]; if (q[0] - p[0] >= 0) continue;
       const straight = Math.abs(q[1] - p[1]) < 0.5, door = b.doorEdge && b.door === "s" && straight && b.doorEdge.sq[1] === blk.y1 && b.doorEdge.sq[0] >= blk.x0 && b.doorEdge.sq[0] <= blk.x1 ? (b.doorEdge.sq[0] + 0.5) * P : null;
       drawWall(fb, [p, q, [q[0], q[1] - fh], [p[0], p[1] - fh]], look, { storeys, front: straight, doorPx: door, P, seed, x0: Math.min(p[0], q[0]), x1: Math.max(p[0], q[0]), yBase: Math.max(p[1], q[1]), fh });
     }
+    if (look.chimneys && !look.flat) drawChimneys(fb, roof, look, P, seed + blk.x0 * 5 + blk.y1);
+  }
+}
+
+/** Chimney stacks on the roof (brick, a stone cap, copper pots), one at each end of the ridge of a long roof. */
+function drawChimneys(fb, roof, look, P, seed) {
+  if (roof.length < 3) return;
+  const xs = roof.map((p) => p[0]), ys = roof.map((p) => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), w = x1 - x0, cy = (y0 + y1) / 2;
+  const spots = w > P * 2.2 ? [x0 + w * 0.22, x1 - w * 0.22] : [x0 + w * (h2(seed, 1, 3) < 0.5 ? 0.3 : 0.7)];
+  const brick = R(look.wall, 5, 0.45), cap = R(look.stone ?? "#c8bfac", 4, 0.4), pot = R(look.metal ?? "#b87333", 4, 0.5), sw = Math.max(5, Math.round(P * 0.22)), sh = Math.round(P * 0.42);
+  for (const sx of spots) {
+    const x = Math.round(sx - sw / 2), top = Math.round(cy - sh);
+    for (let y = top; y < Math.round(cy); y += 1) for (let xx = x; xx < x + sw; xx += 1) { const ly = y - top, row = Math.floor(ly / 2); fb.set(xx, y, ly % 2 === 1 ? brick[1] : ((xx - x + (row & 1) * 2) % 4 === 0 ? brick[1] : xx - x < 1 ? brick[3] : brick[2])); }
+    fb.rect(x - 1, top - 1, sw + 2, 2, cap[2]); fb.rect(x - 1, top, sw + 2, 1, cap[1]);
+    for (let k = 0; k < 2; k += 1) { const px = x + 1 + k * Math.max(2, sw - 4); fb.rect(px, top - 3, 2, 2, pot[k === 0 ? 2 : 1]); fb.set(px, top - 3, pot[3]); }
+    for (let xx = x; xx < x + sw; xx += 1) fb.tone(xx, Math.round(cy), -0.3);
   }
 }
 
@@ -246,4 +297,24 @@ function furnitureShade(fb, x, y, w, h, riseP, kind) {
   for (let xx = left; xx < right; xx += 1) fb.tone(xx, top, -0.18);
   if (kind === "shelves" || kind === "wine-rack") for (let yy = top + 3; yy < bottom - 2; yy += 4) for (let xx = left + 2; xx < right - 2; xx += 1) fb.tone(xx, yy, -0.26);
   if (kind === "wardrobe") for (let yy = top + 2; yy < bottom - 1; yy += 1) fb.tone(Math.round(x + w / 2), yy, -0.3);
+}
+
+/**
+ * A street lamp from its foot (pixels): an iron post with a base and a bracket, and the lamp head — an
+ * arc-lamp's copper cage around a pale crystal (Dree) or a plain lantern. Unlit-looking: its light is a
+ * Foundry light that comes on as the scene darkens.
+ */
+export function drawStreetLamp(fb, x, y, P, kind = "lantern-post") {
+  const iron = R("#2e3236", 4, 0.5), h = Math.round(P * 0.95), px = Math.round(x), py = Math.round(y);
+  for (let dy = -1; dy <= 1; dy += 1) for (let dx = -3; dx <= 3; dx += 1) if (dx * dx / 9 + dy * dy <= 1) fb.tone(px + dx, py + dy, -0.22);
+  fb.rect(px - 2, py - 2, 4, 2, iron[1]);
+  for (let yy = py - h; yy < py - 2; yy += 1) { fb.set(px, yy, iron[2]); fb.set(px - 1, yy, iron[1]); }
+  const top = py - h;
+  if (kind === "arc-lamp") {
+    const cu = R("#b87333", 4, 0.5), crystal = R("#cfeaff", 4, 0.35);
+    fb.rect(px - 3, top - 1, 6, 1, cu[1]); fb.rect(px - 2, top - 6, 4, 5, crystal[2]); fb.set(px - 1, top - 5, crystal[3]); fb.set(px, top - 4, crystal[3]);
+    fb.rect(px - 3, top - 6, 1, 5, cu[2]); fb.rect(px + 2, top - 6, 1, 5, cu[1]); fb.rect(px - 3, top - 7, 6, 1, cu[2]); fb.set(px - 1, top - 8, cu[3]); fb.set(px, top - 8, cu[2]);
+  } else {
+    const glass = R("#e8c890", 4, 0.4); fb.rect(px - 2, top - 5, 4, 4, glass[2]); fb.rect(px - 3, top - 6, 6, 1, iron[2]); fb.rect(px - 3, top - 1, 6, 1, iron[1]);
+  }
 }

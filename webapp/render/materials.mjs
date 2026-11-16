@@ -105,6 +105,8 @@ export const MATERIALS = Object.freeze({
   "canyon floor": strata("#c29a6a", 43), "carved stone terrace": strata("#c8ab84", 44), "monastery terrace": flags("#b9ad96", 45, 9), "lower terrace": flags("#a99d86", 46, 9),
   "floating rock": grass("#8fa36a", 47), "open sky (a fall)": sky(48), "open air (a fall)": abyss(), "planar rift": glow("#5a2a8a", 49), "molten-metal channel": glow("#e0602a", 50),
   "grave earth": speckle("#6f6a52", 51, 0.1), sandbar: ripples("#efe2b8", 52),
+  // Style pavings (a building style maps the plain street grounds to these; see eym-building-styles.mjs).
+  "granite setts": stones("#8a8680", "#4c4946", 54, 5, 4), "dressed granite": flags("#8e8a84", 55, 9),
 });
 
 /** The colour of a ground at a world pixel. `fallback` is a tier-1 hex colour. */

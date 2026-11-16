@@ -38,7 +38,8 @@ import { buildBattleMap, geometryHash } from "./eym-battle-rules.mjs";
 import { MAP_FEATURE_CATEGORIES, MAP_FEATURES } from "./eym-battle-features.mjs";
 import { buildInteriors, floorSvg, footprintMaskSvg, interiorArtDirection, mapFloors, roofMaskSvg } from "./eym-battle-interiors.mjs";
 import { battleScenePlan } from "./eym-battle-scene.mjs";
-import { ARCHITECTURE_SETTING, DEFAULT_LINK_RADIUS_KM, DOSSIER_FIELDS, archiveDossier, architecturePrompt, coversPlace, createDossier, createFolder, deleteDossier, deleteFolder, dossierChoices, dossierForPlace, dossierTree, folderPath, linkArea, moveFolder, renameFolder, unlinkArea, updateDossier } from "./eym-architecture.mjs";
+import { ARCHITECTURE_SETTING, DEFAULT_LINK_RADIUS_KM, DOSSIER_FIELDS, archiveDossier, architecturePrompt, coversPlace, createDossier, createFolder, deleteDossier, deleteFolder, dossierChoices, dossierForPlace, dossierTree, folderPath, linkArea, moveFolder, renameFolder, styleArchitecturePrompt, styleForDossier, unlinkArea, updateDossier } from "./eym-architecture.mjs";
+import { BUILDING_STYLES, styleForPlace } from "./eym-building-styles.mjs";
 import { SETTINGS as BATTLE_SETTINGS } from "./eym-battle-settings.mjs";
 import { battleArtDirection, battleGridSvg, battlePacket, battleReferenceSvg, battleSceneData, battleTacticalSvg, darknessFor, weatherEffectFor } from "./eym-battle-render.mjs";
 import { BATTLE_SIZE_PRESETS, GRID_DENSITY_PRESETS, battleMapSpec } from "./eym-map-presets.mjs";
@@ -639,7 +640,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       const button = event.target.closest("[data-dossier-action]"); if (!button) return;
       const editor = panel.querySelector("[data-dossier-editor]"), sel = this._dossierSelection, lib = this.#library(), now = new Date().toISOString(), value = (name) => editor.querySelector(`[name="${name}"]`)?.value ?? "";
       switch (button.dataset.dossierAction) {
-        case "save-dossier": await this.#saveLibrary(updateDossier(lib, sel.id, { name: value("name"), folderId: value("folderId") || null, ...Object.fromEntries(DOSSIER_FIELDS.map(({ key }) => [key, value(key)])) }, now), "Saved."); break;
+        case "save-dossier": await this.#saveLibrary(updateDossier(lib, sel.id, { name: value("name"), folderId: value("folderId") || null, style: value("style"), ...Object.fromEntries(DOSSIER_FIELDS.map(({ key }) => [key, value(key)])) }, now), "Saved."); break;
         case "archive": await this.#saveLibrary(archiveDossier(lib, sel.id, !lib.dossiers.find((d) => d.id === sel.id)?.archived, now), "Archive status changed."); break;
         case "delete-dossier": if (await this.#confirm("Delete dossier", `Delete "${lib.dossiers.find((d) => d.id === sel.id)?.name}"? Archive it instead to keep it.`)) { this._dossierSelection = null; await this.#saveLibrary(deleteDossier(lib, sel.id), "Deleted."); } break;
         case "unlink": await this.#saveLibrary(unlinkArea(lib, sel.id, Number(button.dataset.index)), "Area removed."); break;
@@ -670,6 +671,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     if (dossier) {
       editor.innerHTML = `<label><span>Name</span><input name="name" value="${esc(dossier.name)}"></label>
         <label><span>Folder</span><select name="folderId">${folderOptions(dossier.folderId)}</select></label>
+        <label><span>Pixel-art building style</span><select name="style"><option value="">From the place (or generic)</option>${Object.values(BUILDING_STYLES).filter((st) => st.id !== "default").map((st) => `<option value="${esc(st.id)}" ${st.id === dossier.style ? "selected" : ""}>${esc(st.label)}</option>`).join("")}</select></label>
         ${DOSSIER_FIELDS.map(({ key, label, short }) => `<label><span>${esc(label)}</span>${short ? `<input name="${key}" value="${esc(dossier[key])}">` : `<textarea name="${key}">${esc(dossier[key])}</textarea>`}</label>`).join("")}
         <div class="oscm-atlas-actions"><button type="button" data-dossier-action="save-dossier"><i class="fa-solid fa-floppy-disk"></i> Save</button><button type="button" data-dossier-action="archive">${dossier.archived ? "Unarchive" : "Archive"}</button><button type="button" data-dossier-action="delete-dossier"><i class="fa-solid fa-trash"></i> Delete</button></div>
         <strong>Used in these areas</strong>
@@ -713,9 +715,9 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const extras = [...root.querySelectorAll('[name="battleExtra"]:checked')].map((box) => box.value), settingChoice = root.querySelector('[name="battleSetting"]')?.value ?? "auto";
     const map = buildBattleMap(this._eymGeography, { center: [lat, lon], spec, conditions: env.conditions, setting: settingChoice, extras });
     // Exactly what built this map, so the map server can build the same one.
-    const serverRequest = { center: [lat, lon], columns: spec.columns, rows: spec.rows, gridPx: spec.gridPx, setting: settingChoice, extras, conditions: env.conditions, season: env.season };
-    const dossier = await this.#dossierForBattle(root, lat, lon);
-    const architecture = architecturePrompt(dossier);
+    const dossier = await this.#dossierForBattle(root, lat, lon), style = styleForDossier(dossier, styleForPlace(lat, lon));
+    const serverRequest = { center: [lat, lon], columns: spec.columns, rows: spec.rows, gridPx: spec.gridPx, setting: settingChoice, extras, conditions: env.conditions, season: env.season, style };
+    const architecture = architecturePrompt(dossier) || styleArchitecturePrompt(style);
     const nearest = this._eymGeography.settlements.filter((s) => s.properName).reduce((best, s) => { const d = Math.hypot(s.lat - lat, (s.lon - lon) * Math.cos(lat * Math.PI / 180)); return d < best.d ? { s, d } : best; }, { s: null, d: Infinity });
     const place = nearest.s && nearest.d < 0.3 ? `near ${nearest.s.properName}` : `${Math.abs(lat).toFixed(3)}°${lat >= 0 ? "N" : "S"}, ${Math.abs(lon).toFixed(3)}°${lon >= 0 ? "E" : "W"}`;
     const title = `${BATTLE_SETTINGS[map.setting].label}, ${place}`;
@@ -812,7 +814,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const movementCost = Boolean(globalThis.CONFIG?.RegionBehavior?.dataModels?.modifyMovementCost);
     const SceneClass = globalThis.getDocumentClass?.("Scene") ?? globalThis.Scene; if (!SceneClass?.create) throw new Error("this Foundry has no scenes");
     const hasLevels = Boolean(SceneClass.schema?.fields?.levels ?? globalThis.CONFIG?.Level ?? (game.release?.generation >= 14));
-    const options = { name: current.title, darkness: darknessFor(conditions.sunAltitudeDeg), weather: weatherEffectFor(conditions), movementCost, notes: current.battle.notes.join(" ") };
+    const options = { name: current.title, darkness: darknessFor(conditions.sunAltitudeDeg), weather: weatherEffectFor(conditions), movementCost, notes: current.battle.notes.join(" "), style: current.serverRequest?.style ?? "default" };
     if (!hasLevels) {
       const imagePath = current.pixel ? await upload(current.pixel.exterior, "-pixel.png") : await upload(painted ? result.paintedPng : result.basePng, painted ? "-painted.png" : "-layout.png");
       const data = battleSceneData(current.battle, { ...options, imagePath });

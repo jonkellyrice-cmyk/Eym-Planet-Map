@@ -20,6 +20,7 @@
 
 import { FEATURES, MOVE } from "./eym-battle-settings.mjs";
 import { FURNITURE, mapFloors } from "./eym-battle-interiors.mjs";
+import { styleStreetLamps } from "./eym-building-styles.mjs";
 import { floorBase, occluderRecord, occluderWalls, battleOccluders } from "./eym-battle-occluders.mjs";
 
 export const OCCLUSION_VISION = 8;
@@ -41,11 +42,14 @@ export const LIGHT_KINDS = Object.freeze({
   crystal: { bright: 5, dim: 15, color: "#7fd8ff", alpha: 0.4, darkness: { min: 0, max: 1 } },
   glow: { bright: 0, dim: 10, color: "#6fe8d0", alpha: 0.35, darkness: { min: 0, max: 1 } },
   magic: { bright: 5, dim: 10, color: "#b08aff", alpha: 0.4, darkness: { min: 0, max: 1 }, animation: { type: "pulse", speed: 2, intensity: 2 } },
+  // Street lamps of a building style: Dree's arc-lamps burn a cold, steady crystal light; plain lantern posts flicker warm.
+  "arc-lamp": { bright: 15, dim: 30, color: "#cfeaff", alpha: 0.4, darkness: { min: 0.35, max: 1 } },
+  "lantern-post": { bright: 10, dim: 20, color: "#ffb85c", alpha: 0.4, darkness: { min: 0.4, max: 1 }, animation: { type: "torch", speed: 2, intensity: 1 } },
 });
 const FEATURE_LIGHT = { campfire: "fire", beacon: "fire", "lava-channel": "lava", fumarole: "lava", "elemental-vent": "lava", "crystal-cluster": "crystal", "glowing-pool": "glow", "glowing-mushrooms": "glow", "sacred-spring": "glow", "ley-nexus": "magic", "magic-circle": "magic", "teleport-circle": "magic", "planar-rift": "magic", "ward-stone": "magic", "rune-door": "magic", "levitation-disc": "magic" };
 
 /** The lights of a battle map, by floor. Positions in pixels; `levelKeys` name the floor's Level. */
-export function battleLights(map, interiors, { gridPx = map.spec.gridPx } = {}) {
+export function battleLights(map, interiors, { gridPx = map.spec.gridPx, style = "default" } = {}) {
   const out = [], { columns } = map.spec, g = map.grid;
   const add = (kind, x, y, levelKey = "floor0", elevation = 0, name = kind) => { const k = LIGHT_KINDS[kind]; out.push({ levelKeys: [levelKey], name, x: Math.round(x * gridPx), y: Math.round(y * gridPx), elevation, walls: true, vision: false, config: { bright: k.bright, dim: k.dim, color: k.color, alpha: k.alpha, darkness: k.darkness, coloration: 1, luminosity: 0.5, attenuation: 0.5, ...(k.animation ? { animation: k.animation } : {}) }, flags: { "eym-planet-map": { light: kind } } }); };
   const levelAt = (x, y) => g.levelFt[Math.max(0, Math.min(g.levelFt.length - 1, Math.floor(y) * columns + Math.floor(x)))] ?? 0;
@@ -55,6 +59,7 @@ export function battleLights(map, interiors, { gridPx = map.spec.gridPx } = {}) 
   }
   // Lava and molten metal in the ground itself: one light every few squares along it.
   for (let i = 0; i < g.ground.length; i += 1) { const x = i % columns, y = Math.floor(i / columns); if (["molten-metal channel", "planar rift"].includes(g.ground[i]) && (x + y) % 3 === 0) add(g.ground[i] === "planar rift" ? "magic" : "lava", x + 0.5, y + 0.5, "floor0", g.levelFt[i]); }
+  for (const l of styleStreetLamps(map, style)) add(l.kind, l.x, l.y, "floor0", levelAt(l.x, l.y) + l.heightFt, "street lamp");
   for (const b of map.buildings) {
     const e = b.doorEdge; if (!e || b.label === "mausoleum") continue;
     // A lantern just outside the door, and the glow of the street-front windows.
@@ -108,7 +113,7 @@ export function levelBands(map, interiors) {
  * uploaded images). Returns { scene, levels, walls, tiles, regions }; level references are by key
  * ("floor0", "floor1", "floor-1") in `levelKeys` / `levelKey`, for the app to swap for ids.
  */
-export function battleScenePlan(map, interiors, { name, images, gridPx = map.spec.gridPx, darkness = 0, weather = "", movementCost = false, notes = "" }) {
+export function battleScenePlan(map, interiors, { name, images, gridPx = map.spec.gridPx, darkness = 0, weather = "", movementCost = false, notes = "", style = "default" }) {
   const { columns, rows } = map.spec, W = columns * gridPx, H = rows * gridPx, px = (v) => Math.round(v * gridPx);
   const bands = levelBands(map, interiors), byFloor = new Map(bands.map((b) => [b.floor, b]));
   const levels = bands.map((b, sort) => ({
@@ -120,7 +125,7 @@ export function battleScenePlan(map, interiors, { name, images, gridPx = map.spe
   const scene = {
     name, width: W, height: H, padding: 0, grid: { type: 1, size: gridPx, distance: 5, units: "ft" }, tokenVision: true,
     environment: { darknessLevel: dark, globalLight: { enabled: !underground && dark < 0.5 } }, weather: underground ? "" : weather,
-    flags: { "eym-planet-map": { battle: { version: map.version, key: map.key, setting: map.setting, center: map.center, spec: { columns, rows, gridPx }, analysis: map.analysis, notes, floors: bands.map((b) => b.name), extras: (map.extras ?? []).map((e) => e.id) } } },
+    flags: { "eym-planet-map": { battle: { version: map.version, key: map.key, setting: map.setting, center: map.center, spec: { columns, rows, gridPx }, analysis: map.analysis, notes, floors: bands.map((b) => b.name), extras: (map.extras ?? []).map((e) => e.id), style } } },
   };
   // Walls.
   const walls = [], seg = (x, y, dir) => (dir === "e" ? [x + 1, y, x + 1, y + 1] : [x, y + 1, x + 1, y + 1]).map(px);
@@ -163,7 +168,7 @@ export function battleScenePlan(map, interiors, { name, images, gridPx = map.spe
     const keys = b.floors.map((f) => byFloor.get(f.floor)?.key).filter(Boolean); if (keys.length < 2) continue;
     regions.push({ levelKeys: keys, name: `Stairs (${b.floors.map((f) => f.name).join(" – ")})`, color: "#27ae60", shapes: [rect(b.stairs)], elevation: { bottom: null, top: null }, behaviors: [{ type: "changeLevel", name: "Stairs", system: { movementActions: MOVEMENT_ACTIONS } }], visibility: 0 });
   }
-  const lights = battleLights(map, interiors, { gridPx }).filter((l) => l.levelKeys.every((k) => byFloor.has(Number(k.slice(5)))));
+  const lights = battleLights(map, interiors, { gridPx, style }).filter((l) => l.levelKeys.every((k) => byFloor.has(Number(k.slice(5)))));
   // Objects in the way of those lights: light-blocking walls where an object stands taller than a light near it.
   const occluders = battleOccluders(map, interiors).filter((o) => byFloor.has(o.floor));
   walls.push(...occluderWalls(occluders, lights, { gridPx }));

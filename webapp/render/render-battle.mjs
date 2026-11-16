@@ -9,7 +9,8 @@
 
 import { Framebuffer, bayer, rgb } from "./framebuffer.mjs";
 import { groundPixel, h2, mixc, noise, ramp } from "./materials.mjs";
-import { drawBlock, drawBuilding, drawBush, drawFeature, drawFurniture, drawRock, drawTree, setSpriteLight } from "./sprites.mjs";
+import { drawBlock, drawBuilding, drawBush, drawFeature, drawFurniture, drawRock, drawStreetLamp, drawTree, setBuildingStyle, setSpriteLight } from "./sprites.mjs";
+import { buildingStyle, styleStreetLamps } from "../../scripts/eym-building-styles.mjs";
 import { inFootprint } from "./footprint.mjs";
 import { applyShadows, occlusionMask } from "./light.mjs";
 import { normalizeSeason } from "../../scripts/eym-battle-season.mjs";
@@ -18,7 +19,7 @@ import { FURNITURE } from "../../scripts/eym-battle-interiors.mjs";
 import { standHeightFt } from "../../scripts/eym-battle-oblique.mjs";
 import { footprintPolygon } from "../../scripts/eym-battle-buildings.mjs";
 
-export const RENDERER = Object.freeze({ tier: 2, name: "Traditional RPG pixel art", version: "eym-pixel-t2-v4" });
+export const RENDERER = Object.freeze({ tier: 2, name: "Traditional RPG pixel art", version: "eym-pixel-t2-v5" });
 
 /** Native pixels per square and a whole-number scale that gives the scene's grid size. */
 export function pixelPlan(gridPx) {
@@ -37,17 +38,27 @@ export { inFootprint } from "./footprint.mjs";
 
 // ---------------------------------------------------------------- the ground
 
-function drawGround(fb, map, P, season) {
+function drawGround(fb, map, P, season, street = null) {
   const { grid } = map, { columns, rows } = map.spec, [ox, oy] = map.origin, W = columns * P, H = rows * P;
+  const corners = new Map();
+  for (const b of map.buildings) for (const c of b.chamfers ?? []) {
+    const out = [[c.corner.includes("w") ? -1 : 1, 0], [0, c.corner.includes("n") ? -1 : 1]].map(([dx, dy]) => [c.x + dx, c.y + dy]).find(([x, y]) => x >= 0 && y >= 0 && x < columns && y < rows && grid.building[y * columns + x] < 0);
+    const open = (x, y) => x >= 0 && y >= 0 && x < columns && y < rows && grid.building[y * columns + x] < 0;
+    const near = out ?? [[-1, -1], [1, -1], [-1, 1], [1, 1], [-2, 0], [2, 0], [0, -2], [0, 2]].map(([dx, dy]) => [c.x + dx, c.y + dy]).find(([x, y]) => open(x, y));
+    if (c.x >= 0 && c.y >= 0 && c.x < columns && c.y < rows) corners.set(c.y * columns + c.x, { b, ground: near ? grid.ground[near[1] * columns + near[0]] : "yard" });
+  }
   const water = new Uint8Array(W * H), levels = [...grid.levelFt].filter((v, i) => !grid.void[i]), lo = Math.min(...levels), hi = Math.max(...levels);
   for (let y = 0; y < H; y += 1) for (let x = 0; x < W; x += 1) {
     const c = Math.floor(x / P), r = Math.floor(y / P), i = r * columns + c, wx = ox * P + x, wy = oy * P + y;
     let g = grid.ground[i];
+    // A cut corner's outer triangle is outside: it takes the ground of the open square beside it.
+    const cut = corners.get(i); if (cut && !inFootprint(cut.b, (x + 0.5) / P, (y + 0.5) / P)) g = cut.ground;
     // Natural edges wander: a pixel near a border may take its neighbour's ground (same level, both natural).
     if (!HARD.has(g)) {
       const sc = Math.max(0, Math.min(columns - 1, Math.floor((x + (noise(wx, wy, 9, 3) - 0.5) * P * 0.5) / P))), sr = Math.max(0, Math.min(rows - 1, Math.floor((y + (noise(wx, wy, 9, 4) - 0.5) * P * 0.5) / P))), j = sr * columns + sc;
       if (j !== i && !HARD.has(grid.ground[j]) && grid.levelFt[j] === grid.levelFt[i] && grid.building[j] < 0) g = grid.ground[j];
     }
+    if (street) { const plain = g.replace(/ \(mud\)$/, ""); if (street[plain]) g = g.replace(plain, street[plain]); }
     let px = groundPixel(g, wx, wy); const name = g.replace(/ \(mud\)$/, "");
     // The season in the grass (light and weather are Foundry's, live).
     if (SEASONAL.has(name) && SEASON_TINT[season]) px = mixc(px, SEASON_TINT[season][0], SEASON_TINT[season][1]);
@@ -111,7 +122,7 @@ function drawFlat(fb, f, def, P, map) {
   }
 }
 
-function drawStanding(fb, map, P) {
+function drawStanding(fb, map, P, styleId = "default") {
   const items = [], style = TREE_STYLE[map.setting] ?? "broadleaf";
   for (const o of map.objects) items.push({ y: o.y, x: o.x, draw: () => (o.kind === "tree" ? drawTree(fb, o.x * P, o.y * P, o.size, P, style, Math.round(o.x * 97 + o.y * 13)) : o.kind === "bush" ? drawBush(fb, o.x * P, o.y * P, o.size, P, Math.round(o.x * 31 + o.y)) : drawRock(fb, o.x * P, o.y * P, o.size, P, Math.round(o.x * 7 + o.y * 3))) });
   for (const f of map.features) {
@@ -120,6 +131,7 @@ function drawStanding(fb, map, P) {
     if (ft <= 0) { drawFlat(fb, f, def, P, map); continue; }
     items.push({ y: f.y + f.h, x: f.x, draw: () => { if (!drawFeature(fb, f, def, P, f.x * 17 + f.y, ft)) drawBlock(fb, f.x * P + 1, f.y * P + 1, f.w * P - 2, f.h * P - 2, Math.min(3, ft / 10) * P * 0.85, def.color, f.x * 17 + f.y, def.shape === "round" || def.shape === "mushroom" || def.shape === "crystal"); } });
   }
+  for (const l of styleStreetLamps(map, styleId)) items.push({ y: l.y, x: l.x, draw: () => drawStreetLamp(fb, l.x * P, l.y * P, P, l.kind) });
   for (const b of map.buildings) items.push({ y: b.y1 + 1, x: b.x0, draw: () => drawBuilding(fb, b, P, b.chamfers?.length ? footprintPolygon(b) : null, b.id * 101 + 7) });
   items.sort((a, b) => a.y - b.y || a.x - b.x);
   for (const it of items) it.draw();
@@ -168,12 +180,13 @@ function drawInterior(fb, map, building, floor, P) {
 // ---------------------------------------------------------------- the layers
 
 /** All the layers of a battle map at native size. interiors: from buildInteriors(map). */
-export function renderBattleLayers(map, interiors, { gridPx = map.spec.gridPx, season = null } = {}) {
+export function renderBattleLayers(map, interiors, { gridPx = map.spec.gridPx, season = null, style = "default" } = {}) {
+  const theStyle = buildingStyle(style); setBuildingStyle(theStyle.id);
   const { native: P, scale } = pixelPlan(gridPx), W = map.spec.columns * P, H = map.spec.rows * P, theSeason = normalizeSeason(season, map.center[0]);
   // Neutral light from above, so forms read; time of day, sun shadows, darkness and lamps are Foundry's, live.
   setSpriteLight({ toSun: [-0.35, -0.5], altitudeDeg: 65, season: theSeason, faceTone: 0, direct: 0.7, lightsOn: false });
   const exterior = new Framebuffer(W, H);
-  drawGround(exterior, map, P, theSeason); drawFaces(exterior, map, P); applyShadows(exterior, occlusionMask(map, P)); drawStanding(exterior, map, P);
+  drawGround(exterior, map, P, theSeason, theStyle.street); drawFaces(exterior, map, P); applyShadows(exterior, occlusionMask(map, P)); drawStanding(exterior, map, P, theStyle.id);
   const floors = [...new Set(interiors.flatMap((b) => b.floors.map((f) => f.floor)))].sort((a, b) => a - b);
   const footprintMask = (list) => { const m = new Uint8Array(W * H); for (const b of list) { const fb = { ...b.rect, rects: b.rects, chamfers: b.chamfers }; for (let y = b.rect.y0 * P; y < (b.rect.y1 + 1) * P; y += 1) for (let x = b.rect.x0 * P; x < (b.rect.x1 + 1) * P; x += 1) if (x >= 0 && y >= 0 && x < W && y < H && inFootprint(fb, (x + 0.5) / P, (y + 0.5) / P)) m[y * W + x] = 1; } return m; };
   const copyMasked = (src, mask) => { const out = new Framebuffer(W, H); for (let k = 0; k < W * H; k += 1) if (mask[k]) { out.data.set(src.data.subarray(k * 4, k * 4 + 4), k * 4); } return out; };
@@ -194,5 +207,5 @@ export function renderBattleLayers(map, interiors, { gridPx = map.spec.gridPx, s
     floorLayers[floor] = layer;
     if (floor > 0) roofs[floor] = copyMasked(exterior, footprintMask(interiors.filter((b) => Math.max(...b.floors.map((f) => f.floor)) === floor)));
   }
-  return { native: P, scale, width: W * scale, height: H * scale, exterior, ground, roofs, floors: floorLayers, floorList: floors, season: theSeason };
+  return { native: P, scale, width: W * scale, height: H * scale, exterior, ground, roofs, floors: floorLayers, floorList: floors, season: theSeason, style: theStyle.id };
 }

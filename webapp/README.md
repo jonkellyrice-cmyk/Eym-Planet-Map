@@ -104,6 +104,36 @@ only where it stands taller than a light that reaches it on its floor:
 Not yet verified in a running Foundry v14: these walls follow the v14 data types; the behaviour has not
 been tried live.
 
+## Building styles
+
+A building style (`scripts/eym-building-styles.mjs`) is how a people builds, as numbers: a palette and a
+choice from each shared kit:
+
+| Kit | Choices |
+| --- | --- |
+| wall | timbered, brick, stone |
+| roof | tile, slate, flat |
+| windows | casement, sash |
+| chimneys | none, brick |
+| lamps | none, lantern-post, arc-lamp |
+
+A style may also map the plain street grounds to its own paving. Most peoples are a new combination of
+these kits; only the truly distinctive places will need pieces of their own. A request takes `style` (a
+style id). Without one, the server uses the style linked to the place, else the generic one. In the
+module, a dossier's "Pixel-art building style" wins over the place's. A style never changes the map, so
+the geometry fingerprint is the same whatever style is drawn.
+
+**Dree** (south Caren), magic-punk Victorian:
+
+- red-brown brick terraces in stretcher bond, with pale stone bands between floors;
+- grey slate roofs;
+- tall white sash windows under stone lintels and sills;
+- green painted doors with fanlights;
+- chimney stacks with copper pots, and copper downpipes going green;
+- granite setts on the streets;
+- iron arc-lamp posts along the streets, each a Foundry light (cold crystal light, coming on as the
+  scene darkens).
+
 ## Tier 2 rendering (`render/`)
 
 - `framebuffer.mjs`: integer RGBA pixels with pixel-art primitives (no anti-aliasing), ordered dithering,

@@ -39,7 +39,7 @@ test("dossiers: edit, archive (kept, hidden), move, delete; the stored form is c
   lib = deleteDossier(lib, "d2");
   assert.deepEqual(lib.dossiers.map((d) => d.id), ["d1"]);
   assert.throws(() => deleteDossier(lib, "nope"), /no such dossier/);
-  assert.deepEqual(normalizeLibrary({ dossiers: [{ id: 1, name: "", folderId: "gone", areas: [{ lat: "x" }] }] }).dossiers[0], { id: "1", name: "Untitled dossier", folderId: null, people: "", overview: "", materials: "", roofs: "", streets: "", defences: "", sacred: "", details: "", colours: "", archived: false, areas: [], createdAt: null, updatedAt: null });
+  assert.deepEqual(normalizeLibrary({ dossiers: [{ id: 1, name: "", folderId: "gone", areas: [{ lat: "x" }] }] }).dossiers[0], { id: "1", name: "Untitled dossier", folderId: null, people: "", overview: "", materials: "", roofs: "", streets: "", defences: "", sacred: "", details: "", colours: "", style: "", archived: false, areas: [], createdAt: null, updatedAt: null });
 });
 
 test("areas: a dossier linked to a place comes back there by itself; archived ones do not", () => {
