@@ -7,17 +7,18 @@
 //   floors[f] — each other floor: upper floors over transparency, the basement over solid dark.
 // Every texture is pinned to world pixel coordinates, so neighbouring maps join seamlessly.
 
-import { Framebuffer, rgb } from "./framebuffer.mjs";
+import { Framebuffer, bayer, rgb } from "./framebuffer.mjs";
 import { groundPixel, h2, mixc, noise, ramp } from "./materials.mjs";
 import { drawBlock, drawBuilding, drawBush, drawFeature, drawFurniture, drawRock, drawTree, setSpriteLight } from "./sprites.mjs";
 import { inFootprint } from "./footprint.mjs";
 import { applyShadows, occlusionMask } from "./light.mjs";
 import { normalizeSeason } from "../../scripts/eym-battle-season.mjs";
 import { FEATURES } from "../../scripts/eym-battle-settings.mjs";
+import { FURNITURE } from "../../scripts/eym-battle-interiors.mjs";
 import { standHeightFt } from "../../scripts/eym-battle-oblique.mjs";
 import { footprintPolygon } from "../../scripts/eym-battle-buildings.mjs";
 
-export const RENDERER = Object.freeze({ tier: 2, name: "Traditional RPG pixel art", version: "eym-pixel-t2-v3" });
+export const RENDERER = Object.freeze({ tier: 2, name: "Traditional RPG pixel art", version: "eym-pixel-t2-v4" });
 
 /** Native pixels per square and a whole-number scale that gives the scene's grid size. */
 export function pixelPlan(gridPx) {
@@ -144,7 +145,17 @@ function drawInterior(fb, map, building, floor, P) {
     const [a, b, c, d] = (wl.diag ?? (wl.dir === "e" ? [wl.x + 1, wl.y, wl.x + 1, wl.y + 1] : [wl.x, wl.y + 1, wl.x + 1, wl.y + 1])).map((v) => v * P);
     for (let t = 1; t <= 3; t += 1) for (const sgn of [-1, 1]) { const nx = a === c ? sgn * t : 0, ny = b === d ? sgn * t : 0, n = Math.max(Math.abs(c - a), Math.abs(d - b)); for (let k = 0; k <= n; k += 1) { const x = Math.round(a + ((c - a) * k) / n + nx), y = Math.round(b + ((d - b) * k) / n + ny); if (inside(x, y)) fb.tone(x, y, -0.2 + t * 0.05); } }
   }
-  for (const it of f.furniture) if (it.kind !== "rug") for (let x = Math.round(it.x * P + 1); x < Math.round((it.x + it.w) * P - 1); x += 1) for (let k = 0; k < 2; k += 1) fb.tone(x, Math.round((it.y + it.h) * P) - 1 + k, -0.22);
+  // Every piece's own shadow, at any hour: a soft dithered halo on the floor around its foot, wider and
+  // deeper the taller it stands (a chest barely, a wardrobe or a pillar plainly), darkest along its front.
+  for (const it of f.furniture) {
+    const ft = FURNITURE[it.kind]?.heightFt ?? 1; if (!(ft > 0)) continue;
+    const reach = Math.min(5, 1 + Math.round(ft / 2.5)), depth = Math.min(0.3, 0.12 + ft * 0.025), x0 = it.x * P + 2, y0 = it.y * P + 2, x1 = (it.x + it.w) * P - 2, y1 = (it.y + it.h) * P - 1;
+    for (let y = Math.floor(y0 - reach); y <= y1 + reach + 1; y += 1) for (let x = Math.floor(x0 - reach); x <= x1 + reach; x += 1) {
+      if (x >= x0 && x <= x1 && y >= y0 && y <= y1) continue; if (!inside(x, y)) continue;
+      const d = Math.hypot(Math.max(x0 - x, 0, x - x1), Math.max(y0 - y, 0, y - y1) * (y > y1 ? 0.7 : 1)); if (d > reach) continue;
+      const k = depth * (1 - d / (reach + 1)); if (k < 0.04 || (d > reach * 0.6 && bayer(x, y) > 0.5)) continue; fb.tone(x, y, -k);
+    }
+  }
   for (const it of [...f.furniture].sort((a, b) => a.y + a.h - (b.y + b.h))) drawFurniture(fb, it, P, it.x * 7 + it.y);
   const dark = rgb("#241a12"), door = rgb("#d9b77a"), glass = rgb("#9fd0f0");
   for (const wl of f.walls) {

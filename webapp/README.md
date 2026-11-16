@@ -68,7 +68,9 @@ only light and shade that are true at any hour:
   - in the shade beneath tree crowns
   - contact shadows at the foot of buildings, walls, rocks and everything standing, and at the base of cliffs
   - in window recesses
-  - indoors, along the foot of every wall and under the furniture
+  - indoors, along the foot of every wall, and around each piece of furniture: a soft contact shadow
+    that widens with the piece's height, its front darkening toward the floor, a seam under its top, and
+    the recesses of shelves, racks and wardrobe doors
 - **The season the trees and grass are in** when the map is made: spring blossom, summer leaf, autumn colours, bare winter broadleaves. Within the tropics trees stay evergreen.
 
 Lamps are not painted in. The scene comes with **Foundry lights** on the right floors:
@@ -76,7 +78,31 @@ Lamps are not painted in. The scene comes with **Foundry lights** on the right f
 - **Switch on as the scene darkens:** door lanterns, window glow at the street front, a candle in every room, and lamps in cellars.
 - **Always lit:** hearths, campfires, lava, crystals, glowing water, magic, and braziers in underground halls.
 
-Foundry handles them with its own lighting and walls.
+Foundry handles them with its own lighting and walls. Each sits at a real height on its floor: a hearth's
+fire 2 ft, a candle 4 ft (on the free square nearest the room's middle, never inside a tall piece), a
+cellar lamp 6 ft, a door lantern 7 ft.
+
+### Objects in the way of Foundry's light
+
+Foundry can only shadow a light behind an object if it knows the object is there and how tall it is.
+Every piece of furniture has a height (table 2.5 ft, chest 2, counter 3.5, crates 5, wine rack 6,
+wardrobe and shelves 7, pillar 10), and so does every standing feature outside (boulders, statues,
+pillars, carts and the rest). Foundry v14's walls have no height of their own: a wall on a Level blocks
+every light on that Level. So the scene (`scripts/eym-battle-occluders.mjs`) turns an object into walls
+only where it stands taller than a light that reaches it on its floor:
+
+- the wardrobe shadows the room's candle; the table does not, though it does shadow a hearth's low fire;
+- the walls block light, and sight too if the object is taller than eye height (6 ft); never movement
+  (the grid's terrain says how a square moves) or sound;
+- round objects get an eight-sided outline, the rest their rectangle drawn slightly in;
+- each wall carries the object's true base and top in `flags["wall-height"]` (`{bottom, top}`, feet),
+  the convention elevation-aware wall modules read, so with such a module a light above the object
+  passes over it;
+- the scene's `flags["eym-planet-map"].occluders` lists every object's footprint, level and height,
+  including those too short to shadow anything yet.
+
+Not yet verified in a running Foundry v14: these walls follow the v14 data types; the behaviour has not
+been tried live.
 
 ## Tier 2 rendering (`render/`)
 

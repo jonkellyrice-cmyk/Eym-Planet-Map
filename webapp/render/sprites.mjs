@@ -227,6 +227,23 @@ export function drawFurniture(fb, it, P, seed) {
     case "bed": drawBlock(fb, x + 2, y + 2, w - 4, h - 4, P * 0.2, "#7a5a3a", seed); fb.rect(x + 3, y + 3 - P * 0.2, w - 6, (h - 6) * 0.25, rgb("#efe8dc")); fb.rect(x + 3, y + 3 - P * 0.2 + (h - 6) * 0.3, w - 6, (h - 6) * 0.7, rgb(it.color)); return;
     case "hearth": drawBlock(fb, x + 1, y + 1, w - 2, h - 2, P * 0.5, "#8a8074", seed); fb.rect(x + w * 0.3, y + h - 2 - P * 0.35, w * 0.4, P * 0.3, rgb("#ff8a3a")); return;
     case "pillar": drawBlock(fb, x + w * 0.2, y + h * 0.2, w * 0.6, h * 0.6, P * 0.9, it.color, seed, true); return;
-    default: drawBlock(fb, x + 2, y + 2, w - 4, h - 4, ["wardrobe", "shelves", "crates", "counter", "wine-rack"].includes(it.kind) ? P * 0.55 : P * 0.2, it.color, seed);
+    default: {
+      const tall = ["wardrobe", "shelves", "crates", "counter", "wine-rack"].includes(it.kind), riseP = tall ? P * 0.55 : P * 0.2;
+      drawBlock(fb, x + 2, y + 2, w - 4, h - 4, riseP, it.color, seed);
+      furnitureShade(fb, x + 2, y + 2, w - 4, h - 4, riseP, it.kind);
+    }
   }
+}
+
+/**
+ * A piece's shading of itself, at any hour: its front darkening toward the floor (the floor and the piece
+ * shade each other there), a dark seam under the lip of its top, and the recesses of open furniture
+ * (shelves, racks: the shelf openings; a wardrobe: the gap between its doors).
+ */
+function furnitureShade(fb, x, y, w, h, riseP, kind) {
+  const top = Math.round(y + h - riseP), bottom = Math.round(y + h), left = Math.round(x), right = Math.round(x + w);
+  for (let yy = top; yy < bottom; yy += 1) { const t = (yy - top) / Math.max(1, bottom - top); if (t > 0.45) for (let xx = left; xx < right; xx += 1) fb.tone(xx, yy, -0.22 * (t - 0.45)); }
+  for (let xx = left; xx < right; xx += 1) fb.tone(xx, top, -0.18);
+  if (kind === "shelves" || kind === "wine-rack") for (let yy = top + 3; yy < bottom - 2; yy += 4) for (let xx = left + 2; xx < right - 2; xx += 1) fb.tone(xx, yy, -0.26);
+  if (kind === "wardrobe") for (let yy = top + 2; yy < bottom - 1; yy += 1) fb.tone(Math.round(x + w / 2), yy, -0.3);
 }

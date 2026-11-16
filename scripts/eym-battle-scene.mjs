@@ -12,11 +12,15 @@
 //   - Stairs: a region on every floor a stair joins, with Foundry's changeLevel behaviour.
 //   - Walls per level: outer walls with doors and windows (windows let sight and light through but not
 //     movement), inner walls with doors, palisades and ruins, and cliffs (movement only).
+//   - Objects (furniture, pillars, statues, boulders…): light-blocking walls where one stands taller than a
+//     light near it, with its true base and top in `wall-height` flags (eym-battle-occluders.mjs).
+//   - Lights: Foundry AmbientLights at sensible heights (candles 4 ft above the floor, lanterns 7 ft).
 // Pure: returns the documents to create; the app creates the Levels first, then everything else with
 // the new Levels' ids. Field names follow Foundry v14's data schemas (Level, Wall, Tile, Region).
 
 import { FEATURES, MOVE } from "./eym-battle-settings.mjs";
-import { mapFloors } from "./eym-battle-interiors.mjs";
+import { FURNITURE, mapFloors } from "./eym-battle-interiors.mjs";
+import { floorBase, occluderRecord, occluderWalls, battleOccluders } from "./eym-battle-occluders.mjs";
 
 export const OCCLUSION_VISION = 8;
 
@@ -58,10 +62,18 @@ export function battleLights(map, interiors, { gridPx = map.spec.gridPx } = {}) 
     add("lantern", dx + out_[0], dy + out_[1], "floor0", levelAt(dx, dy) + 7, "door lantern");
     if (e.dir !== "e") add("window", (b.x0 + b.x1 + 1) / 2, dy + out_[1] * 2, "floor0", levelAt(dx, dy) + 5, "window glow");
   }
+  // Inside: heights above each floor (feet): a hearth's fire 2, a candle on a stand or table 4, a cellar
+  // lamp hung at 6. A candle stands on the free square nearest its room's middle, never in a tall piece.
   for (const b of interiors) for (const f of b.floors) {
-    const key = `floor${f.floor}`, base = f.floor < 0 ? -8 : 10 * Math.max(0, f.floor);
+    const key = `floor${f.floor}`, base = (g.levelFt[Math.max(0, b.rect.y0) * columns + Math.max(0, b.rect.x0)] ?? 0) + floorBase(f.floor);
     for (const it of f.furniture) if (it.kind === "hearth") add("hearth", it.x + it.w / 2, it.y + it.h, key, base + 2, "hearth");
-    for (const r of f.rooms) add(f.floor < 0 ? "cellarLamp" : "candle", (r.x0 + r.x1 + 1) / 2, (r.y0 + r.y1 + 1) / 2, key, base + 4, f.floor < 0 ? "lamp" : "candle");
+    const tall = (x, y) => f.furniture.some((it) => (FURNITURE[it.kind]?.heightFt ?? 0) > 3 && x >= it.x && x < it.x + it.w && y >= it.y && y < it.y + it.h);
+    for (const r of f.rooms) {
+      const mx = (r.x0 + r.x1 + 1) / 2, my = (r.y0 + r.y1 + 1) / 2; let best = null;
+      for (let y = r.y0; y <= r.y1; y += 1) for (let x = r.x0; x <= r.x1; x += 1) { if (tall(x, y)) continue; const d = Math.hypot(x + 0.5 - mx, y + 0.5 - my); if (!best || d < best.d) best = { x: x + 0.5, y: y + 0.5, d }; }
+      const at = !tall(Math.floor(mx), Math.floor(my)) ? { x: mx, y: my } : best ?? { x: mx, y: my };
+      add(f.floor < 0 ? "cellarLamp" : "candle", at.x, at.y, key, base + (f.floor < 0 ? 6 : 4), f.floor < 0 ? "lamp" : "candle");
+    }
   }
   return out;
 }
@@ -152,5 +164,9 @@ export function battleScenePlan(map, interiors, { name, images, gridPx = map.spe
     regions.push({ levelKeys: keys, name: `Stairs (${b.floors.map((f) => f.name).join(" – ")})`, color: "#27ae60", shapes: [rect(b.stairs)], elevation: { bottom: null, top: null }, behaviors: [{ type: "changeLevel", name: "Stairs", system: { movementActions: MOVEMENT_ACTIONS } }], visibility: 0 });
   }
   const lights = battleLights(map, interiors, { gridPx }).filter((l) => l.levelKeys.every((k) => byFloor.has(Number(k.slice(5)))));
-  return { scene, levels, walls, tiles, regions, lights, bands };
+  // Objects in the way of those lights: light-blocking walls where an object stands taller than a light near it.
+  const occluders = battleOccluders(map, interiors).filter((o) => byFloor.has(o.floor));
+  walls.push(...occluderWalls(occluders, lights, { gridPx }));
+  scene.flags["eym-planet-map"].occluders = occluderRecord(occluders);
+  return { scene, levels, walls, tiles, regions, lights, bands, occluders };
 }

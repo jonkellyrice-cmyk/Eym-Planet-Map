@@ -14,22 +14,22 @@ import { chamferSegment, doorEdge, footprintShapes, shapeEdges } from "./eym-bat
 
 /** Furniture: footprint in squares, PF2e movement and cover, how it looks. */
 export const FURNITURE = Object.freeze({
-  table: { label: "table", size: [2, 1], move: "difficult", cover: 1, color: "#8a5e34", words: "a wooden table with stools" },
-  counter: { label: "counter", size: [3, 1], move: "impassable", cover: 2, color: "#6e4a2a", words: "a long counter" },
-  hearth: { label: "hearth", size: [2, 1], move: "hazardous", cover: 1, color: "#a8462a", hazard: "fire: 1d6 fire on entering", words: "a stone hearth with a fire" },
-  bed: { label: "bed", size: [1, 2], move: "difficult", cover: 1, color: "#9a6a8a", words: "a bed" },
-  chest: { label: "chest", size: [1, 1], move: "difficult", cover: 1, color: "#7a5532", words: "a chest" },
-  wardrobe: { label: "wardrobe", size: [1, 1], move: "impassable", cover: 2, color: "#5e4028", words: "a tall wardrobe" },
-  shelves: { label: "shelves", size: [3, 1], move: "impassable", cover: 2, color: "#6b4e30", words: "shelves of goods" },
-  barrels: { label: "barrels", size: [1, 1], move: "difficult", cover: 1, color: "#7a5532", words: "barrels" },
-  crates: { label: "crates", size: [1, 1], move: "climb", cover: 2, color: "#9a7448", words: "stacked crates" },
-  "wine-rack": { label: "wine rack", size: [2, 1], move: "impassable", cover: 2, color: "#5a2a2a", words: "racks of wine" },
-  desk: { label: "desk", size: [2, 1], move: "difficult", cover: 1, color: "#7a5a3a", words: "a writing desk" },
-  pew: { label: "pew", size: [3, 1], move: "difficult", cover: 1, color: "#6e4a2a", words: "a row of pews" },
-  altar: { label: "altar", size: [2, 1], move: "impassable", cover: 2, color: "#d8d0c0", words: "an altar" },
-  sarcophagus: { label: "sarcophagus", size: [1, 2], move: "impassable", cover: 2, color: "#a8a49a", words: "a stone sarcophagus" },
-  pillar: { label: "pillar", size: [1, 1], move: "impassable", cover: 2, color: "#9c968a", words: "a pillar" },
-  rug: { label: "rug", size: [2, 2], move: "normal", cover: 0, color: "#8a3a3a", words: "a woven rug" },
+  table: { label: "table", size: [2, 1], heightFt: 2.5, move: "difficult", cover: 1, color: "#8a5e34", words: "a wooden table with stools" },
+  counter: { label: "counter", size: [3, 1], heightFt: 3.5, move: "impassable", cover: 2, color: "#6e4a2a", words: "a long counter" },
+  hearth: { label: "hearth", size: [2, 1], heightFt: 4, move: "hazardous", cover: 1, color: "#a8462a", hazard: "fire: 1d6 fire on entering", words: "a stone hearth with a fire" },
+  bed: { label: "bed", size: [1, 2], heightFt: 2, move: "difficult", cover: 1, color: "#9a6a8a", words: "a bed" },
+  chest: { label: "chest", size: [1, 1], heightFt: 2, move: "difficult", cover: 1, color: "#7a5532", words: "a chest" },
+  wardrobe: { label: "wardrobe", size: [1, 1], heightFt: 7, move: "impassable", cover: 2, color: "#5e4028", words: "a tall wardrobe" },
+  shelves: { label: "shelves", size: [3, 1], heightFt: 7, move: "impassable", cover: 2, color: "#6b4e30", words: "shelves of goods" },
+  barrels: { label: "barrels", size: [1, 1], heightFt: 3.5, move: "difficult", cover: 1, color: "#7a5532", words: "barrels" },
+  crates: { label: "crates", size: [1, 1], heightFt: 5, move: "climb", cover: 2, color: "#9a7448", words: "stacked crates" },
+  "wine-rack": { label: "wine rack", size: [2, 1], heightFt: 6, move: "impassable", cover: 2, color: "#5a2a2a", words: "racks of wine" },
+  desk: { label: "desk", size: [2, 1], heightFt: 2.5, move: "difficult", cover: 1, color: "#7a5a3a", words: "a writing desk" },
+  pew: { label: "pew", size: [3, 1], heightFt: 3, move: "difficult", cover: 1, color: "#6e4a2a", words: "a row of pews" },
+  altar: { label: "altar", size: [2, 1], heightFt: 3.5, move: "impassable", cover: 2, color: "#d8d0c0", words: "an altar" },
+  sarcophagus: { label: "sarcophagus", size: [1, 2], heightFt: 3, move: "impassable", cover: 2, color: "#a8a49a", words: "a stone sarcophagus" },
+  pillar: { label: "pillar", size: [1, 1], heightFt: 10, move: "impassable", cover: 2, color: "#9c968a", words: "a pillar" },
+  rug: { label: "rug", size: [2, 2], heightFt: 0, move: "normal", cover: 0, color: "#8a3a3a", words: "a woven rug" },
 });
 
 /** What each kind of room holds (picked in order, as many as fit). */

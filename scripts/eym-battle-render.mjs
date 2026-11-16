@@ -10,6 +10,7 @@ import { FEATURES, MOVE, SETTINGS } from "./eym-battle-settings.mjs";
 import { footprintPolygon } from "./eym-battle-buildings.mjs";
 import { NEUTRAL_LIGHT, seasonWords } from "./eym-battle-season.mjs";
 import { battleLights } from "./eym-battle-scene.mjs";
+import { battleOccluders, occluderRecord, occluderWalls } from "./eym-battle-occluders.mjs";
 import { obliqueBoulder, obliqueShapedBuilding, obliqueBush, obliqueFaces, obliqueFeature, obliqueTree, standHeightFt } from "./eym-battle-oblique.mjs";
 
 const GROUND_COLORS = Object.freeze({
@@ -284,11 +285,13 @@ export function battleSceneData(map, { name, imagePath, gridPx = map.spec.gridPx
     ...[...new Set(map.grid.levelFt)].filter((v) => v !== 0 && v > -60).sort((a, b) => a - b).map((v) => region(`Ground at ${v > 0 ? "+" : ""}${v} ft`, v > 0 ? "#9b51e0" : "#56ccf2", (i) => map.grid.levelFt[i] === v && !map.grid.void[i] && map.grid.move[i] !== MOVE.swim, null)),
     ...(map.traps ?? []).map((t) => ({ name: `Hidden trap: ${FEATURES[t.kind].label}`, color: "#d0342c", shapes: [{ type: "rectangle", x: px(t.x), y: px(t.y), width: px(t.w), height: px(t.h), rotation: 0, hole: false }], behaviors: [], visibility: 0, flags: { "eym-planet-map": { trap: t.hazard } } })),
   ].filter(Boolean);
+  // Lights, and the objects standing taller than a light near them (light-blocking walls with their heights).
+  const lights = battleLights(map, [], { gridPx }), occluders = battleOccluders(map, []);
   return {
     name, width: W, height: H, padding: 0, backgroundColor: "#000000",
     background: { src: imagePath }, grid: { type: 1, size: gridPx, distance: 5, units: "ft" },
     environment: { darknessLevel: map.underground ? (map.dimLight ? 0.6 : 1) : darkness, globalLight: { enabled: !map.underground && darkness < 0.5 } }, darkness: map.underground ? (map.dimLight ? 0.6 : 1) : darkness, weather: map.underground ? "" : weather,
-    tokenVision: true, walls, regions, lights: battleLights(map, [], { gridPx }).map(({ levelKeys, ...l }) => l),
-    flags: { "eym-planet-map": { battle: { version: map.version, key: map.key, setting: map.setting, center: map.center, spec: { columns, rows, gridPx }, analysis: map.analysis, notes, extras: (map.extras ?? []).map((e) => e.id), traps: (map.traps ?? []).map((t) => ({ kind: t.kind, x: t.x, y: t.y, hazard: t.hazard })) } } },
+    tokenVision: true, walls: [...walls, ...occluderWalls(occluders, lights, { gridPx }).map(({ levelKeys, ...w }) => w)], regions, lights: lights.map(({ levelKeys, ...l }) => l),
+    flags: { "eym-planet-map": { battle: { version: map.version, key: map.key, setting: map.setting, center: map.center, spec: { columns, rows, gridPx }, analysis: map.analysis, notes, extras: (map.extras ?? []).map((e) => e.id), traps: (map.traps ?? []).map((t) => ({ kind: t.kind, x: t.x, y: t.y, hazard: t.hazard })) }, occluders: occluderRecord(occluders) } },
   };
 }

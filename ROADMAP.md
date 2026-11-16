@@ -71,5 +71,5 @@ Battle maps can be drawn without AI, deterministically, by the map server (`weba
 | 4 | Volumetric pixel art (KOF XIII-inspired richness in the fixed three-quarter view) | Planned |
 | 5 | Artist-quality procedural pixel art: architectural identities, organic irregularity, environmental storytelling, composition-aware choices | Planned |
 
-Done in Tier 2: object-own shadows and season in the art; lamps as Foundry lights (time-of-day light is Foundry's, live). Next for Tier 2: dedicated sprites for the remaining features (now shaded blocks), animated water and fire frames, autotiled transitions between specific grounds, and per-architecture-dossier palettes and wall materials.
+Done in Tier 2: object-own shadows and season in the art; lamps as Foundry lights (time-of-day light is Foundry's, live); objects encoded with their heights so Foundry's lights cast their shadows (light-blocking walls with `wall-height` flags, since v14 walls have no height of their own); furniture shading of its own. Next for Tier 2: dedicated sprites for the remaining features (now shaded blocks), animated water and fire frames, autotiled transitions between specific grounds, and per-architecture-dossier palettes and wall materials.
 
