@@ -31,6 +31,9 @@ import { SkyView } from "./sky-view.mjs";
 import { mansionForDirection, sunPathLongitudeDeg } from "./lunar-mansions.mjs";
 import { phaseName } from "./moon-events.mjs";
 import { buildLocalTile, localDetailLayout, localDetailOverlaySvg, tileRgba } from "./eym-local-detail.mjs";
+import { DEFAULT_IMAGE_BASE_URL, checkBaseUrl, paintMap } from "./eym-image-provider.mjs";
+import { CANON_SETTING, activeCanon, canonAbove, canonEntry, canonFolder, canonFor, frameRecord, mergeCanon, parentDirection, textHash } from "./eym-canon.mjs";
+import { canonList, paintingSettings } from "./eym-paint-settings.mjs";
 
 export const MODULE_ID = "eym-planet-map";
 /** The only system this module exposes. Its name must match the `system` column of the registry CSV. */
@@ -350,6 +353,15 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     root.querySelector('[data-action="atlas-download-labels"]')?.addEventListener("click", download("labelSvgBlob", "-names.svg"));
     root.querySelector('[data-action="atlas-download-packet"]')?.addEventListener("click", download("packetBlob", "-packet.md"));
     root.querySelector('[data-action="atlas-download-detail"]')?.addEventListener("click", download("detailPng", "-ground.png"));
+    root.querySelector('[data-action="atlas-download-painted"]')?.addEventListener("click", download("paintedPng", "-painted.png"));
+    // Painting is for the GM: players never see the controls, and the key lives only in the GM's browser.
+    root.classList.toggle("is-player", !game.user?.isGM);
+    const guard = (label, task) => () => void task().catch((error) => { console.error(`${MODULE_ID} | ${label}`, error); this.#paintStatus(`${label}: ${error.message}`); ui.notifications.error(`${label}: ${error.message}`); }).finally(() => root.querySelector(".oscm-atlas-paint")?.classList.remove("is-busy"));
+    root.querySelector('[data-action="atlas-paint"]')?.addEventListener("click", guard("Unable to paint the map", () => this.#paintAtlasMap()));
+    root.querySelector('[data-action="atlas-save-canon"]')?.addEventListener("click", guard("Unable to save the painted map", () => this.#saveCanonMap()));
+    root.querySelector('[data-action="atlas-image-settings"]')?.addEventListener("click", guard("Image generator settings", () => this.#editImageSettings()));
+    root.querySelector('[data-action="atlas-open-canon"]')?.addEventListener("click", guard("Unable to open the canon map", () => this.#openCanonMap(root.querySelector('[name="atlasCanon"]')?.value)));
+    this.#refreshCanonList();
     root.querySelector('[data-action="atlas-copy-prompt"]')?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(this._atlasResult?.prompt ?? ""); ui.notifications.info("Prompt copied."); } catch { ui.notifications.warn("Could not copy; download the packet instead."); } });
   }
 
@@ -384,10 +396,119 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this._atlasResult = { basePng, labelledPng, detailPng, labelSvgBlob: new Blob([map.labelSvg], { type: "image/svg+xml" }), packetBlob: new Blob([packet.markdown], { type: "text/markdown" }), prompt: packet.prompt, urls: Object.values(urls), previews: urls, fileStem };
     root.querySelector("[data-atlas-title]").textContent = title;
     root.querySelector("[data-atlas-result-summary]").textContent = `${spec.summary} · ${map.features.length} named features`;
+    this._atlasMap = { map, spec, packet, title, continentId: spec.level === "continent" ? continentId : null, referenceHash: textHash(map.baseSvg) };
+    this.#showPainted(null);
+    const canon = canonFor(canonList(MODULE_ID), { level: spec.level, continentId: this._atlasMap.continentId, frame: frameRecord(map.frame) });
+    if (canon) this.#showCanonEntry(canon, { changed: canon.referenceHash !== this._atlasMap.referenceHash });
+    else this.#paintStatus(game.user?.isGM ? "Not painted yet." : "");
     root.querySelector('[data-atlas-view="detail"]')?.classList.toggle("is-hidden", !detailPng);
     root.querySelector('[data-action="atlas-download-detail"]')?.classList.toggle("is-hidden", !detailPng);
     root.querySelector("[data-atlas-result]")?.classList.remove("is-hidden");
-    this.#showAtlasView(detailPng ? "detail" : "labelled");
+    this.#showAtlasView(this._atlasResult.previews.painted ? "painted" : detailPng ? "detail" : "labelled");
+  }
+
+  #paintStatus(text) { const node = this.element?.querySelector?.("[data-atlas-paint-status]"); if (node) node.textContent = text ?? ""; }
+
+  /** Show (or with null, hide) a painted version in the result panel; `urls` are {painted, paintedBare}. */
+  #showPainted(painted) {
+    const root = this.element?.querySelector?.(".oscm-shell"); if (!root || !this._atlasResult) return;
+    for (const url of this._atlasResult.paintedUrls ?? []) URL.revokeObjectURL(url);
+    Object.assign(this._atlasResult, { paintedPng: painted?.png ?? null, paintedLabelledPng: painted?.labelledPng ?? null, paintedUrls: painted?.ownedUrls ?? [], fresh: painted?.fresh ?? false });
+    Object.assign(this._atlasResult.previews, { painted: painted?.urls?.painted, paintedBare: painted?.urls?.paintedBare });
+    for (const view of ["painted", "paintedBare"]) root.querySelector(`[data-atlas-view="${view}"]`)?.classList.toggle("is-hidden", !painted);
+    root.querySelector('[data-action="atlas-download-painted"]')?.classList.toggle("is-hidden", !painted?.png);
+    root.querySelector('[data-action="atlas-save-canon"]')?.classList.toggle("is-hidden", !painted?.fresh);
+    if (painted) this.#showAtlasView("painted");
+  }
+
+  /** Paint the current reference map with the configured image model (GM only). */
+  async #paintAtlasMap() {
+    if (!game.user?.isGM) throw new Error("only the GM can paint maps");
+    const current = this._atlasMap, result = this._atlasResult; if (!current || !result) throw new Error("make a reference map first");
+    let settings = paintingSettings(MODULE_ID);
+    if (!settings.apiKey) { await this.#editImageSettings(); settings = paintingSettings(MODULE_ID); if (!settings.apiKey) return; }
+    const { spec, map, packet } = current, images = [{ blob: result.basePng, name: "reference.png" }];
+    let prompt = packet.prompt;
+    const parent = canonAbove(canonList(MODULE_ID), map.frame);
+    if (parent) {
+      const crop = await cropImage(parent.entry.files.painted, parent.crop, parent.entry.frame.W, spec.widthPx, spec.heightPx).catch(() => null);
+      if (crop) { images.push({ blob: crop, name: "painted-parent.png" }); prompt = `${prompt}\n\n${parentDirection(parent)}`; }
+    }
+    this.element?.querySelector(".oscm-atlas-paint")?.classList.add("is-busy");
+    this.#paintStatus(`Painting with ${settings.model}${images.length > 1 ? `, in the style of the canon ${parent.entry.level} map` : ""}… (this can take a minute)`);
+    const painted = await paintMap({ ...settings, prompt, images, width: spec.widthPx, height: spec.heightPx });
+    const png = await scaleImageBlob(painted.blob, spec.widthPx, spec.heightPx), labelledPng = await layerSvg(png, map.labelSvg, spec.widthPx, spec.heightPx);
+    const urls = { painted: URL.createObjectURL(labelledPng), paintedBare: URL.createObjectURL(png) };
+    this._atlasPaint = { model: settings.model, quality: settings.quality, prompt, parentId: parent?.entry.id ?? null };
+    this.#showPainted({ png, labelledPng, urls, ownedUrls: Object.values(urls), fresh: true });
+    this.#paintStatus(`Painted by ${settings.model} (asked for ${painted.size}, scaled to ${spec.widthPx}×${spec.heightPx}). Save it as canon to keep it.`);
+  }
+
+  /** Upload the painted map and its companions to the world's folder and add it to the canon. */
+  async #saveCanonMap() {
+    if (!game.user?.isGM) throw new Error("only the GM can change the canon");
+    const current = this._atlasMap, result = this._atlasResult; if (!current || !result?.paintedPng || !result.fresh) throw new Error("paint the map first");
+    const FP = foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
+    if (!FP?.upload) throw new Error("this Foundry has no file upload");
+    const worldId = game.world?.id ?? "world", folder = `${canonFolder(worldId)}/${current.spec.level}`;
+    for (const dir of [canonFolder(worldId), folder]) { try { await FP.createDirectory("data", dir, {}); } catch { /* already there */ } }
+    const stem = `${result.fileStem}-${current.referenceHash.slice(0, 8)}-${Date.now().toString(36)}`;
+    const upload = async (blob, suffix) => { const file = new File([blob], `${stem}${suffix}`, { type: blob.type || "application/octet-stream" }); const answer = await FP.upload("data", folder, file, {}, { notify: false }); if (!answer?.path && answer?.status !== "success") throw new Error(`upload of ${file.name} failed`); return answer.path ?? `${folder}/${file.name}`; };
+    const files = { painted: await upload(result.paintedPng, "-painted.png"), labelled: await upload(result.paintedLabelledPng, "-painted-names.png"), labels: await upload(result.labelSvgBlob, "-names.svg"), reference: await upload(result.basePng, "-reference.png"), packet: await upload(result.packetBlob, "-packet.md") };
+    const id = foundry.utils?.randomID?.() ?? `eym${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+    const entry = canonEntry({ id, title: current.title, spec: current.spec, frame: current.map.frame, continentId: current.continentId, files, model: this._atlasPaint?.model, quality: this._atlasPaint?.quality, prompt: this._atlasPaint?.prompt, referenceHash: current.referenceHash, userId: game.user?.id ?? null, createdAt: new Date().toISOString() });
+    if (this._atlasPaint?.parentId) entry.parentId = this._atlasPaint.parentId;
+    await game.settings.set(MODULE_ID, CANON_SETTING, mergeCanon(canonList(MODULE_ID), entry));
+    result.fresh = false; this.element?.querySelector('[data-action="atlas-save-canon"]')?.classList.add("is-hidden");
+    this.#refreshCanonList(id);
+    this.#paintStatus(`Saved as canon: ${files.painted}`); ui.notifications.info(`"${current.title}" is now the canon ${current.spec.level} map.`);
+  }
+
+  /** Show a canon entry's saved files in the result panel. */
+  #showCanonEntry(entry, { changed = false } = {}) {
+    this.#showPainted({ urls: { painted: entry.files.labelled, paintedBare: entry.files.painted }, fresh: false });
+    this.#paintStatus(`Canon painting from ${entry.createdAt.slice(0, 10)} (${entry.model ?? "unknown model"}).${changed ? " The reference has changed since it was painted; paint again to update it." : ""}`);
+  }
+
+  /** Open a canon map by id: rebuild its reference map (same level and place) and show its painting. */
+  async #openCanonMap(id) {
+    const entry = activeCanon(canonList(MODULE_ID)).find((e) => e.id === id); if (!entry) throw new Error("choose a canon map");
+    const root = this.element?.querySelector?.(".oscm-shell"), set = (name, value) => { const el = root?.querySelector(`[name="${name}"]`); if (el) el.value = value; };
+    set("atlasLevel", entry.level); if (entry.continentId) set("atlasContinent", entry.continentId);
+    set("atlasImage", "custom"); set("atlasWidth", entry.spec.widthPx); set("atlasHeight", entry.spec.heightPx);
+    if (["region", "local"].includes(entry.level)) { set("atlasMiles", Math.round(entry.frame.kmPerPx * entry.frame.W / 1.609344 * 1000) / 1000); set("lookUpLat", entry.frame.center[0]); set("lookUpLon", entry.frame.center[1]); }
+    await this.#buildAtlasMap();
+  }
+
+  /** Fill the canon list in the atlas card (newest first). */
+  #refreshCanonList(selected = null) {
+    const select = this.element?.querySelector?.('[name="atlasCanon"]'); if (!select) return;
+    const entries = activeCanon(canonList(MODULE_ID)).slice().reverse();
+    select.replaceChildren(...(entries.length ? entries.map((e) => Object.assign(document.createElement("option"), { value: e.id, textContent: `${e.title} (${e.level})`, selected: e.id === selected })) : [Object.assign(document.createElement("option"), { value: "", textContent: "None yet" })]));
+    this.element?.querySelector('[data-action="atlas-open-canon"]')?.toggleAttribute("disabled", !entries.length);
+  }
+
+  /** The GM's image generator key and server, kept in this browser only. */
+  async #editImageSettings() {
+    if (!game.user?.isGM) throw new Error("only the GM sets the image generator");
+    const current = paintingSettings(MODULE_ID), Dialog = foundry.applications?.api?.DialogV2;
+    if (!Dialog?.wait) throw new Error("this Foundry has no dialog support");
+    const escape = (text) => String(text).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+    const content = `<p>The key is kept in this browser only. It is never saved to the world or shown to players, and it is sent only to the server address below.</p>
+      <div class="form-group"><label>API key</label><input type="password" name="apiKey" autocomplete="off" placeholder="${current.apiKey ? "A key is set (leave blank to keep it)" : "Paste your key"}"></div>
+      <div class="form-group"><label>Server address</label><input type="text" name="baseUrl" value="${escape(current.baseUrl)}"></div>
+      <p class="hint">OpenAI: ${DEFAULT_IMAGE_BASE_URL}. A local or VPC server that speaks the same API works too. Model and quality are in Configure Settings.</p>`;
+    const answer = await Dialog.wait({ window: { title: "Image generator" }, content, rejectClose: false, buttons: [
+      { action: "save", label: "Save", default: true, callback: (event, button) => ({ action: "save", apiKey: button.form.elements.apiKey.value.trim(), baseUrl: button.form.elements.baseUrl.value.trim() }) },
+      { action: "clear", label: "Forget the key", callback: () => ({ action: "clear" }) },
+      { action: "cancel", label: "Cancel" },
+    ] });
+    if (answer?.action === "clear") { await game.settings.set(MODULE_ID, "imageApiKey", ""); this.#paintStatus("The key was removed from this browser."); return; }
+    if (answer?.action !== "save") return;
+    const base = checkBaseUrl(answer.baseUrl || DEFAULT_IMAGE_BASE_URL); if (!base.ok) throw new Error(`server address: ${base.reason}`);
+    await game.settings.set(MODULE_ID, "imageBaseUrl", base.url);
+    if (answer.apiKey) await game.settings.set(MODULE_ID, "imageApiKey", answer.apiKey);
+    this.#paintStatus(paintingSettings(MODULE_ID).apiKey ? "Image generator ready." : "No key set yet.");
   }
 
   #showAtlasView(view) {
@@ -781,6 +902,35 @@ async function detailToPng(tile, layout, width, height, svgLayers) {
     try { const image = new Image(); await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = () => reject(new Error("the detail layer could not be drawn")); image.src = url; }); context.drawImage(image, 0, 0, width, height); } finally { URL.revokeObjectURL(url); }
   }
   return await new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("PNG encoding failed"))), "image/png"));
+}
+
+/** Load an image (URL or Blob). */
+async function loadImage(source) {
+  const url = typeof source === "string" ? source : URL.createObjectURL(source);
+  try { const image = new Image(); image.decoding = "async"; await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = () => reject(new Error("an image could not be loaded")); image.src = url; }); return image; }
+  finally { if (typeof source !== "string") setTimeout(() => URL.revokeObjectURL(url), 0); }
+}
+const canvasPng = (canvas) => new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("PNG encoding failed"))), "image/png"));
+
+/** Scale a painted image to the map's exact size (the model paints at its own native sizes). */
+async function scaleImageBlob(blob, width, height) {
+  const image = await loadImage(blob), canvas = Object.assign(document.createElement("canvas"), { width, height }), context = canvas.getContext("2d");
+  context.imageSmoothingQuality = "high"; context.drawImage(image, 0, 0, width, height); return canvasPng(canvas);
+}
+
+/** A PNG with an SVG layer (the names) drawn over it. */
+async function layerSvg(pngBlob, svgText, width, height) {
+  const canvas = Object.assign(document.createElement("canvas"), { width, height }), context = canvas.getContext("2d");
+  context.drawImage(await loadImage(pngBlob), 0, 0, width, height);
+  context.drawImage(await loadImage(new Blob([svgText], { type: "image/svg+xml" })), 0, 0, width, height);
+  return canvasPng(canvas);
+}
+
+/** The part of a saved painting (by path) that a smaller map covers, at that map's size. */
+async function cropImage(path, crop, parentWidth, width, height) {
+  const image = await loadImage(path), scale = image.naturalWidth / parentWidth, canvas = Object.assign(document.createElement("canvas"), { width, height });
+  canvas.getContext("2d").drawImage(image, crop.x * scale, crop.y * scale, crop.w * scale, crop.h * scale, 0, 0, width, height);
+  return canvasPng(canvas);
 }
 
 /** Offer a blob as a download. */
