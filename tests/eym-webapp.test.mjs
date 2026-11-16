@@ -80,6 +80,9 @@ test("the server: validates requests, renders, caches, serves the layers and the
     const t = Date.now(), second = await (await fetch(`${base}/api/battle-maps`, { method: "POST", headers: { "content-type": "application/json" }, body })).json();
     assert.equal(second.id, first.id); assert.ok(Date.now() - t < 1500, "a repeat comes from the cache");
     assert.equal((await fetch(`${base}/api/battle-maps/../../etc/files/x.png`)).status, 404);
+    // Native size on request (the module enlarges it itself); full size is the native enlarged.
+    const native = decode(Buffer.from(await (await fetch(`${base}/api/battle-maps/${first.id}/files/${first.files.ground}?size=native`)).arrayBuffer()));
+    assert.equal(native.width * first.scale, 15 * 70);
     const pre = await fetch(`${base}/api/battle-maps`, { method: "OPTIONS", headers: { origin: "https://forge.example", "access-control-request-private-network": "true" } });
     assert.equal(pre.headers.get("access-control-allow-private-network"), "true");
   } finally { server.close(); rmSync(cacheDir, { recursive: true, force: true }); }
@@ -92,4 +95,29 @@ test("the module renders on the server only if the server built the same map", (
   assert.match(read("templates/cluster-map.hbs"), /data-action="battle-render-server"/);
   assert.match(read("scripts/main.mjs"), /registerMapServerSettings\(MODULE_ID\)/);
   assert.equal(geometryHash(buildBattleMap(asset, { center, spec })), geometryHash(map));
+});
+
+test("a server that never saw a map rebuilds it from its id alone (as a cold Vercel instance must)", async () => {
+  const a = mkdtempSync(join(tmpdir(), "eym-a-")), b = mkdtempSync(join(tmpdir(), "eym-b-"));
+  const one = createMapServer({ asset, cacheDir: a }), two = createMapServer({ asset, cacheDir: b });
+  await new Promise((r) => one.listen(0, "127.0.0.1", r)); await new Promise((r) => two.listen(0, "127.0.0.1", r));
+  try {
+    const m = await (await fetch(`http://127.0.0.1:${one.address().port}/api/battle-maps`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ center, columns: 12, rows: 10, gridPx: 70, setting: "urban", style: "dree" }) })).json();
+    const other = `http://127.0.0.1:${two.address().port}/api/battle-maps/${m.id}`;
+    const again = await (await fetch(other)).json();
+    assert.equal(again.geometryHash, m.geometryHash); assert.equal(again.id, m.id);
+    const f1 = Buffer.from(await (await fetch(`http://127.0.0.1:${one.address().port}/api/battle-maps/${m.id}/files/${m.files.exterior}?size=native`)).arrayBuffer());
+    const f2 = Buffer.from(await (await fetch(`${other}/files/${m.files.exterior}?size=native`)).arrayBuffer());
+    assert.ok(f1.equals(f2), "the same pixels from either server");
+    assert.equal((await fetch(`${other.replace(/\.r[A-Za-z0-9_-]+$/, ".rnotarequest")}`)).status, 404);
+  } finally { one.close(); two.close(); rmSync(a, { recursive: true, force: true }); rmSync(b, { recursive: true, force: true }); }
+});
+
+test("deployable on Vercel: one function for /api, the page as static files, the world data bundled", () => {
+  const config = JSON.parse(read("vercel.json"));
+  assert.equal(config.outputDirectory, "webapp/public");
+  assert.deepEqual(config.rewrites, [{ source: "/api/:path*", destination: "/api/map-server" }]);
+  assert.match(config.functions["api/map-server.mjs"].includeFiles, /eventide\.json/);
+  assert.match(read("api/map-server.mjs"), /createMapHandler/);
+  assert.match(read("scripts/cluster-map-app.mjs"), /size=native/);
 });

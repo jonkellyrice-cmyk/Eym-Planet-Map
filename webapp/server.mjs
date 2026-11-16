@@ -2,7 +2,10 @@
 // deterministic map the Foundry module builds, caches the results on disk, and serves them to the
 // module's "Render pixel art" button and to its own web page. No dependencies beyond Node.
 //
-//   PORT (8787), HOST (127.0.0.1), CACHE_DIR (webapp/cache), CORS_ORIGINS ("*" or a comma list)
+//   PORT (8787), HOST (127.0.0.1), CACHE_DIR (webapp/cache; /tmp on Vercel), CORS_ORIGINS ("*" or a comma list)
+//   Runs as a Node server (npm run webapp) or as one Vercel function (api/map-server.mjs, vercel.json).
+//   Layers are stored at their native pixel size and enlarged on request (?size=native for the native
+//   file); every id carries the request that made it, so any instance can rebuild a map it never saw.
 //   GET  /                         the web page
 //   GET  /api/health               renderer and tiers
 //   GET  /api/options              settings, sizes, densities, features, settlements (for the page)
@@ -22,7 +25,8 @@ import { BATTLE_SIZE_PRESETS, GRID_DENSITY_PRESETS, battleMapSpec } from "../scr
 import { RENDERER, renderBattleLayers } from "./render/render-battle.mjs";
 import { normalizeSeason } from "../scripts/eym-battle-season.mjs";
 import { BUILDING_STYLES, styleForPlace } from "../scripts/eym-building-styles.mjs";
-import { encodePng } from "./render/png.mjs";
+import { decodePng, encodePng } from "./render/png.mjs";
+import { Framebuffer } from "./render/framebuffer.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const hashText = (text) => { let a = 2166136261, b = 5381; for (let i = 0; i < text.length; i += 1) { const c = text.charCodeAt(i); a = Math.imul(a ^ c, 16777619); b = (Math.imul(b, 33) + c) | 0; } return (a >>> 0).toString(16).padStart(8, "0") + (b >>> 0).toString(16).padStart(8, "0"); };
@@ -56,22 +60,44 @@ export function parseRequest(body) {
   // overhanging upper floors, skybridges, lifts), so the module sends the one it built its map with.
   if (body.style != null && body.style !== "" && !BUILDING_STYLES[body.style]) throw new Error("unknown building style");
   const style = body.style || styleForPlace(center[0], center[1]);
-  return { center, spec, setting, extras, conditions, tier, season, style };
+  // The request in a fixed, minimal form: what an id carries, so the map can be rebuilt from the id alone.
+  const wire = { center, columns, rows, gridPx, setting, extras, conditions, tier, season, style };
+  return { center, spec, setting, extras, conditions, tier, season, style, wire };
+}
+
+const b64url = (text) => Buffer.from(text, "utf8").toString("base64url");
+/** A map's id: readable, then the request itself (so the id alone rebuilds the map). */
+export function idFor(request, geometry, renderer = RENDERERS[request.tier]) {
+  return `${geometry}-t${request.tier}-${request.spec.gridPx}-${request.season}-${request.style}-${renderer.info.version}`.replace(/[^a-z0-9-]/gi, "_") + `.r${b64url(JSON.stringify(request.wire))}`;
+}
+/** The request an id carries, validated again; null if it carries none. */
+export function requestFromId(id) {
+  const m = /\.r([A-Za-z0-9_-]+)$/.exec(id); if (!m) return null;
+  try { return parseRequest(JSON.parse(Buffer.from(m[1], "base64url").toString("utf8"))); } catch { return null; }
+}
+const dirFor = (cacheDir, id) => join(cacheDir, hashText(id));
+
+/** A layer at full size: the native file enlarged by the manifest's scale (each pixel a block), cached. */
+function fullSize(dir, name, scale) {
+  const full = join(dir, `full-${name}`); if (existsSync(full)) return readFileSync(full);
+  const native = decodePng(readFileSync(join(dir, name))), fb = new Framebuffer(native.width, native.height); fb.data.set(native.data);
+  const png = encodePng(fb.upscale(scale)); writeFileSync(full, png); return png;
 }
 
 /** Render a request (or return the cached render). Returns the manifest. */
 export async function renderRequest(asset, request, cacheDir) {
   // A repeat of the same request goes straight to its cached render, without rebuilding the map.
   const { tier } = request, renderer = RENDERERS[tier], requestKey = hashText(`${JSON.stringify(request)}|${renderer.info.version}`), indexPath = join(cacheDir, "requests", `${requestKey}.json`);
-  if (existsSync(indexPath)) { const { id } = JSON.parse(readFileSync(indexPath, "utf8")), cached = join(cacheDir, id, "manifest.json"); if (existsSync(cached)) return JSON.parse(readFileSync(cached, "utf8")); }
+  if (existsSync(indexPath)) { const { id } = JSON.parse(readFileSync(indexPath, "utf8")), cached = join(dirFor(cacheDir, id), "manifest.json"); if (existsSync(cached)) return JSON.parse(readFileSync(cached, "utf8")); }
   const { style } = request, map = buildBattleMap(asset, request), geometry = geometryHash(map), lightKey = request.season;
-  const id = `${geometry}-t${tier}-${request.spec.gridPx}-${lightKey}-${style}-${renderer.info.version}`.replace(/[^a-z0-9.-]/gi, "_"), dir = join(cacheDir, id), manifestPath = join(dir, "manifest.json");
+  const id = idFor(request, geometry, renderer), dir = dirFor(cacheDir, id), manifestPath = join(dir, "manifest.json");
   const remember = () => { mkdirSync(join(cacheDir, "requests"), { recursive: true }); writeFileSync(indexPath, JSON.stringify({ id })); };
   if (existsSync(manifestPath)) { remember(); return JSON.parse(readFileSync(manifestPath, "utf8")); }
   const interiors = buildInteriors(map), layers = renderer.render(map, interiors, { gridPx: request.spec.gridPx, season: request.season, style });
   mkdirSync(dir, { recursive: true });
-  const save = (name, fb, scale = layers.scale) => { writeFileSync(join(dir, name), encodePng(fb.upscale(scale))); return name; };
-  const files = { exterior: save("exterior.png", layers.exterior), ground: save("ground.png", layers.ground), preview: save("preview.png", layers.exterior, 1), roofs: {}, floors: {} };
+  // Native size only (small and quick); the full size is made when someone asks for it.
+  const save = (name, fb) => { writeFileSync(join(dir, name), encodePng(fb)); return name; };
+  const files = { exterior: save("exterior.png", layers.exterior), ground: save("ground.png", layers.ground), preview: "exterior.png", roofs: {}, floors: {} };
   for (const [floor, fb] of Object.entries(layers.roofs)) files.roofs[floor] = save(`roofs-${floor}.png`, fb);
   for (const [floor, fb] of Object.entries(layers.floors)) files.floors[floor] = save(`floor-${floor}.png`, fb);
   const manifest = {
@@ -83,15 +109,18 @@ export async function renderRequest(asset, request, cacheDir) {
   return manifest;
 }
 
-/** The web server. */
-export function createMapServer({ asset, cacheDir = join(HERE, "cache"), corsOrigins = "*" } = {}) {
+/** The web server (a Node http server around the request handler). */
+export function createMapServer(options = {}) { return createServer(createMapHandler(options)); }
+
+/** The request handler: (req, res), for a Node server or a Vercel function. */
+export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (process.env.VERCEL ? "/tmp/eym-map-cache" : join(HERE, "cache")), corsOrigins = process.env.CORS_ORIGINS ?? "*" } = {}) {
   const data = asset ?? JSON.parse(readFileSync(join(HERE, "..", "data", "planet-cartography", "abydos", "eventide.json"), "utf8"));
   mkdirSync(cacheDir, { recursive: true });
   const allowed = corsOrigins === "*" ? null : new Set(String(corsOrigins).split(",").map((s) => s.trim()).filter(Boolean));
   const inflight = new Map();
   let queue = Promise.resolve();
   const send = (res, status, body, type = "application/json") => { res.writeHead(status, { "content-type": type, "cache-control": type === "image/png" ? "public, max-age=31536000, immutable" : "no-store" }); res.end(type === "application/json" ? JSON.stringify(body) : body); };
-  return createServer(async (req, res) => {
+  return async (req, res) => {
     const origin = req.headers.origin;
     if (origin && (!allowed || allowed.has(origin))) { res.setHeader("access-control-allow-origin", allowed ? origin : "*"); res.setHeader("access-control-allow-headers", "content-type"); res.setHeader("access-control-allow-methods", "GET, POST, OPTIONS"); res.setHeader("vary", "origin");
       // Let a Foundry page on the internet reach a map server on this machine or the local network (Chrome's Private Network Access).
@@ -117,23 +146,31 @@ export function createMapServer({ asset, cacheDir = join(HERE, "cache"), corsOri
         const manifest = await inflight.get(key);
         return send(res, 200, manifest);
       }
-      const m = /^\/api\/battle-maps\/([A-Za-z0-9._-]+)(?:\/files\/([A-Za-z0-9._-]+\.png))?$/.exec(path);
+      const m = /^\/api\/battle-maps\/([A-Za-z0-9._-]+)(?:\/files\/([A-Za-z0-9-]+\.png))?$/.exec(path);
       if (req.method === "GET" && m) {
-        const dir = join(cacheDir, m[1]); if (normalize(dir).indexOf(normalize(cacheDir)) !== 0) return send(res, 400, { error: "bad id" });
-        const file = m[2] ? join(dir, m[2]) : join(dir, "manifest.json");
-        if (!existsSync(file)) return send(res, 404, { error: "not found" });
-        return m[2] ? send(res, 200, readFileSync(file), "image/png") : send(res, 200, JSON.parse(readFileSync(file, "utf8")));
+        const dir = dirFor(cacheDir, m[1]), manifestPath = join(dir, "manifest.json");
+        // Not here (another instance made it, or the cache was cleared): rebuild it from the id.
+        if (!existsSync(manifestPath)) {
+          const request = requestFromId(m[1]); if (!request) return send(res, 404, { error: "not found" });
+          const key = JSON.stringify(request);
+          if (!inflight.has(key)) inflight.set(key, (queue = queue.then(() => renderRequest(data, request, cacheDir))).finally(() => inflight.delete(key)));
+          const made = await inflight.get(key); if (made.id !== m[1]) return send(res, 404, { error: "this map was made by another version of the server" });
+        }
+        const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+        if (!m[2]) return send(res, 200, manifest);
+        if (!existsSync(join(dir, m[2]))) return send(res, 404, { error: "not found" });
+        return send(res, 200, url.searchParams.get("size") === "native" ? readFileSync(join(dir, m[2])) : fullSize(dir, m[2], manifest.scale), "image/png");
       }
       return send(res, 404, { error: "not found" });
     } catch (error) {
       console.error(error);
       return send(res, 500, { error: error.message });
     }
-  });
+  };
 }
 
 // Run directly: node webapp/server.mjs
 if (process.argv[1] && fileURLToPath(import.meta.url) === normalize(process.argv[1])) {
   const port = Number(process.env.PORT ?? 8787), host = process.env.HOST ?? "127.0.0.1";
-  createMapServer({ cacheDir: process.env.CACHE_DIR ?? join(HERE, "cache"), corsOrigins: process.env.CORS_ORIGINS ?? "*" }).listen(port, host, () => console.log(`Eym map server on http://${host}:${port} (renderer ${RENDERER.version})`));
+  createMapServer().listen(port, host, () => console.log(`Eym map server on http://${host}:${port} (renderer ${RENDERER.version})`));
 }

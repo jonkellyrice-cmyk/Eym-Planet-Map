@@ -35,7 +35,7 @@ form.addEventListener("submit", async (event) => {
     const base = `/api/battle-maps/${m.id}/files/`, link = (name, label) => { const li = document.createElement("li"), a = Object.assign(document.createElement("a"), { href: base + name, textContent: label, download: name }); li.append(a); return li; };
     $("#title").textContent = `${options.settings.find((s) => s.id === m.setting)?.label ?? m.setting} — Tier ${m.tier}`;
     $("#summary").textContent = `${m.spec.columns}×${m.spec.rows} squares · ${m.width}×${m.height} px (${m.native} px per square, ×${m.scale}) · floors: ${m.floors.length ? m.floors.join(", ") : "ground only"} · ${m.season} · ${m.style}`;
-    $("#preview").src = base + m.files.preview;
+    $("#preview").src = `${base}${m.files.preview}?size=native`; // shown enlarged, pixel-crisp, by CSS
     $("#files").replaceChildren(link(m.files.exterior, "Outside with roofs"), link(m.files.ground, "Ground (buildings opened)"), ...Object.entries(m.files.roofs).map(([f, n]) => link(n, `Roofs over floor ${f}`)), ...Object.entries(m.files.floors).map(([f, n]) => link(n, Number(f) < 0 ? "Basement" : Number(f) === 1 ? "Upper floor" : `Floor ${Number(f) + 1}`)));
     $("#notes").replaceChildren(...m.notes.map((t) => Object.assign(document.createElement("li"), { textContent: t })));
     $("#geometry").textContent = m.geometryHash; $("#result").hidden = false; $("#status").textContent = "";

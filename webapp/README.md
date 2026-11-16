@@ -104,6 +104,20 @@ only where it stands taller than a light that reaches it on its floor:
 Not yet verified in a running Foundry v14: these walls follow the v14 data types; the behaviour has not
 been tried live.
 
+## On Vercel
+
+The repository deploys to Vercel as it is (`vercel.json`): the page (`webapp/public`) as static files and
+every `/api/*` request to one function, `api/map-server.mjs`, which wraps the same request handler as the
+Node server. Production is https://eym-planet-map.vercel.app, the module's default **Map server
+address**. Two things make it fit a serverless host:
+
+- **Native-size layers.** Layers are stored at their native size and enlarged on request (each pixel a
+  block). `?size=native` returns the native file; the module asks for that and enlarges it in the browser,
+  which keeps every response far under Vercel's 4.5 MB limit and the render quick.
+- **Ids that carry their request.** A map's id ends with its request, so an instance that never rendered
+  it (a cold function, a cleared `/tmp`) rebuilds the same map from the id alone; the geometry fingerprint
+  and the pixels come out identical.
+
 ## Building styles
 
 A building style (`scripts/eym-building-styles.mjs`) is how a people builds, as numbers: a palette and a

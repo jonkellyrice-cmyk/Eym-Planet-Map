@@ -35,6 +35,6 @@ export function architectureLibrary(moduleId) { try { return normalizeLibrary(ga
 
 /** The pixel-art map server (the web app in this repository): its address, set by the GM. */
 export function registerMapServerSettings(moduleId) {
-  game.settings.register(moduleId, "mapServerUrl", { name: "Map server address", hint: "The Eym map server (webapp/ in this module's repository) that renders battle maps as pixel art, e.g. https://maps.example.org. Leave empty to use only the module's own drawing and the image model.", scope: "world", config: true, restricted: true, type: String, default: "" });
+  game.settings.register(moduleId, "mapServerUrl", { name: "Map server address", hint: "The Eym map server (webapp/ in this module's repository) that renders battle maps as pixel art. The default is the public one on Vercel; a server of your own (npm run webapp) works too. Leave empty to use only the module's own drawing and the image model.", scope: "world", config: true, restricted: true, type: String, default: "https://eym-planet-map.vercel.app" });
 }
 export function mapServerUrl(moduleId) { try { return String(game.settings.get(moduleId, "mapServerUrl") ?? "").trim().replace(/\/+$/, ""); } catch { return ""; } }

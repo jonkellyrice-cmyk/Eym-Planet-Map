@@ -54,6 +54,16 @@ const assetSlug = (value) => value.normalize("NFKD").replace(/[\u0300-\u036f]/g,
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
+
+/** Enlarge pixel art by a whole number (nearest neighbour: each pixel a k×k block) and return a PNG blob. */
+async function enlargePixelArt(blob, k) {
+  if (!(k > 1)) return blob;
+  const bitmap = await createImageBitmap(blob), canvas = document.createElement("canvas");
+  canvas.width = bitmap.width * k; canvas.height = bitmap.height * k;
+  const ctx = canvas.getContext("2d"); ctx.imageSmoothingEnabled = false; ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height); bitmap.close?.();
+  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("could not enlarge the layer"))), "image/png"));
+}
+
 export class ClusterMapApplication extends HandlebarsApplicationMixin(ApplicationV2) {
   mode = "system";
   activeSystem = HOME_SYSTEM;
@@ -752,7 +762,8 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const manifest = await response.json().catch(() => ({})); if (!response.ok) throw new Error(manifest.error ?? `the map server answered ${response.status}`);
     // The same map, or nothing: the walls, regions and stairs come from this module's own geometry.
     const ours = geometryHash(current.battle); if (manifest.geometryHash !== ours) throw new Error(`the map server built a different map (its geometry ${manifest.geometryHash}, ours ${ours}); update the module or the server so both run the same version`);
-    const file = async (name) => { const r = await fetch(`${base}/api/battle-maps/${manifest.id}/files/${name}`); if (!r.ok) throw new Error(`could not fetch ${name} (${r.status})`); return r.blob(); };
+    // Layers come at their native size (small, quick) and are enlarged here, each pixel a crisp block.
+    const file = async (name) => { const r = await fetch(`${base}/api/battle-maps/${manifest.id}/files/${name}?size=native`); if (!r.ok) throw new Error(`could not fetch ${name} (${r.status})`); return enlargePixelArt(await r.blob(), manifest.scale); };
     const pixel = { manifest, exterior: await file(manifest.files.exterior), ground: await file(manifest.files.ground), roofs: {}, floors: {} };
     for (const [floor, name] of Object.entries(manifest.files.roofs ?? {})) pixel.roofs[floor] = await file(name);
     for (const [floor, name] of Object.entries(manifest.files.floors ?? {})) pixel.floors[floor] = await file(name);
