@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.13.0 (unreleased)
+## 0.13.0 (2026-11-16)
 
 - Atlas maps: deterministic reference maps of Eym at four levels (planet, continent, region, local) with a text-free base for image models, a name layer, a PNG with names and an information packet with a painterly fantasy art direction (`scripts/eym-reference-map.mjs`, `scripts/eym-map-packet.mjs`).
 - Map presets from published standards, adjustable as Foundry settings: atlas image sizes, battle-map grid density (70/100/140/200 px per square) and battle-map size in 5-ft squares (Flip-Mat 24×30, half Flip-Mat, common digital 23×16, Foundry's 40×30, large 40×40) or custom (`scripts/eym-map-presets.mjs`, `scripts/eym-map-settings.mjs`).
