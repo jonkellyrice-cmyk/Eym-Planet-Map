@@ -1,13 +1,19 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { ORRERY, knownCount, ringRadius, scholarEntry } from "../scripts/scholars-model.mjs";
+import { JURISDICTION_BADGES, ORRERY, knownCount, ringRadius, scholarEntry } from "../scripts/scholars-model.mjs";
 import { buildSystemModel, displayPosition, parseCsv, physicalDistanceAu } from "../scripts/system-data.mjs";
 import { systemSprite } from "../scripts/system-sprites.mjs";
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 const model = buildSystemModel(parseCsv(read("docs/system-orbital-distances.csv")), "Abydos"), by = (name) => model.byName.get(name);
 const span = (a, b) => { const p = displayPosition(a, model), q = displayPosition(b, model); return Math.hypot(p.x - q.x, p.y - q.y, p.z - q.z); };
+
+test("no badge of ownership floats above any body, in the system view or over a globe", () => {
+  assert.equal(JURISDICTION_BADGES, false);
+  assert.match(read("scripts/body-view.mjs"), /if \(!faction \|\| !JURISDICTION_BADGES\) return;/);
+  assert.match(read("scripts/system-view.mjs"), /if \(JURISDICTION_BADGES && faction && /);
+});
 
 test("what the scholars know: the Sun, the world, two moons and four wandering stars; only the world opens", () => {
   assert.equal(scholarEntry(by("Eventide")).openable, true);

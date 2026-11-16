@@ -3,6 +3,7 @@ export { schematicVisualProfile, orthographicProject, orthographicUnproject, for
 import { buildBodyOperationsRenderPlan, inspectBodyOperationFeature, loadBodyOperationAsset, projectOperationPosition } from "../scripts/body-operations.mjs";
 import { createFactionEmblem, factionPresentationForOwner } from "../scripts/capital-icons.mjs";
 import { displayNameFor } from "../scripts/display-names.mjs";
+import { JURISDICTION_BADGES } from "../scripts/scholars-model.mjs";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const el = (name, attrs = {}) => { const node = document.createElementNS(SVG_NS, name); for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value)); return node; };
@@ -84,7 +85,7 @@ export class BodyView extends CoreBodyView {
 
   #buildFactionContext() {
     const faction = factionPresentationForOwner(this.ownerFaction);
-    if (!faction) return;
+    if (!faction || !JURISDICTION_BADGES) return;
     this.factionContextLayer = el("g", { class: "oscm-faction-context-layer is-body", "aria-hidden": "true" });
     const marker = el("g", { class: `oscm-faction-context-marker is-${faction.factionId}` });
     marker.append(el("line", { class: "oscm-faction-context-leader", x1: 0, y1: 18, x2: 0, y2: 34 }));
