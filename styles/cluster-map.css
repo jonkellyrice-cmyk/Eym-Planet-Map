@@ -52,6 +52,9 @@
   background-size: auto, 43px 43px, 61px 61px;
 }
 
+/* The map takes its own touches (turning, pinching): the browser is not to scroll or zoom the page with them. */
+.oscm-view { touch-action: none; }
+
 .oscm-cluster-svg.is-dragging,
 .oscm-cluster-svg.is-pinching { cursor: grabbing; }
 

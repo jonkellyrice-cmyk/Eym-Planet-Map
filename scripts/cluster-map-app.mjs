@@ -49,6 +49,7 @@ import { BATTLE_SIZE_PRESETS, GRID_DENSITY_PRESETS, battleMapSpec } from "./eym-
 import { placeHistory, describeWeather } from "./eym-weather.mjs";
 import { sunAltitudeDeg, yearFraction } from "./eym-seasons.mjs";
 import { foliageSeason } from "./eym-battle-season.mjs";
+import { guardPageZoom } from "./zoom-guard.mjs";
 
 export const MODULE_ID = "eym-planet-map";
 /** The only system this module exposes. Its name must match the `system` column of the registry CSV. */
@@ -137,6 +138,8 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     for (const control of root.querySelectorAll("[data-sky-layer]")) control.addEventListener("change", () => this._clusterView?.setLayerVisibility?.(control.dataset.skyLayer, control.checked));
     for (const name of ["lookUpLat", "lookUpLon"]) root.querySelector(`[name="${name}"]`)?.addEventListener("input", () => this.#updatePlaceReadout());
     this.#setUpAtlasControls(root);
+    // A pinch on the map zooms the map, never the page (iPhone Safari would otherwise do both).
+    guardPageZoom(root.querySelector(".oscm-view"));
     for (const control of root.querySelectorAll("[data-body-layer]")) control.addEventListener("change", () => this._clusterView?.setLayerVisibility?.(control.dataset.bodyLayer, control.checked));
 
     this._resizeObserver = new ResizeObserver(() => this._clusterView?.render());

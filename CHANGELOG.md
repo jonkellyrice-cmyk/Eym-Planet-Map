@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.16.1 (2026-11-16)
+
+- A pinch on the map zooms the map, never the page. On iPhone Safari the browser was also zooming the whole page, so the two fought.
+
 ## 0.16.0 (2026-11-16)
 
 - Eym's globe is pixel art at every zoom, all the way in: the old vector ground no longer takes over at 6×. Close views are drawn from the same coastlines, lakes and mountains at the view's own sharpness, with a finer grain to the ground; past 6× the cloud thins to a veil so the map can be read.
