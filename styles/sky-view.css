@@ -27,3 +27,19 @@
 .oscm-sky-readout div { display: flex; justify-content: space-between; gap: .5rem; }
 .oscm-sky-readout span { color: var(--oscm-muted, #8aa); }
 .oscm-sky-card label { display: flex; align-items: center; gap: .4rem; font-size: 12px; }
+
+/* Atlas maps (scripts/eym-reference-map.mjs). */
+.oscm-shell { position: relative; }
+.oscm-atlas-card { display: none; }
+.oscm-shell.is-body-mode.can-look-up .oscm-atlas-card { display: grid; gap: .4rem; }
+.oscm-atlas-card label { display: grid; gap: .15rem; font-size: 11px; }
+.oscm-atlas-card label span { color: var(--oscm-muted, #8aa); font-size: 10px; }
+.oscm-atlas-custom { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+.oscm-atlas-card .is-hidden, .oscm-atlas-result.is-hidden { display: none; }
+.oscm-atlas-result { position: absolute; inset: 8px; z-index: 30; display: grid; grid-template-rows: auto auto 1fr auto; gap: .4rem; padding: .6rem; background: rgba(6, 12, 18, .96); border: 1px solid rgba(160, 200, 220, .35); border-radius: 6px; }
+.oscm-atlas-result-head { display: flex; gap: .6rem; align-items: baseline; }
+.oscm-atlas-result-head button { margin-left: auto; width: auto; }
+.oscm-atlas-result img { width: 100%; height: 100%; min-height: 0; object-fit: contain; background: #0b1218; }
+.oscm-atlas-tabs, .oscm-atlas-actions { display: flex; flex-wrap: wrap; gap: .4rem; }
+.oscm-atlas-tabs button, .oscm-atlas-actions button { width: auto; flex: 0 0 auto; font-size: 11px; }
+.oscm-atlas-tabs button.is-active { outline: 1px solid #9bd4dc; }

@@ -20,6 +20,10 @@ import { AstronomySnapshotCache, loadAstronomyOrientations } from "./astronomy.m
 import { CAMPAIGN_START_MS, DAY_MS, formatUniversalClock, formatUniversalDate } from "./universal-time.mjs";
 import { coverRings, environmentField, placeReport, seasonalCover, subsolarPoint } from "./eym-seasons.mjs";
 import { buildWeatherState, globeWeather, placeWeatherNow, STEP_HOURS, weatherReport } from "./eym-weather.mjs";
+import { ATLAS_IMAGE_PRESETS, ATLAS_LEVELS, atlasMapSpec } from "./eym-map-presets.mjs";
+import { savedMapDefaults } from "./eym-map-settings.mjs";
+import { buildReferenceMap } from "./eym-reference-map.mjs";
+import { mapPacket } from "./eym-map-packet.mjs";
 import { loadStarfield } from "./starfield.mjs";
 import { displayNameFor, objectDisplayName, parentDisplayName, systemDisplayName } from "./display-names.mjs";
 import { groundSky, localSolarHours } from "./ground-sky.mjs";
@@ -103,6 +107,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     root.querySelector('[data-action="back-to-body"]')?.addEventListener("click", () => { if (this.activeBody) this.#enterBody(this.activeBody); });
     for (const control of root.querySelectorAll("[data-sky-layer]")) control.addEventListener("change", () => this._clusterView?.setLayerVisibility?.(control.dataset.skyLayer, control.checked));
     for (const name of ["lookUpLat", "lookUpLon"]) root.querySelector(`[name="${name}"]`)?.addEventListener("input", () => this.#updatePlaceReadout());
+    this.#setUpAtlasControls(root);
     for (const control of root.querySelectorAll("[data-body-layer]")) control.addEventListener("change", () => this._clusterView?.setLayerVisibility?.(control.dataset.bodyLayer, control.checked));
 
     this._resizeObserver = new ResizeObserver(() => this._clusterView?.render());
@@ -311,6 +316,74 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     return weatherReport(this._weather, latDeg, lonDeg, now);
   }
 
+  // ---------------------------------------------------------------- atlas maps
+
+  /** Fill the atlas card's choices from the presets and the saved defaults, and keep its summary current. */
+  #setUpAtlasControls(root) {
+    const level = root.querySelector('[name="atlasLevel"]'), continent = root.querySelector('[name="atlasContinent"]'), image = root.querySelector('[name="atlasImage"]');
+    if (!level || !continent || !image) return;
+    const option = (value, label) => Object.assign(document.createElement("option"), { value, textContent: label });
+    level.replaceChildren(...ATLAS_LEVELS.map((l) => option(l.id, l.label))); level.value = "continent";
+    continent.replaceChildren(...[["caren", "Caren"], ["garyk", "Garyk"], ["eastern", "The Eastern Continent"], ["northern", "The Northern Continent"], ["southern", "The Southern Continent"]].map(([id, label]) => option(id, label)));
+    image.replaceChildren(...ATLAS_IMAGE_PRESETS.map((p) => option(p.id, p.label)), option("custom", "Custom size"));
+    const defaults = savedMapDefaults(MODULE_ID).atlas;
+    image.value = defaults.image;
+    root.querySelector('[name="atlasWidth"]').value = defaults.width ?? 1536;
+    root.querySelector('[name="atlasHeight"]').value = defaults.height ?? 1024;
+    const sync = (changed) => {
+      const chosen = ATLAS_LEVELS.find((l) => l.id === level.value);
+      if (changed === level) { root.querySelector('[name="atlasMiles"]').value = chosen?.acrossMiles ?? ""; if (level.value === "planet") image.value = "planet-2to1"; }
+      root.querySelector(".oscm-atlas-continent")?.classList.toggle("is-hidden", level.value !== "continent");
+      root.querySelector(".oscm-atlas-miles")?.classList.toggle("is-hidden", !["region", "local"].includes(level.value));
+      root.querySelector(".oscm-atlas-custom")?.classList.toggle("is-hidden", image.value !== "custom");
+      const summary = root.querySelector("[data-atlas-summary]"); if (summary) summary.textContent = this.#atlasSpec(root).summary;
+    };
+    for (const control of root.querySelectorAll("[data-atlas-control]")) control.addEventListener("change", () => sync(control));
+    sync(level);
+    root.querySelector('[data-action="atlas-build"]')?.addEventListener("click", () => void this.#buildAtlasMap().catch((error) => { console.error(`${MODULE_ID} | Unable to make the reference map`, error); ui.notifications.error(`Unable to make the reference map: ${error.message}`); }));
+    root.querySelector('[data-action="atlas-close"]')?.addEventListener("click", () => root.querySelector("[data-atlas-result]")?.classList.add("is-hidden"));
+    for (const tab of root.querySelectorAll("[data-atlas-view]")) tab.addEventListener("click", () => this.#showAtlasView(tab.dataset.atlasView));
+    const download = (blobKey, suffix) => () => { const result = this._atlasResult; if (result?.[blobKey]) saveBlob(result[blobKey], `${result.fileStem}${suffix}`); };
+    root.querySelector('[data-action="atlas-download-base"]')?.addEventListener("click", download("basePng", "-reference.png"));
+    root.querySelector('[data-action="atlas-download-labelled"]')?.addEventListener("click", download("labelledPng", "-with-names.png"));
+    root.querySelector('[data-action="atlas-download-labels"]')?.addEventListener("click", download("labelSvgBlob", "-names.svg"));
+    root.querySelector('[data-action="atlas-download-packet"]')?.addEventListener("click", download("packetBlob", "-packet.md"));
+    root.querySelector('[data-action="atlas-copy-prompt"]')?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(this._atlasResult?.prompt ?? ""); ui.notifications.info("Prompt copied."); } catch { ui.notifications.warn("Could not copy; download the packet instead."); } });
+  }
+
+  #atlasSpec(root) {
+    const value = (name) => root.querySelector(`[name="${name}"]`)?.value;
+    const level = value("atlasLevel") ?? "continent", image = value("atlasImage") ?? "model-landscape";
+    return atlasMapSpec({ level, image, ...(image === "custom" ? { width: Number(value("atlasWidth")), height: Number(value("atlasHeight")) } : {}), ...(["region", "local"].includes(level) ? { acrossMiles: Number(value("atlasMiles")) } : {}) });
+  }
+
+  /** Build the reference map, its name layer and packet, and show them. */
+  async #buildAtlasMap() {
+    const root = this.element?.querySelector?.(".oscm-shell"); if (!root || !this._eymGeography) return;
+    const spec = this.#atlasSpec(root), continentId = root.querySelector('[name="atlasContinent"]')?.value;
+    const lat = Number(root.querySelector('[name="lookUpLat"]')?.value), lon = Number(root.querySelector('[name="lookUpLon"]')?.value);
+    const nearest = this._eymGeography.settlements.filter((s) => s.properName).reduce((best, s) => { const d = Math.hypot(s.lat - lat, (s.lon - lon) * Math.cos(lat * Math.PI / 180)); return d < best.d ? { s, d } : best; }, { s: null, d: Infinity });
+    const continentName = root.querySelector('[name="atlasContinent"]')?.selectedOptions?.[0]?.textContent ?? "";
+    const title = spec.level === "planet" ? "Eym" : spec.level === "continent" ? continentName : nearest.s && nearest.d < 1.5 ? (spec.level === "local" ? nearest.s.properName : `The country around ${nearest.s.properName}`) : `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? "N" : "S"}, ${Math.abs(lon).toFixed(1)}°${lon >= 0 ? "E" : "W"}`;
+    const map = buildReferenceMap(this._eymGeography, spec, { center: [lat, lon], continentId, title });
+    const packet = mapPacket({ asset: this._eymGeography, spec, frame: map.frame, features: map.features, title });
+    const [basePng, labelledPng] = await Promise.all([svgToPng(map.baseSvg, spec.widthPx, spec.heightPx), svgToPng(map.labelledSvg, spec.widthPx, spec.heightPx)]);
+    for (const url of this._atlasResult?.urls ?? []) URL.revokeObjectURL(url);
+    const urls = { base: URL.createObjectURL(basePng), labelled: URL.createObjectURL(labelledPng) };
+    const fileStem = `eym-${spec.level}-${title.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+    this._atlasResult = { basePng, labelledPng, labelSvgBlob: new Blob([map.labelSvg], { type: "image/svg+xml" }), packetBlob: new Blob([packet.markdown], { type: "text/markdown" }), prompt: packet.prompt, urls: Object.values(urls), previews: urls, fileStem };
+    root.querySelector("[data-atlas-title]").textContent = title;
+    root.querySelector("[data-atlas-result-summary]").textContent = `${spec.summary} · ${map.features.length} named features`;
+    root.querySelector("[data-atlas-result]")?.classList.remove("is-hidden");
+    this.#showAtlasView("labelled");
+  }
+
+  #showAtlasView(view) {
+    const root = this.element?.querySelector?.(".oscm-shell"), preview = root?.querySelector("[data-atlas-preview]"); if (!preview || !this._atlasResult) return;
+    preview.src = this._atlasResult.previews[view] ?? this._atlasResult.previews.labelled;
+    for (const tab of root.querySelectorAll("[data-atlas-view]")) tab.classList.toggle("is-active", tab.dataset.atlasView === view);
+  }
+
   /** The "Here and now" card: date, season, sun and temperature at the chosen place. */
   #updatePlaceReadout() {
     const root = this.element?.querySelector?.(".oscm-shell"); if (!root || !this._eymField || !this._sun) return;
@@ -400,6 +473,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       // Eym: real day and night and the seasons on the globe, kept current with the clock.
       window.clearInterval(this._bodyTicker); this._bodyTicker = null;
       if (object.name === "Eventide" && geography?.terrain?.coastlineSource === "vector") {
+        this._eymGeography = geography;
         this._eymField = environmentField(geography); this._coverDay = null; this._weatherStep = null; this._weatherSnow = null;
         void this.#refreshBodyEnvironment().catch((error) => console.warn(`${MODULE_ID} | Unable to show day and night`, error));
         this._bodyTicker = window.setInterval(() => void this.#refreshBodyEnvironment().catch(() => {}), 10000);
@@ -669,4 +743,22 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       const element = root.querySelector(`[data-field="${field}"]`); if (element) element.textContent = value;
     }
   }
+}
+
+/** Rasterize an SVG document to a PNG blob at its own size. */
+async function svgToPng(svgText, width, height) {
+  const url = URL.createObjectURL(new Blob([svgText], { type: "image/svg+xml" }));
+  try {
+    const image = new Image(); image.decoding = "async";
+    await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = () => reject(new Error("the map image could not be drawn")); image.src = url; });
+    const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height;
+    canvas.getContext("2d").drawImage(image, 0, 0, width, height);
+    return await new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("PNG encoding failed"))), "image/png"));
+  } finally { URL.revokeObjectURL(url); }
+}
+
+/** Offer a blob as a download. */
+function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob), link = Object.assign(document.createElement("a"), { href: url, download: filename });
+  document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
 }

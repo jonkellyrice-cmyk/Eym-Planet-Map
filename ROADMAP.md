@@ -15,6 +15,14 @@ This roadmap was carried over from the Lancer GM Kit and Lancer cluster map, and
 | Live environmental sync to GM Kit | Planned | Static maps synchronized; dynamic environmental snapshot sync unfinished. | Planned. |
 | Elevation/normal/displacement rendering | Deferred | Intended to add depth and relief to illustrated planetary textures. | Deferred. |
 
+## Map ladder and battle maps (agreed 16 November 2026)
+
+Everything lives in this module. Maps are made top-down, each level grounded in the one above:
+
+1. **Planet → continent → region → local/city reference maps** — deterministic, from Eym's data. *Done (step 1)*: the Atlas maps card makes the reference image, a name layer and a packet with the art direction; presets for map sizes and battle-map grids, adjustable in Game Settings.
+2. **Painting them in the module** — an image-generator adapter (OpenAI's image model first; later an open-weight model on Dave's GPU or the Glassbox inference service), the API key kept in the GM's browser only, painted maps saved to the world's data (not the module folder) and registered as canon; lower levels use the painted level above as their reference. *Next.*
+3. **Battle maps** — pick a place, date and time: terrain, slope, water, plants, season, weather, light and nearby structures are already known; a deterministic 5-ft layout becomes a painted image and a ready Foundry scene (grid, darkness, weather effects). Defaults: 140 px per square, 24×30 squares (Flip-Mat), all adjustable.
+
 ## Weather design (agreed 3 September 2026)
 
 Weather must be physically plausible, coherent over time and deterministic. The Foundry module must not run a large simulation in the background.
