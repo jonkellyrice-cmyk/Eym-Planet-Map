@@ -89,7 +89,8 @@ test("conditions change the ground: deep snow and mud are difficult; streets sta
 
 test("the painter's reference is text-free and gridless; the GM overlay and packet carry the rules", () => {
   const ref = battleReferenceSvg(city, 20), tac = battleTacticalSvg(city, 20);
-  assert.ok(!/<text/.test(ref) && !/<line/.test(ref));
+  assert.ok(!/<text/.test(ref), "no text");
+  assert.ok(!/<line x1="(\d+)" y1="0" x2="\1" y2="30"/.test(ref) && !/<line x1="0" y1="(\d+)" x2="24" y2="\1"/.test(ref), "no grid lines");
   assert.match(ref, new RegExp(`width="${24 * 20}" height="${30 * 20}"`));
   assert.match(tac, /<text/); assert.match(tac, /hatch-d/);
   const prompt = battleArtDirection(volcano);

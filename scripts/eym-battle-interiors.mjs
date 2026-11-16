@@ -9,6 +9,7 @@
 
 const hash = (text) => { let h = 2166136261; for (let i = 0; i < text.length; i += 1) h = Math.imul(h ^ text.charCodeAt(i), 16777619); h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; return (h >>> 0) / 4294967296; };
 const edgeKey = (x, y, dir) => `${x},${y},${dir}`;
+import { shade } from "./eym-battle-oblique.mjs";
 
 /** Furniture: footprint in squares, PF2e movement and cover, how it looks. */
 export const FURNITURE = Object.freeze({
@@ -152,10 +153,21 @@ const FLOOR_FILL = Object.freeze({ "common room": "#9a7448", shop: "#9a7448", ki
 export function floorPlanSvg(building, floor) {
   const f = building.floors.find((x) => x.floor === floor); if (!f) return "";
   const parts = [];
-  for (const r of f.rooms) parts.push(`<rect x="${r.x0}" y="${r.y0}" width="${r.x1 - r.x0 + 1}" height="${r.y1 - r.y0 + 1}" fill="${FLOOR_FILL[r.use] ?? "#9a7448"}"/>`);
+  for (const r of f.rooms) {
+    // Three-quarter view inside too: each room's north wall shows its face, a band along the top of the room.
+    const fill = FLOOR_FILL[r.use] ?? "#9a7448", wallFace = f.floor < 0 ? "#6a6058" : "#cdbb98";
+    parts.push(`<rect x="${r.x0}" y="${r.y0}" width="${r.x1 - r.x0 + 1}" height="${r.y1 - r.y0 + 1}" fill="${fill}"/>`);
+    parts.push(`<rect x="${r.x0}" y="${r.y0}" width="${r.x1 - r.x0 + 1}" height="0.42" fill="${wallFace}"/><line x1="${r.x0}" y1="${r.y0 + 0.42}" x2="${r.x1 + 1}" y2="${r.y0 + 0.42}" stroke="${shade(wallFace, -0.4)}" stroke-width="0.04"/>`);
+  }
   const s = building.stairs;
   if (s) { parts.push(`<rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" fill="#d6c7a8"/>`); const n = 5; for (let k = 1; k < n; k += 1) parts.push(s.w > s.h ? `<line x1="${s.x + (k * s.w) / n}" y1="${s.y}" x2="${s.x + (k * s.w) / n}" y2="${s.y + s.h}" stroke="#6e604a" stroke-width="0.05"/>` : `<line x1="${s.x}" y1="${s.y + (k * s.h) / n}" x2="${s.x + s.w}" y2="${s.y + (k * s.h) / n}" stroke="#6e604a" stroke-width="0.05"/>`); }
-  for (const it of f.furniture) parts.push(it.kind === "rug" ? `<rect x="${it.x + 0.15}" y="${it.y + 0.15}" width="${it.w - 0.3}" height="${it.h - 0.3}" fill="${it.color}" fill-opacity="0.8"/>` : it.kind === "pillar" ? `<circle cx="${it.x + 0.5}" cy="${it.y + 0.5}" r="0.35" fill="${it.color}"/>` : `<rect x="${it.x + 0.1}" y="${it.y + 0.1}" width="${it.w - 0.2}" height="${it.h - 0.2}" fill="${it.color}" stroke="#2a1d12" stroke-width="0.05"/>`);
+  for (const it of [...f.furniture].sort((a, b) => a.y + a.h - (b.y + b.h))) {
+    if (it.kind === "rug") { parts.push(`<rect x="${it.x + 0.15}" y="${it.y + 0.15}" width="${it.w - 0.3}" height="${it.h - 0.3}" fill="${it.color}" fill-opacity="0.8"/>`); continue; }
+    // Furniture shows its front: tall pieces a tall side, low pieces a low one.
+    const tall = ["wardrobe", "shelves", "pillar", "crates", "counter", "wine-rack"].includes(it.kind), r = tall ? 0.55 : 0.2, side = shade(it.color, -0.4);
+    if (it.kind === "pillar") { parts.push(`<rect x="${it.x + 0.2}" y="${it.y + 0.5 - r}" width="0.6" height="${r}" fill="${side}"/><ellipse cx="${it.x + 0.5}" cy="${it.y + 0.5}" rx="0.3" ry="0.15" fill="${side}"/><ellipse cx="${it.x + 0.5}" cy="${it.y + 0.5 - r}" rx="0.3" ry="0.18" fill="${it.color}"/>`); continue; }
+    parts.push(`<rect x="${it.x + 0.1}" y="${it.y + it.h - 0.1 - r}" width="${it.w - 0.2}" height="${r}" fill="${side}"/><rect x="${it.x + 0.1}" y="${it.y + 0.1 - r}" width="${it.w - 0.2}" height="${it.h - 0.2}" fill="${it.color}" stroke="#2a1d12" stroke-width="0.04"/>`);
+  }
   for (const wl of f.walls) {
     const [a, b, c, d] = wl.dir === "e" ? [wl.x + 1, wl.y, wl.x + 1, wl.y + 1] : [wl.x, wl.y + 1, wl.x + 1, wl.y + 1];
     if (wl.door) parts.push(`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" stroke="#d9b77a" stroke-width="0.14"/>`);
@@ -193,7 +205,7 @@ export function interiorArtDirection(map, interiors, floor, { architecture = "" 
   const rooms = interiors.flatMap((b) => (b.floors.find((f) => f.floor === floor)?.rooms ?? []).map((r) => r.use)), kinds = [...new Set(rooms)];
   const where = floor < 0 ? "the basements and crypts below the buildings (everything outside them is solid earth and rock, painted black)" : floor === 0 ? "the ground floors of the buildings, seen from above with the roofs taken off; the outdoor ground around them is already painted and must stay exactly as it is" : "the upper floors of the buildings, seen from above with the roofs taken off (only the building footprints matter; the grey outside them will be cut away)";
   return [
-    `Paint a top-down (orthographic) fantasy battle map interior: ${where}.`,
+    `Paint a fantasy battle map interior in three-quarter top-down (oblique) perspective, as classic 2D role-playing games draw their houses: ${where}. Floors are seen from above; each room's back (north) wall shows its face with its height, and furniture shows its top and front side (tall wardrobes and shelves tall, tables and beds low), so everything reads as solid. Never draw furniture as flat symbols.`,
     `The attached reference is the authoritative layout: keep every wall, door (gold), window (pale blue), stair and piece of furniture exactly where it is and the same size. Rooms here: ${kinds.join(", ")}. Furniture colours in the reference show what each piece is (tables, beds, hearths, shelves, barrels, crates, chests, pews, altars, sarcophagi, pillars, rugs).`,
     `Floors of wood planks or flagstones as fits each room, thick walls drawn clearly so the rooms read at a glance, soft interior lighting, no roofs.`,
     ...(architecture ? [architecture] : []),

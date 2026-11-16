@@ -7,6 +7,7 @@
 //   battleSceneData    — a Foundry scene: grid, background, walls and doors, terrain regions, light, weather.
 
 import { FEATURES, MOVE, SETTINGS } from "./eym-battle-settings.mjs";
+import { obliqueBoulder, obliqueBuilding, obliqueBush, obliqueFaces, obliqueFeature, obliqueTree, standHeightFt } from "./eym-battle-oblique.mjs";
 
 const GROUND_COLORS = Object.freeze({
   "deep water": "#2f6f96", river: "#4d8fbb", "shallow stream": "#6aa8cf", "frozen stream": "#cfe6f2", sand: "#e2cf98", marsh: "#6e8456", "wet meadow": "#869a5c",
@@ -69,20 +70,19 @@ export function battleReferenceSvg(map, gridPx = map.spec.gridPx) {
   // Height: lower ground a little darker, higher a little lighter; cliff edges as dark lines with a shadow.
   const levels = [...grid.elevationFt].filter((e, i) => !grid.void[i]), lo = Math.min(...levels), hi = Math.max(...levels);
   if (hi - lo >= 10) for (let y = 0; y < rows; y += 1) for (let x = 0; x < columns; x += 1) { const i = y * columns + x; if (grid.void[i]) continue; const t = (grid.elevationFt[i] - lo) / (hi - lo); out.push(`<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${t < 0.5 ? "#000" : "#fff"}" fill-opacity="${f2(Math.abs(t - 0.5) * 0.36)}"/>`); }
-  for (const c of map.cliffs ?? []) { const [a, b, cc, d] = c.dir === "e" ? [c.x + 1, c.y, c.x + 1, c.y + 1] : [c.x, c.y + 1, c.x + 1, c.y + 1]; out.push(`<line x1="${a}" y1="${b}" x2="${cc}" y2="${d}" stroke="#1e1a16" stroke-width="${f2(Math.min(0.35, 0.08 + (c.high - c.low) / 100))}" stroke-linecap="round"/>`); }
+  // Side edges of levels as dark lines; south-facing steps get faces below (drawn with the standing things).
+  for (const c of map.cliffs ?? []) if (c.dir === "e") out.push(`<line x1="${c.x + 1}" y1="${c.y}" x2="${c.x + 1}" y2="${c.y + 1}" stroke="#1e1a16" stroke-width="${f2(Math.min(0.3, 0.08 + (c.high - c.low) / 100))}" stroke-linecap="round"/>`);
   const line = (pts) => `M${pts.map(([a, b]) => `${f2(a)} ${f2(b)}`).join(" L")}`;
   if (!map.flattened) for (const s of map.site.streams) out.push(`<path d="${line(s.line)}" fill="none" stroke="${s.kind === "river" ? "#4d8fbb" : "#6aa8cf"}" stroke-width="${f2(Math.max(0.6, s.widthSquares))}" stroke-linecap="round" stroke-linejoin="round"/>`);
-  for (const o of map.objects) {
-    if (o.kind === "tree") out.push(`<circle cx="${f2(o.x)}" cy="${f2(o.y)}" r="${f2(o.size)}" fill="#2f5a2c" fill-opacity="0.88"/>${o.size >= 1 ? `<circle cx="${f2(o.x)}" cy="${f2(o.y)}" r="0.22" fill="#5a3d24"/>` : ""}`);
-    else if (o.kind === "bush") out.push(`<circle cx="${f2(o.x)}" cy="${f2(o.y)}" r="${f2(o.size)}" fill="#5d7d3e"/>`);
-    else if (o.kind === "boulder") out.push(`<circle cx="${f2(o.x)}" cy="${f2(o.y)}" r="${f2(o.size)}" fill="#8a8378" stroke="#4a443c" stroke-width="0.05"/>`);
-  }
-  for (const f of map.features) out.push(featureShape(f));
-  for (const b of map.buildings) {
-    const x0 = Math.max(0, b.x0), y0 = Math.max(0, b.y0), x1 = Math.min(columns - 1, b.x1), y1 = Math.min(rows - 1, b.y1);
-    out.push(`<rect x="${x0}" y="${y0}" width="${x1 - x0 + 1}" height="${y1 - y0 + 1}" fill="${b.storeys > 1 ? "#7a4a36" : "#8e5a3e"}" stroke="#2b1d14" stroke-width="0.14"/>`);
-  }
-  for (const [key, w] of map.grid.walls) if (w.door) { const [x, y, dir] = key.split(","); out.push(dir === "e" ? `<rect x="${Number(x) + 1 - 0.1}" y="${Number(y) + 0.25}" width="0.2" height="0.5" fill="#d9b77a"/>` : `<rect x="${Number(x) + 0.25}" y="${Number(y) + 1 - 0.1}" width="0.5" height="0.2" fill="#d9b77a"/>`); }
+  // Flat things lie on the ground; everything that stands is drawn in three-quarter view, north to south.
+  const standing = [];
+  for (const f of map.features) { const def = FEATURES[f.kind]; if (def.shape === "tree") { standing.push({ y: f.y + f.h, x: f.x, svg: (f.kind === "planter-tree" ? `<rect x="${f2(f.x + 0.2)}" y="${f2(f.y + 0.55)}" width="0.6" height="0.35" fill="#8f877a"/>` : "") + obliqueTree({ x: f.x + f.w / 2, y: f.y + f.h - 0.2, size: f.kind === "planter-tree" ? 0.62 : 0.95 }) }); continue; } if (standHeightFt(f.kind, def) > 0) standing.push({ y: f.y + f.h, x: f.x, svg: obliqueFeature(f, def, featureShape(f)) }); else out.push(featureShape(f)); }
+  for (const o of map.objects) standing.push({ y: o.y, x: o.x, svg: o.kind === "tree" ? obliqueTree(o) : o.kind === "bush" ? obliqueBush(o) : obliqueBoulder(o) });
+  for (const b of map.buildings) standing.push({ y: b.y1 + 1, x: b.x0, svg: obliqueBuilding(b, columns, rows) });
+  for (const face of obliqueFaces(grid)) standing.push({ y: face.y - 0.01, x: 0, svg: face.svg });
+  standing.sort((a, b) => a.y - b.y || a.x - b.x);
+  for (const item of standing) out.push(item.svg);
+  for (const [key, w] of map.grid.walls) if (w.door) { const [x, y, dir] = key.split(","); if (dir === "e") out.push(`<rect x="${Number(x) + 1 - 0.1}" y="${Number(y) + 0.25}" width="0.2" height="0.5" fill="#d9b77a"/>`); }
   out.push("</svg>");
   return out.join("");
 }
@@ -142,8 +142,12 @@ function legend(map) {
   if ((map.cliffs ?? []).length) things.push("thick dark lines = cliff edges and ledges (sheer drops of 10 ft or more; paint them as rock faces with strong shadows)");
   if (map.grid.void.some(Boolean)) things.push(`${groundColor(map.grid.ground[map.grid.void.indexOf(1)])} areas = ${map.grid.ground[map.grid.void.indexOf(1)]}: empty air, nothing to stand on`);
   things.push("lighter = higher ground, darker = lower ground");
+  things.push("everything that stands up is already drawn in three-quarter view: its top, and its darker south-facing side rising toward the top of the image");
   return [...grounds, ...things];
 }
+
+/** The rule that keeps the perspective honest to the grid. */
+export const PERSPECTIVE_RULE = "Perspective rule: never draw anything as a flat top-down symbol, and never tilt the ground itself; only the things standing on it show their sides. Taller things show taller sides and overlap what stands behind (north of) them, as the reference already does.";
 
 /** Heights for the painter: levels, cliffs, platforms, a ceiling. */
 function heightWords(map) {
@@ -159,7 +163,8 @@ export function battleArtDirection(map, { timeWords = "", weatherWords = "", arc
   const rules = SETTINGS[map.setting], { columns, rows, widthPx, heightPx } = map.spec;
   const chosen = (map.extras ?? []).map((e) => `${e.label.toLowerCase()} in ${e.at}`);
   return [
-    `Paint a top-down (orthographic, straight down) fantasy tabletop battle map in a rich, detailed, painterly digital style like professional virtual-tabletop battle maps: natural textures, soft shadows cast toward the lower right, readable shapes.`,
+    `Paint a fantasy tabletop battle map in a rich, detailed, painterly digital style, in three-quarter top-down (oblique) perspective, as classic 2D role-playing games draw their towns and wilds: the ground is seen from above, but nothing is flat. Every object that stands up shows its top and its south-facing side, so its height reads at a glance: buildings show their roofs and their front walls with doors and windows; trees show full crowns over visible trunks; cliffs, ledges, quays and island edges show their rock or stone faces; boulders, walls, fences, carts, crates, stalls, pillars and statues show their sides. Vertical sides rise toward the top of the image (about one square of picture for every 10 feet of height); the ground contact of each object stays on its squares. Soft shadows fall toward the lower right.`,
+    `${PERSPECTIVE_RULE}`,
     `The setting: ${rules.words}.${timeWords ? ` ${timeWords}` : ""}${weatherWords ? ` ${weatherWords}` : ""} Paint in even, clear daylight so the map reads well; lighting is added in play.`,
     `The attached reference image is the authoritative layout of the battlefield, ${columns} by ${rows} squares of 5 feet (${columns * 5} by ${rows * 5} feet). Keep every building footprint, wall, door, tree trunk, boulder, log, wall, ridge, hazard, water edge, road and street exactly where it is, at the same size and shape: the game rules depend on them. Do not add, remove, move or merge any obstacle, building, water or path. You may add small surface detail (grass tufts, pebbles, leaf litter, cracks, roof tiles) that does not change what blocks or slows movement.`,
     `Colours in the reference mean: ${legend(map).join("; ")}. Paint each as the real thing, not as flat colour.`,
