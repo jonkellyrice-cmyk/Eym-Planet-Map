@@ -34,6 +34,12 @@ import { buildLocalTile, localDetailLayout, localDetailOverlaySvg, tileRgba } fr
 import { DEFAULT_IMAGE_BASE_URL, checkBaseUrl, paintMap } from "./eym-image-provider.mjs";
 import { CANON_SETTING, activeCanon, canonAbove, canonEntry, canonFolder, canonFor, frameRecord, mergeCanon, parentDirection, textHash } from "./eym-canon.mjs";
 import { canonList, paintingSettings } from "./eym-paint-settings.mjs";
+import { buildBattleMap } from "./eym-battle-rules.mjs";
+import { SETTINGS as BATTLE_SETTINGS } from "./eym-battle-settings.mjs";
+import { battleArtDirection, battleGridSvg, battlePacket, battleReferenceSvg, battleSceneData, battleTacticalSvg, darknessFor, weatherEffectFor } from "./eym-battle-render.mjs";
+import { BATTLE_SIZE_PRESETS, GRID_DENSITY_PRESETS, battleMapSpec } from "./eym-map-presets.mjs";
+import { placeHistory, describeWeather } from "./eym-weather.mjs";
+import { sunAltitudeDeg } from "./eym-seasons.mjs";
 
 export const MODULE_ID = "eym-planet-map";
 /** The only system this module exposes. Its name must match the `system` column of the registry CSV. */
@@ -362,6 +368,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     root.querySelector('[data-action="atlas-image-settings"]')?.addEventListener("click", guard("Image generator settings", () => this.#editImageSettings()));
     root.querySelector('[data-action="atlas-open-canon"]')?.addEventListener("click", guard("Unable to open the canon map", () => this.#openCanonMap(root.querySelector('[name="atlasCanon"]')?.value)));
     this.#refreshCanonList();
+    this.#setUpBattleControls(root);
     root.querySelector('[data-action="atlas-copy-prompt"]')?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(this._atlasResult?.prompt ?? ""); ui.notifications.info("Prompt copied."); } catch { ui.notifications.warn("Could not copy; download the packet instead."); } });
   }
 
@@ -396,7 +403,8 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this._atlasResult = { basePng, labelledPng, detailPng, labelSvgBlob: new Blob([map.labelSvg], { type: "image/svg+xml" }), packetBlob: new Blob([packet.markdown], { type: "text/markdown" }), prompt: packet.prompt, urls: Object.values(urls), previews: urls, fileStem };
     root.querySelector("[data-atlas-title]").textContent = title;
     root.querySelector("[data-atlas-result-summary]").textContent = `${spec.summary} · ${map.features.length} named features`;
-    this._atlasMap = { map, spec, packet, title, continentId: spec.level === "continent" ? continentId : null, referenceHash: textHash(map.baseSvg) };
+    this.#setResultKind("atlas");
+    this._atlasMap = { kind: "atlas", map, spec, packet, title, continentId: spec.level === "continent" ? continentId : null, referenceHash: textHash(map.baseSvg) };
     this.#showPainted(null);
     const canon = canonFor(canonList(MODULE_ID), { level: spec.level, continentId: this._atlasMap.continentId, frame: frameRecord(map.frame) });
     if (canon) this.#showCanonEntry(canon, { changed: canon.referenceHash !== this._atlasMap.referenceHash });
@@ -417,7 +425,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     Object.assign(this._atlasResult.previews, { painted: painted?.urls?.painted, paintedBare: painted?.urls?.paintedBare });
     for (const view of ["painted", "paintedBare"]) root.querySelector(`[data-atlas-view="${view}"]`)?.classList.toggle("is-hidden", !painted);
     root.querySelector('[data-action="atlas-download-painted"]')?.classList.toggle("is-hidden", !painted?.png);
-    root.querySelector('[data-action="atlas-save-canon"]')?.classList.toggle("is-hidden", !painted?.fresh);
+    root.querySelector('[data-action="atlas-save-canon"]')?.classList.toggle("is-hidden", !painted?.fresh || this._atlasMap?.kind === "battle");
     if (painted) this.#showAtlasView("painted");
   }
 
@@ -429,7 +437,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     if (!settings.apiKey) { await this.#editImageSettings(); settings = paintingSettings(MODULE_ID); if (!settings.apiKey) return; }
     const { spec, map, packet } = current, images = [{ blob: result.basePng, name: "reference.png" }];
     let prompt = packet.prompt;
-    const parent = canonAbove(canonList(MODULE_ID), map.frame);
+    const parent = map.frame ? canonAbove(canonList(MODULE_ID), map.frame) : null;
     if (parent) {
       const crop = await cropImage(parent.entry.files.painted, parent.crop, parent.entry.frame.W, spec.widthPx, spec.heightPx).catch(() => null);
       if (crop) { images.push({ blob: crop, name: "painted-parent.png" }); prompt = `${prompt}\n\n${parentDirection(parent)}`; }
@@ -441,7 +449,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const urls = { painted: URL.createObjectURL(labelledPng), paintedBare: URL.createObjectURL(png) };
     this._atlasPaint = { model: settings.model, quality: settings.quality, prompt, parentId: parent?.entry.id ?? null };
     this.#showPainted({ png, labelledPng, urls, ownedUrls: Object.values(urls), fresh: true });
-    this.#paintStatus(`Painted by ${settings.model} (asked for ${painted.size}, scaled to ${spec.widthPx}×${spec.heightPx}). Save it as canon to keep it.`);
+    this.#paintStatus(`Painted by ${settings.model} (asked for ${painted.size}, scaled to ${spec.widthPx}×${spec.heightPx}). ${current.kind === "battle" ? "Check it against the grid, then create the scene." : "Save it as canon to keep it."}`);
   }
 
   /** Upload the painted map and its companions to the world's folder and add it to the canon. */
@@ -509,6 +517,115 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     await game.settings.set(MODULE_ID, "imageBaseUrl", base.url);
     if (answer.apiKey) await game.settings.set(MODULE_ID, "imageApiKey", answer.apiKey);
     this.#paintStatus(paintingSettings(MODULE_ID).apiKey ? "Image generator ready." : "No key set yet.");
+  }
+
+  // ---------------------------------------------------------------- battle maps
+
+  /** Atlas or battle results share one panel; switch its labels and buttons. */
+  #setResultKind(kind) {
+    const root = this.element?.querySelector?.(".oscm-shell"); if (!root) return;
+    const battle = kind === "battle";
+    root.querySelector("[data-atlas-result]")?.classList.toggle("is-battle", battle);
+    const tab = root.querySelector("[data-atlas-tab-label]"); if (tab) tab.textContent = battle ? "Tactical (GM)" : "With names";
+    const label = root.querySelector("[data-atlas-labelled-label]"); if (label) label.textContent = battle ? "Tactical PNG" : "PNG with names";
+    root.querySelector('[data-action="battle-create-scene"]')?.classList.toggle("is-hidden", !battle);
+    const notes = root.querySelector("[data-battle-notes]"); if (notes && !battle) notes.textContent = "";
+    if (!battle) root.querySelector('[data-atlas-view="detail"]')?.classList.add("is-hidden");
+  }
+
+  /** Fill the battle card's choices from the presets and saved defaults. */
+  #setUpBattleControls(root) {
+    const setting = root.querySelector('[name="battleSetting"]'), size = root.querySelector('[name="battleSize"]'), density = root.querySelector('[name="battleDensity"]');
+    if (!setting || !size || !density) return;
+    const option = (value, label) => Object.assign(document.createElement("option"), { value, textContent: label });
+    setting.replaceChildren(option("auto", "From the ground (automatic)"), ...Object.entries(BATTLE_SETTINGS).map(([id, s]) => option(id, s.label)));
+    size.replaceChildren(...BATTLE_SIZE_PRESETS.map((p) => option(p.id, p.label)));
+    density.replaceChildren(...GRID_DENSITY_PRESETS.map((p) => option(p.id, p.label)));
+    const defaults = savedMapDefaults(MODULE_ID).battle;
+    if (defaults.size !== "custom") size.value = defaults.size; if (defaults.density !== "custom") density.value = defaults.density;
+    root.querySelector('[name="battleOrientation"]').value = defaults.orientation ?? "auto";
+    const sync = () => { const summary = root.querySelector("[data-battle-summary]"); if (summary) summary.textContent = this.#battleSpec(root).summary; };
+    for (const el of [size, density, root.querySelector('[name="battleOrientation"]')]) el?.addEventListener("change", sync);
+    sync();
+    const guard = (label, task) => () => void task().catch((error) => { console.error(`${MODULE_ID} | ${label}`, error); this.#paintStatus(`${label}: ${error.message}`); ui.notifications.error(`${label}: ${error.message}`); });
+    root.querySelector('[data-action="battle-build"]')?.addEventListener("click", guard("Unable to make the battle map", () => this.#buildBattle()));
+    root.querySelector('[data-action="battle-create-scene"]')?.addEventListener("click", guard("Unable to create the scene", () => this.#createBattleScene()));
+  }
+
+  #battleSpec(root) {
+    const value = (name) => root.querySelector(`[name="${name}"]`)?.value;
+    const saved = savedMapDefaults(MODULE_ID).battle;
+    return battleMapSpec({ ...saved, size: value("battleSize") ?? saved.size, density: value("battleDensity") ?? saved.density, orientation: value("battleOrientation") ?? "auto" });
+  }
+
+  /** Ground, weather and light at a place now (from the campaign clock), for the rules and the scene. */
+  async #battleConditions(lat, lon) {
+    if (!this._sun) { const { t, subsolar } = await this.#sunNow(); this._sun = { t, subsolar }; }
+    if (!this._eymField) this._eymField = environmentField(this._eymGeography);
+    this.#ensureWeather();
+    const now = this._weather ? placeWeatherNow(this._weather, lat, lon, { subsolar: this._sun.subsolar, timeMs: this._sun.t }) : null;
+    const history = this._weather ? placeHistory(this._weather, lat, lon) : null;
+    const report = placeReport({ field: this._eymField, subsolar: this._sun.subsolar, latDeg: lat, lonDeg: lon, timeMs: this._sun.t });
+    const altitude = sunAltitudeDeg(lat, lon, this._sun.subsolar);
+    return {
+      conditions: { snowDepthCm: history?.snowDepthCm ?? 0, ground: history?.ground ?? "dry", tempC: now?.tempC ?? report.values.temperature.nowC, precipKind: now?.precipMmH > 0.1 ? now.precipKind : null, precipMmH: now?.precipMmH ?? 0, windMs: now?.windMs ?? 0, thunder: Boolean(now?.thunder), fog: (now?.humidity ?? 0) > 0.97 && (now?.windMs ?? 0) < 3, sunAltitudeDeg: altitude, season: report.season },
+      words: { time: `${report.localTime}, ${report.season}; the sun ${report.sun}`, weather: now ? describeWeather(now) : "", light: altitude >= 0 ? "daylight" : altitude > -6 ? "civil twilight (dim)" : altitude > -12 ? "dusk or dawn (dim to dark)" : "night (darkness, moonlight aside)" },
+    };
+  }
+
+  /** Make a battle map at the Here and now place and show it with its tactical overlay. */
+  async #buildBattle() {
+    const root = this.element?.querySelector?.(".oscm-shell"); if (!root || !this._eymGeography) return;
+    const lat = Number(root.querySelector('[name="lookUpLat"]')?.value), lon = Number(root.querySelector('[name="lookUpLon"]')?.value);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error("set a place in Here and now first");
+    const spec = this.#battleSpec(root), useClock = root.querySelector('[name="battleConditions"]')?.checked ?? true;
+    ui.notifications.info("Laying out the battle map…");
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    const env = useClock ? await this.#battleConditions(lat, lon) : { conditions: {}, words: { time: "", weather: "", light: "" } };
+    const map = buildBattleMap(this._eymGeography, { center: [lat, lon], spec, conditions: env.conditions, setting: root.querySelector('[name="battleSetting"]')?.value ?? "auto" });
+    const nearest = this._eymGeography.settlements.filter((s) => s.properName).reduce((best, s) => { const d = Math.hypot(s.lat - lat, (s.lon - lon) * Math.cos(lat * Math.PI / 180)); return d < best.d ? { s, d } : best; }, { s: null, d: Infinity });
+    const place = nearest.s && nearest.d < 0.3 ? `near ${nearest.s.properName}` : `${Math.abs(lat).toFixed(3)}°${lat >= 0 ? "N" : "S"}, ${Math.abs(lon).toFixed(3)}°${lon >= 0 ? "E" : "W"}`;
+    const title = `${BATTLE_SETTINGS[map.setting].label}, ${place}`;
+    const referenceSvg = battleReferenceSvg(map), tacticalSvg = battleTacticalSvg(map);
+    const basePng = await svgToPng(referenceSvg, spec.widthPx, spec.heightPx), labelledPng = await layerSvg(basePng, tacticalSvg, spec.widthPx, spec.heightPx);
+    const prompt = battleArtDirection(map, { timeWords: env.words.time ? `Season and time: ${env.words.time}.` : "", weatherWords: env.words.weather ? `Weather: ${env.words.weather}; show its effect on the ground (wet, snowy or dry) but not falling rain or snow.` : "" });
+    const packet = battlePacket(map, { title, place, timeWords: env.words.time, weatherWords: env.words.weather, lightWords: env.words.light });
+    for (const url of this._atlasResult?.urls ?? []) URL.revokeObjectURL(url);
+    const urls = { base: URL.createObjectURL(basePng), labelled: URL.createObjectURL(labelledPng) };
+    const fileStem = `eym-battle-${map.setting}-${place.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+    this._atlasResult = { basePng, labelledPng, detailPng: null, labelSvgBlob: null, packetBlob: new Blob([packet], { type: "text/markdown" }), prompt, urls: Object.values(urls), previews: urls, fileStem };
+    this._atlasMap = { kind: "battle", map: { labelSvg: battleGridSvg(spec), frame: null }, battle: map, spec, packet: { prompt, markdown: packet }, title, env, referenceHash: textHash(referenceSvg) };
+    this.#setResultKind("battle");
+    this.#showPainted(null);
+    root.querySelector("[data-atlas-title]").textContent = title;
+    root.querySelector("[data-atlas-result-summary]").textContent = `${spec.summary} · ${map.analysis.routes} routes · cover ${Math.round(map.analysis.coverShare * 100)}%`;
+    const notes = root.querySelector("[data-battle-notes]"); if (notes) notes.textContent = map.notes.join(" ");
+    this.#paintStatus(game.user?.isGM ? "Not painted yet: the scene can use the reference layout, or paint it first." : "");
+    root.querySelector("[data-atlas-result]")?.classList.remove("is-hidden");
+    this.#showAtlasView("labelled");
+  }
+
+  /** Upload the battle map's image (the painting if there is one, else the layout) and create the Foundry scene. */
+  async #createBattleScene() {
+    if (!game.user?.isGM) throw new Error("only the GM can create scenes");
+    const current = this._atlasMap, result = this._atlasResult; if (current?.kind !== "battle" || !result) throw new Error("make a battle map first");
+    const FP = foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker; if (!FP?.upload) throw new Error("this Foundry has no file upload");
+    const worldId = game.world?.id ?? "world", folder = `${canonFolder(worldId)}/battle`;
+    for (const dir of [canonFolder(worldId), folder]) { try { await FP.createDirectory("data", dir, {}); } catch { /* already there */ } }
+    const stem = `${result.fileStem}-${current.referenceHash.slice(0, 8)}-${Date.now().toString(36)}`, painted = Boolean(result.paintedPng);
+    const upload = async (blob, suffix) => { const file = new File([blob], `${stem}${suffix}`, { type: blob.type || "application/octet-stream" }); const answer = await FP.upload("data", folder, file, {}, { notify: false }); return answer?.path ?? `${folder}/${file.name}`; };
+    const imagePath = await upload(painted ? result.paintedPng : result.basePng, painted ? "-painted.png" : "-layout.png");
+    await upload(result.packetBlob, "-packet.md");
+    const { conditions } = current.env ?? { conditions: {} };
+    const movementCost = Boolean(globalThis.CONFIG?.RegionBehavior?.dataModels?.modifyMovementCost);
+    const data = battleSceneData(current.battle, { name: current.title, imagePath, darkness: darknessFor(conditions.sunAltitudeDeg), weather: weatherEffectFor(conditions), movementCost, notes: current.battle.notes.join(" ") });
+    const SceneClass = globalThis.getDocumentClass?.("Scene") ?? globalThis.Scene;
+    if (!SceneClass?.create) throw new Error("this Foundry has no scenes");
+    let scene;
+    try { scene = await SceneClass.create(data); }
+    catch (error) { console.warn(`${MODULE_ID} | Scene with terrain regions was refused; creating it without them`, error); scene = await SceneClass.create({ ...data, regions: [] }); ui.notifications.warn("Terrain regions could not be added on this Foundry version; the walls, grid and notes are in place."); }
+    this.#paintStatus(`Scene created: ${scene?.name ?? current.title} (${painted ? "painted" : "layout"} image, ${data.walls.length} walls, ${data.regions.length} terrain regions).`);
+    ui.notifications.info(`Scene "${current.title}" created.`);
   }
 
   #showAtlasView(view) {

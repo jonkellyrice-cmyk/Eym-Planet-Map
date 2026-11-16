@@ -48,3 +48,8 @@
 .oscm-atlas-paint [data-atlas-paint-status] { font-size: 11px; }
 .oscm-atlas-paint.is-busy button { opacity: .5; pointer-events: none; }
 .oscm-shell.is-player .oscm-gm-only { display: none !important; }
+.oscm-battle-notes { display: block; font-size: 11px; max-height: 4.2em; overflow: auto; }
+.oscm-atlas-card .oscm-checkbox { display: flex; gap: .4rem; align-items: center; font-size: 11px; }
+.oscm-atlas-result.is-battle [data-atlas-only] { display: none; }
+.oscm-atlas-result.is-battle .oscm-atlas-result-head { flex-wrap: wrap; }
+.oscm-atlas-result.is-battle .oscm-battle-notes { flex-basis: 100%; order: 3; }

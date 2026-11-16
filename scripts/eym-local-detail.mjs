@@ -44,7 +44,7 @@ export function globeNoise(p, longKm, shortKm, salt = 1) {
 }
 const toKmVector = (lat, lon) => { const a = lat * DEG, b = lon * DEG; return [R_KM * Math.cos(a) * Math.cos(b), R_KM * Math.cos(a) * Math.sin(b), R_KM * Math.sin(a)]; };
 // FNV-1a with a final avalanche (keys differing only in their last digits must not give correlated values).
-const hashUnit = (text) => {
+export const hashUnit = (text) => {
   let h = 2166136261; for (let i = 0; i < text.length; i += 1) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
   h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16;
   return (h >>> 0) / 4294967296;
@@ -380,7 +380,7 @@ export function buildLocalTile(asset, { center, sizeKm = 8, resolutionM = 25, ma
 
 // ---------------------------------------------------------------- pictures
 
-const COVER_COLORS = Object.freeze({
+export const COVER_COLORS = Object.freeze({
   [COVER.sea]: [38, 82, 109], [COVER.lake]: [91, 155, 196], [COVER.river]: [91, 155, 196], [COVER.stream]: [104, 166, 205], [COVER.beach]: [222, 205, 160], [COVER.marsh]: [104, 128, 92],
   [COVER.meadow]: [148, 168, 98], [COVER.farmland]: [189, 177, 112], [COVER.scrub]: [118, 140, 82], [COVER.woods]: [62, 104, 58], [COVER.rock]: [140, 128, 112], [COVER.snow]: [238, 241, 243], [COVER.built]: [150, 120, 96],
 });
@@ -416,11 +416,14 @@ const OBJECT_DENSITY = { [COVER.woods]: { tree: 0.55, bush: 0.15, boulder: 0.02 
  * buildings, and the streams and roads crossing it — all read from the local detail around the place.
  * @param spec battleMapSpec(...) (columns, rows, feetPerSquare)
  */
+/** The world-pinned anchor (0.02° lattice) whose canonical tile a battle site reads. */
+export const battleAnchor = (center) => [Math.round(center[0] / BATTLE_ANCHOR_DEG) * BATTLE_ANCHOR_DEG, Math.round(center[1] / BATTLE_ANCHOR_DEG) * BATTLE_ANCHOR_DEG];
+
 export function buildBattleSite(asset, { center, spec }) {
   const ctx = localContext(asset), squareM = (spec.feetPerSquare ?? 5) * FEET, widthM = spec.columns * squareM, heightM = spec.rows * squareM;
   // The context is a canonical local tile around a world-pinned anchor (0.02° lattice), so a stream or a
   // field edge is in the same place whichever battle map it falls on.
-  const anchor = [Math.round(center[0] / BATTLE_ANCHOR_DEG) * BATTLE_ANCHOR_DEG, Math.round(center[1] / BATTLE_ANCHOR_DEG) * BATTLE_ANCHOR_DEG];
+  const anchor = battleAnchor(center);
   const context = buildLocalTile(asset, { center: anchor, sizeKm: BATTLE_CONTEXT_KM, resolutionM: BATTLE_CONTEXT_M, marginFraction: 0.4 });
   const res = context.resolutionM / 1000, halfCtx = context.sizeKm / 2, n = context.cols;
   const rasterAt = (lat, lon) => { const [x, y] = toLocal(anchor, lat, lon), c = clamp(Math.floor((x + halfCtx) / res), 0, n - 1), r = clamp(Math.floor((halfCtx - y) / res), 0, n - 1); return [r, c]; };

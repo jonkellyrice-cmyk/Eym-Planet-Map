@@ -1,13 +1,13 @@
 <div class="oscm-shell">
   <section class="oscm-view" aria-label="3D system map">
     <div class="oscm-atlas-result is-hidden" data-atlas-result>
-      <div class="oscm-atlas-result-head"><strong data-atlas-title>Reference map</strong><span class="oscm-muted" data-atlas-result-summary></span><button type="button" data-action="atlas-close" title="Close"><i class="fa-solid fa-xmark"></i></button></div>
-      <div class="oscm-atlas-tabs"><button type="button" data-atlas-view="labelled" class="is-active">With names</button><button type="button" data-atlas-view="base">For the image model</button><button type="button" data-atlas-view="detail" class="is-hidden">Ground detail</button><button type="button" data-atlas-view="painted" class="is-hidden">Painted</button><button type="button" data-atlas-view="paintedBare" class="is-hidden">Painted, no names</button></div>
+      <div class="oscm-atlas-result-head"><strong data-atlas-title>Reference map</strong><span class="oscm-muted" data-atlas-result-summary></span><span class="oscm-muted oscm-battle-notes" data-battle-notes></span><button type="button" data-action="atlas-close" title="Close"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="oscm-atlas-tabs"><button type="button" data-atlas-view="labelled" class="is-active" data-atlas-tab-label>With names</button><button type="button" data-atlas-view="base">For the image model</button><button type="button" data-atlas-view="detail" class="is-hidden">Ground detail</button><button type="button" data-atlas-view="painted" class="is-hidden">Painted</button><button type="button" data-atlas-view="paintedBare" class="is-hidden">Painted, no names</button></div>
       <img data-atlas-preview alt="Reference map preview">
       <div class="oscm-atlas-actions">
         <button type="button" data-action="atlas-download-base"><i class="fa-solid fa-download"></i> Reference PNG (no text)</button>
-        <button type="button" data-action="atlas-download-labelled"><i class="fa-solid fa-download"></i> PNG with names</button>
-        <button type="button" data-action="atlas-download-labels"><i class="fa-solid fa-download"></i> Name layer (SVG)</button>
+        <button type="button" data-action="atlas-download-labelled"><i class="fa-solid fa-download"></i> <span data-atlas-labelled-label>PNG with names</span></button>
+        <button type="button" data-action="atlas-download-labels" data-atlas-only><i class="fa-solid fa-download"></i> Name layer (SVG)</button>
         <button type="button" data-action="atlas-copy-prompt"><i class="fa-solid fa-copy"></i> Copy prompt</button>
         <button type="button" data-action="atlas-download-packet"><i class="fa-solid fa-download"></i> Packet (.md)</button>
         <button type="button" data-action="atlas-download-detail" class="is-hidden"><i class="fa-solid fa-download"></i> Ground detail PNG</button>
@@ -15,6 +15,7 @@
       <div class="oscm-atlas-actions oscm-atlas-paint oscm-gm-only">
         <button type="button" data-action="atlas-paint"><i class="fa-solid fa-paintbrush"></i> Paint with image model</button>
         <button type="button" data-action="atlas-save-canon" class="is-hidden"><i class="fa-solid fa-stamp"></i> Save as canon</button>
+        <button type="button" data-action="battle-create-scene" class="is-hidden"><i class="fa-solid fa-map-location-dot"></i> Create scene</button>
         <button type="button" data-action="atlas-download-painted" class="is-hidden"><i class="fa-solid fa-download"></i> Painted PNG</button>
         <button type="button" data-action="atlas-image-settings"><i class="fa-solid fa-key"></i> Image generator…</button>
         <span class="oscm-muted" data-atlas-paint-status></span>
@@ -152,6 +153,18 @@
       <button class="oscm-apply" type="button" data-action="atlas-build"><i class="fa-solid fa-map"></i> Make reference map</button>
       <label><span>Canon painted maps</span><select name="atlasCanon"></select></label>
       <button type="button" data-action="atlas-open-canon"><i class="fa-solid fa-book-atlas"></i> Open canon map</button>
+    </section>
+
+    <section class="oscm-card oscm-atlas-card oscm-battle-card">
+      <div class="oscm-card-title">Battle maps</div>
+      <label><span>Setting</span><select name="battleSetting"></select></label>
+      <label><span>Size (5-ft squares)</span><select name="battleSize"></select></label>
+      <label><span>Pixels per square</span><select name="battleDensity"></select></label>
+      <label><span>Orientation</span><select name="battleOrientation"><option value="auto">As the preset</option><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
+      <label class="oscm-checkbox"><input type="checkbox" name="battleConditions" checked> Ground, light and weather from the campaign clock</label>
+      <p class="oscm-muted" data-battle-summary>—</p>
+      <p class="oscm-muted">Centred on the Here and now place, snapped to the world's 5-ft grid.</p>
+      <button class="oscm-apply" type="button" data-action="battle-build"><i class="fa-solid fa-chess-board"></i> Make battle map</button>
     </section>
 
     <section class="oscm-card oscm-look-up-card">
