@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.16.0 (2026-11-16)
+
+- Eym's globe is pixel art at every zoom, all the way in: the old vector ground no longer takes over at 6×. Close views are drawn from the same coastlines, lakes and mountains at the view's own sharpness, with a finer grain to the ground; past 6× the cloud thins to a veil so the map can be read.
+- Turning and zooming the globe are much quicker. Changes are drawn once a frame, at half sharpness while the globe moves and sharp when it rests; the globe is painted straight onto a canvas; the cloud and the close-up land are kept between frames instead of being worked out again.
+
 ## 0.15.1 (2026-11-16)
 
 - The panel is dressed as a scholar's parchment: ink on vellum, a legible old-style serif, rubricated headings, leather buttons, in place of the light-on-dark instrument look. The map keeps its own colours.
