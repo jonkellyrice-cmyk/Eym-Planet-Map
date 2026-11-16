@@ -11,7 +11,11 @@ import { FEATURES, MOVE, SETTINGS } from "./eym-battle-settings.mjs";
 const GROUND_COLORS = Object.freeze({
   "deep water": "#2f6f96", river: "#4d8fbb", "shallow stream": "#6aa8cf", "frozen stream": "#cfe6f2", sand: "#e2cf98", marsh: "#6e8456", "wet meadow": "#869a5c",
   grass: "#93a862", field: "#c2b26c", scrub: "#7e9150", "forest floor": "#55703f", "bare rock": "#9a9184", snow: "#eef2f4", "deep snow": "#f7fafb", "glacier ice": "#cfe3ee",
-  yard: "#a99a7a", road: "#a58a62", "cobbled street": "#9b9488", "dirt lane": "#a88c62", "paved square": "#b3ab9c", floor: "#8a6a4a", "black rock": "#3d3836", "ash and cinders": "#6f6a66",
+  yard: "#a99a7a",
+  "canyon floor": "#c29a6a", "carved stone terrace": "#c8ab84", "monastery terrace": "#b9ad96", "lower terrace": "#a99d86", "stone stairs": "#d6c7a8", "marble quay": "#e2ddd2", canal: "#3f7f9a", "stone bridge": "#cfc6b4",
+  "floating rock": "#8fa36a", "open sky (a fall)": "#bcd8f0", "open air (a fall)": "#1c1f26", "rope bridge": "#a07a4a", "stone arch": "#b0a690", "planar rift": "#5a2a8a", "cave floor": "#5e5a55", "cave wall": "#2b2826",
+  "flagstone floor": "#8f877a", "carved wall": "#3a3632", "molten-metal channel": "#f0702a", "raised dais": "#a89c86", "tree platform": "#9a7448", ladder: "#7a5a36", "grave earth": "#6f6a52",
+  "deep channel": "#2f7fa8", shallows: "#6fc8c8", sandbar: "#efe2b8", road: "#a58a62", "cobbled street": "#9b9488", "dirt lane": "#a88c62", "paved square": "#b3ab9c", floor: "#8a6a4a", "black rock": "#3d3836", "ash and cinders": "#6f6a66",
 });
 const groundColor = (g) => GROUND_COLORS[g] ?? GROUND_COLORS[g.replace(/ \(mud\)$/, "")] ?? "#93a862";
 const MUD = "#6b5a3e";
@@ -47,6 +51,9 @@ function featureShape(f) {
     case "fire": return `<circle cx="${f2(cx)}" cy="${f2(cy)}" r="0.38" fill="#6d665c"/><circle cx="${f2(cx)}" cy="${f2(cy)}" r="0.24" fill="${c}"/>`;
     case "graves": return `<rect x="${f2(x + 0.05)}" y="${f2(y + 0.05)}" width="${f2(w - 0.1)}" height="${f2(h - 0.1)}" fill="${c}"/>${Array.from({ length: w * h }, (_, k) => `<rect x="${f2(x + 0.3 + (k % w))}" y="${f2(y + 0.3 + Math.floor(k / w))}" width="0.4" height="0.22" fill="#b8b3a8"/>`).join("")}`;
     case "circle": return `<circle cx="${f2(cx)}" cy="${f2(cy)}" r="${f2(Math.min(w, h) / 2 - 0.1)}" fill="none" stroke="${c}" stroke-width="0.12"/><circle cx="${f2(cx)}" cy="${f2(cy)}" r="${f2(Math.min(w, h) / 2 - 0.45)}" fill="none" stroke="${c}" stroke-width="0.06"/>`;
+    case "trunk": return `<circle cx="${f2(cx)}" cy="${f2(cy)}" r="${f2(Math.min(w, h) / 2)}" fill="${c}" stroke="#2e1f12" stroke-width="0.1"/><circle cx="${f2(cx)}" cy="${f2(cy)}" r="${f2(Math.min(w, h) / 2 - 0.4)}" fill="none" stroke="#7a5a36" stroke-width="0.06"/>`;
+    case "crystal": return [0, 1, 2, 3].map((k) => `<path d="M${f2(x + 0.3 + (k % 2) * (w - 0.9))} ${f2(y + 0.3 + Math.floor(k / 2) * (h - 0.9))} l0.3 -0.25 l0.3 0.25 l-0.3 0.6 z" fill="${c}" stroke="#4a8ab0" stroke-width="0.04"/>`).join("") + `<circle cx="${f2(cx)}" cy="${f2(cy)}" r="${f2(Math.min(w, h) * 0.3)}" fill="${c}" fill-opacity="0.7"/>`;
+    case "mushroom": return `<circle cx="${f2(cx)}" cy="${f2(cy)}" r="${f2(Math.min(w, h) * 0.55)}" fill="${c}"/><circle cx="${f2(cx - 0.3)}" cy="${f2(cy - 0.2)}" r="0.15" fill="#f0e6d0"/><circle cx="${f2(cx + 0.35)}" cy="${f2(cy + 0.2)}" r="0.12" fill="#f0e6d0"/>`;
     default: return `<rect x="${f2(x + 0.08)}" y="${f2(y + 0.08)}" width="${f2(w - 0.16)}" height="${f2(h - 0.16)}" rx="${f2(Math.min(w, h) * 0.35)}" fill="${c}"/>`;
   }
 }
@@ -59,8 +66,12 @@ export function battleReferenceSvg(map, gridPx = map.spec.gridPx) {
     out.push(`<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${groundColor(g)}"/>`);
     if (/\(mud\)$/.test(g)) out.push(`<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${MUD}" fill-opacity="0.35"/>`);
   }
+  // Height: lower ground a little darker, higher a little lighter; cliff edges as dark lines with a shadow.
+  const levels = [...grid.elevationFt].filter((e, i) => !grid.void[i]), lo = Math.min(...levels), hi = Math.max(...levels);
+  if (hi - lo >= 10) for (let y = 0; y < rows; y += 1) for (let x = 0; x < columns; x += 1) { const i = y * columns + x; if (grid.void[i]) continue; const t = (grid.elevationFt[i] - lo) / (hi - lo); out.push(`<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${t < 0.5 ? "#000" : "#fff"}" fill-opacity="${f2(Math.abs(t - 0.5) * 0.36)}"/>`); }
+  for (const c of map.cliffs ?? []) { const [a, b, cc, d] = c.dir === "e" ? [c.x + 1, c.y, c.x + 1, c.y + 1] : [c.x, c.y + 1, c.x + 1, c.y + 1]; out.push(`<line x1="${a}" y1="${b}" x2="${cc}" y2="${d}" stroke="#1e1a16" stroke-width="${f2(Math.min(0.35, 0.08 + (c.high - c.low) / 100))}" stroke-linecap="round"/>`); }
   const line = (pts) => `M${pts.map(([a, b]) => `${f2(a)} ${f2(b)}`).join(" L")}`;
-  for (const s of map.site.streams) out.push(`<path d="${line(s.line)}" fill="none" stroke="${s.kind === "river" ? "#4d8fbb" : "#6aa8cf"}" stroke-width="${f2(Math.max(0.6, s.widthSquares))}" stroke-linecap="round" stroke-linejoin="round"/>`);
+  if (!map.flattened) for (const s of map.site.streams) out.push(`<path d="${line(s.line)}" fill="none" stroke="${s.kind === "river" ? "#4d8fbb" : "#6aa8cf"}" stroke-width="${f2(Math.max(0.6, s.widthSquares))}" stroke-linecap="round" stroke-linejoin="round"/>`);
   for (const o of map.objects) {
     if (o.kind === "tree") out.push(`<circle cx="${f2(o.x)}" cy="${f2(o.y)}" r="${f2(o.size)}" fill="#2f5a2c" fill-opacity="0.88"/>${o.size >= 1 ? `<circle cx="${f2(o.x)}" cy="${f2(o.y)}" r="0.22" fill="#5a3d24"/>` : ""}`);
     else if (o.kind === "bush") out.push(`<circle cx="${f2(o.x)}" cy="${f2(o.y)}" r="${f2(o.size)}" fill="#5d7d3e"/>`);
@@ -83,6 +94,8 @@ export function battleTacticalSvg(map, gridPx = map.spec.gridPx) {
   map.zones.forEach((zone, k) => { for (const i of zone) out.push(`<rect x="${i % columns}" y="${Math.floor(i / columns)}" width="1" height="1" fill="${k ? "#eb5757" : "#2f80ed"}" fill-opacity="0.18"/>`); });
   for (let y = 0; y < rows; y += 1) for (let x = 0; x < columns; x += 1) {
     const i = y * columns + x, m = grid.move[i];
+    if (grid.rock[i]) { out.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="#000" fill-opacity="0.45"/>`); continue; }
+    if (grid.void[i]) continue;
     if (m === MOVE.difficult) out.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="url(#hatch-d)"/>`);
     else if (m === MOVE.greater) out.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="url(#hatch-g)"/>`);
     else if (m === MOVE.hazardous) out.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="url(#hatch-h)"/>`);
@@ -91,9 +104,13 @@ export function battleTacticalSvg(map, gridPx = map.spec.gridPx) {
     else if (m === MOVE.climb) out.push(`<path d="M${x + 0.3} ${y + 0.75} L${x + 0.5} ${y + 0.3} L${x + 0.7} ${y + 0.75}" fill="none" stroke="#fff" stroke-width="0.08"/>`);
     if (grid.coverGiven[i] > 0) out.push(`<circle cx="${x + 0.84}" cy="${y + 0.16}" r="0.11" fill="${["", "#b8e0ff", "#2f80ed", "#1b3f8a"][grid.coverGiven[i]]}" stroke="#fff" stroke-width="0.03"/>`);
     if (grid.concealed[i]) out.push(`<circle cx="${x + 0.16}" cy="${y + 0.16}" r="0.1" fill="none" stroke="#fff" stroke-width="0.04" stroke-dasharray="0.05 0.04"/>`);
-    if (grid.elevationFt[i]) out.push(`<text x="${x + 0.5}" y="${y + 0.92}" font-size="0.26" text-anchor="middle" fill="#fff" stroke="#000" stroke-width="0.04" paint-order="stroke" font-family="sans-serif">${grid.elevationFt[i] > 0 ? "+" : ""}${grid.elevationFt[i]}</text>`);
+    // Heights: on every third square, and wherever the height changes from a neighbour.
+    const changes = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => { const nx = x + dx, ny = y + dy; return nx >= 0 && ny >= 0 && nx < columns && ny < rows && grid.elevationFt[ny * columns + nx] !== grid.elevationFt[i]; });
+    if (grid.elevationFt[i] && !grid.void[i] && (changes || (x % 3 === 1 && y % 3 === 1))) out.push(`<text x="${x + 0.5}" y="${y + 0.92}" font-size="0.26" text-anchor="middle" fill="#fff" stroke="#000" stroke-width="0.04" paint-order="stroke" font-family="sans-serif">${grid.elevationFt[i] > 0 ? "+" : ""}${grid.elevationFt[i]}</text>`);
   }
   for (const [key, w] of grid.walls) { const [x, y, dir] = key.split(",").map((v, k) => (k < 2 ? Number(v) : v)); const [a, b, c, d] = dir === "e" ? [x + 1, y, x + 1, y + 1] : [x, y + 1, x + 1, y + 1]; out.push(`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" stroke="${w.door ? "#f2c94c" : "#111"}" stroke-width="${w.door ? 0.14 : 0.1}"/>`); }
+  for (const c of map.cliffs ?? []) { const [a, b, cc, d] = c.dir === "e" ? [c.x + 1, c.y, c.x + 1, c.y + 1] : [c.x, c.y + 1, c.x + 1, c.y + 1]; out.push(`<line x1="${a}" y1="${b}" x2="${cc}" y2="${d}" stroke="#ff7a00" stroke-width="0.12"/>`); }
+  for (let i = 0; i < columns * rows; i += 1) if (grid.void[i]) out.push(`<rect x="${i % columns}" y="${Math.floor(i / columns)}" width="1" height="1" fill="#000" fill-opacity="0.35"/>`);
   for (let x = 0; x <= columns; x += 1) out.push(`<line x1="${x}" y1="0" x2="${x}" y2="${rows}" stroke="#000" stroke-opacity="0.25" stroke-width="0.025"/>`);
   for (let y = 0; y <= rows; y += 1) out.push(`<line x1="0" y1="${y}" x2="${columns}" y2="${y}" stroke="#000" stroke-opacity="0.25" stroke-width="0.025"/>`);
   map.routes.forEach((route, k) => out.push(`<path d="M${route.map((i) => `${(i % columns) + 0.5} ${Math.floor(i / columns) + 0.5}`).join(" L")}" fill="none" stroke="${["#ffffff", "#c3f0ca", "#ffe08a"][k]}" stroke-opacity="0.85" stroke-width="0.12" stroke-dasharray="0.35 0.25"/>`));
@@ -121,8 +138,20 @@ function legend(map) {
   if (map.objects.some((o) => o.kind === "bush")) things.push("small mid-green discs = bushes");
   if (map.objects.some((o) => o.kind === "boulder")) things.push("grey discs = boulders and stones");
   if (map.buildings.length) things.push("brown rectangles with dark outlines = buildings seen from above (roofs); gold marks on their edges = doors");
-  if (map.site.streams.length) things.push("blue bands = water (streams and rivers)");
+  if (map.site.streams.length && !map.flattened) things.push("blue bands = water (streams and rivers)");
+  if ((map.cliffs ?? []).length) things.push("thick dark lines = cliff edges and ledges (sheer drops of 10 ft or more; paint them as rock faces with strong shadows)");
+  if (map.grid.void.some(Boolean)) things.push(`${groundColor(map.grid.ground[map.grid.void.indexOf(1)])} areas = ${map.grid.ground[map.grid.void.indexOf(1)]}: empty air, nothing to stand on`);
+  things.push("lighter = higher ground, darker = lower ground");
   return [...grounds, ...things];
+}
+
+/** Heights for the painter: levels, cliffs, platforms, a ceiling. */
+function heightWords(map) {
+  const e = [...map.grid.elevationFt].filter((v, i) => !map.grid.void[i]), lo = Math.min(...e), hi = Math.max(...e), parts = [];
+  if (hi - lo >= 10) parts.push(`The ground is not flat: it ranges over ${hi - lo} ft${(map.cliffs ?? []).length ? ", in levels with sheer faces between them" : ""}; show the heights with shading, cast shadows and visible rock faces so a viewer can read what is high and what is low.`);
+  if (map.grid.platform.some(Boolean)) parts.push("The brown platform areas are raised wooden platforms and bridges 20 ft above the forest floor; show the ground far below between them.");
+  if (map.underground) parts.push(`This is underground: no sky; a rock ceiling about ${map.ceilingFt} ft up is out of view; light comes from glowing crystals, braziers or lava.`);
+  return parts.join(" ");
 }
 
 /** The prompt: paint over the layout, keep everything where it is, a clean top-down battle map, no grid or text. */
@@ -134,6 +163,7 @@ export function battleArtDirection(map, { timeWords = "", weatherWords = "", arc
     `The setting: ${rules.words}.${timeWords ? ` ${timeWords}` : ""}${weatherWords ? ` ${weatherWords}` : ""} Paint in even, clear daylight so the map reads well; lighting is added in play.`,
     `The attached reference image is the authoritative layout of the battlefield, ${columns} by ${rows} squares of 5 feet (${columns * 5} by ${rows * 5} feet). Keep every building footprint, wall, door, tree trunk, boulder, log, wall, ridge, hazard, water edge, road and street exactly where it is, at the same size and shape: the game rules depend on them. Do not add, remove, move or merge any obstacle, building, water or path. You may add small surface detail (grass tufts, pebbles, leaf litter, cracks, roof tiles) that does not change what blocks or slows movement.`,
     `Colours in the reference mean: ${legend(map).join("; ")}. Paint each as the real thing, not as flat colour.`,
+    ...(heightWords(map) ? [heightWords(map)] : []),
     ...(chosen.length ? [`The map must clearly show these features, where the reference has them: ${chosen.join("; ")}.`] : []),
     ...(architecture ? [architecture] : []),
     `Draw no grid lines, text, labels, numbers, tokens, people, creatures, compass or border. Fill the whole image to the edges, at ${widthPx}×${heightPx} pixels.`,
@@ -204,6 +234,9 @@ export function battleSceneData(map, { name, imagePath, gridPx = map.spec.gridPx
     return { c: c.map(px), move: 20, sight: 20, light: 20, sound: 20, door: w.door ? 1 : 0, ds: 0 };
   });
   for (const f of map.features) if (FEATURES[f.kind].wall) { const r = [f.x, f.y, f.x + f.w, f.y + f.h].map(px); walls.push({ c: [r[0], r[1], r[2], r[1]], move: 20, sight: 20, light: 20, sound: 20, door: 0, ds: 0 }, { c: [r[2], r[1], r[2], r[3]], move: 20, sight: 20, light: 20, sound: 20, door: 0, ds: 0 }, { c: [r[2], r[3], r[0], r[3]], move: 20, sight: 20, light: 20, sound: 20, door: 0, ds: 0 }, { c: [r[0], r[3], r[0], r[1]], move: 20, sight: 20, light: 20, sound: 20, door: 0, ds: 0 }); }
+  // Cliffs: block movement (not sight); Wall Height-style flags give their bottom and top if that module is used.
+  for (const c of map.cliffs ?? []) { const e = c.dir === "e" ? [c.x + 1, c.y, c.x + 1, c.y + 1] : [c.x, c.y + 1, c.x + 1, c.y + 1]; walls.push({ c: e.map(px), move: 20, sight: 0, light: 0, sound: 0, door: 0, ds: 0, flags: { "wall-height": { bottom: c.low, top: c.high }, "eym-planet-map": { cliff: true } } }); }
+  for (const w of walls) if (!w.flags) { const b = map.buildings.find((x) => w.c[0] / gridPx >= x.x0 && w.c[0] / gridPx <= x.x1 + 1 && w.c[1] / gridPx >= x.y0 && w.c[1] / gridPx <= x.y1 + 1); if (b) { const i = Math.min(map.grid.columns * map.grid.rows - 1, Math.max(0, b.y0) * map.grid.columns + Math.max(0, b.x0)); w.flags = { "wall-height": { bottom: map.grid.levelFt[i], top: map.grid.levelFt[i] + (b.heightFt ?? 10 * (b.storeys ?? 1) + 8) } }; } }
   const region = (label, color, test, multiplier) => {
     const shapes = rectangles(columns, rows, test).map((r) => ({ type: "rectangle", x: px(r.x), y: px(r.y), width: px(r.w), height: px(r.h), rotation: 0, hole: false }));
     if (!shapes.length) return null;
@@ -213,13 +246,15 @@ export function battleSceneData(map, { name, imagePath, gridPx = map.spec.gridPx
     region("Difficult terrain", "#f2c94c", (i) => map.grid.move[i] === MOVE.difficult, 2),
     region("Greater difficult terrain", "#f2994a", (i) => map.grid.move[i] === MOVE.greater, 3),
     region("Hazardous terrain", "#eb5757", (i) => map.grid.move[i] === MOVE.hazardous, 2),
-    region("Deep water (swim)", "#2f80ed", (i) => map.grid.move[i] === MOVE.swim, null),
+    region("Deep water (swim)", "#2f80ed", (i) => map.grid.move[i] === MOVE.swim && !map.grid.void[i], null),
+    region("Open air: a fall", "#000000", (i) => map.grid.void[i] === 1, null),
+    ...[...new Set(map.grid.levelFt)].filter((v) => v !== 0 && v > -60).sort((a, b) => a - b).map((v) => region(`Ground at ${v > 0 ? "+" : ""}${v} ft`, v > 0 ? "#9b51e0" : "#56ccf2", (i) => map.grid.levelFt[i] === v && !map.grid.void[i] && map.grid.move[i] !== MOVE.swim, null)),
     ...(map.traps ?? []).map((t) => ({ name: `Hidden trap: ${FEATURES[t.kind].label}`, color: "#d0342c", shapes: [{ type: "rectangle", x: px(t.x), y: px(t.y), width: px(t.w), height: px(t.h), rotation: 0, hole: false }], behaviors: [], visibility: 0, flags: { "eym-planet-map": { trap: t.hazard } } })),
   ].filter(Boolean);
   return {
     name, width: W, height: H, padding: 0, backgroundColor: "#000000",
     background: { src: imagePath }, grid: { type: 1, size: gridPx, distance: 5, units: "ft" },
-    environment: { darknessLevel: darkness, globalLight: { enabled: darkness < 0.5 } }, darkness, weather,
+    environment: { darknessLevel: map.underground ? (map.dimLight ? 0.6 : 1) : darkness, globalLight: { enabled: !map.underground && darkness < 0.5 } }, darkness: map.underground ? (map.dimLight ? 0.6 : 1) : darkness, weather: map.underground ? "" : weather,
     tokenVision: true, walls, regions,
     flags: { "eym-planet-map": { battle: { version: map.version, key: map.key, setting: map.setting, center: map.center, spec: { columns, rows, gridPx }, analysis: map.analysis, notes, extras: (map.extras ?? []).map((e) => e.id), traps: (map.traps ?? []).map((t) => ({ kind: t.kind, x: t.x, y: t.y, hazard: t.hazard })) } } },
   };

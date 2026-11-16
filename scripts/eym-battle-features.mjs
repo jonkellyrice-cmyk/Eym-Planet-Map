@@ -11,7 +11,7 @@ import { FEATURES, MOVE } from "./eym-battle-settings.mjs";
 export const MAP_FEATURE_CATEGORIES = Object.freeze([
   { id: "sacred", label: "Sacred places" }, { id: "underground", label: "Dungeons and caves" }, { id: "fortifications", label: "Fortifications" },
   { id: "camp", label: "Camps and travellers" }, { id: "settlement", label: "Town and farm" }, { id: "ruins", label: "Ruins and remains" },
-  { id: "water", label: "Water" }, { id: "wild", label: "Wilderness" }, { id: "magic", label: "Magic" }, { id: "traps", label: "Traps (hidden from players)" },
+  { id: "water", label: "Water" }, { id: "wild", label: "Wilderness" }, { id: "magic", label: "Magic" }, { id: "wonders", label: "Wonders of the world" }, { id: "traps", label: "Traps (hidden from players)" },
 ]);
 
 const E = (id, label, category, place, extra = {}) => Object.freeze({ id, label, category, place, kind: extra.kind ?? id, ...extra });
@@ -60,6 +60,27 @@ export const MAP_FEATURES = Object.freeze([
   E("boulder-pile", "Boulder field", "wild", "anywhere", { compound: "scatter", pieces: 3 }),
   E("magic-circle", "Magic circle", "magic", "middle"),
   E("portal", "Portal arch", "magic", "middle"),
+  E("teleport-circle", "Teleportation circle", "magic", "middle"),
+  E("ley-nexus", "Ley-line nexus", "magic", "middle"),
+  E("ward-stones", "Ring of ward stones", "magic", "middle", { compound: "ring", kind: "ward-stone", radius: 4, pieces: 6 }),
+  E("planar-rift", "Planar rift", "magic", "middle"),
+  E("elemental-vent", "Elemental vents", "magic", "anywhere", { compound: "scatter", pieces: 3 }),
+  E("levitation-disc", "Levitation disc", "magic", "anywhere"),
+  E("rune-door", "Rune-sealed door", "underground", "middle"),
+  E("crystal-cluster", "Crystal formations", "wonders", "anywhere", { compound: "scatter", pieces: 3 }),
+  E("giant-mushroom", "Giant mushrooms", "wonders", "anywhere", { compound: "scatter", pieces: 3 }),
+  E("glowing-mushrooms", "Glowing mushrooms", "wonders", "anywhere", { compound: "scatter", pieces: 2 }),
+  E("fey-ring", "Fey ring", "wonders", "middle"),
+  E("glowing-pool", "Luminous pool", "wonders", "anywhere"),
+  E("sacred-spring", "Sacred spring", "wonders", "middle"),
+  E("floating-stones", "Floating stones", "wonders", "anywhere", { compound: "scatter", pieces: 2 }),
+  E("world-tree", "Great sacred tree", "wonders", "middle"),
+  E("colossus-head", "Fallen colossus head", "wonders", "middle"),
+  E("dragon-skull", "Dragon skull", "wonders", "anywhere"),
+  E("petrified-warrior", "Petrified warriors", "wonders", "anywhere", { compound: "scatter", pieces: 3 }),
+  E("bone-throne", "Bone throne", "wonders", "held"),
+  E("sky-chain", "Sky-anchor chain", "wonders", "anywhere"),
+  E("prayer-flags", "Prayer flags", "sacred", "flank"),
   ...["pit-trap", "spiked-pit", "snare", "bear-trap", "tripwire", "net-trap", "rockfall-trap", "collapsing-floor"].map((id) => E(id, FEATURES[id].label[0].toUpperCase() + FEATURES[id].label.slice(1), "traps", "route", { hidden: true })),
 ]);
 export const MAP_FEATURE_IDS = Object.freeze(MAP_FEATURES.map((f) => f.id));

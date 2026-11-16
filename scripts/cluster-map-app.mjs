@@ -543,7 +543,9 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const setting = root.querySelector('[name="battleSetting"]'), size = root.querySelector('[name="battleSize"]'), density = root.querySelector('[name="battleDensity"]');
     if (!setting || !size || !density) return;
     const option = (value, label) => Object.assign(document.createElement("option"), { value, textContent: label });
-    setting.replaceChildren(option("auto", "From the ground (automatic)"), ...Object.entries(BATTLE_SETTINGS).map(([id, s]) => option(id, s.label)));
+    const group = (label, entries) => { const g = Object.assign(document.createElement("optgroup"), { label }); g.append(...entries.map(([id, s]) => option(id, s.label))); return g; };
+    const all = Object.entries(BATTLE_SETTINGS);
+    setting.replaceChildren(option("auto", "From the ground (automatic)"), group("The natural world", all.filter(([, s]) => s.group !== "fantastic")), group("The fantastic (chosen; reshapes the ground)", all.filter(([, s]) => s.group === "fantastic")));
     size.replaceChildren(...BATTLE_SIZE_PRESETS.map((p) => option(p.id, p.label)));
     density.replaceChildren(...GRID_DENSITY_PRESETS.map((p) => option(p.id, p.label)));
     const defaults = savedMapDefaults(MODULE_ID).battle;

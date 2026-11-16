@@ -21,6 +21,7 @@ import { environmentField } from "./eym-seasons.mjs";
 import { fromLocal, toLocal } from "./eym-surface.mjs";
 import { FEATURES, MOVE, MOVE_COST, SETTINGS } from "./eym-battle-settings.mjs";
 import { placeExtras } from "./eym-battle-features.mjs";
+import { SCULPTS, applyInclines, cliffEdges, computeTops, inclineDegrees, levelStep, viewShare } from "./eym-battle-terrain.mjs";
 
 export const BATTLE_RULES_VERSION = "eym-battle-v1";
 const SQUARE_KM = (5 * 0.3048) / 1000;
@@ -93,7 +94,8 @@ function groundFor(cover, setting, conditions) {
 /** A blank grid of squares. */
 function makeGrid(columns, rows) {
   const n = columns * rows;
-  return { columns, rows, ground: new Array(n).fill("grass"), cover: new Uint8Array(n), move: new Array(n).fill(MOVE.normal), coverGiven: new Uint8Array(n), concealed: new Uint8Array(n), elevationFt: new Int16Array(n), feature: new Int16Array(n).fill(-1), building: new Int16Array(n).fill(-1), street: new Uint8Array(n), trap: new Uint8Array(n), walls: new Map() };
+  return { columns, rows, ground: new Array(n).fill("grass"), cover: new Uint8Array(n), move: new Array(n).fill(MOVE.normal), coverGiven: new Uint8Array(n), concealed: new Uint8Array(n), elevationFt: new Int16Array(n), feature: new Int16Array(n).fill(-1), building: new Int16Array(n).fill(-1), street: new Uint8Array(n), trap: new Uint8Array(n), walls: new Map(),
+    levelFt: new Int16Array(n), inclineDeg: new Float32Array(n), solidFt: new Int16Array(n), canopyFt: new Int16Array(n), void: new Uint8Array(n), ramp: new Uint8Array(n), water: new Uint8Array(n), bridge: new Uint8Array(n), platform: new Uint8Array(n), rock: new Uint8Array(n) };
 }
 const edgeKey = (x, y, dir) => `${x},${y},${dir}`; // dir: "e" (east edge of square x,y) or "s" (south edge)
 
@@ -197,7 +199,7 @@ function distances(grid, sources, extra = null) {
     const [d, i] = pop(); if (done[i]) continue; done[i] = 1; const x = i % columns, y = Math.floor(i / columns);
     for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
       if (!dx && !dy) continue; const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= columns || ny >= rows) continue;
-      const j = ny * columns + nx; if (done[j]) continue; const c = squareCost(grid, j, extra); if (!Number.isFinite(c) || blockedStep(grid, x, y, nx, ny)) continue;
+      const j = ny * columns + nx; if (done[j]) continue; const c = squareCost(grid, j, extra) + levelStep(grid, i, j); if (!Number.isFinite(c) || blockedStep(grid, x, y, nx, ny)) continue;
       const nd = d + c * (dx && dy ? 1.5 : 1); if (nd < dist[j]) { dist[j] = nd; prev[j] = i; push(j, nd); }
     }
   }
@@ -287,28 +289,41 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
     const [ground, move] = groundFor(site.squares[i], chosen, conditions); grid.cover[i] = site.squares[i]; grid.ground[i] = ground; grid.move[i] = move;
     grid.elevationFt[i] = clamp(Math.round((site.heights[i] - median) / 1.524) * 5, -30, 30);
   }
-  // Towns: streets, buildings, walls and doors on the built-up squares.
-  const placed = [], fixedFeatures = [];
+  // Shaped settings (canyon terraces, canals, sky islands, chasms, caverns, halls, treetops…) reshape the ground.
+  const placed = [], fixedFeatures = [], sculptFeatures = [];
+  let sculpt = {};
+  const sculptBuildings = [];
+  if (rules.sculpt) {
+    const [name, options] = rules.sculpt;
+    sculpt = SCULPTS[name]({ grid, key, worldOrigin: snap.origin, buildings: sculptBuildings, features: sculptFeatures }, options) ?? {};
+  }
+  // Elevation shown and used for sight: the natural ground (unless the shape flattened it) plus the levels.
+  for (let i = 0; i < n; i += 1) grid.elevationFt[i] = (sculpt.flatten ? 0 : grid.elevationFt[i]) + grid.levelFt[i];
+  for (let i = 0; i < n; i += 1) if (grid.rock[i]) grid.coverGiven[i] = 3;
+  // Towns: streets, buildings, walls and doors on the built-up squares (shaped settings build their own).
   const built = Uint8Array.from(site.squares, (v) => (v === COVER.built ? 1 : 0));
-  const buildings = built.some(Boolean) ? layOutTown(grid, built, snap.origin, chosen === "urban" ? "urban" : "village", `${BATTLE_RULES_VERSION}|town|${snap.anchor.join(",")}`, fixedFeatures) : [];
-  for (let i = 0; i < n; i += 1) if (site.squares[i] === COVER.road) grid.street[i] = 1;
+  const buildings = rules.sculpt ? sculptBuildings : built.some(Boolean) ? layOutTown(grid, built, snap.origin, chosen === "urban" ? "urban" : "village", `${BATTLE_RULES_VERSION}|town|${snap.anchor.join(",")}`, fixedFeatures) : [];
+  if (!rules.sculpt) for (let i = 0; i < n; i += 1) if (site.squares[i] === COVER.road) grid.street[i] = 1;
   // The world's objects: trunks of big trees and big boulders block; small trees, bushes and stones slow and shelter.
   const objects = [];
   for (const o of site.objects) {
     if (o.kind === "building") continue;
     // Settings that cannot grow them lose the world's trees and bushes (lava, ice); deserts keep a few.
     if ((o.kind === "tree" || o.kind === "bush") && hashUnit(`${o.x}|${o.y}|veg`) >= (rules.vegetation ?? 1)) continue;
-    const i = Math.floor(o.y) * columns + Math.floor(o.x); if (WATER.has(grid.cover[i]) || grid.cover[i] === COVER.road || grid.street[i] || grid.building[i] >= 0) continue;
+    const i = Math.floor(o.y) * columns + Math.floor(o.x); if (WATER.has(grid.cover[i]) || grid.cover[i] === COVER.road || grid.street[i] || grid.building[i] >= 0 || grid.void[i] || grid.water[i] || grid.rock[i] || grid.platform[i] || grid.ramp[i] || grid.bridge[i] || grid.move[i] === MOVE.swim || grid.move[i] === MOVE.impassable) continue;
     objects.push(o);
     if (o.kind === "tree") { if (o.size >= 1) { grid.move[i] = MOVE.impassable; grid.coverGiven[i] = Math.max(grid.coverGiven[i], 2); } else { if (grid.move[i] === MOVE.normal) grid.move[i] = MOVE.difficult; grid.coverGiven[i] = Math.max(grid.coverGiven[i], 1); grid.concealed[i] = 1; } }
     else if (o.kind === "bush") { if (grid.move[i] === MOVE.normal) grid.move[i] = MOVE.difficult; grid.coverGiven[i] = Math.max(grid.coverGiven[i], 1); grid.concealed[i] = 1; }
     else if (o.kind === "boulder") { if (o.size >= 0.35) { grid.move[i] = MOVE.impassable; grid.coverGiven[i] = Math.max(grid.coverGiven[i], 2); } else if (grid.move[i] === MOVE.normal) grid.move[i] = MOVE.difficult; }
   }
+  // Inclines: steep natural ground is difficult (20°), greater difficult (32°) or a climb (45°).
+  const inclined = sculpt.flatten ? 0 : applyInclines(grid, inclineDegrees(site.heights, columns, rows), (i) => grid.street[i] || grid.building[i] >= 0 || grid.move[i] === MOVE.swim || grid.void[i] || grid.rock[i] || grid.bridge[i] || grid.platform[i] || grid.ramp[i] || grid.move[i] === MOVE.impassable);
+  const inclineNote = inclined ? `${inclined} squares are steep enough to slow movement (20° or more is difficult terrain, 32° greater, 45° a climb).` : null;
   // Deployment: the pair of opposite edges with the most open ground (ties: the map's long axis).
-  const strip = (edge, depth) => { const out = []; for (let y = 0; y < rows; y += 1) for (let x = 0; x < columns; x += 1) { const inStrip = edge === "n" ? y < depth : edge === "s" ? y >= rows - depth : edge === "w" ? x < depth : x >= columns - depth; const i = y * columns + x; if (inStrip && Number.isFinite(MOVE_COST[grid.move[i]]) && grid.move[i] !== MOVE.swim && grid.building[i] < 0) out.push(i); } return out; };
+  const strip = (edge, depth) => { const out = []; for (let y = 0; y < rows; y += 1) for (let x = 0; x < columns; x += 1) { const inStrip = edge === "n" ? y < depth : edge === "s" ? y >= rows - depth : edge === "w" ? x < depth : x >= columns - depth; const i = y * columns + x; if (inStrip && Number.isFinite(MOVE_COST[grid.move[i]]) && grid.move[i] !== MOVE.swim && grid.building[i] < 0 && !grid.void[i]) out.push(i); } return out; };
   // Score each pair by the walkable share of its weaker edge; the long axis (more ground to cross) is preferred.
   const axes = [["n", "s"], ["w", "e"]].map((pair) => { const len = pair[0] === "n" ? columns : rows, long = pair[0] === "n" ? rows >= columns : columns > rows; return { pair, score: Math.min(strip(pair[0], 3).length, strip(pair[1], 3).length) / (3 * len) + (long ? 0.2 : 0) }; });
-  const axis = axes.sort((a, b) => b.score - a.score)[0].pair;
+  const axis = sculpt.axis ?? axes.sort((a, b) => b.score - a.score)[0].pair;
   let depth = 3; while (depth < 6 && Math.min(strip(axis[0], depth).length, strip(axis[1], depth).length) < Math.max(6, (axis[0] === "n" ? columns : rows) * 1.5)) depth += 1;
   const zones = [strip(axis[0], depth), strip(axis[1], depth)], zoneOf = new Uint8Array(n);
   zones.forEach((z, k) => { for (const i of z) zoneOf[i] = k + 1; });
@@ -341,6 +356,8 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
   placed.nextId = 0;
   placed.lanes = routes(grid, zones).length; placed.reach = reachable(grid, zones[0]);
   for (const f of fixedFeatures) { const x = f.gx - snap.origin[0], y = f.gy - snap.origin[1]; place(f.kind, x, y, { allowStreet: !f.soft }); }
+  for (const f of sculptFeatures) place(f.kind, f.x, f.y, { force: true, allowStreet: true, size: f.size ?? null });
+  if (sculpt.gondolas) { let k = 0; for (const i of [...Array(n).keys()].filter((i) => grid.water[i] && !grid.bridge[i]).sort((a, b) => hashUnit(`${key}|gondola|${a}`) - hashUnit(`${key}|gondola|${b}`))) { if (k >= 4) break; if (place("gondola", i % columns, Math.floor(i / columns), { allowWater: true, accept: (sq) => sq.every((j) => grid.water[j]) })) k += 1; } }
   const designKey = (step) => hashUnit(`${key}|${step}`);
   const middle = (i) => { const a = along(i); return a > 0.33 && a < 0.67; };
   const order = (filter, step) => [...Array(n).keys()].filter(filter).sort((a, b) => hashUnit(`${key}|${step}|${a}`) - hashUnit(`${key}|${step}|${b}`));
@@ -403,11 +420,25 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
     balance: { forwardCover: forward, toCentre: toCenter.map((v) => Math.round(v * 5)) },
     buildings: buildings.length, features: placed.length,
   };
+  // Height and sight: what stands on each square, the cliffs, and how far one can see from where.
+  const mapFeatures = placed.map(({ remove, ...p }) => ({ ...p, ...FEATURES[p.kind], kind: p.kind, squares: p.squares, extra: Boolean(p.extra) }));
+  computeTops(grid, { buildings, objects, features: mapFeatures });
+  const cliffs = cliffEdges(grid), walkSq = (i) => Number.isFinite(MOVE_COST[grid.move[i]]) && !grid.void[i];
+  let highest = -1; for (let i = 0; i < n; i += 1) if (walkSq(i) && grid.building[i] < 0 && (highest < 0 || grid.elevationFt[i] > grid.elevationFt[highest])) highest = i;
+  const samples = order((i) => walkSq(i) && grid.building[i] < 0, "sight").slice(0, 10);
+  const groundView = samples.length ? samples.reduce((sum, i) => sum + viewShare(grid, i, 5, walkSq), 0) / samples.length : 0;
+  const centre = Math.floor(rows / 2) * columns + Math.floor(columns / 2), flyFt = sculpt.ceilingFt ? Math.max(10, sculpt.ceilingFt - 10) : 40;
+  const sight = { groundView: Math.round(100 * groundView) / 100, highFt: highest >= 0 ? grid.elevationFt[highest] : 0, highView: highest >= 0 ? Math.round(100 * viewShare(grid, highest, 5, walkSq)) / 100 : 0, flyFt, flyView: Math.round(100 * viewShare(grid, centre, flyFt - grid.elevationFt[centre], walkSq)) / 100 };
+  analysis.sight = sight; analysis.cliffEdges = cliffs.length; analysis.inclinedSquares = inclined;
   notes.push(...battleNotes(analysis, axis, placed, conditions, grid.ground.filter((g) => g.endsWith("(mud)")).length));
+  notes.push(...(sculpt.notes ?? []));
+  if (inclineNote) notes.push(inclineNote);
+  if (cliffs.length) notes.push(`${cliffs.length} cliff edges (10 ft or more): only stairs, ramps, ladders, a climb (up to 15 ft) or flight cross them.`);
+  notes.push(`Line of sight: a standing creature sees about ${Math.round(sight.groundView * 100)}% of the field clearly; from the highest ground (${sight.highFt >= 0 ? "+" : ""}${sight.highFt} ft) ${Math.round(sight.highView * 100)}%; a flyer ${flyFt} ft over the centre ${Math.round(sight.flyView * 100)}%${sculpt.ceilingFt ? ` (the ceiling is ${sculpt.ceilingFt} ft)` : ""}.`);
   notes.push(...extraResult.notes);
   return {
     version: BATTLE_RULES_VERSION, key, center: snap.center, anchor: snap.anchor, origin: snap.origin, spec, setting: chosen, biome: cell.biome, conditions,
-    site, grid, buildings, objects, features: placed.map(({ remove, ...p }) => ({ ...p, ...FEATURES[p.kind], kind: p.kind, squares: p.squares, extra: Boolean(p.extra) })), traps: extraResult.traps, extras: extraResult.placed, zones, axis,
+    site, grid, buildings, objects, features: mapFeatures, cliffs, flattened: Boolean(sculpt.flatten), underground: Boolean(sculpt.underground), ceilingFt: sculpt.ceilingFt ?? null, dimLight: Boolean(sculpt.dim), traps: extraResult.traps, extras: extraResult.placed, zones, axis,
     routes: finalRoutes.map((r) => r.squares), chokepoints, analysis, notes,
   };
 }
