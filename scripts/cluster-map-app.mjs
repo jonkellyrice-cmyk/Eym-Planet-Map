@@ -36,6 +36,8 @@ import { CANON_SETTING, activeCanon, canonAbove, canonEntry, canonFolder, canonF
 import { architectureLibrary, canonList, paintingSettings } from "./eym-paint-settings.mjs";
 import { buildBattleMap } from "./eym-battle-rules.mjs";
 import { MAP_FEATURE_CATEGORIES, MAP_FEATURES } from "./eym-battle-features.mjs";
+import { buildInteriors, floorSvg, footprintMaskSvg, interiorArtDirection, mapFloors, roofMaskSvg } from "./eym-battle-interiors.mjs";
+import { battleScenePlan } from "./eym-battle-scene.mjs";
 import { ARCHITECTURE_SETTING, DEFAULT_LINK_RADIUS_KM, DOSSIER_FIELDS, archiveDossier, architecturePrompt, coversPlace, createDossier, createFolder, deleteDossier, deleteFolder, dossierChoices, dossierForPlace, dossierTree, folderPath, linkArea, moveFolder, renameFolder, unlinkArea, updateDossier } from "./eym-architecture.mjs";
 import { SETTINGS as BATTLE_SETTINGS } from "./eym-battle-settings.mjs";
 import { battleArtDirection, battleGridSvg, battlePacket, battleReferenceSvg, battleSceneData, battleTacticalSvg, darknessFor, weatherEffectFor } from "./eym-battle-render.mjs";
@@ -534,6 +536,8 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const tab = root.querySelector("[data-atlas-tab-label]"); if (tab) tab.textContent = battle ? "Tactical (GM)" : "With names";
     const label = root.querySelector("[data-atlas-labelled-label]"); if (label) label.textContent = battle ? "Tactical PNG" : "PNG with names";
     root.querySelector('[data-action="battle-create-scene"]')?.classList.toggle("is-hidden", !battle);
+    root.querySelector('[data-action="battle-paint-interiors"]')?.classList.toggle("is-hidden", !battle);
+    root.querySelector('[data-atlas-view="floors"]')?.classList.toggle("is-hidden", !battle);
     const notes = root.querySelector("[data-battle-notes]"); if (notes && !battle) notes.textContent = "";
     if (!battle) root.querySelector('[data-atlas-view="detail"]')?.classList.add("is-hidden");
   }
@@ -567,6 +571,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this.#setUpDossierPanel(root);
     root.querySelector('[data-action="battle-build"]')?.addEventListener("click", guard("Unable to make the battle map", () => this.#buildBattle()));
     root.querySelector('[data-action="battle-create-scene"]')?.addEventListener("click", guard("Unable to create the scene", () => this.#createBattleScene()));
+    root.querySelector('[data-action="battle-paint-interiors"]')?.addEventListener("click", guard("Unable to paint the interiors", () => this.#paintInteriors()));
   }
 
   #battleSpec(root) {
@@ -705,15 +710,16 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const nearest = this._eymGeography.settlements.filter((s) => s.properName).reduce((best, s) => { const d = Math.hypot(s.lat - lat, (s.lon - lon) * Math.cos(lat * Math.PI / 180)); return d < best.d ? { s, d } : best; }, { s: null, d: Infinity });
     const place = nearest.s && nearest.d < 0.3 ? `near ${nearest.s.properName}` : `${Math.abs(lat).toFixed(3)}°${lat >= 0 ? "N" : "S"}, ${Math.abs(lon).toFixed(3)}°${lon >= 0 ? "E" : "W"}`;
     const title = `${BATTLE_SETTINGS[map.setting].label}, ${place}`;
-    const referenceSvg = battleReferenceSvg(map), tacticalSvg = battleTacticalSvg(map);
+    const referenceSvg = battleReferenceSvg(map), tacticalSvg = battleTacticalSvg(map), interiors = buildInteriors(map);
     const basePng = await svgToPng(referenceSvg, spec.widthPx, spec.heightPx), labelledPng = await layerSvg(basePng, tacticalSvg, spec.widthPx, spec.heightPx);
     const prompt = battleArtDirection(map, { architecture, timeWords: env.words.time ? `Season and time: ${env.words.time}.` : "", weatherWords: env.words.weather ? `Weather: ${env.words.weather}; show its effect on the ground (wet, snowy or dry) but not falling rain or snow.` : "" });
     const packet = battlePacket(map, { title, place, timeWords: env.words.time, weatherWords: env.words.weather, lightWords: env.words.light, architecture, dossierName: dossier?.name ?? "" });
     for (const url of this._atlasResult?.urls ?? []) URL.revokeObjectURL(url);
-    const urls = { base: URL.createObjectURL(basePng), labelled: URL.createObjectURL(labelledPng) };
+    const floorsPng = interiors.length ? await svgToPng(floorSvg(map, interiors, 0, { outdoorSvg: referenceSvg }), spec.widthPx, spec.heightPx) : basePng;
+    const urls = { base: URL.createObjectURL(basePng), labelled: URL.createObjectURL(labelledPng), floors: URL.createObjectURL(floorsPng) };
     const fileStem = `eym-battle-${map.setting}-${place.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
     this._atlasResult = { basePng, labelledPng, detailPng: null, labelSvgBlob: null, packetBlob: new Blob([packet], { type: "text/markdown" }), prompt, urls: Object.values(urls), previews: urls, fileStem };
-    this._atlasMap = { kind: "battle", map: { labelSvg: battleGridSvg(spec), frame: null }, battle: map, spec, packet: { prompt, markdown: packet }, title, env, referenceHash: textHash(referenceSvg) };
+    this._atlasMap = { kind: "battle", map: { labelSvg: battleGridSvg(spec), frame: null }, battle: map, interiors, referenceSvg, spec, packet: { prompt, markdown: packet }, title, env, architecture, referenceHash: textHash(referenceSvg), paintedFloors: {} };
     this.#setResultKind("battle");
     this.#showPainted(null);
     root.querySelector("[data-atlas-title]").textContent = title;
@@ -724,7 +730,43 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this.#showAtlasView("labelled");
   }
 
-  /** Upload the battle map's image (the painting if there is one, else the layout) and create the Foundry scene. */
+  /** Paint every floor's interiors (ground floor, upper floors, basement) with the image model. */
+  async #paintInteriors() {
+    if (!game.user?.isGM) throw new Error("only the GM can paint maps");
+    const current = this._atlasMap; if (current?.kind !== "battle") throw new Error("make a battle map first");
+    if (!current.interiors.length) { this.#paintStatus("No buildings on this map: nothing inside to paint."); return; }
+    let settings = paintingSettings(MODULE_ID);
+    if (!settings.apiKey) { await this.#editImageSettings(); settings = paintingSettings(MODULE_ID); if (!settings.apiKey) return; }
+    const { spec, battle: map, interiors } = current, floors = mapFloors(interiors);
+    this.element?.querySelector(".oscm-atlas-paint")?.classList.add("is-busy");
+    try {
+      for (const floor of floors) {
+        this.#paintStatus(`Painting the ${floor < 0 ? "basements" : floor === 0 ? "ground floors" : `floor ${floor + 1}`} (${floors.indexOf(floor) + 1} of ${floors.length})…`);
+        const reference = await svgToPng(floorSvg(map, interiors, floor, floor === 0 ? { outdoorSvg: current.referenceSvg } : { fill: floor < 0 ? "#141210" : "#808080" }), spec.widthPx, spec.heightPx);
+        const images = [{ blob: reference, name: "floor-reference.png" }, ...(this._atlasResult?.paintedPng ? [{ blob: this._atlasResult.paintedPng, name: "outside-painted.png" }] : [])];
+        const prompt = `${interiorArtDirection(map, interiors, floor, { architecture: current.architecture })}${images.length > 1 ? "\n\nA second image is attached: the painted outside of this same map. Match its style and palette." : ""}`;
+        const painted = await paintMap({ ...settings, prompt, images, width: spec.widthPx, height: spec.heightPx });
+        current.paintedFloors[floor] = await scaleImageBlob(painted.blob, spec.widthPx, spec.heightPx);
+      }
+      this.#paintStatus(`Interiors painted for ${floors.length} floor${floors.length > 1 ? "s" : ""}. Create the scene to use them.`);
+    } finally { this.element?.querySelector(".oscm-atlas-paint")?.classList.remove("is-busy"); }
+  }
+
+  /** The images a multi-floor scene needs, as PNG blobs: ground (outside + opened buildings), roofs per floor, each other floor. */
+  async #floorImages(current) {
+    const { spec, battle: map, interiors } = current, W = spec.widthPx, H = spec.heightPx, outdoor = this._atlasResult.paintedPng ?? this._atlasResult.basePng;
+    const painted = current.paintedFloors ?? {}, out = { ground: null, roofs: {}, floors: {} };
+    const inside = async (floor) => (painted[floor] ? maskImage(painted[floor], footprintMaskSvg(map, interiors, floor), W, H) : svgToPng(floorSvg(map, interiors, floor), W, H));
+    out.ground = await stackImages([outdoor, await inside(0)], W, H);
+    if (interiors.length) out.roofs[0] = await maskImage(outdoor, roofMaskSvg(map, interiors, 0), W, H);
+    for (const floor of mapFloors(interiors).filter((f) => f !== 0)) {
+      out.floors[floor] = floor < 0 ? await stackImages([await svgToPng(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><rect width="${W}" height="${H}" fill="#141210"/></svg>`, W, H), await inside(floor)], W, H) : await inside(floor);
+      if (floor > 0) out.roofs[floor] = await maskImage(outdoor, roofMaskSvg(map, interiors, floor), W, H);
+    }
+    return out;
+  }
+
+  /** Upload the battle map's images and create the Foundry scene: native Scene Levels on v14 (one per floor), a single image before. */
   async #createBattleScene() {
     if (!game.user?.isGM) throw new Error("only the GM can create scenes");
     const current = this._atlasMap, result = this._atlasResult; if (current?.kind !== "battle" || !result) throw new Error("make a battle map first");
@@ -733,17 +775,36 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     for (const dir of [canonFolder(worldId), folder]) { try { await FP.createDirectory("data", dir, {}); } catch { /* already there */ } }
     const stem = `${result.fileStem}-${current.referenceHash.slice(0, 8)}-${Date.now().toString(36)}`, painted = Boolean(result.paintedPng);
     const upload = async (blob, suffix) => { const file = new File([blob], `${stem}${suffix}`, { type: blob.type || "application/octet-stream" }); const answer = await FP.upload("data", folder, file, {}, { notify: false }); return answer?.path ?? `${folder}/${file.name}`; };
-    const imagePath = await upload(painted ? result.paintedPng : result.basePng, painted ? "-painted.png" : "-layout.png");
     await upload(result.packetBlob, "-packet.md");
     const { conditions } = current.env ?? { conditions: {} };
     const movementCost = Boolean(globalThis.CONFIG?.RegionBehavior?.dataModels?.modifyMovementCost);
-    const data = battleSceneData(current.battle, { name: current.title, imagePath, darkness: darknessFor(conditions.sunAltitudeDeg), weather: weatherEffectFor(conditions), movementCost, notes: current.battle.notes.join(" ") });
-    const SceneClass = globalThis.getDocumentClass?.("Scene") ?? globalThis.Scene;
-    if (!SceneClass?.create) throw new Error("this Foundry has no scenes");
-    let scene;
-    try { scene = await SceneClass.create(data); }
-    catch (error) { console.warn(`${MODULE_ID} | Scene with terrain regions was refused; creating it without them`, error); scene = await SceneClass.create({ ...data, regions: [] }); ui.notifications.warn("Terrain regions could not be added on this Foundry version; the walls, grid and notes are in place."); }
-    this.#paintStatus(`Scene created: ${scene?.name ?? current.title} (${painted ? "painted" : "layout"} image, ${data.walls.length} walls, ${data.regions.length} terrain regions).`);
+    const SceneClass = globalThis.getDocumentClass?.("Scene") ?? globalThis.Scene; if (!SceneClass?.create) throw new Error("this Foundry has no scenes");
+    const hasLevels = Boolean(SceneClass.schema?.fields?.levels ?? globalThis.CONFIG?.Level ?? (game.release?.generation >= 14));
+    const options = { name: current.title, darkness: darknessFor(conditions.sunAltitudeDeg), weather: weatherEffectFor(conditions), movementCost, notes: current.battle.notes.join(" ") };
+    if (!hasLevels) {
+      const imagePath = await upload(painted ? result.paintedPng : result.basePng, painted ? "-painted.png" : "-layout.png");
+      const data = battleSceneData(current.battle, { ...options, imagePath });
+      let scene; try { scene = await SceneClass.create(data); } catch (error) { console.warn(`${MODULE_ID} | Scene with terrain regions was refused; creating it without them`, error); scene = await SceneClass.create({ ...data, regions: [] }); }
+      this.#paintStatus(`Scene created: ${scene?.name ?? current.title} (one floor: this Foundry has no Scene Levels).`); ui.notifications.info(`Scene "${current.title}" created.`); return;
+    }
+    // Foundry v14: a Level per floor, then walls, roofs and regions on their Levels.
+    this.#paintStatus("Preparing the floors…");
+    const blobs = await this.#floorImages(current), images = { ground: await upload(blobs.ground, "-ground.png"), roofs: {}, floors: {} };
+    for (const [floor, blob] of Object.entries(blobs.roofs)) images.roofs[floor] = await upload(blob, `-roofs-${floor}.png`);
+    for (const [floor, blob] of Object.entries(blobs.floors)) images.floors[floor] = await upload(blob, `-floor-${floor}.png`);
+    const plan = battleScenePlan(current.battle, current.interiors, { ...options, images });
+    const scene = await SceneClass.create({ ...plan.scene, levels: plan.levels.map(({ key, visibility, ...level }) => level) });
+    const idOf = new Map(plan.levels.map((l) => [l.key, scene.levels?.find?.((x) => x.name === l.name)?.id ?? scene.levels?.contents?.find((x) => x.name === l.name)?.id]));
+    const ids = (keys) => keys.map((k) => idOf.get(k)).filter(Boolean);
+    const updates = plan.levels.filter((l) => l.visibility.levelKeys.length).map((l) => ({ _id: idOf.get(l.key), visibility: { levels: ids(l.visibility.levelKeys) } }));
+    if (updates.length) await scene.updateEmbeddedDocuments?.("Level", updates);
+    if (idOf.get("floor0")) await scene.update?.({ initialLevel: idOf.get("floor0") });
+    await scene.createEmbeddedDocuments?.("Wall", plan.walls.map(({ levelKeys, ...w }) => ({ ...w, levels: ids(levelKeys) })));
+    if (plan.tiles.length) await scene.createEmbeddedDocuments?.("Tile", plan.tiles.map(({ levelKey, ...t }) => ({ ...t, levels: ids([levelKey]) })));
+    const regions = plan.regions.map(({ levelKeys, ...r }) => ({ ...r, levels: ids(levelKeys) }));
+    try { await scene.createEmbeddedDocuments?.("Region", regions); }
+    catch (error) { console.warn(`${MODULE_ID} | Some regions were refused; retrying without behaviours`, error); await scene.createEmbeddedDocuments?.("Region", regions.map((r) => ({ ...r, behaviors: [] }))); ui.notifications.warn("Region behaviours (stairs, movement costs) could not be added on this Foundry version; the areas are marked."); }
+    this.#paintStatus(`Scene created: ${scene?.name ?? current.title} — ${plan.levels.map((l) => l.name).join(", ")}; ${plan.walls.length} walls, ${plan.tiles.length} roof layer${plan.tiles.length === 1 ? "" : "s"}, ${plan.regions.filter((r) => r.behaviors.some((b) => b.type === "changeLevel")).length} stairs.`);
     ui.notifications.info(`Scene "${current.title}" created.`);
   }
 
@@ -1166,6 +1227,22 @@ async function layerSvg(pngBlob, svgText, width, height) {
 async function cropImage(path, crop, parentWidth, width, height) {
   const image = await loadImage(path), scale = image.naturalWidth / parentWidth, canvas = Object.assign(document.createElement("canvas"), { width, height });
   canvas.getContext("2d").drawImage(image, crop.x * scale, crop.y * scale, crop.w * scale, crop.h * scale, 0, 0, width, height);
+  return canvasPng(canvas);
+}
+
+/** A PNG of several images (blobs) drawn one over another. */
+async function stackImages(blobs, width, height) {
+  const canvas = Object.assign(document.createElement("canvas"), { width, height }), context = canvas.getContext("2d");
+  for (const blob of blobs) context.drawImage(await loadImage(blob), 0, 0, width, height);
+  return canvasPng(canvas);
+}
+
+/** An image cut to a mask (white = keep), transparent elsewhere. */
+async function maskImage(blob, maskSvg, width, height) {
+  const canvas = Object.assign(document.createElement("canvas"), { width, height }), context = canvas.getContext("2d");
+  context.drawImage(await loadImage(blob), 0, 0, width, height);
+  context.globalCompositeOperation = "destination-in";
+  context.drawImage(await loadImage(new Blob([maskSvg], { type: "image/svg+xml" })), 0, 0, width, height);
   return canvasPng(canvas);
 }
 

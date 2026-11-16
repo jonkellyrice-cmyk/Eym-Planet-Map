@@ -301,7 +301,9 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
   for (let i = 0; i < n; i += 1) grid.elevationFt[i] = (sculpt.flatten ? 0 : grid.elevationFt[i]) + grid.levelFt[i];
   for (let i = 0; i < n; i += 1) if (grid.rock[i]) grid.coverGiven[i] = 3;
   // Towns: streets, buildings, walls and doors on the built-up squares (shaped settings build their own).
-  const built = Uint8Array.from(site.squares, (v) => (v === COVER.built ? 1 : 0));
+  // A city or village chosen by hand is built wherever there is dry land, even if the world has fields there.
+  const forceTown = setting !== "auto" && (chosen === "urban" || chosen === "village") && (site.summary.built ?? 0) < 30;
+  const built = Uint8Array.from(site.squares, (v) => (v === COVER.built || (forceTown && !WATER.has(v) && v !== COVER.road) ? 1 : 0));
   const buildings = rules.sculpt ? sculptBuildings : built.some(Boolean) ? layOutTown(grid, built, snap.origin, chosen === "urban" ? "urban" : "village", `${BATTLE_RULES_VERSION}|town|${snap.anchor.join(",")}`, fixedFeatures) : [];
   if (!rules.sculpt) for (let i = 0; i < n; i += 1) if (site.squares[i] === COVER.road) grid.street[i] = 1;
   // The world's objects: trunks of big trees and big boulders block; small trees, bushes and stones slow and shelter.
