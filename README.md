@@ -61,6 +61,10 @@ The module id is `eym-planet-map`, so it installs alongside the original Orphane
 - One campaign clock in Eym's calendar (play/pause, step, set date and time). System views resolve deterministic Keplerian planet/moon positions and body rotations from it on demand; no frame-by-frame astronomy simulation runs.
 - No runtime third-party libraries or CDN calls.
 
+## Map server (pixel art, no AI)
+
+`webapp/` holds a small web app that renders battle maps as **pixel art** from the same deterministic map the module builds: same squares, buildings, walls, doors, stairs and features, only a richer drawing. Run it with `npm run webapp`, set **Map server address** in Game Settings, and press **Render pixel art** on a battle map before **Create scene**. The module checks that the server built the very same map (a geometry fingerprint) before using its layers. Tier 2 (traditional RPG pixel art) is there now, with Tiers 3–5 planned on the same pipeline. The AI image generator stays available as an alternative. See `webapp/README.md`.
+
 ## Eym and its sky
 
 - **Mitkear**, the sun, is a twin of Earth's Sun (G2V, 1 solar mass and luminosity).

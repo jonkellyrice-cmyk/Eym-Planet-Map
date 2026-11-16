@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eym Map Server</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><h1>Eym Map Server</h1><p class="muted">Deterministic pixel-art battle maps for the Eym Planet Map module. The same place and choices always give the same map.</p></header>
+<main>
+  <form id="form">
+    <fieldset><legend>Place</legend>
+      <label>Settlement <select name="settlement"></select></label>
+      <div class="row"><label>East of it (km) <input name="dx" type="number" step="0.05" value="0"></label><label>North of it (km) <input name="dy" type="number" step="0.05" value="0"></label></div>
+      <p class="muted">Or exact coordinates (override the settlement):</p>
+      <div class="row"><label>Latitude <input name="lat" type="number" step="0.00001"></label><label>Longitude <input name="lon" type="number" step="0.00001"></label></div>
+    </fieldset>
+    <fieldset><legend>Map</legend>
+      <label>Setting <select name="setting"></select></label>
+      <label>Size (5-ft squares) <select name="size"></select></label>
+      <label>Pixels per square <select name="density"></select></label>
+      <label>Orientation <select name="orientation"><option value="auto">As the preset</option><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
+      <label>Tier <select name="tier"></select></label>
+    </fieldset>
+    <fieldset><legend>Conditions (optional)</legend>
+      <div class="row"><label>Snow depth (cm) <input name="snowDepthCm" type="number" min="0" step="1"></label><label>Ground <select name="ground"><option value="">dry</option><option>damp</option><option>wet</option><option>waterlogged</option><option>flooding</option></select></label></div>
+    </fieldset>
+    <details><summary>Map features <span id="feature-count"></span></summary><div id="features"></div></details>
+    <button type="submit" id="render">Render</button>
+    <p id="status" class="muted" role="status"></p>
+  </form>
+  <section id="result" hidden>
+    <h2 id="title"></h2>
+    <p id="summary" class="muted"></p>
+    <div class="preview"><img id="preview" alt="Battle map preview"></div>
+    <h3>Layers</h3>
+    <ul id="files"></ul>
+    <h3>The field</h3>
+    <ul id="notes"></ul>
+    <h3>Into Foundry</h3>
+    <p>In Foundry, set <em>Map server address</em> (Game Settings → Eym Planet Map) to <code id="origin"></code>, make the same battle map there, and press <strong>Render pixel art</strong>: the module checks that this server built the very same map (geometry <code id="geometry"></code>) and creates the scene with these layers.</p>
+  </section>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>

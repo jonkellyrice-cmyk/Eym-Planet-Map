@@ -456,3 +456,15 @@ function battleNotes(a, axis, placed, conditions, mudSquares = 0) {
 }
 
 export { COVER_NAMES };
+
+/**
+ * A fingerprint of a battle map's playable geometry (ground, movement, levels, features, buildings and
+ * traps). Two renders of the same map — in the module and in the web app, at any tier — must share it.
+ */
+export function geometryHash(map) {
+  const g = map.grid, parts = [map.version, map.key, map.spec.columns, map.spec.rows, g.ground.join("|"), g.move.join("|"), [...g.levelFt].join(","),
+    map.features.map((f) => `${f.kind}@${f.x},${f.y},${f.w},${f.h}`).join(";"), map.buildings.map((b) => `${JSON.stringify(b.rects ?? [b])}${JSON.stringify(b.chamfers ?? [])}${b.door}`).join(";"), (map.traps ?? []).map((t) => `${t.kind}@${t.x},${t.y}`).join(";")];
+  let a = 2166136261, b = 5381; const text = parts.join("#");
+  for (let i = 0; i < text.length; i += 1) { const c = text.charCodeAt(i); a = Math.imul(a ^ c, 16777619); b = (Math.imul(b, 33) + c) | 0; }
+  return (a >>> 0).toString(16).padStart(8, "0") + (b >>> 0).toString(16).padStart(8, "0");
+}

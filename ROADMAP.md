@@ -58,3 +58,18 @@ Weather must be physically plausible, coherent over time and deterministic. The 
 - **Grid:** Eym's coarse geography already uses a 6° grid of 1,800 cells (`data/planet-geography/abydos/eventide.json`). Its 1° cartography raster can supply terrain and ocean proximity.
 - **Climate:** the annual-mean climate in `scripts/eym-cartography.mjs` is a baseline that weather can deviate from.
 - **Continents:** Eym is 98.6% ocean, so maritime weather and tropical cyclones should dominate. Caren straddles the equator, and Garyk sits near 15°N.
+
+## Pixel-art tiers (agreed 16 November 2026)
+
+Battle maps can be drawn without AI, deterministically, by the map server (`webapp/`), from the same map geometry at every tier: identical squares and objects, one three-quarter orthographic perspective, reusable procedural materials and components, pixel-art rendering (not pixelation), cached high-resolution assets, and Foundry scene import.
+
+| Tier | | Status |
+|---|---|---|
+| 1 | Geometric illustration: flat colours, simple geometry, basic dimensional cues | Done (the module's own drawing) |
+| 2 | Traditional RPG pixel art: textures, patterned roofs, detailed foliage, water edges, soil variation, several shadow tones | Done, first version (map server) |
+| 3 | High-definition pixel environments: individual roof tiles, masonry, layered vegetation, material-dependent lighting | Planned |
+| 4 | Volumetric pixel art (KOF XIII-inspired richness in the fixed three-quarter view) | Planned |
+| 5 | Artist-quality procedural pixel art: architectural identities, organic irregularity, environmental storytelling, composition-aware choices | Planned |
+
+Next for Tier 2: dedicated sprites for the remaining features (now shaded blocks), animated water and fire frames, autotiled transitions between specific grounds, and per-architecture-dossier palettes and wall materials.
+
