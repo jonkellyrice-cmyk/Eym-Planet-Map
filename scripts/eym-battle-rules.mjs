@@ -105,10 +105,14 @@ const edgeKey = (x, y, dir) => `${x},${y},${dir}`; // dir: "e" (east edge of squ
 // ---------------------------------------------------------------- 4. towns
 
 /** The street and block pattern along one world-grid axis: [isStreet, blockIndex, positionInBlock, blockStart, blockEnd]. */
-function axisPattern(index, period, key, urban) {
-  const k = Math.floor(index / period), at = mod(index, period), width = urban ? (hashUnit(`${key}|w|${k}`) < 0.3 ? 3 : 2) : hashUnit(`${key}|w|${k}`) < 0.55 ? 2 : 0;
+function axisPattern(index, period, key, urban, widths = null) {
+  // A style may set its own street widths: [[share, width], …] (Dree: some 4 wide, most 2–3).
+  const u = hashUnit(`${key}|w|${k0(index, period)}`), styled = widths && urban ? widths.find(([share]) => u < share)?.[1] ?? widths[widths.length - 1][1] : null;
+  const k = Math.floor(index / period), at = mod(index, period), width = styled ?? (urban ? (u < 0.3 ? 3 : 2) : u < 0.55 ? 2 : 0);
   return at < width ? { street: true, k } : { street: false, k, start: k * period + width, end: (k + 1) * period - 1 };
 }
+
+const k0 = (index, period) => Math.floor(index / period);
 
 /** Split a block into lots (world-grid rectangles), deterministically. */
 function lots(rect, key, minSide = 3, maxSide = 6) {
@@ -129,28 +133,29 @@ function storeysFor(style, urban, u) {
 
 function layOutTown(grid, built, origin, setting, townKey, features, style = buildingStyle("default")) {
   const urban = setting === "urban", { columns, rows } = grid, buildings = [];
-  const px = urban ? 11 : 15, py = urban ? 10 : 14;
+  // A dense style (Dree) packs its blocks: shorter blocks, narrower streets, back alleys instead of yards.
+  const dense = style.dense ?? null, px = dense && urban ? dense.period[0] : urban ? 11 : 15, py = dense && urban ? dense.period[1] : urban ? 10 : 14;
   const at = (col, row) => [origin[0] + col, origin[1] + row];
   const inside = (gx, gy) => { const col = gx - origin[0], row = gy - origin[1]; return col >= 0 && row >= 0 && col < columns && row < rows; };
   const idx = (gx, gy) => (gy - origin[1]) * columns + (gx - origin[0]);
   const blocks = new Map();
   for (let row = 0; row < rows; row += 1) for (let col = 0; col < columns; col += 1) {
     const i = row * columns + col; if (!built[i]) continue;
-    const [gx, gy] = at(col, row), ax = axisPattern(gx, px, `${townKey}|x`, urban), ay = axisPattern(gy, py, `${townKey}|y`, urban);
+    const [gx, gy] = at(col, row), ax = axisPattern(gx, px, `${townKey}|x`, urban, dense?.streets), ay = axisPattern(gy, py, `${townKey}|y`, urban, dense?.streets);
     if (ax.street || ay.street) { grid.street[i] = 1; grid.ground[i] = urban ? "cobbled street" : "dirt lane"; grid.move[i] = MOVE.normal; continue; }
     const key = `${ax.k}|${ay.k}`; if (!blocks.has(key)) blocks.set(key, { x0: ax.start, x1: ax.end, y0: ay.start, y1: ay.end, k: key });
   }
   for (const block of blocks.values()) {
     const blockKey = `${townKey}|block|${block.k}`;
     // A town square now and then: the whole block paved, with a centrepiece.
-    if (urban && hashUnit(`${blockKey}|square`) < 0.12) {
+    if (urban && hashUnit(`${blockKey}|square`) < (dense?.squares ?? 0.12)) {
       for (let gy = block.y0; gy <= block.y1; gy += 1) for (let gx = block.x0; gx <= block.x1; gx += 1) if (inside(gx, gy) && built[idx(gx, gy)]) { const i = idx(gx, gy); grid.street[i] = 1; grid.ground[i] = "paved square"; grid.move[i] = MOVE.normal; }
       const cx = Math.floor((block.x0 + block.x1) / 2), cy = Math.floor((block.y0 + block.y1) / 2);
       if (inside(cx, cy) && inside(cx + 1, cy + 1)) features.push({ kind: hashUnit(`${blockKey}|poi`) < 0.5 ? "fountain" : "statue", gx: cx, gy: cy, fixed: true });
       continue;
     }
-    for (const lot of lots({ x0: block.x0, x1: block.x1, y0: block.y0, y1: block.y1 }, blockKey)) {
-      const lotKey = `${blockKey}|${lot.x0}|${lot.y0}`, build = hashUnit(`${lotKey}|b`) < (urban ? 0.82 : 0.5);
+    for (const lot of lots({ x0: block.x0, x1: block.x1, y0: block.y0, y1: block.y1 }, blockKey, ...(dense && urban ? dense.lots : []))) {
+      const lotKey = `${blockKey}|${lot.x0}|${lot.y0}`, build = hashUnit(`${lotKey}|b`) < (dense && urban ? dense.build : urban ? 0.82 : 0.5);
       // Which sides of the lot face a street: houses stand on the street, yards and gardens behind.
       const faces = { n: lot.y0 === block.y0, s: lot.y1 === block.y1, w: lot.x0 === block.x0, e: lot.x1 === block.x1 };
       if (!build) { if (hashUnit(`${lotKey}|g`) < (urban ? 0.45 : 0.7)) features.push({ kind: urban ? (hashUnit(`${lotKey}|t`) < 0.5 ? "garden" : "planter-tree") : (hashUnit(`${lotKey}|t`) < 0.5 ? "garden" : "lone-tree"), gx: lot.x0 + 1, gy: lot.y0 + 1, fixed: true, soft: true }); continue; }
@@ -167,12 +172,17 @@ function layOutTown(grid, built, origin, setting, townKey, features, style = bui
       if (usable(shape) < 2) { shape = { rects: [mapRect], chamfers: [] }; if (usable(shape) < 2) continue; }
       placeShapedBuilding(grid, buildings, { rect: mapRect, door, storeys: storeysFor(style, urban, hashUnit(`${lotKey}|h`)), label: "house", shape, extra: { gx0: rect.x0, gy0: rect.y0, gx1: rect.x1, gy1: rect.y1 } });
     }
+    // Dense towns: what is left between the houses is a back alley (cobbled, two abreast), not a yard.
+    if (dense && urban) for (let gy = block.y0; gy <= block.y1; gy += 1) for (let gx = block.x0; gx <= block.x1; gx += 1) {
+      if (!inside(gx, gy)) continue; const i = idx(gx, gy); if (!built[i] || grid.building[i] >= 0 || grid.street[i]) continue;
+      grid.street[i] = 1; grid.ground[i] = "cobbled street"; grid.move[i] = MOVE.normal;
+    }
   }
   // Greenery: trees in planters along streets, beside the houses (pinned to the world grid).
   for (let row = 0; row < rows; row += 1) for (let col = 0; col < columns; col += 1) {
     const i = row * columns + col; if (!grid.street[i] || grid.ground[i] === "paved square") continue;
     const [gx, gy] = at(col, row), besideHouse = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => { const c = col + dx, r = row + dy; return c >= 0 && r >= 0 && c < columns && r < rows && grid.building[r * columns + c] >= 0; });
-    if (besideHouse && hashUnit(`${townKey}|street-tree|${gx}|${gy}`) < (urban ? 0.12 : 0.08)) features.push({ kind: urban ? "planter-tree" : "lone-tree", gx, gy, fixed: true });
+    if (besideHouse && hashUnit(`${townKey}|street-tree|${gx}|${gy}`) < (dense && urban ? dense.trees : urban ? 0.12 : 0.08)) features.push({ kind: urban ? "planter-tree" : "lone-tree", gx, gy, fixed: true });
   }
   return buildings;
 }

@@ -17,7 +17,7 @@ import { standHeightFt } from "./eym-battle-oblique.mjs";
 
 export const EYE_HEIGHT_FT = 6;
 /** Things that are the light, not in its way. */
-const LIGHT_BODIES = new Set(["hearth", "campfire", "beacon", "brazier", "lava-channel", "fumarole", "elemental-vent", "crystal-cluster", "glowing-pool", "glowing-mushrooms", "sacred-spring", "ley-nexus", "magic-circle", "teleport-circle", "planar-rift", "ward-stone", "rune-door", "levitation-disc"]);
+const LIGHT_BODIES = new Set(["hearth", "crystal-boiler", "aether-coil", "campfire", "beacon", "brazier", "lava-channel", "fumarole", "elemental-vent", "crystal-cluster", "glowing-pool", "glowing-mushrooms", "sacred-spring", "ley-nexus", "magic-circle", "teleport-circle", "planar-rift", "ward-stone", "rune-door", "levitation-disc"]);
 /** Height of a floor's own level above the ground floor's (feet). */
 export const floorBase = (floor) => (floor < 0 ? -10 * -floor : 10 * floor);
 

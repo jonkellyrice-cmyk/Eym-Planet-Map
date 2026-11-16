@@ -30,6 +30,11 @@ export const FURNITURE = Object.freeze({
   altar: { label: "altar", size: [2, 1], heightFt: 3.5, move: "impassable", cover: 2, color: "#d8d0c0", words: "an altar" },
   sarcophagus: { label: "sarcophagus", size: [1, 2], heightFt: 3, move: "impassable", cover: 2, color: "#a8a49a", words: "a stone sarcophagus" },
   pillar: { label: "pillar", size: [1, 1], heightFt: 10, move: "impassable", cover: 2, color: "#9c968a", words: "a pillar" },
+  // Machinery (styles with gizmos, such as Dree): out in the open, piped into the walls.
+  "crystal-boiler": { label: "crystal boiler", size: [1, 1], heightFt: 6, move: "impassable", cover: 2, color: "#b87333", light: "fire-crystal", words: "a copper boiler over a glowing fire crystal, piped into the wall" },
+  pipework: { label: "pipework", size: [2, 1], heightFt: 3, move: "difficult", cover: 1, color: "#9a6a3a", words: "copper pipework, valves and gauges along the wall" },
+  "gear-press": { label: "geared press", size: [2, 1], heightFt: 5, move: "impassable", cover: 2, color: "#6e6a62", words: "a geared press of iron and brass" },
+  "aether-coil": { label: "aether coil", size: [1, 1], heightFt: 6, move: "impassable", cover: 2, color: "#c9a24a", light: "aether", words: "a brass coil crowned with a crackling blue crystal" },
   rug: { label: "rug", size: [2, 2], heightFt: 0, move: "normal", cover: 0, color: "#8a3a3a", words: "a woven rug" },
 });
 
@@ -86,7 +91,7 @@ function roomUse(b, floor, index, count, key) {
  * outer walls with doors and windows, and the inner ones), stairs and furniture, in map squares.
  */
 export function buildInteriors(map) {
-  const out = [], lifts = Boolean(buildingStyle(map.style).lifts);
+  const out = [], lifts = Boolean(buildingStyle(map.style).lifts), gizmos = buildingStyle(map.style).gizmos ?? null;
   for (const b of map.buildings) {
     const bKey = `${map.version}|interior|${map.anchor.join(",")}|${b.gx0 ?? b.x0 + map.origin[0]},${b.gy0 ?? b.y0 + map.origin[1]}`;
     const rect = { x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1 }, shape = { rects: b.rects ?? [rect], chamfers: b.chamfers ?? [] }, main = shape.rects[0];
@@ -141,7 +146,7 @@ export function buildInteriors(map) {
       const taken = new Set(cut), furniture = [];
       const roomList = rooms.map((r, index) => ({ ...r, use: roomUse(b, floor, index, rooms.length, `${fKey}|room|${index}`) }));
       for (const [index, room] of roomList.entries()) {
-        for (const [k, kind] of (ROOM_KIT[room.use] ?? []).entries()) {
+        for (const [k, kind] of [...(gizmos?.[room.use] ?? []), ...(ROOM_KIT[room.use] ?? [])].entries()) {
           const def = FURNITURE[kind], spots = [];
           for (const rot of [false, true]) {
             const [fw, fh] = rot ? [def.size[1], def.size[0]] : def.size;

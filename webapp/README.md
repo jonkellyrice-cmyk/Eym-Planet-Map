@@ -146,6 +146,14 @@ the server uses the style linked to the place, else the generic one. In the modu
 - enclosed skybridges between first floors, on brass trusses;
 - brass-and-crystal lifts in the three-storey houses.
 
+- packed tight: narrow terraced houses back to back, every lot built, back alleys between them, and
+  streets mostly 2–3 abreast (at most five);
+- machinery out in the open:
+  - outside: boilers bolted to upper-storey fronts over glowing fire crystals, rooftop tanks, crystal
+    condensers and vent stacks, and copper pipes slung across lanes;
+  - inside: crystal boilers, pipework, geared presses and aether coils;
+  - every glowing crystal is a Foundry light.
+
 Building into rock faces is also a Dree motif, kept for when a map has cliffs.
 
 ## Tier 2 rendering (`render/`)

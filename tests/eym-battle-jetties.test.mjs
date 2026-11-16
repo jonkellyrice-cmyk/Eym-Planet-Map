@@ -88,3 +88,31 @@ test("the art: the ground layer shows the shaded street under overhangs; the ser
   assert.equal(request.style, "dree");
   assert.equal(geometryHash(buildBattleMap(asset, request)), geometryHash(map));
 });
+
+test("Dree is packed: narrow streets, back alleys, every lot built, few trees", () => {
+  const built = (m) => m.grid.building.filter((v) => v >= 0).length;
+  assert.ok(built(map) > built(plain) * 1.15, `${built(map)} built squares vs ${built(plain)}`);
+  assert.ok(map.features.filter((f) => f.kind === "planter-tree").length <= 2);
+  assert.ok(!map.grid.ground.some((x) => x === "yard"), "no yards: the gaps are alleys");
+  // No street run wider than five squares across, between two buildings, in either direction.
+  let widest = 0;
+  for (let y = 0; y < rows; y += 1) { let run = 0, open = false; for (let x = 0; x < columns; x += 1) { const i = y * columns + x; if (g.building[i] >= 0) { if (open) widest = Math.max(widest, run); run = 0; open = true; } else run += 1; } }
+  for (let x = 0; x < columns; x += 1) { let run = 0, open = false; for (let y = 0; y < rows; y += 1) { const i = y * columns + x; if (g.building[i] >= 0) { if (open) widest = Math.max(widest, run); run = 0; open = true; } else run += 1; } }
+  assert.ok(widest <= 5, `widest street between houses: ${widest} squares`);
+});
+
+test("machinery: boilers on upper-storey fronts, roof machines, pipes across lanes, gizmos inside, each glowing one a Foundry light", async () => {
+  const { styleMachinery } = await import("../scripts/eym-building-styles.mjs");
+  const m = styleMachinery(map, "dree"), none = styleMachinery(map, "default");
+  assert.deepEqual(none, { wall: [], roof: [], pipes: [] });
+  assert.ok(m.wall.length >= 3 && m.roof.length >= 2 && m.pipes.length >= 1);
+  for (const w of m.wall) { const b = map.buildings.find((x) => x.id === w.building); assert.ok(w.floor >= 1 && w.floor < b.storeys); }
+  for (const p of m.pipes) for (let x = p.x0; x <= p.x1; x += 1) assert.ok(g.building[p.y * columns + x] < 0, "pipes span open lane");
+  assert.deepEqual(styleMachinery(map, "dree"), m, "deterministic");
+  const kinds = new Set(interiors.flatMap((b) => b.floors.flatMap((f) => f.furniture.map((it) => it.kind))));
+  for (const k of ["crystal-boiler", "pipework", "gear-press", "aether-coil"]) assert.ok(kinds.has(k), k);
+  const plan = battleScenePlan(map, interiors, { name: "Dree", images: { ground: "g", roofs: {}, floors: {} }, style: "dree" }), lit = (k) => plan.lights.filter((l) => l.flags["eym-planet-map"].light === k);
+  assert.equal(lit("fire-crystal").length, m.wall.length + interiors.flatMap((b) => b.floors.flatMap((f) => f.furniture)).filter((it) => it.kind === "crystal-boiler").length);
+  assert.ok(lit("aether").length >= 1);
+  assert.ok(!buildInteriors(plain).some((b) => b.floors.some((f) => f.furniture.some((it) => it.kind === "crystal-boiler"))), "the generic style has none");
+});

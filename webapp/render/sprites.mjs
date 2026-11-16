@@ -184,7 +184,7 @@ function drawWall(fb, quad, look, { storeys, front, doorPx = null, P, seed, x0, 
  */
 export function drawBuilding(fb, b, P, polygon, seed) {
   if (b.floorRects) return drawStoreys(fb, b, P, seed, lookFor(b.label));
-  const look = lookFor(b.label), storeys = b.storeys ?? 1;
+  const look = lookFor(b.label), storeys = b.storeys ?? 1; let frame = null;
   const blocks = b.chamfers?.length ? [{ poly: polygon.map(([x, y]) => [x * P, y * P]), y1: b.y1, x0: b.x0, x1: b.x1 }] : [...(b.rects ?? [b])].sort((p, q) => p.y1 - q.y1).map((r) => ({ poly: [[r.x0 * P, r.y0 * P], [(r.x1 + 1) * P, r.y0 * P], [(r.x1 + 1) * P, (r.y1 + 1) * P], [r.x0 * P, (r.y1 + 1) * P]], y1: r.y1, x0: r.x0, x1: r.x1, rect: r }));
   for (const blk of blocks) {
     const ys = blk.poly.map((p) => p[1]), top = Math.min(...ys), bottom = Math.max(...ys), d = (bottom - top) / P;
@@ -199,7 +199,9 @@ export function drawBuilding(fb, b, P, polygon, seed) {
       drawWall(fb, [p, q, [q[0], q[1] - fh], [p[0], p[1] - fh]], look, { storeys, front: straight, doorPx: door, P, seed, x0: Math.min(p[0], q[0]), x1: Math.max(p[0], q[0]), yBase: Math.max(p[1], q[1]), fh });
     }
     if (look.chimneys && !look.flat) drawChimneys(fb, roof, look, P, seed + blk.x0 * 5 + blk.y1);
+    frame = { fh, band: fh / storeys, south: bottom, roofTop: top };
   }
+  return frame;
 }
 
 /** Chimney stacks on the roof (brick, a stone cap, copper pots), one at each end of the ridge of a long roof. */
@@ -279,6 +281,47 @@ export function drawFurniture(fb, it, P, seed) {
     case "bed": drawBlock(fb, x + 2, y + 2, w - 4, h - 4, P * 0.2, "#7a5a3a", seed); fb.rect(x + 3, y + 3 - P * 0.2, w - 6, (h - 6) * 0.25, rgb("#efe8dc")); fb.rect(x + 3, y + 3 - P * 0.2 + (h - 6) * 0.3, w - 6, (h - 6) * 0.7, rgb(it.color)); return;
     case "hearth": drawBlock(fb, x + 1, y + 1, w - 2, h - 2, P * 0.5, "#8a8074", seed); fb.rect(x + w * 0.3, y + h - 2 - P * 0.35, w * 0.4, P * 0.3, rgb("#ff8a3a")); return;
     case "pillar": drawBlock(fb, x + w * 0.2, y + h * 0.2, w * 0.6, h * 0.6, P * 0.9, it.color, seed, true); return;
+    case "crystal-boiler": {
+      // A copper boiler on iron legs over a glowing fire crystal, a pipe rising into the wall behind.
+      const cu = R("#b87333", 5, 0.5), iron = R("#3a3836", 4, 0.4), cx = x + w / 2, rx = w * 0.3, top = y + h * 0.18, bot = y + h * 0.7;
+      fb.rect(cx - 1, y + 1, 2, top - y, cu[2]); fb.rect(cx - 1, y + 1, 1, top - y, cu[3]);
+      fb.rect(cx - rx, bot - 1, 1, h * 0.2, iron[1]); fb.rect(cx + rx - 1, bot - 1, 1, h * 0.2, iron[1]);
+      glowCrystal(fb, cx, bot + h * 0.08, "#ff7a30", 2);
+      fb.ellipse(cx, top, rx, rx * 0.45, null, () => cu[3]);
+      for (let yy = Math.round(top); yy < bot; yy += 1) for (let xx = Math.round(cx - rx); xx <= cx + rx; xx += 1) { const u = (xx - cx) / rx; fb.set(xx, yy, (yy - Math.round(top)) % 5 === 4 ? cu[1] : u < -0.4 ? cu[3] : u > 0.5 ? cu[1] : cu[2]); }
+      fb.set(Math.round(cx + rx * 0.3), Math.round((top + bot) / 2), rgb("#f2efe6")); fb.set(Math.round(cx + rx * 0.3) + 1, Math.round((top + bot) / 2), rgb("#2a2420"));
+      return;
+    }
+    case "pipework": {
+      // Two copper pipes along the wall with a red valve wheel and a gauge.
+      const cu = R("#b87333", 5, 0.5), horizontal = w >= h;
+      for (const k of [0.32, 0.55]) { if (horizontal) { fb.rect(x + 2, y + h * k, w - 4, 2, cu[2]); fb.rect(x + 2, y + h * k, w - 4, 1, cu[3]); } else { fb.rect(x + w * k, y + 2, 2, h - 4, cu[2]); fb.rect(x + w * k, y + 2, 1, h - 4, cu[3]); } }
+      const vx = x + (horizontal ? w * 0.35 : w * 0.45), vy = y + (horizontal ? h * 0.42 : h * 0.35); fb.ellipse(vx, vy, 3, 2, null, (px, py, u, v) => (u * u + v * v > 0.45 ? rgb("#b83a2a") : rgb("#3a2420")));
+      const gx = x + (horizontal ? w * 0.7 : w * 0.45), gy = y + (horizontal ? h * 0.36 : h * 0.68); fb.ellipse(gx, gy, 2, 2, null, () => rgb("#f2efe6")); fb.set(Math.round(gx), Math.round(gy), rgb("#2a2420"));
+      return;
+    }
+    case "gear-press": {
+      // An iron press: a riveted body, two meshing gears on top (brass and copper, toothed, spoked), a piston.
+      const riseP = P * 0.42; drawBlock(fb, x + 2, y + 2, w - 4, h - 4, riseP, "#4a4e54", seed); furnitureShade(fb, x + 2, y + 2, w - 4, h - 4, riseP, "gear-press");
+      const iron = R("#4a4e54", 5, 0.5); for (let xx = Math.round(x + 4); xx < x + w - 4; xx += 4) { fb.set(xx, Math.round(y + h - 2 - riseP + 2), iron[4]); }
+      const gear = (gx, gy, r, base, teeth) => {
+        const c = R(base, 5, 0.55);
+        for (let t = 0; t < teeth; t += 1) { const a = (t / teeth) * Math.PI * 2; fb.rect(Math.round(gx + Math.cos(a) * (r + 1)) - 1, Math.round(gy + Math.sin(a) * (r + 1) * 0.8) - 1, 2, 2, c[1]); }
+        fb.ellipse(gx, gy, r, r * 0.8, null, (px, py, u, v) => { const d = u * u + v * v; return d < 0.12 ? rgb("#1e1c1a") : d < 0.25 ? c[4] : (Math.abs(u) < 0.12 || Math.abs(v) < 0.12) ? c[3] : d > 0.8 ? c[1] : u + v < 0 ? c[3] : c[2]; });
+      };
+      const top = y + 2 - riseP, fh = h - 4, r1 = Math.max(4, Math.min(w, h) * 0.3);
+      gear(x + w * 0.3, top + fh * 0.5, r1, "#c9a24a", 10); gear(x + w * 0.3 + r1 * 1.75, top + fh * 0.5 - r1 * 0.2, r1 * 0.6, "#b87333", 7);
+      fb.rect(Math.round(x + w * 0.85), Math.round(top - P * 0.2), 2, Math.round(P * 0.2 + fh * 0.5), iron[3]); fb.rect(Math.round(x + w * 0.85) - 1, Math.round(top - P * 0.2), 4, 2, R("#c9a24a", 4, 0.5)[3]);
+      return;
+    }
+    case "aether-coil": {
+      // Stacked brass rings narrowing upward, a blue crystal crackling on top.
+      const brass = R("#c9a24a", 5, 0.5), cx = x + w / 2, base = y + h * 0.78;
+      for (let k = 0; k < 5; k += 1) fb.ellipse(cx, base - k * (h * 0.11), w * (0.32 - k * 0.035), h * 0.06, null, (px, py, u) => brass[u < -0.3 ? 3 : u > 0.5 ? 1 : 2]);
+      glowCrystal(fb, cx, base - h * 0.62, "#8fd0ff", 3);
+      for (const [dx, dy] of [[-4, -2], [3, -4], [5, 1]]) fb.set(Math.round(cx + dx), Math.round(base - h * 0.62 + dy), rgb("#e8f6ff"));
+      return;
+    }
     default: {
       const tall = ["wardrobe", "shelves", "crates", "counter", "wine-rack"].includes(it.kind), riseP = tall ? P * 0.55 : P * 0.2;
       drawBlock(fb, x + 2, y + 2, w - 4, h - 4, riseP, it.color, seed);
@@ -333,6 +376,7 @@ const sqPoly = (r, P) => [[r.x0 * P, r.y0 * P], [(r.x1 + 1) * P, r.y0 * P], [(r.
  */
 function drawStoreysOf(fb, rects, look, P, seed, { truss = false, storeyPx = null, clip = true } = {}) {
   const storeys = rects.length, T = rects[storeys - 1], d = T.y1 - T.y0 + 1;
+  const frame = () => ({ fh, band, south, roofTop: T.y0 * P });
   const fh = storeyPx ? Math.round(storeyPx * storeys) : Math.round(Math.min(0.85 * storeys, Math.max(0.6 * storeys * 0.5, d * 0.45)) * P), band = fh / storeys, south = (T.y1 + 1) * P;
   // Straight beneath an overhang the ground is in its shade (most of it is then hidden by what is drawn above).
   const base = rects.find(Boolean) === rects[0] ? rects[0] : null;
@@ -365,11 +409,12 @@ function drawStoreysOf(fb, rects, look, P, seed, { truss = false, storeyPx = nul
     for (let x = Math.round(x0) + 3; x < x1 - 3; x += P) for (let k = 0; k < Math.min(5, Math.round(band * 0.4)); k += 1) { fb.set(x + k, foot + 1 + k, (truss ? brass : wood)[k === 0 ? 3 : 1]); fb.set(x + k + 1, foot + 1 + k, (truss ? brass : wood)[0]); }
     if (truss) for (let x = Math.round(x0) + 3; x < x1 - 3; x += P) for (let k = 0; k < Math.min(5, Math.round(band * 0.4)); k += 1) fb.set(x + Math.round(P * 0.5) - 2 - k, foot + 1 + k, brass[1]);
   }
+  return frame();
 }
 
 export function drawStoreys(fb, b, P, seed, look) {
   const rects = Array.from({ length: b.storeys ?? 1 }, (_, s) => (s === 0 ? { x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1 } : b.floorRects[s]));
-  drawStoreysOf(fb, rects, look, P, seed);
+  return drawStoreysOf(fb, rects, look, P, seed);
 }
 
 /** A skybridge: an enclosed span at the first floor, brass trusses beneath, the street in its shade. */
@@ -384,4 +429,83 @@ export function drawLift(fb, s, P) {
   for (let x = x0; x < x0 + w; x += 1) { fb.set(x, y0, brass[3]); fb.set(x, y0 + h - 1, brass[1]); }
   for (let y = y0; y < y0 + h; y += 1) { fb.set(x0, y, brass[2]); fb.set(x0 + w - 1, y, brass[1]); }
   for (let x = x0 + 3; x < x0 + w - 2; x += 3) for (let y = y0 + 1; y < y0 + h - 1; y += 1) if (y % 2) fb.set(x, y, brass[2]);
+}
+
+// ---------------------------------------------------------------- machinery
+
+/** A small crystal (pixels) with a halo: the glow is drawn, the light itself is Foundry's. */
+function glowCrystal(fb, cx, cy, color, size = 2) {
+  const c = R(color, 4, 0.4), x = Math.round(cx), y = Math.round(cy);
+  for (let dy = -size - 2; dy <= size + 2; dy += 1) for (let dx = -size - 2; dx <= size + 2; dx += 1) { const d = Math.abs(dx) + Math.abs(dy); if (d > size && d <= size + 2) fb.set(x + dx, y + dy, mixc(fb.get(x + dx, y + dy), c[3], 0.35 - (d - size) * 0.1)); }
+  for (let dy = -size; dy <= size; dy += 1) for (let dx = -size; dx <= size; dx += 1) { const d = Math.abs(dx) + Math.abs(dy); if (d <= size) fb.set(x + dx, y + dy, d === 0 ? rgb("#fff4e0") : dy < 0 ? c[3] : c[2]); }
+}
+
+/**
+ * A boiler bolted to an upper storey's wall (pixels): a riveted copper drum on an iron cradle, sticking out
+ * over the street like a unit in a window, piped into the wall, a fire crystal glowing beneath it, a wisp
+ * of steam above. cx: its column's centre; storeyBottom: the foot of its storey's wall; band: storey height.
+ */
+export function drawWallBoiler(fb, cx, storeyBottom, band, P, seed) {
+  const cu = R("#b87333", 6, 0.55), vg = R("#5f9e8c", 4, 0.4), iron = R("#2e3236", 4, 0.5), brass = R("#c9a24a", 4, 0.5);
+  const w = Math.round(P * 0.66), h = Math.max(7, Math.round(band * 0.78)), x0 = Math.round(cx - w / 2), y1 = Math.round(storeyBottom + band * 0.3), y0 = y1 - h;
+  // Its shadow on the wall, then the iron cradle and wall brackets.
+  for (let y = y0 + 2; y < y1 + 3; y += 1) for (let x = x0 + 1; x < x0 + w + 3; x += 1) fb.tone(x, y, -0.28);
+  fb.rect(x0 + 2, y1 - 1, w - 4, 2, iron[1]); fb.rect(x0 + 3, y1 + 1, 1, 3, iron[0]); fb.rect(x0 + w - 4, y1 + 1, 1, 3, iron[0]);
+  // The drum: a horizontal cylinder (lit along its top, dark beneath), domed ends, riveted bands.
+  const ry = (h - 1) / 2, cyy = y0 + ry;
+  for (let y = y0; y < y1; y += 1) for (let x = x0; x < x0 + w; x += 1) {
+    const v = (y - cyy) / ry, end = Math.min(x - x0, x0 + w - 1 - x), dome = end < 3 ? Math.sqrt(Math.max(0, 1 - ((3 - end) / 3.2) ** 2)) : 1;
+    if (Math.abs(v) > dome) continue;
+    const band2 = (x - x0) % 7 === 3 && end >= 3, k = v < -0.55 ? 5 : v < -0.15 ? 4 : v < 0.35 ? 3 : v < 0.7 ? 2 : 1;
+    fb.set(x, y, band2 ? cu[Math.max(0, k - 2)] : end < 3 ? cu[Math.max(1, k - 1)] : cu[k]);
+  }
+  for (let x = x0 + 3; x < x0 + w - 3; x += 7) { fb.set(x, Math.round(cyy - ry * 0.55), brass[3]); fb.set(x, Math.round(cyy + ry * 0.55), brass[2]); }
+  if (h2(seed, 3, 7) < 0.7) for (let x = x0 + 3; x < x0 + w - 3; x += 1) if (h2(seed, x, 9) < 0.3) fb.set(x, Math.round(cyy + ry * 0.75), vg[2]);
+  // A funnel with steam, a gauge, a red valve wheel, the pipe elbowing into the wall.
+  const fx = x0 + Math.round(w * 0.7); fb.rect(fx, y0 - 4, 3, 5, iron[2]); fb.rect(fx - 1, y0 - 5, 5, 1, iron[1]);
+  for (const [dx, dy] of [[1, -7], [2, -9], [0, -10], [3, -12], [1, -13]]) if (h2(seed, dx, dy) < 0.85) fb.set(fx + dx, y0 + dy, mixc(fb.get(fx + dx, y0 + dy), rgb("#f4f4f2"), 0.75));
+  fb.ellipse(x0 + w * 0.32, cyy, 2, 2, null, () => rgb("#f2efe6")); fb.set(Math.round(x0 + w * 0.32), Math.round(cyy), rgb("#2a2420"));
+  fb.ellipse(x0 + w * 0.52, y0 + 1, 2.5, 1.2, null, () => rgb("#b83a2a"));
+  fb.rect(x0 - 4, Math.round(cyy) - 1, 5, 2, cu[3]); fb.rect(x0 - 4, Math.round(cyy) - 1, 2, h * 0.4, cu[2]); fb.set(x0 - 4, Math.round(cyy) - 1, cu[5]);
+  // The fire crystal in its cage under the drum.
+  fb.rect(Math.round(cx) - 3, y1 + 1, 7, 1, iron[2]);
+  glowCrystal(fb, cx, y1 + 4, "#ff7a30", 2);
+}
+
+/** A machine on a roof (pixels, centre): a riveted water tank, a crystal condenser or a stack of vents. */
+export function drawRoofMachine(fb, kind, cx, cy, P, seed) {
+  const cu = R("#b87333", 5, 0.5), iron = R("#3a3e44", 5, 0.5), brass = R("#c9a24a", 5, 0.5);
+  for (let dy = -2; dy <= 3; dy += 1) for (let dx = -Math.round(P * 0.3); dx <= Math.round(P * 0.3); dx += 1) if (dx * dx / (P * P * 0.09) + dy * dy / 9 <= 1) fb.tone(Math.round(cx + dx + 2), Math.round(cy + dy + P * 0.12), -0.3);
+  if (kind === "tank") {
+    const rx = P * 0.24, top = cy - P * 0.36;
+    for (let y = Math.round(top); y < cy; y += 1) for (let x = Math.round(cx - rx); x <= cx + rx; x += 1) { const u = (x - cx) / rx; fb.set(x, y, (y - Math.round(top)) % 4 === 3 ? iron[1] : u < -0.4 ? cu[3] : u > 0.5 ? cu[1] : cu[2]); }
+    fb.ellipse(cx, cy, rx, rx * 0.4, null, (px, py, u) => (u < 0 ? cu[2] : cu[1]));
+    fb.ellipse(cx, top, rx, rx * 0.4, null, (px, py, u, v) => (u * u + v * v < 0.3 ? iron[2] : cu[4]));
+    for (const dx of [-rx * 0.8, rx * 0.8]) fb.rect(Math.round(cx + dx), Math.round(cy), 1, 3, iron[0]);
+  } else if (kind === "condenser") {
+    // Brass fins on a stand, a pale blue crystal in a cage on top.
+    for (let k = 0; k < 4; k += 1) fb.rect(Math.round(cx - P * 0.2 + k * P * 0.13), Math.round(cy - P * 0.28), 2, Math.round(P * 0.28), brass[k % 2 ? 2 : 3]);
+    fb.rect(Math.round(cx - P * 0.24), Math.round(cy - P * 0.3), Math.round(P * 0.5), 2, brass[1]);
+    glowCrystal(fb, cx, cy - P * 0.42, "#8fd0ff", 3);
+    fb.rect(Math.round(cx - 4), Math.round(cy - P * 0.42 - 4), 1, 8, brass[2]); fb.rect(Math.round(cx + 4), Math.round(cy - P * 0.42 - 4), 1, 8, brass[1]);
+  } else {
+    // Vent stacks: three iron pipes with conical caps, one with a brass vane, wisps of smoke.
+    for (const [k, dx] of [-P * 0.18, 0, P * 0.18].entries()) {
+      const hgt = Math.round(P * (0.3 + 0.1 * ((k + seed) % 2))), x = Math.round(cx + dx);
+      fb.rect(x - 1, Math.round(cy - hgt), 3, hgt, iron[2]); fb.rect(x - 1, Math.round(cy - hgt), 1, hgt, iron[3]);
+      fb.rect(x - 2, Math.round(cy - hgt) - 1, 5, 1, iron[1]); fb.set(x, Math.round(cy - hgt) - 2, iron[0]);
+      if (k === 1) { fb.rect(x - 3, Math.round(cy - hgt) - 4, 7, 1, brass[3]); fb.set(x, Math.round(cy - hgt) - 3, brass[2]); }
+      else for (const [sx, sy] of [[0, -4], [1, -6], [0, -8]]) fb.set(x + sx, Math.round(cy - hgt) + sy, mixc(fb.get(x + sx, Math.round(cy - hgt) + sy), rgb("#d8d8d4"), 0.6));
+    }
+  }
+}
+
+/** Pipes slung across a lane (pixels): two copper runs with brackets and a joint, high over the street. */
+export function drawPipeSpan(fb, x0, x1, y, P, seed) {
+  const cu = R("#b87333", 5, 0.5), vg = R("#5f9e8c", 4, 0.4), iron = R("#2e3236", 4, 0.5);
+  for (let x = Math.round(x0); x < Math.round(x1); x += 1) {
+    fb.tone(x, Math.round(y + P * 0.55), -0.2);
+    for (const [k, dy] of [[0, 0], [1, 4]]) { const green = h2(Math.floor(x / 5), k, seed) < 0.25; fb.set(x, Math.round(y + dy), green ? vg[3] : cu[3]); fb.set(x, Math.round(y + dy + 1), green ? vg[1] : cu[1]); }
+  }
+  for (let x = Math.round(x0) + 3; x < x1 - 2; x += Math.max(6, Math.round(P * 0.5))) { fb.rect(x, Math.round(y) - 1, 2, 7, iron[1]); fb.set(x, Math.round(y) - 1, iron[2]); }
 }

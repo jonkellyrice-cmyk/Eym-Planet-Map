@@ -20,7 +20,7 @@
 
 import { FEATURES, MOVE } from "./eym-battle-settings.mjs";
 import { FURNITURE, mapFloors } from "./eym-battle-interiors.mjs";
-import { styleStreetLamps } from "./eym-building-styles.mjs";
+import { styleMachinery, styleStreetLamps } from "./eym-building-styles.mjs";
 import { floorBase, occluderRecord, occluderWalls, battleOccluders } from "./eym-battle-occluders.mjs";
 
 export const OCCLUSION_VISION = 8;
@@ -43,6 +43,9 @@ export const LIGHT_KINDS = Object.freeze({
   glow: { bright: 0, dim: 10, color: "#6fe8d0", alpha: 0.35, darkness: { min: 0, max: 1 } },
   magic: { bright: 5, dim: 10, color: "#b08aff", alpha: 0.4, darkness: { min: 0, max: 1 }, animation: { type: "pulse", speed: 2, intensity: 2 } },
   // Street lamps of a building style: Dree's arc-lamps burn a cold, steady crystal light; plain lantern posts flicker warm.
+  // Machinery: a fire crystal glowing under a boiler, an aether coil's crystal; always lit.
+  "fire-crystal": { bright: 0, dim: 10, color: "#ff7a30", alpha: 0.45, darkness: { min: 0, max: 1 }, animation: { type: "pulse", speed: 1, intensity: 2 } },
+  aether: { bright: 5, dim: 15, color: "#8fd0ff", alpha: 0.4, darkness: { min: 0, max: 1 }, animation: { type: "pulse", speed: 3, intensity: 2 } },
   "arc-lamp": { bright: 15, dim: 30, color: "#cfeaff", alpha: 0.4, darkness: { min: 0.35, max: 1 } },
   "lantern-post": { bright: 10, dim: 20, color: "#ffb85c", alpha: 0.4, darkness: { min: 0.4, max: 1 }, animation: { type: "torch", speed: 2, intensity: 1 } },
 });
@@ -60,6 +63,10 @@ export function battleLights(map, interiors, { gridPx = map.spec.gridPx, style =
   // Lava and molten metal in the ground itself: one light every few squares along it.
   for (let i = 0; i < g.ground.length; i += 1) { const x = i % columns, y = Math.floor(i / columns); if (["molten-metal channel", "planar rift"].includes(g.ground[i]) && (x + y) % 3 === 0) add(g.ground[i] === "planar rift" ? "magic" : "lava", x + 0.5, y + 0.5, "floor0", g.levelFt[i]); }
   for (const l of styleStreetLamps(map, style)) add(l.kind, l.x, l.y, "floor0", levelAt(l.x, l.y) + l.heightFt, "street lamp");
+  // Machinery outside: the fire crystal under each wall boiler; a condenser's crystal on its roof.
+  const machines = styleMachinery(map, style);
+  for (const w of machines.wall) add("fire-crystal", w.x + 0.5, w.y + 1.15, "floor0", w.elevationFt, "wall boiler");
+  for (const r of machines.roof) if (r.kind === "condenser") add("aether", r.x, r.y, "floor0", r.elevationFt, "roof condenser");
   for (const b of map.buildings) {
     const e = b.doorEdge; if (!e || b.label === "mausoleum") continue;
     // A lantern just outside the door, and the glow of the street-front windows.
@@ -72,6 +79,7 @@ export function battleLights(map, interiors, { gridPx = map.spec.gridPx, style =
   for (const b of interiors) for (const f of b.floors) {
     const key = `floor${f.floor}`, base = (g.levelFt[Math.max(0, b.rect.y0) * columns + Math.max(0, b.rect.x0)] ?? 0) + floorBase(f.floor);
     for (const it of f.furniture) if (it.kind === "hearth") add("hearth", it.x + it.w / 2, it.y + it.h, key, base + 2, "hearth");
+    for (const it of f.furniture) if (FURNITURE[it.kind]?.light) add(FURNITURE[it.kind].light, it.x + it.w / 2, it.y + it.h / 2, key, base + (it.kind === "aether-coil" ? 6 : 1), it.kind);
     const tall = (x, y) => f.furniture.some((it) => (FURNITURE[it.kind]?.heightFt ?? 0) > 3 && x >= it.x && x < it.x + it.w && y >= it.y && y < it.y + it.h);
     for (const r of f.rooms) {
       const mx = (r.x0 + r.x1 + 1) / 2, my = (r.y0 + r.y1 + 1) / 2; let best = null;

@@ -9,8 +9,8 @@
 
 import { Framebuffer, bayer, rgb } from "./framebuffer.mjs";
 import { groundPixel, h2, mixc, noise, ramp } from "./materials.mjs";
-import { drawBlock, drawBuilding, drawSkybridge, drawLift, drawBush, drawFeature, drawFurniture, drawRock, drawStreetLamp, drawTree, setBuildingStyle, setSpriteLight } from "./sprites.mjs";
-import { buildingStyle, styleStreetLamps } from "../../scripts/eym-building-styles.mjs";
+import { drawBlock, drawBuilding, drawSkybridge, drawLift, drawWallBoiler, drawRoofMachine, drawPipeSpan, drawBush, drawFeature, drawFurniture, drawRock, drawStreetLamp, drawTree, setBuildingStyle, setSpriteLight } from "./sprites.mjs";
+import { buildingStyle, styleMachinery, styleStreetLamps } from "../../scripts/eym-building-styles.mjs";
 import { inFootprint } from "./footprint.mjs";
 import { applyShadows, occlusionMask } from "./light.mjs";
 import { normalizeSeason } from "../../scripts/eym-battle-season.mjs";
@@ -19,7 +19,7 @@ import { FURNITURE, floorOutline, outlines } from "../../scripts/eym-battle-inte
 import { standHeightFt } from "../../scripts/eym-battle-oblique.mjs";
 import { footprintPolygon } from "../../scripts/eym-battle-buildings.mjs";
 
-export const RENDERER = Object.freeze({ tier: 2, name: "Traditional RPG pixel art", version: "eym-pixel-t2-v6" });
+export const RENDERER = Object.freeze({ tier: 2, name: "Traditional RPG pixel art", version: "eym-pixel-t2-v7" });
 
 /** Native pixels per square and a whole-number scale that gives the scene's grid size. */
 export function pixelPlan(gridPx) {
@@ -133,7 +133,14 @@ function drawStanding(fb, map, P, styleId = "default", { buildings = true } = {}
   }
   for (const l of styleStreetLamps(map, styleId)) items.push({ y: l.y, x: l.x, draw: () => drawStreetLamp(fb, l.x * P, l.y * P, P, l.kind) });
   if (buildings) for (const k of map.skybridges ?? []) items.push({ y: k.y1 + 1, x: k.x0, draw: () => drawSkybridge(fb, k, P, k.x0 * 31 + k.y0) });
-  if (buildings) for (const b of map.buildings) items.push({ y: Math.max(b.y1, ...Object.values(b.floorRects ?? {}).map((r) => r.y1)) + 1, x: b.x0, draw: () => drawBuilding(fb, b, P, b.chamfers?.length ? footprintPolygon(b) : null, b.id * 101 + 7) });
+  // Each building, then the machinery bolted to it: boilers on its upper storeys' fronts, a machine on its roof.
+  const machines = buildings ? styleMachinery(map, styleId) : { wall: [], roof: [], pipes: [] };
+  if (buildings) for (const b of map.buildings) items.push({ y: Math.max(b.y1, ...Object.values(b.floorRects ?? {}).map((r) => r.y1)) + 1, x: b.x0, draw: () => {
+    const frame = drawBuilding(fb, b, P, b.chamfers?.length ? footprintPolygon(b) : null, b.id * 101 + 7); if (!frame) return;
+    for (const r of machines.roof.filter((m) => m.building === b.id)) drawRoofMachine(fb, r.kind, r.x * P, frame.roofTop + (frame.south - frame.fh - frame.roofTop) * 0.55, P, b.id);
+    for (const w of machines.wall.filter((m) => m.building === b.id)) drawWallBoiler(fb, (w.x + 0.5) * P, frame.south - w.floor * frame.band, frame.band, P, b.id * 7 + w.x);
+  } });
+  for (const p of machines.pipes) items.push({ y: Math.max(...map.buildings.filter((b) => b.id === p.a || b.id === p.b).map((b) => b.y1)) + 1.5, x: p.x0, draw: () => drawPipeSpan(fb, p.x0 * P, (p.x1 + 1) * P, (p.y + 0.5) * P - P * 0.65, P, p.x0 * 13 + p.y) });
   items.sort((a, b) => a.y - b.y || a.x - b.x);
   for (const it of items) it.draw();
 }
