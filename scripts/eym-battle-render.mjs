@@ -7,7 +7,8 @@
 //   battleSceneData    — a Foundry scene: grid, background, walls and doors, terrain regions, light, weather.
 
 import { FEATURES, MOVE, SETTINGS } from "./eym-battle-settings.mjs";
-import { obliqueBoulder, obliqueBuilding, obliqueBush, obliqueFaces, obliqueFeature, obliqueTree, standHeightFt } from "./eym-battle-oblique.mjs";
+import { footprintPolygon } from "./eym-battle-buildings.mjs";
+import { obliqueBoulder, obliqueShapedBuilding, obliqueBush, obliqueFaces, obliqueFeature, obliqueTree, standHeightFt } from "./eym-battle-oblique.mjs";
 
 const GROUND_COLORS = Object.freeze({
   "deep water": "#2f6f96", river: "#4d8fbb", "shallow stream": "#6aa8cf", "frozen stream": "#cfe6f2", sand: "#e2cf98", marsh: "#6e8456", "wet meadow": "#869a5c",
@@ -101,7 +102,7 @@ export function battleReferenceSvg(map, gridPx = map.spec.gridPx) {
   const standing = [];
   for (const f of map.features) { const def = FEATURES[f.kind]; if (def.shape === "tree") { standing.push({ y: f.y + f.h, x: f.x, svg: (f.kind === "planter-tree" ? `<rect x="${f2(f.x + 0.2)}" y="${f2(f.y + 0.55)}" width="0.6" height="0.35" fill="#8f877a"/>` : "") + obliqueTree({ x: f.x + f.w / 2, y: f.y + f.h - 0.2, size: f.kind === "planter-tree" ? 0.62 : 0.95 }) }); continue; } if (standHeightFt(f.kind, def) > 0) standing.push({ y: f.y + f.h, x: f.x, svg: obliqueFeature(f, def, featureShape(f)) }); else out.push(featureShape(f)); }
   for (const o of map.objects) standing.push({ y: o.y, x: o.x, svg: o.kind === "tree" ? obliqueTree(o) : o.kind === "bush" ? obliqueBush(o) : obliqueBoulder(o) });
-  for (const b of map.buildings) standing.push({ y: b.y1 + 1, x: b.x0, svg: obliqueBuilding(b, columns, rows) });
+  for (const b of map.buildings) standing.push({ y: b.y1 + 1, x: b.x0, svg: obliqueShapedBuilding(b, columns, rows, b.chamfers?.length ? footprintPolygon(b) : null) });
   for (const face of obliqueFaces(grid)) standing.push({ y: face.y - 0.01, x: 0, svg: face.svg });
   standing.sort((a, b) => a.y - b.y || a.x - b.x);
   for (const item of standing) out.push(item.svg);
@@ -131,7 +132,8 @@ export function battleTacticalSvg(map, gridPx = map.spec.gridPx) {
     const changes = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => { const nx = x + dx, ny = y + dy; return nx >= 0 && ny >= 0 && nx < columns && ny < rows && grid.elevationFt[ny * columns + nx] !== grid.elevationFt[i]; });
     if (grid.elevationFt[i] && !grid.void[i] && (changes || (x % 3 === 1 && y % 3 === 1))) out.push(`<text x="${x + 0.5}" y="${y + 0.92}" font-size="0.26" text-anchor="middle" fill="#fff" stroke="#000" stroke-width="0.04" paint-order="stroke" font-family="sans-serif">${grid.elevationFt[i] > 0 ? "+" : ""}${grid.elevationFt[i]}</text>`);
   }
-  for (const [key, w] of grid.walls) { const [x, y, dir] = key.split(",").map((v, k) => (k < 2 ? Number(v) : v)); const [a, b, c, d] = dir === "e" ? [x + 1, y, x + 1, y + 1] : [x, y + 1, x + 1, y + 1]; out.push(`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" stroke="${w.door ? "#f2c94c" : "#111"}" stroke-width="${w.door ? 0.14 : 0.1}"/>`); }
+  for (const b of map.buildings) for (const c of b.chamfers ?? []) { const [a, bb, cc, d] = { nw: [c.x, c.y + 1, c.x + 1, c.y], ne: [c.x, c.y, c.x + 1, c.y + 1], sw: [c.x, c.y, c.x + 1, c.y + 1], se: [c.x + 1, c.y, c.x, c.y + 1] }[c.corner]; out.push(`<line x1="${a}" y1="${bb}" x2="${cc}" y2="${d}" stroke="#111" stroke-width="0.1"/>`); }
+  for (const [key, w] of grid.walls) { if (w.chamfer) continue; const [x, y, dir] = key.split(",").map((v, k) => (k < 2 ? Number(v) : v)); const [a, b, c, d] = dir === "e" ? [x + 1, y, x + 1, y + 1] : [x, y + 1, x + 1, y + 1]; out.push(`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" stroke="${w.door ? "#f2c94c" : "#111"}" stroke-width="${w.door ? 0.14 : 0.1}"/>`); }
   for (const c of map.cliffs ?? []) { const [a, b, cc, d] = c.dir === "e" ? [c.x + 1, c.y, c.x + 1, c.y + 1] : [c.x, c.y + 1, c.x + 1, c.y + 1]; out.push(`<line x1="${a}" y1="${b}" x2="${cc}" y2="${d}" stroke="#ff7a00" stroke-width="0.12"/>`); }
   for (let i = 0; i < columns * rows; i += 1) if (grid.void[i]) out.push(`<rect x="${i % columns}" y="${Math.floor(i / columns)}" width="1" height="1" fill="#000" fill-opacity="0.35"/>`);
   for (let x = 0; x <= columns; x += 1) out.push(`<line x1="${x}" y1="0" x2="${x}" y2="${rows}" stroke="#000" stroke-opacity="0.25" stroke-width="0.025"/>`);
@@ -257,10 +259,11 @@ function rectangles(columns, rows, test) {
  */
 export function battleSceneData(map, { name, imagePath, gridPx = map.spec.gridPx, darkness = 0, weather = "", movementCost = false, notes = "" } = {}) {
   const { columns, rows } = map.spec, W = columns * gridPx, H = rows * gridPx, px = (v) => Math.round(v * gridPx);
-  const walls = [...map.grid.walls].map(([key, w]) => {
+  const walls = [...map.grid.walls].filter(([, w]) => !w.chamfer).map(([key, w]) => {
     const [x, y, dir] = key.split(",").map((v, k) => (k < 2 ? Number(v) : v)), c = dir === "e" ? [x + 1, y, x + 1, y + 1] : [x, y + 1, x + 1, y + 1];
     return { c: c.map(px), move: 20, sight: 20, light: 20, sound: 20, door: w.door ? 1 : 0, ds: 0 };
   });
+  for (const b of map.buildings) for (const c of b.chamfers ?? []) if (c.x >= 0 && c.y >= 0 && c.x < columns && c.y < rows) walls.push({ c: ({ nw: [c.x, c.y + 1, c.x + 1, c.y], ne: [c.x, c.y, c.x + 1, c.y + 1], sw: [c.x, c.y, c.x + 1, c.y + 1], se: [c.x + 1, c.y, c.x, c.y + 1] })[c.corner].map(px), move: 20, sight: 20, light: 20, sound: 20, door: 0, ds: 0 });
   for (const f of map.features) if (FEATURES[f.kind].wall) { const r = [f.x, f.y, f.x + f.w, f.y + f.h].map(px); walls.push({ c: [r[0], r[1], r[2], r[1]], move: 20, sight: 20, light: 20, sound: 20, door: 0, ds: 0 }, { c: [r[2], r[1], r[2], r[3]], move: 20, sight: 20, light: 20, sound: 20, door: 0, ds: 0 }, { c: [r[2], r[3], r[0], r[3]], move: 20, sight: 20, light: 20, sound: 20, door: 0, ds: 0 }, { c: [r[0], r[3], r[0], r[1]], move: 20, sight: 20, light: 20, sound: 20, door: 0, ds: 0 }); }
   // Cliffs: block movement (not sight); Wall Height-style flags give their bottom and top if that module is used.
   for (const c of map.cliffs ?? []) { const e = c.dir === "e" ? [c.x + 1, c.y, c.x + 1, c.y + 1] : [c.x, c.y + 1, c.x + 1, c.y + 1]; walls.push({ c: e.map(px), move: 20, sight: 0, light: 0, sound: 0, door: 0, ds: 0, flags: { "wall-height": { bottom: c.low, top: c.high }, "eym-planet-map": { cliff: true } } }); }

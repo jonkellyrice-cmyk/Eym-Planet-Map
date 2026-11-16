@@ -21,6 +21,7 @@ import { environmentField } from "./eym-seasons.mjs";
 import { fromLocal, toLocal } from "./eym-surface.mjs";
 import { FEATURES, MOVE, MOVE_COST, SETTINGS } from "./eym-battle-settings.mjs";
 import { placeExtras } from "./eym-battle-features.mjs";
+import { buildingShape, placeShapedBuilding, shapeSquares } from "./eym-battle-buildings.mjs";
 import { SCULPTS, applyInclines, cliffEdges, computeTops, inclineDegrees, levelStep, viewShare } from "./eym-battle-terrain.mjs";
 
 export const BATTLE_RULES_VERSION = "eym-battle-v1";
@@ -147,12 +148,15 @@ function layOutTown(grid, built, origin, setting, townKey, features) {
       if (!build) { if (hashUnit(`${lotKey}|g`) < (urban ? 0.45 : 0.7)) features.push({ kind: urban ? (hashUnit(`${lotKey}|t`) < 0.5 ? "garden" : "planter-tree") : (hashUnit(`${lotKey}|t`) < 0.5 ? "garden" : "lone-tree"), gx: lot.x0 + 1, gy: lot.y0 + 1, fixed: true, soft: true }); continue; }
       const rect = { x0: lot.x0 + (faces.w || urban ? 0 : 1), x1: lot.x1 - (faces.e || urban ? 0 : 1), y0: lot.y0 + (faces.n ? 0 : 1), y1: lot.y1 - (faces.s ? 0 : 1) };
       if (rect.x1 - rect.x0 < 1 || rect.y1 - rect.y0 < 1) continue;
-      const squares = []; let ok = true;
-      for (let gy = rect.y0; gy <= rect.y1 && ok; gy += 1) for (let gx = rect.x0; gx <= rect.x1; gx += 1) { if (!inside(gx, gy)) continue; const i = idx(gx, gy); if (!built[i] || grid.street[i]) { ok = false; break; } squares.push(i); }
-      if (!ok || squares.length < 2) continue;
-      const id = buildings.length, door = ["n", "s", "w", "e"].filter((d) => faces[d])[Math.floor(hashUnit(`${lotKey}|door`) * Math.max(1, ["n", "s", "w", "e"].filter((d) => faces[d]).length))] ?? "s";
-      buildings.push({ id, gx0: rect.x0, gy0: rect.y0, gx1: rect.x1, gy1: rect.y1, door, storeys: urban && hashUnit(`${lotKey}|h`) < 0.4 ? 2 : 1 });
-      for (const i of squares) { grid.building[i] = id; grid.ground[i] = "floor"; grid.move[i] = MOVE.normal; }
+      // The door on a street side, preferring the house's long side (houses face the street lengthwise).
+      const long = rect.x1 - rect.x0 >= rect.y1 - rect.y0 ? ["n", "s"] : ["w", "e"], open = ["n", "s", "w", "e"].filter((d) => faces[d]), preferred = open.filter((d) => long.includes(d));
+      const doorChoices = preferred.length ? preferred : open, door = doorChoices[Math.floor(hashUnit(`${lotKey}|door`) * Math.max(1, doorChoices.length))] ?? "s";
+      // The building's shape (a rectangle, an L or cut corners), on squares that are all built-up land.
+      const mapRect = { x0: rect.x0 - origin[0], y0: rect.y0 - origin[1], x1: rect.x1 - origin[0], y1: rect.y1 - origin[1] };
+      const usable = (shape) => { let n = 0; for (const k of shapeSquares(shape)) { const [x, y] = k.split(",").map(Number); if (x < 0 || y < 0 || x >= columns || y >= rows) continue; const i = y * columns + x; if (!built[i] || grid.street[i]) return 0; n += 1; } return n; };
+      let shape = buildingShape(mapRect, { door, label: "house", key: lotKey });
+      if (usable(shape) < 2) { shape = { rects: [mapRect], chamfers: [] }; if (usable(shape) < 2) continue; }
+      placeShapedBuilding(grid, buildings, { rect: mapRect, door, storeys: urban && hashUnit(`${lotKey}|h`) < 0.4 ? 2 : 1, label: "house", shape, extra: { gx0: rect.x0, gy0: rect.y0, gx1: rect.x1, gy1: rect.y1 } });
     }
   }
   // Greenery: trees in planters along streets, beside the houses (pinned to the world grid).
@@ -161,19 +165,7 @@ function layOutTown(grid, built, origin, setting, townKey, features) {
     const [gx, gy] = at(col, row), besideHouse = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => { const c = col + dx, r = row + dy; return c >= 0 && r >= 0 && c < columns && r < rows && grid.building[r * columns + c] >= 0; });
     if (besideHouse && hashUnit(`${townKey}|street-tree|${gx}|${gy}`) < (urban ? 0.12 : 0.08)) features.push({ kind: urban ? "planter-tree" : "lone-tree", gx, gy, fixed: true });
   }
-  // Walls around each building (clipped to the map), with one door on a street side.
-  for (const b of buildings) {
-    const doorAt = { n: [Math.floor((b.gx0 + b.gx1) / 2), b.gy0], s: [Math.floor((b.gx0 + b.gx1) / 2), b.gy1], w: [b.gx0, Math.floor((b.gy0 + b.gy1) / 2)], e: [b.gx1, Math.floor((b.gy0 + b.gy1) / 2)] }[b.door];
-    const wall = (gx, gy, side) => {
-      const col = gx - origin[0], row = gy - origin[1]; if (col < 0 || row < 0 || col >= columns || row >= rows) return;
-      const [x, y, dir] = side === "n" ? [col, row - 1, "s"] : side === "s" ? [col, row, "s"] : side === "w" ? [col - 1, row, "e"] : [col, row, "e"];
-      const isDoor = side === b.door && gx === doorAt[0] && gy === doorAt[1];
-      grid.walls.set(edgeKey(x, y, dir), { door: isDoor, building: b.id });
-    };
-    for (let gx = b.gx0; gx <= b.gx1; gx += 1) { wall(gx, b.gy0, "n"); wall(gx, b.gy1, "s"); }
-    for (let gy = b.gy0; gy <= b.gy1; gy += 1) { wall(b.gx0, gy, "w"); wall(b.gx1, gy, "e"); }
-  }
-  return buildings.map((b) => ({ ...b, x0: b.gx0 - origin[0], y0: b.gy0 - origin[1], x1: b.gx1 - origin[0], y1: b.gy1 - origin[1] }));
+  return buildings;
 }
 
 // ---------------------------------------------------------------- 5. design pass: paths, open ground, placement

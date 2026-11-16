@@ -67,7 +67,7 @@ const BUILDING_LOOK = Object.freeze({
 });
 
 /** A building inside its footprint: roof to the north, front wall (windows, door) along the south. */
-export function obliqueBuilding(b, columns, rows) {
+export function obliqueBuilding(b, columns, rows, doorX = null) {
   const x0 = Math.max(0, b.x0), y0 = Math.max(0, b.y0), x1 = Math.min(columns - 1, b.x1), y1 = Math.min(rows - 1, b.y1), w = x1 - x0 + 1, d = y1 - y0 + 1;
   const look = BUILDING_LOOK[b.label] ?? BUILDING_LOOK.building, storeys = b.storeys ?? 1;
   const fh = Math.min(0.85 * storeys, Math.max(0.6, d * 0.45)), top = y1 + 1 - fh, parts = [];
@@ -85,7 +85,7 @@ export function obliqueBuilding(b, columns, rows) {
   parts.push(`<rect x="${x0}" y="${f2(top)}" width="${w}" height="${f2(fh)}" fill="${look.wall}"/>`);
   const band = fh / storeys;
   for (let s = 0; s < storeys; s += 1) for (let k = 0; k < w; k += 1) {
-    const wx = x0 + k + 0.32, wy = top + s * band + band * 0.22, doorHere = b.door === "s" && s === storeys - 1 && k === Math.floor(((b.x0 + b.x1) / 2) - x0);
+    const wx = x0 + k + 0.32, wy = top + s * band + band * 0.22, doorHere = b.door === "s" && s === storeys - 1 && k === (doorX ?? Math.floor((b.x0 + b.x1) / 2)) - x0;
     if (doorHere) parts.push(`<rect x="${f2(x0 + k + 0.3)}" y="${f2(top + fh - band * 0.78)}" width="0.4" height="${f2(band * 0.78)}" fill="${look.trim}"/><rect x="${f2(x0 + k + 0.3)}" y="${f2(top + fh - band * 0.78)}" width="0.4" height="0.06" fill="#d9b77a"/>`);
     else if (b.label === "temple") parts.push(`<rect x="${f2(x0 + k + 0.4)}" y="${f2(top + s * band)}" width="0.2" height="${f2(band)}" fill="${shade(look.wall, -0.12)}"/>`);
     else if (b.label !== "mausoleum") parts.push(`<rect x="${f2(wx)}" y="${f2(wy)}" width="0.36" height="${f2(band * 0.4)}" fill="#7fb6d6" stroke="${look.trim}" stroke-width="0.04"/>`);
@@ -117,4 +117,58 @@ export function obliqueFaces(grid) {
     out.push({ y: y + 1, svg: `<rect x="${x}" y="${f2(fy)}" width="1.02" height="${f2(fh)}" fill="${color}"/>${stripes}<line x1="${x}" y1="${f2(fy)}" x2="${x + 1}" y2="${f2(fy)}" stroke="${shade(color, 0.35)}" stroke-width="0.05"/>` });
   }
   return out;
+}
+
+
+// ---------------------------------------------------------------- shaped buildings (L-shapes, cut corners)
+
+/** Clip a polygon to y ≥ y0 (keepBelow) or y ≤ y0. */
+function clipY(poly, y0, keepBelow) {
+  const inside = (p) => (keepBelow ? p[1] >= y0 - 1e-9 : p[1] <= y0 + 1e-9), out = [];
+  for (let i = 0; i < poly.length; i += 1) {
+    const a = poly[i], b = poly[(i + 1) % poly.length], ia = inside(a), ib = inside(b);
+    if (ia) out.push(a);
+    if (ia !== ib) { const t = (y0 - a[1]) / (b[1] - a[1]); out.push([a[0] + t * (b[0] - a[0]), y0]); }
+  }
+  return out;
+}
+const pathOf = (poly) => `M${poly.map(([x, y]) => `${f2(x)} ${f2(y)}`).join(" L")} Z`;
+
+/**
+ * Any building: an L is drawn as its two blocks, the nearer overlapping the farther; a building with cut
+ * corners as its true outline, with angled walls across the corners and a hipped roof over it.
+ */
+export function obliqueShapedBuilding(b, columns, rows, polygon) {
+  const rects = b.rects ?? [b], doorSq = b.doorEdge?.sq;
+  if (!b.chamfers?.length) {
+    return [...rects].sort((p, q) => p.y1 - q.y1).map((r) => {
+      const hasDoor = doorSq && doorSq[0] >= r.x0 && doorSq[0] <= r.x1 && doorSq[1] >= r.y0 && doorSq[1] <= r.y1;
+      return obliqueBuilding({ ...b, ...r, door: hasDoor ? b.door : "none" }, columns, rows, hasDoor ? doorSq[0] : null);
+    }).join("");
+  }
+  const look = BUILDING_LOOK[b.label] ?? BUILDING_LOOK.building, storeys = b.storeys ?? 1, d = b.y1 - b.y0 + 1;
+  const fh = Math.min(0.85 * storeys, Math.max(0.6, d * 0.45)), P = polygon, parts = [];
+  // Roof: the outline raised by the wall height and cut at the building's north edge; far half lit.
+  const roof = clipY(P.map(([x, y]) => [x, y - fh]), b.y0, true), ys = roof.map((p) => p[1]), xs = roof.map((p) => p[0]);
+  const top = Math.min(...ys), bottom = Math.max(...ys), mid = (top + bottom) / 2, left = Math.min(...xs), right = Math.max(...xs), hip = Math.min((bottom - top) / 2, (right - left) / 2);
+  parts.push(`<path d="${pathOf(roof)}" fill="${look.roof}"/>`);
+  const far = clipY(roof, mid, false); if (far.length > 2) parts.push(`<path d="${pathOf(far)}" fill="${shade(look.roof, 0.16)}"/>`);
+  const ridge = [[left + hip, mid], [right - hip, mid]];
+  parts.push(`<path d="M${f2(ridge[0][0])} ${f2(mid)} L${f2(ridge[1][0])} ${f2(mid)}${roof.map(([x, y]) => ` M${f2(x)} ${f2(y)} L${f2(x < (left + right) / 2 ? ridge[0][0] : ridge[1][0])} ${f2(mid)}`).join("")}" fill="none" stroke="${shade(look.roof, -0.4)}" stroke-width="0.06"/>`);
+  parts.push(`<path d="${pathOf(roof)}" fill="none" stroke="#2b1d14" stroke-width="0.08"/>`);
+  // Walls: every side that faces south (straight or angled) shows its face; windows on the straight ones.
+  for (let i = 0; i < P.length; i += 1) {
+    const p = P[i], q = P[(i + 1) % P.length], dx = q[0] - p[0], dy = q[1] - p[1]; if (dx >= -1e-9) continue;
+    const straight = Math.abs(dy) < 1e-9, fill = straight ? look.wall : shade(look.wall, -0.14);
+    parts.push(`<path d="${pathOf([p, q, [q[0], q[1] - fh], [p[0], p[1] - fh]])}" fill="${fill}" stroke="#2b1d14" stroke-width="0.07"/>`);
+    if (!straight) continue;
+    const band = fh / storeys;
+    for (let x = Math.ceil(Math.min(p[0], q[0])); x < Math.max(p[0], q[0]); x += 1) for (let st = 0; st < storeys; st += 1) {
+      const isDoor = b.door === "s" && doorSq && doorSq[0] === x && st === storeys - 1;
+      if (isDoor) parts.push(`<rect x="${f2(x + 0.3)}" y="${f2(p[1] - band * 0.78)}" width="0.4" height="${f2(band * 0.78)}" fill="${look.trim}"/><rect x="${f2(x + 0.3)}" y="${f2(p[1] - band * 0.78)}" width="0.4" height="0.06" fill="#d9b77a"/>`);
+      else if (b.label === "temple") parts.push(`<rect x="${f2(x + 0.4)}" y="${f2(p[1] - fh + st * band)}" width="0.2" height="${f2(band)}" fill="${shade(look.wall, -0.12)}"/>`);
+      else parts.push(`<rect x="${f2(x + 0.32)}" y="${f2(p[1] - fh + st * band + band * 0.22)}" width="0.36" height="${f2(band * 0.4)}" fill="#7fb6d6" stroke="${look.trim}" stroke-width="0.04"/>`);
+    }
+  }
+  return `<g>${parts.join("")}</g>`;
 }

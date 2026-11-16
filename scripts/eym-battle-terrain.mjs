@@ -10,6 +10,8 @@
 //     stairs, ramps or ladders cross (or a flyer).
 // Every square also gets the height of what stands on it (its top), which line of sight uses.
 
+import { placeShapedBuilding } from "./eym-battle-buildings.mjs";
+
 export const INCLINE = Object.freeze({ difficultDeg: 20, greaterDeg: 32, climbDeg: 45 });
 const SQUARE_M = 1.524;
 const hash = (text) => { let h = 2166136261; for (let i = 0; i < text.length; i += 1) h = Math.imul(h ^ text.charCodeAt(i), 16777619); h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; return (h >>> 0) / 4294967296; };
@@ -122,15 +124,9 @@ export function viewShare(grid, from, eye, walkable) {
 // ---------------------------------------------------------------- shaped settings
 
 /** Add a walled building (squares, walls, one door) to the grid; door side n/s/e/w. */
-export function addBuilding(grid, buildings, { x0, y0, x1, y1, door, storeys = 1, label = "building", heightFt = null }) {
-  const { columns, rows } = grid, id = buildings.length;
-  for (let y = y0; y <= y1; y += 1) for (let x = x0; x <= x1; x += 1) { if (x < 0 || y < 0 || x >= columns || y >= rows) continue; const i = y * columns + x; grid.building[i] = id; grid.ground[i] = "floor"; grid.move[i] = "normal"; }
-  const dx = Math.floor((x0 + x1) / 2), dy = Math.floor((y0 + y1) / 2), doorAt = { n: [dx, y0], s: [dx, y1], w: [x0, dy], e: [x1, dy] }[door];
-  const wall = (x, y, side) => { if (x < 0 || y < 0 || x >= columns || y >= rows) return; const [ex, ey, dir] = side === "n" ? [x, y - 1, "s"] : side === "s" ? [x, y, "s"] : side === "w" ? [x - 1, y, "e"] : [x, y, "e"]; grid.walls.set(edgeKey(ex, ey, dir), { door: side === door && x === doorAt?.[0] && y === doorAt?.[1], building: id }); };
-  for (let x = x0; x <= x1; x += 1) { wall(x, y0, "n"); wall(x, y1, "s"); }
-  for (let y = y0; y <= y1; y += 1) { wall(x0, y, "w"); wall(x1, y, "e"); }
-  buildings.push({ id, x0, y0, x1, y1, door, storeys, label, heightFt });
-  return id;
+export function addBuilding(grid, buildings, { x0, y0, x1, y1, door, storeys = 1, label = "building", heightFt = null, key = null }) {
+  // Houses and temples take shapes (an L, cut corners); dwellings cut into rock and mausoleums stay square.
+  return placeShapedBuilding(grid, buildings, { rect: { x0, y0, x1, y1 }, door, storeys, label, heightFt, key: key ?? `${label}|${x0},${y0}|${x1},${y1}`, shapes: label === "house" || label === "temple" }).id;
 }
 
 /** Context helpers shared by the sculpts. */

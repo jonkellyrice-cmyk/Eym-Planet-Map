@@ -70,7 +70,7 @@ export function battleScenePlan(map, interiors, { name, images, gridPx = map.spe
     const key = byFloor.get(f.floor)?.key; if (!key) continue;
     const base = map.grid.levelFt[Math.max(0, b.rect.y0) * columns + Math.max(0, b.rect.x0)] ?? 0;
     for (const wl of f.walls) {
-      const c = seg(wl.x, wl.y, wl.dir); if (c.some((v, k) => v < 0 || v > (k % 2 ? H : W))) continue;
+      const c = wl.diag ? wl.diag.map(px) : seg(wl.x, wl.y, wl.dir); if (c.some((v, k) => v < 0 || v > (k % 2 ? H : W))) continue;
       walls.push({ levelKeys: [key], c, move: SENSE.normal, sight: wl.window ? SENSE.none : SENSE.normal, light: wl.window ? SENSE.none : SENSE.normal, sound: wl.window ? SENSE.limited : SENSE.normal, door: wl.door ? 1 : 0, ds: 0, flags: { "wall-height": { bottom: base + 10 * Math.max(0, f.floor), top: base + 10 * (Math.max(0, f.floor) + 1) }, "eym-planet-map": { building: b.id, floor: f.floor, window: Boolean(wl.window) } } });
     }
   }

@@ -21,8 +21,8 @@ test("every building has rooms you can walk between, on each of its floors; stai
     assert.ok(b.floors.some((f) => f.floor === 0));
     if (b.floors.length > 1) assert.ok(b.stairs, `building ${b.id} has stairs between its floors`);
     for (const f of b.floors) {
-      const w = b.rect.x1 - b.rect.x0 + 1, h = b.rect.y1 - b.rect.y0 + 1;
-      assert.equal(f.rooms.reduce((s, r) => s + (r.x1 - r.x0 + 1) * (r.y1 - r.y0 + 1), 0), w * h, "rooms tile the footprint");
+      const area = b.rects.reduce((s, r) => s + (r.x1 - r.x0 + 1) * (r.y1 - r.y0 + 1), 0);
+      assert.equal(f.rooms.reduce((s, r) => s + (r.x1 - r.x0 + 1) * (r.y1 - r.y0 + 1), 0), area, "rooms tile the footprint (every block of an L)");
       // Rooms connect: inner walls have one door per split, so rooms - 1 doors at least.
       assert.ok(f.walls.filter((wl) => !wl.outer && wl.door).length >= f.rooms.length - 1);
       if (f.floor === 0) assert.ok(f.walls.filter((wl) => wl.outer && wl.door).length <= 1);
@@ -40,10 +40,10 @@ test("floor images: the ground floor opens every building; above, only buildings
   assert.ok(!/fill="#141210"/.test(ground.slice(0, 300)));
   assert.match(floorSvg(map, interiors, -1), /^<svg[^>]+><rect width="24" height="30" fill="#141210"\/>/);
   const upper = floorSvg(map, interiors, 1); assert.ok(!/fill="#141210"/.test(upper.slice(0, 300)), "transparent around the upper floors");
-  const count = (svg) => (svg.match(/<rect /g) ?? []).length;
-  assert.equal(count(roofMaskSvg(map, interiors, 0)), interiors.length, "every roof on the ground level");
-  assert.equal(count(roofMaskSvg(map, interiors, 1)), interiors.filter((b) => Math.max(...b.floors.map((f) => f.floor)) === 1).length);
-  assert.equal(count(footprintMaskSvg(map, interiors, -1)), interiors.filter((b) => b.floors.some((f) => f.floor === -1)).length);
+  const count = (svg) => (svg.match(/<rect |<path /g) ?? []).length, pieces = (bs) => bs.reduce((s, b) => s + (b.chamfers.length ? 1 : b.rects.length), 0);
+  assert.equal(count(roofMaskSvg(map, interiors, 0)), pieces(interiors), "every roof on the ground level");
+  assert.equal(count(roofMaskSvg(map, interiors, 1)), pieces(interiors.filter((b) => Math.max(...b.floors.map((f) => f.floor)) === 1)));
+  assert.equal(count(footprintMaskSvg(map, interiors, -1)), pieces(interiors.filter((b) => b.floors.some((f) => f.floor === -1))));
 });
 
 test("the v14 scene: a Level per floor, the ground seen from upstairs but not from the basement, roofs revealed by sight, stairs that change level", () => {

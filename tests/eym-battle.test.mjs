@@ -103,7 +103,8 @@ test("the Foundry scene: 5-ft grid, walls and doors from the buildings, terrain 
   const scene = battleSceneData(city, { name: "Lyle", imagePath: "worlds/w/x.png", movementCost: true, darkness: darknessFor(-3), weather: weatherEffectFor({ precipKind: "rain", precipMmH: 1 }) });
   assert.deepEqual(scene.grid, { type: 1, size: 140, distance: 5, units: "ft" });
   assert.equal(scene.width, 3360); assert.equal(scene.height, 4200);
-  assert.equal(scene.walls.length, city.grid.walls.size);
+  const chamfers = city.buildings.reduce((n, b) => n + (b.chamfers ?? []).filter((c) => c.x >= 0 && c.y >= 0 && c.x < 24 && c.y < 30).length, 0), straight = [...city.grid.walls.values()].filter((w) => !w.chamfer).length;
+  assert.equal(scene.walls.length, straight + chamfers, "straight walls, and one diagonal per cut corner instead of its two sides");
   assert.equal(scene.walls.filter((w) => w.door).length, [...city.grid.walls.values()].filter((w) => w.door).length);
   for (const w of scene.walls) for (const v of w.c) assert.ok(v >= 0 && v <= 4200);
   assert.equal(scene.weather, "rain"); assert.ok(scene.environment.darknessLevel > 0.3 && scene.environment.darknessLevel < 0.6);
