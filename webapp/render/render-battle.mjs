@@ -9,12 +9,15 @@
 
 import { Framebuffer, rgb } from "./framebuffer.mjs";
 import { groundPixel, h2, mixc, noise, ramp } from "./materials.mjs";
-import { drawBlock, drawBuilding, drawBush, drawFeature, drawFurniture, drawRock, drawTree, inPoly } from "./sprites.mjs";
+import { drawBlock, drawBuilding, drawBush, drawFeature, drawFurniture, drawRock, drawTree, setSpriteLight } from "./sprites.mjs";
+import { inFootprint } from "./footprint.mjs";
+import { applyShadows, gradeLayer, lightSources, shadowMask } from "./light.mjs";
+import { lightModel } from "../../scripts/eym-battle-lighting.mjs";
 import { FEATURES } from "../../scripts/eym-battle-settings.mjs";
 import { standHeightFt } from "../../scripts/eym-battle-oblique.mjs";
 import { footprintPolygon } from "../../scripts/eym-battle-buildings.mjs";
 
-export const RENDERER = Object.freeze({ tier: 2, name: "Traditional RPG pixel art", version: "eym-pixel-t2-v1" });
+export const RENDERER = Object.freeze({ tier: 2, name: "Traditional RPG pixel art", version: "eym-pixel-t2-v2" });
 
 /** Native pixels per square and a whole-number scale that gives the scene's grid size. */
 export function pixelPlan(gridPx) {
@@ -25,17 +28,16 @@ export function pixelPlan(gridPx) {
 
 const HARD = new Set(["cobbled street", "paved square", "marble quay", "stone bridge", "stone arch", "floor", "flagstone floor", "raised dais", "tree platform", "rope bridge", "ladder", "stone stairs", "carved wall", "canal", "open sky (a fall)", "open air (a fall)", "cave wall"]);
 const WATERS = new Set(["deep water", "river", "canal", "shallow stream", "deep channel", "shallows", "glowing pool"]);
+const SEASONAL = new Set(["grass", "meadow", "wet meadow", "scrub", "field", "yard", "floating rock", "forest floor"]);
+const SEASON_TINT = { spring: [[150, 210, 100, 255], 0.08], autumn: [[190, 150, 80, 255], 0.18], winter: [[140, 138, 116, 255], 0.24] };
+const WETTABLE = new Set(["grass", "meadow", "scrub", "field", "yard", "dirt lane", "road", "cobbled street", "paved square", "marble quay", "stone bridge", "forest floor", "sand", "canyon floor", "carved stone terrace", "monastery terrace", "lower terrace", "grave earth", "floating rock"]);
 const TREE_STYLE = { taiga: "conifer", alpine: "conifer", glacier: "conifer", tundra: "conifer", jungle: "jungle", "blighted-wood": "dead", "mushroom-forest": "broadleaf" };
 
-/** Whether a pixel (in square units) is inside a building's footprint. */
-export function inFootprint(b, sx, sy) {
-  if (b.chamfers?.length) return inPoly(sx, sy, footprintPolygon(b));
-  return (b.rects ?? [b]).some((r) => sx >= r.x0 && sx < r.x1 + 1 && sy >= r.y0 && sy < r.y1 + 1);
-}
+export { inFootprint } from "./footprint.mjs";
 
 // ---------------------------------------------------------------- the ground
 
-function drawGround(fb, map, P) {
+function drawGround(fb, map, P, model) {
   const { grid } = map, { columns, rows } = map.spec, [ox, oy] = map.origin, W = columns * P, H = rows * P;
   const water = new Uint8Array(W * H), levels = [...grid.levelFt].filter((v, i) => !grid.void[i]), lo = Math.min(...levels), hi = Math.max(...levels);
   for (let y = 0; y < H; y += 1) for (let x = 0; x < W; x += 1) {
@@ -46,7 +48,11 @@ function drawGround(fb, map, P) {
       const sc = Math.max(0, Math.min(columns - 1, Math.floor((x + (noise(wx, wy, 9, 3) - 0.5) * P * 0.5) / P))), sr = Math.max(0, Math.min(rows - 1, Math.floor((y + (noise(wx, wy, 9, 4) - 0.5) * P * 0.5) / P))), j = sr * columns + sc;
       if (j !== i && !HARD.has(grid.ground[j]) && grid.levelFt[j] === grid.levelFt[i] && grid.building[j] < 0) g = grid.ground[j];
     }
-    fb.set(x, y, groundPixel(g, wx, wy));
+    let px = groundPixel(g, wx, wy); const name = g.replace(/ \(mud\)$/, "");
+    // The season in the grass; rain on the ground: darker, with puddles that hold the sky.
+    if (SEASONAL.has(name) && SEASON_TINT[model.season]) px = mixc(px, SEASON_TINT[model.season][0], SEASON_TINT[model.season][1]);
+    if (model.wet && WETTABLE.has(name)) { px = mixc(px, [40, 44, 52, 255], 0.14); const pud = noise(wx, wy, 22, 61) * 0.75 + noise(wx, wy, 7, 63) * 0.25; if (pud > 0.74 && grid.move[i] !== "swim") px = pud > 0.775 ? mixc([126, 148, 178, 255], [190, 206, 226, 255], noise(wx, wy, 5, 64) > 0.7 ? 0.6 : 0) : mixc(px, [70, 78, 92, 255], 0.35); }
+    fb.set(x, y, px);
     if (WATERS.has(g.replace(/ \(mud\)$/, ""))) water[y * W + x] = 1;
     if (hi - lo >= 10 && !grid.void[i]) { const t = (grid.levelFt[i] - lo) / (hi - lo) - 0.5; if (Math.abs(t) > 0.05) fb.tone(x, y, t * 0.3); }
   }
@@ -90,19 +96,6 @@ function drawFaces(fb, map, P) {
 }
 
 // ---------------------------------------------------------------- shadows and things that stand
-
-function castShadows(fb, map, P) {
-  const shade = (x, y) => fb.tone(x, y, -0.28);
-  for (const o of map.objects) { if (o.kind === "bush") continue; const r = o.size * P * (o.kind === "tree" ? 0.95 : 0.8); fb.ellipse(o.x * P + r * 0.45, o.y * P + r * 0.08, r, r * 0.38, null, (x, y) => { shade(x, y); return fb.get(x, y); }); }
-  for (const b of map.buildings) {
-    const off = Math.round(P * 0.45 * (b.storeys ?? 1));
-    for (let y = b.y0 * P; y < (b.y1 + 1) * P + off * 0.3; y += 1) for (let x = b.x0 * P + off; x < (b.x1 + 1) * P + off; x += 1) {
-      const sx = (x - off + 0.5) / P, sy = (y - off * 0.3 + 0.5) / P;
-      if (inFootprint(b, sx, sy) && !inFootprint(b, (x + 0.5) / P, (y + 0.5) / P)) shade(x, y);
-    }
-  }
-  for (const f of map.features) { const ft = standHeightFt(f.kind, FEATURES[f.kind]); if (ft <= 0) continue; const off = Math.round(Math.min(2, ft / 10) * P * 0.4); for (const i of f.squares) { const c = i % map.spec.columns, r = Math.floor(i / map.spec.columns); for (let y = r * P + off * 0.3; y < (r + 1) * P + off * 0.3; y += 1) for (let x = c * P + off; x < (c + 1) * P + off; x += 1) { const sc = Math.floor((x - off) / P), sr = Math.floor((y - off * 0.3) / P); if (sc === c && sr === r && !f.squares.includes(Math.floor(y / P) * map.spec.columns + Math.floor(x / P))) shade(x, y); } } }
-}
 
 /** Flat features drawn on the ground (pools, circles, stairs, docks, graves…). */
 function drawFlat(fb, f, def, P, map) {
@@ -160,10 +153,16 @@ function drawInterior(fb, map, building, floor, P) {
 // ---------------------------------------------------------------- the layers
 
 /** All the layers of a battle map at native size. interiors: from buildInteriors(map). */
-export function renderBattleLayers(map, interiors, { gridPx = map.spec.gridPx } = {}) {
+export function renderBattleLayers(map, interiors, { gridPx = map.spec.gridPx, lighting = null } = {}) {
   const { native: P, scale } = pixelPlan(gridPx), W = map.spec.columns * P, H = map.spec.rows * P;
+  // The light: the sun's height and bearing, cloud, fog, rain, season; underground maps have none.
+  const light = lighting ?? { latDeg: map.center[0] }, model = lightModel(light, { underground: map.underground }), indoor = lightModel(light, { indoors: true }), below = lightModel(light, { underground: true });
+  const alt = model.lighting.sunAltitudeDeg;
+  setSpriteLight({ toSun: alt > 0 && !map.underground ? model.toSun : [-0.6, -0.8], altitudeDeg: alt > 0 ? alt : 40, season: model.season, faceTone: map.underground ? -0.3 : model.faceTone, direct: model.direct, lightsOn: model.lightsOn });
   const exterior = new Framebuffer(W, H);
-  drawGround(exterior, map, P); drawFaces(exterior, map, P); castShadows(exterior, map, P); drawStanding(exterior, map, P);
+  drawGround(exterior, map, P, model); drawFaces(exterior, map, P); applyShadows(exterior, shadowMask(map, P, model), model); drawStanding(exterior, map, P);
+  const roofsAbove = new Uint8Array(W * H); for (const b of map.buildings) for (let y = Math.max(0, b.y0 * P); y < Math.min(H, (b.y1 + 1) * P); y += 1) for (let x = Math.max(0, b.x0 * P); x < Math.min(W, (b.x1 + 1) * P); x += 1) if (inFootprint(b, (x + 0.5) / P, (y + 0.5) / P)) roofsAbove[y * W + x] = 1;
+  gradeLayer(exterior, model, lightSources(map, P, model), { unlit: roofsAbove });
   const floors = [...new Set(interiors.flatMap((b) => b.floors.map((f) => f.floor)))].sort((a, b) => a - b);
   const footprintMask = (list) => { const m = new Uint8Array(W * H); for (const b of list) { const fb = { ...b.rect, rects: b.rects, chamfers: b.chamfers }; for (let y = b.rect.y0 * P; y < (b.rect.y1 + 1) * P; y += 1) for (let x = b.rect.x0 * P; x < (b.rect.x1 + 1) * P; x += 1) if (x >= 0 && y >= 0 && x < W && y < H && inFootprint(fb, (x + 0.5) / P, (y + 0.5) / P)) m[y * W + x] = 1; } return m; };
   const copyMasked = (src, mask) => { const out = new Framebuffer(W, H); for (let k = 0; k < W * H; k += 1) if (mask[k]) { out.data.set(src.data.subarray(k * 4, k * 4 + 4), k * 4); } return out; };
@@ -171,6 +170,7 @@ export function renderBattleLayers(map, interiors, { gridPx = map.spec.gridPx } 
   const ground = new Framebuffer(W, H); ground.data.set(exterior.data);
   if (interiors.length) {
     const inner = new Framebuffer(W, H); for (const b of interiors) drawInterior(inner, map, b, 0, P);
+    gradeLayer(inner, indoor, lightSources(map, P, indoor, { interiors, floor: 0 }));
     const all = footprintMask(interiors); for (let k = 0; k < W * H; k += 1) if (all[k] && inner.data[k * 4 + 3]) ground.data.set(inner.data.subarray(k * 4, k * 4 + 4), k * 4);
   }
   const roofs = {}, floorLayers = {};
@@ -179,9 +179,10 @@ export function renderBattleLayers(map, interiors, { gridPx = map.spec.gridPx } 
     const having = interiors.filter((b) => b.floors.some((f) => f.floor === floor)), layer = new Framebuffer(W, H, floor < 0 ? "#141210" : null);
     if (floor < 0) for (let y = 0; y < H; y += 1) for (let x = 0; x < W; x += 1) if (h2(x, y, 99) < 0.04) layer.set(x, y, rgb("#22201c"));
     const inner = new Framebuffer(W, H); for (const b of having) drawInterior(inner, map, b, floor, P);
+    const m0 = floor < 0 ? below : indoor; gradeLayer(inner, m0, lightSources(map, P, m0, { interiors: having, floor })); if (floor < 0) gradeLayer(layer, below, []);
     const m = footprintMask(having); for (let k = 0; k < W * H; k += 1) if (m[k] && inner.data[k * 4 + 3]) layer.data.set(inner.data.subarray(k * 4, k * 4 + 4), k * 4);
     floorLayers[floor] = layer;
     if (floor > 0) roofs[floor] = copyMasked(exterior, footprintMask(interiors.filter((b) => Math.max(...b.floors.map((f) => f.floor)) === floor)));
   }
-  return { native: P, scale, width: W * scale, height: H * scale, exterior, ground, roofs, floors: floorLayers, floorList: floors };
+  return { native: P, scale, width: W * scale, height: H * scale, exterior, ground, roofs, floors: floorLayers, floorList: floors, light: { sunAltitudeDeg: alt, sunAzimuthDeg: model.lighting.sunAzimuthDeg, season: model.season, direct: Math.round(model.direct * 100) / 100, night: model.night } };
 }

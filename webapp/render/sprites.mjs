@@ -6,6 +6,16 @@
 import { rgb } from "./framebuffer.mjs";
 import { h2, mixc, noise, ramp } from "./materials.mjs";
 
+// The light the sprites are shaded by: a screen-space direction toward the light (x east, y south; a
+// high sun lights tops, so y leans up), the season's foliage, and how lit south-facing walls are.
+const LIGHT = { x: -0.6, y: -0.8, foliage: "summer", faceTone: 0.2, direct: 0.8 };
+export function setSpriteLight({ toSun = [-0.6, -0.8], altitudeDeg = 45, season = "summer", faceTone = 0.2, direct = 0.8, lightsOn = false } = {}) {
+  const k = Math.cos(Math.max(0, Math.min(90, altitudeDeg)) * Math.PI / 180), x = toSun[0] * k, y = toSun[1] * k - (1 - k) * 0.85, n = Math.hypot(x, y) || 1;
+  Object.assign(LIGHT, { x: x / n, y: y / n, foliage: season, faceTone, direct, lightsOn });
+}
+const lit = (u, v) => u * LIGHT.x + v * LIGHT.y;
+const SEASON_LEAF = { spring: "#6aae4c", summer: "#3f7a38", autumn: null, winter: null, tropical: "#2f7a3a" };
+
 const RAMP = new Map(), R = (base, n = 5, spread = 0.55) => { const k = `${base}|${n}|${spread}`; if (!RAMP.has(k)) RAMP.set(k, ramp(base, n, spread)); return RAMP.get(k); };
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -16,8 +26,10 @@ export function drawTree(fb, bx, by, size, P, style = "broadleaf", seed = 0) {
   const rp = Math.max(4, size * P * 0.9), trunkW = Math.max(2, Math.round(rp * 0.28)), trunkH = Math.round(rp * 0.75), bark = R("#6a4a2c", 4);
   // Trunk: bark with a lit left edge.
   for (let y = by - trunkH; y < by; y += 1) for (let x = Math.round(bx - trunkW / 2); x < Math.round(bx + trunkW / 2); x += 1) fb.set(x, y, x === Math.round(bx - trunkW / 2) ? bark[3] : h2(x, y >> 1, seed) < 0.3 ? bark[0] : bark[1]);
-  if (style === "dead") {
-    const dark = rgb("#4a3a2c");
+  // Winter strips broadleaf trees (conifers and the tropics keep theirs); autumn turns them.
+  if (style === "broadleaf" && LIGHT.foliage === "winter") style = "bare";
+  if (style === "dead" || style === "bare") {
+    const dark = rgb(style === "bare" ? "#6a5440" : "#4a3a2c");
     for (const [ang, len] of [[-2.3, 0.9], [-0.8, 1], [-1.6, 1.15], [-2.7, 0.6], [-0.4, 0.7]]) fb.line(bx, by - trunkH, bx + Math.cos(ang) * rp * len, by - trunkH + Math.sin(ang) * rp * len, dark);
     return;
   }
@@ -25,36 +37,39 @@ export function drawTree(fb, bx, by, size, P, style = "broadleaf", seed = 0) {
     const g = R("#2f5a3a", 5, 0.5);
     for (let tier = 0; tier < 3; tier += 1) {
       const w = rp * (1.05 - tier * 0.25), top = by - trunkH * 0.6 - rp * (0.55 + tier * 0.55), h = rp * 0.9;
-      fb.polygon([[bx, top - h * 0.2], [bx + w, top + h], [bx - w, top + h]], null, (x, y) => { const u = (x - bx) / w; return (u < -0.15 ? g[3] : u > 0.35 ? g[1] : g[2]); });
+      fb.polygon([[bx, top - h * 0.2], [bx + w, top + h], [bx - w, top + h]], null, (x, y) => { const t = ((x - bx) / w) * LIGHT.x; return (t > 0.15 ? g[3] : t < -0.35 ? g[1] : g[2]); });
       fb.line(bx - w, top + h, bx + w, top + h, g[0]);
     }
     return;
   }
-  const base = style === "jungle" ? "#2f6a32" : "#3f7a38", g = R(base, 6, 0.55), cy = by - trunkH - rp * 0.55;
+  const autumn = ["#c8782a", "#d9a238", "#b8502a", "#9a8a2a"][Math.floor(h2(seed, 1, 21) * 4)];
+  const base = style === "jungle" ? "#2f6a32" : LIGHT.foliage === "autumn" ? autumn : SEASON_LEAF[LIGHT.foliage] ?? "#3f7a38", g = R(base, 6, 0.55), cy = by - trunkH - rp * 0.55;
   // The crown: a main mass and lobes, each shaded by the light from the upper left, with leaf clusters.
   const lobes = [[0, 0, 1], ...[0, 1, 2, 3, 4].map((k) => { const a = (k / 5) * Math.PI * 2 + h2(k, seed, 3) * 0.8; return [Math.cos(a) * rp * 0.55, Math.sin(a) * rp * 0.38, 0.55 + 0.15 * h2(k, seed, 4)]; })];
   lobes.sort((a, b) => a[1] - b[1]);
   for (const [dx, dy, s] of lobes) {
     const r = rp * s;
     fb.ellipse(bx + dx, cy + dy, r, r * 0.92, null, (x, y, u, v) => {
-      const light = -u * 0.55 - v * 0.75 + (noise(x, y, 3, seed + 7) - 0.5) * 0.9, edge = u * u + v * v > 0.82;
+      const light = lit(u, v) * (0.4 + 0.6 * LIGHT.direct) + (noise(x, y, 3, seed + 7) - 0.5) * 0.9, edge = u * u + v * v > 0.82;
       if (edge && light < 0.1) return g[0];
       return g[clamp(Math.round(2.4 + light * 1.8), 1, 5)];
     });
   }
   // A few bright leaf highlights on the lit side.
-  for (let k = 0; k < Math.round(rp / 2); k += 1) { const a = -2.2 + h2(k, seed, 9) * 1.2, d = rp * (0.35 + 0.5 * h2(k, seed, 10)); fb.set(bx + Math.cos(a) * d, cy + Math.sin(a) * d * 0.9, g[5]); }
+  if (LIGHT.foliage === "spring" && h2(seed, 2, 22) < 0.3) for (let k = 0; k < Math.round(rp); k += 1) { const a = h2(k, seed, 23) * 6.28, d = rp * h2(k, seed, 24); fb.set(bx + Math.cos(a) * d, cy + Math.sin(a) * d * 0.9, h2(k, seed, 25) < 0.5 ? rgb("#f6d0dc") : rgb("#fbf4f4")); }
+  const toward = Math.atan2(LIGHT.y, LIGHT.x);
+  for (let k = 0; k < Math.round(rp / 2); k += 1) { const a = toward - 0.6 + h2(k, seed, 9) * 1.2, d = rp * (0.35 + 0.5 * h2(k, seed, 10)); fb.set(bx + Math.cos(a) * d, cy + Math.sin(a) * d * 0.9, g[5]); }
 }
 
 export function drawBush(fb, bx, by, size, P, seed = 0) {
   const r = Math.max(3, size * P * 0.9), g = R("#5d7d3e", 5, 0.5);
-  fb.ellipse(bx, by - r * 0.45, r, r * 0.7, null, (x, y, u, v) => { const l = -u * 0.5 - v * 0.8 + (noise(x, y, 2, seed) - 0.5) * 0.8; return u * u + v * v > 0.85 && l < 0.1 ? g[0] : g[clamp(Math.round(2 + l * 1.6), 1, 4)]; });
+  fb.ellipse(bx, by - r * 0.45, r, r * 0.7, null, (x, y, u, v) => { const l = lit(u, v) + (noise(x, y, 2, seed) - 0.5) * 0.8; return u * u + v * v > 0.85 && l < 0.1 ? g[0] : g[clamp(Math.round(2 + l * 1.6), 1, 4)]; });
 }
 
 export function drawRock(fb, bx, by, size, P, seed = 0, base = "#8f877c") {
   const rx = Math.max(3, size * P), ry = rx * 0.7, g = R(base, 5, 0.5);
-  fb.ellipse(bx, by - ry * 0.55, rx, ry, null, (x, y, u, v) => { const l = -u * 0.6 - v * 0.8 + (h2(x >> 1, y >> 1, seed) - 0.5) * 0.4; return u * u + v * v > 0.8 ? g[0] : g[clamp(Math.round(2 + l * 1.7), 1, 4)]; });
-  fb.set(bx - rx * 0.35, by - ry * 1.05, g[4]);
+  fb.ellipse(bx, by - ry * 0.55, rx, ry, null, (x, y, u, v) => { const l = lit(u, v) + (h2(x >> 1, y >> 1, seed) - 0.5) * 0.4; return u * u + v * v > 0.8 ? g[0] : g[clamp(Math.round(2 + l * 1.7), 1, 4)]; });
+  fb.set(bx + rx * 0.35 * LIGHT.x, by - ry * 0.55 + ry * 0.5 * LIGHT.y, g[4]);
 }
 
 // ---------------------------------------------------------------- buildings
@@ -67,8 +82,8 @@ const LOOK = Object.freeze({
   "rock-cut dwelling": { wall: "#c9a678", timber: "#8a6a44", roof: "#a8875e", trim: "#7a5a3a", blocks: true, flat: true },
 });
 
-/** Point in polygon (square units). */
-export function inPoly(px, py, poly) { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i, i += 1) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) c = !c; } return c; }
+import { inPoly } from "./footprint.mjs";
+export { inPoly };
 
 /** Roof pixels for a polygon (pixels): hipped facets by nearest eave, tile rows along each eave, ridges and hips darker. */
 function drawRoof(fb, poly, base, seed, flat = false) {
@@ -83,7 +98,7 @@ function drawRoof(fb, poly, base, seed, flat = false) {
     }
     if (second - best < 0.9) return r[0];
     // Facet tone by which way it faces: north (far, lit) lightest, east darkest; tiles in rows along the eave.
-    const facing = -bn[1] * 0.55 - bn[0] * 0.45, row = Math.floor(best / 3), tileEdge = Math.floor(best) % 3 === 2;
+    const facing = -(bn[0] * LIGHT.x + bn[1] * LIGHT.y) * 0.8 - 0.15, row = Math.floor(best / 3), tileEdge = Math.floor(best) % 3 === 2;
     const along = Math.abs(bn[1]) > Math.abs(bn[0]) ? px : py, stagger = (Math.floor(along + (row & 1) * 2) % 4) === 0;
     let k = clamp(Math.round(2.6 - facing * 1.6), 1, 4);
     if (tileEdge) k = Math.max(1, k - 1); else if (stagger) k = Math.max(1, k - 1);
@@ -104,9 +119,12 @@ function drawWall(fb, quad, look, { storeys, front, doorPx = null, P, seed, x0, 
     return h2(x, y, seed) < 0.05 ? wall[1] : wall[2 + (noise(x, y, 6, seed) > 0.6 ? 1 : 0)];
   });
   if (!front) { fb.polygon(quad, null, (x, y) => mixc(fb.get(x, y), rgb("#2a2420"), 0.18)); return; }
+  // Sunlit or shaded front, by where the sun stands.
+  fb.polygon(quad, null, (x, y) => { const c = fb.get(x, y), t = LIGHT.faceTone; return t >= 0 ? mixc(c, rgb("#fff4dc"), t * 0.22) : mixc(c, rgb("#2a2c3c"), -t * 0.32); });
   // Eave shadow along the top.
   for (let x = Math.round(x0); x < Math.round(x1); x += 1) for (let k = 0; k < 2; k += 1) fb.tone(x, Math.round(yBase - fh) + k, -0.35);
-  const band = fh / storeys, glass = R("#4f86a8", 4, 0.5), frame = R(look.trim, 4, 0.4);
+  // Glass reflects the sky by day and glows with lamplight once the lamps are lit.
+  const band = fh / storeys, glass = LIGHT.lightsOn ? R("#e8a040", 4, 0.45) : R("#4f86a8", 4, 0.5), frame = R(look.trim, 4, 0.4);
   for (let s = 0; s < storeys; s += 1) for (let sx = Math.floor(x0 / P) * P; sx < x1; sx += P) {
     const cx = sx + P / 2; if (cx < x0 || cx > x1) continue;
     const isDoor = doorPx != null && s === storeys - 1 && Math.abs(cx - doorPx) < P / 2;
@@ -162,12 +180,14 @@ export function drawBlock(fb, x, y, w, h, riseP, base, seed, round = false) {
     const cx = x + w / 2, rx = w / 2 * 0.9, ry = h / 2 * 0.55;
     for (let yy = Math.round(y + h / 2 - riseP); yy <= Math.round(y + h / 2); yy += 1) for (let xx = Math.round(cx - rx); xx <= Math.round(cx + rx); xx += 1) fb.set(xx, yy, xx < cx - rx * 0.4 ? g[2] : g[1]);
     fb.ellipse(cx, y + h / 2, rx, ry, null, (px, py, u) => (u < -0.4 ? g[2] : g[1]));
-    fb.ellipse(cx, y + h / 2 - riseP, rx, ry, null, (px, py, u, v) => g[clamp(Math.round(3 - u * 0.8 - v * 0.8 + (h2(px, py, seed) - 0.5) * 0.6), 2, 4)]);
+    fb.ellipse(cx, y + h / 2 - riseP, rx, ry, null, (px, py, u, v) => g[clamp(Math.round(3 + lit(u, v) * 0.9 + (h2(px, py, seed) - 0.5) * 0.6), 2, 4)]);
     return;
   }
   fb.rect(x, y + h - riseP, w, riseP, g[1]);
   for (let xx = Math.round(x); xx < Math.round(x + w); xx += 1) fb.set(xx, Math.round(y + h) - 1, g[0]);
-  fb.polygon([[x, y - riseP], [x + w, y - riseP], [x + w, y + h - riseP], [x, y + h - riseP]], null, (px, py) => g[clamp(Math.round(3 + (h2(px >> 1, py >> 1, seed) - 0.5) * 1.2 - (px - x) / w * 0.6), 2, 4)]);
+  fb.polygon([[x, y - riseP], [x + w, y - riseP], [x + w, y + h - riseP], [x, y + h - riseP]], null, (px, py) => g[clamp(Math.round(3 + (h2(px >> 1, py >> 1, seed) - 0.5) * 1.2 + ((px - x) / w - 0.5) * LIGHT.x * 0.8), 2, 4)]);
+  // The south face: lit when the sun is in the south, in shade when it is in the north.
+  for (let yy = Math.round(y + h - riseP); yy < Math.round(y + h); yy += 1) for (let xx = Math.round(x); xx < Math.round(x + w); xx += 1) fb.tone(xx, yy, LIGHT.faceTone * 0.3);
   for (let xx = Math.round(x); xx < Math.round(x + w); xx += 1) fb.set(xx, Math.round(y - riseP), g[4]);
 }
 

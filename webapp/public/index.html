@@ -23,6 +23,12 @@
       <label>Orientation <select name="orientation"><option value="auto">As the preset</option><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
       <label>Tier <select name="tier"></select></label>
     </fieldset>
+    <fieldset><legend>Light</legend>
+      <div class="row"><label>Time of day <select name="hour"><option value="6">Dawn</option><option value="9">Morning</option><option value="12" selected>Midday</option><option value="15">Afternoon</option><option value="17.5">Evening</option><option value="19">Dusk</option><option value="23">Night</option></select></label>
+      <label>Season <select name="season"><option>spring</option><option selected>summer</option><option>autumn</option><option>winter</option></select></label></div>
+      <label>Weather <select name="weather"><option>clear</option><option>partly cloudy</option><option>overcast</option><option>rain</option><option>storm</option><option>fog</option><option>snow</option></select></label>
+      <p class="muted">The sun's height and bearing follow from the place's latitude, the season and the hour. Within the tropics trees keep their leaves.</p>
+    </fieldset>
     <fieldset><legend>Conditions (optional)</legend>
       <div class="row"><label>Snow depth (cm) <input name="snowDepthCm" type="number" min="0" step="1"></label><label>Ground <select name="ground"><option value="">dry</option><option>damp</option><option>wet</option><option>waterlogged</option><option>flooding</option></select></label></div>
     </fieldset>

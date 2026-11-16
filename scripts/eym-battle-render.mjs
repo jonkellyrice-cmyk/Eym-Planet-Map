@@ -8,6 +8,7 @@
 
 import { FEATURES, MOVE, SETTINGS } from "./eym-battle-settings.mjs";
 import { footprintPolygon } from "./eym-battle-buildings.mjs";
+import { lightingWords } from "./eym-battle-lighting.mjs";
 import { obliqueBoulder, obliqueShapedBuilding, obliqueBush, obliqueFaces, obliqueFeature, obliqueTree, standHeightFt } from "./eym-battle-oblique.mjs";
 
 const GROUND_COLORS = Object.freeze({
@@ -184,13 +185,13 @@ function heightWords(map) {
 }
 
 /** The prompt: paint over the layout, keep everything where it is, a clean top-down battle map, no grid or text. */
-export function battleArtDirection(map, { timeWords = "", weatherWords = "", architecture = "" } = {}) {
+export function battleArtDirection(map, { timeWords = "", weatherWords = "", architecture = "", lighting = null } = {}) {
   const rules = SETTINGS[map.setting], { columns, rows, widthPx, heightPx } = map.spec;
   const chosen = (map.extras ?? []).map((e) => `${e.label.toLowerCase()} in ${e.at}`);
   return [
-    `Paint a fantasy tabletop battle map in a rich, detailed, painterly digital style, in three-quarter top-down (oblique) perspective, as classic 2D role-playing games draw their towns and wilds: the ground is seen from above, but nothing is flat. Every object that stands up shows its top and its south-facing side, so its height reads at a glance: buildings show their roofs and their front walls with doors and windows; trees show full crowns over visible trunks; cliffs, ledges, quays and island edges show their rock or stone faces; boulders, walls, fences, carts, crates, stalls, pillars and statues show their sides. Vertical sides rise toward the top of the image (about one square of picture for every 10 feet of height); the ground contact of each object stays on its squares. Soft shadows fall toward the lower right.`,
+    `Paint a fantasy tabletop battle map in a rich, detailed, painterly digital style, in three-quarter top-down (oblique) perspective, as classic 2D role-playing games draw their towns and wilds: the ground is seen from above, but nothing is flat. Every object that stands up shows its top and its south-facing side, so its height reads at a glance: buildings show their roofs and their front walls with doors and windows; trees show full crowns over visible trunks; cliffs, ledges, quays and island edges show their rock or stone faces; boulders, walls, fences, carts, crates, stalls, pillars and statues show their sides. Vertical sides rise toward the top of the image (about one square of picture for every 10 feet of height); the ground contact of each object stays on its squares. ${lighting ? "Light and shadow follow the moment described below." : "Soft shadows fall toward the lower right."}`,
     `${PERSPECTIVE_RULE}`,
-    `The setting: ${rules.words}.${timeWords ? ` ${timeWords}` : ""}${weatherWords ? ` ${weatherWords}` : ""} Paint in even, clear daylight so the map reads well; lighting is added in play.`,
+    `The setting: ${rules.words}.${timeWords ? ` ${timeWords}` : ""}${weatherWords ? ` ${weatherWords}` : ""}${lighting ? ` ${lightingWords(lighting, { underground: map.underground })} Paint that light into the picture: the colour of the light, the direction and length of the shadows, glowing windows and lamps at night.` : " Paint in even, clear daylight so the map reads well; lighting is added in play."}`,
     `The attached reference image is the authoritative layout of the battlefield, ${columns} by ${rows} squares of 5 feet (${columns * 5} by ${rows * 5} feet). Keep every building footprint, wall, door, tree trunk, boulder, log, wall, ridge, hazard, water edge, road and street exactly where it is, at the same size and shape: the game rules depend on them. Do not add, remove, move or merge any obstacle, building, water or path. You may add small surface detail (grass tufts, pebbles, leaf litter, cracks, roof tiles) that does not change what blocks or slows movement.`,
     `Colours in the reference mean: ${legend(map).join("; ")}. Paint each as the real thing, not as flat colour.`,
     ...(heightWords(map) ? [heightWords(map)] : []),

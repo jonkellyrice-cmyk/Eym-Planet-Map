@@ -56,6 +56,30 @@ transparency, the basement over solid dark), and `preview` (native size).
 
 Every tier draws the same geometry; a tier is a renderer registered in `server.mjs` (`RENDERERS`).
 
+## Light and shadow
+
+Light is drawn into the pixel art, worked out from where and when the map is (`scripts/eym-battle-lighting.mjs`,
+`render/light.mjs`). From Foundry it comes from the campaign clock and the weather. The sun's height and
+bearing come from the exact subsolar point for the place; the cloud, rain and fog from the weather; the
+season from the date and hemisphere. On the page you choose the time of day, season and weather.
+
+- **Sun shadows** are cast from a height field of the ground, the buildings and everything standing. Cliffs, walls, towers and pillars throw them away from the sun, longer as it sinks. Trees throw stretched crown shadows.
+- **Contact shadows** sit at the foot of everything. They are all an overcast sky leaves.
+- **Sprites are lit from the sun's side:** tree crowns, rocks, roof facets and block tops. South-facing walls are sunlit or in shade depending on where the sun stands.
+- **The colour of the light** changes through the day: neutral by day, golden when low, blue-violet at twilight, moonlit blue at night. Cloud greys and desaturates it, and fog hazes it.
+- **Rain** darkens and wets the ground, with puddles that hold the sky.
+- **Seasons:**
+  - Spring: fresh green, with blossom on some trees.
+  - Summer: full leaf.
+  - Autumn: orange, gold and red crowns, with warmer grass.
+  - Winter: bare broadleaf trees, with conifers kept, and duller grass.
+  - Within the tropics trees stay evergreen.
+- **Lamps** are lit at dusk and at night: door lanterns, glowing windows, fires, lava, crystals, magic. They show as stepped pools of light in the pixel-art manner and never light the roofs.
+- **Indoors** has its own light: daylight through the windows by day, candles in every room and hearths at night. Basements are dark apart from their lamps, and underground settings have no sun.
+
+Each light is cached separately (the light is part of a render's id). The painter's prompt in the module
+describes the same light, with its direction, length of shadows, colour and season.
+
 ## Tier 2 rendering (`render/`)
 
 - `framebuffer.mjs`: integer RGBA pixels with pixel-art primitives (no anti-aliasing), ordered dithering,
