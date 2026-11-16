@@ -15,6 +15,8 @@ import {
   currentCampaignTime, normalizeCampaignTimeState, resumeCampaignTimeSession,
   setCampaignProperTimestamp, setCampaignTimeRunning, settleCampaignTime,
 } from "./campaign-time.mjs";
+import { registerMapPresetSettings } from "./eym-map-settings.mjs";
+import { registerArchitectureSettings, registerMapServerSettings, registerPaintingSettings } from "./eym-paint-settings.mjs";
 
 let app = null;
 let universalClockObserver = null;
@@ -223,6 +225,11 @@ Hooks.once("init", () => {
     scope: "world", config: false, type: Object,
     default: { ...DEFAULT_CAMPAIGN_TIME_STATE },
   });
+
+  registerMapPresetSettings(MODULE_ID);
+  registerPaintingSettings(MODULE_ID);
+  registerArchitectureSettings(MODULE_ID);
+  registerMapServerSettings(MODULE_ID);
 
   const module = game.modules.get(MODULE_ID);
   if (module) module.api = Object.freeze({ open: openClusterMap, getCampaignTimeState: () => currentCampaignTime(getUniversalTimeState()), saveCampaignTimeState: saveUniversalTimeState, isClockAuthority: isUniversalClockAuthority });

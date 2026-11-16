@@ -27,3 +27,46 @@
 .oscm-sky-readout div { display: flex; justify-content: space-between; gap: .5rem; }
 .oscm-sky-readout span { color: var(--oscm-muted, #8aa); }
 .oscm-sky-card label { display: flex; align-items: center; gap: .4rem; font-size: 12px; }
+
+/* Atlas maps (scripts/eym-reference-map.mjs). */
+.oscm-shell { position: relative; }
+.oscm-atlas-card { display: none; }
+.oscm-shell.is-body-mode.can-look-up .oscm-atlas-card { display: grid; gap: .4rem; }
+.oscm-atlas-card label { display: grid; gap: .15rem; font-size: 11px; }
+.oscm-atlas-card label span { color: var(--oscm-muted, #8aa); font-size: 10px; }
+.oscm-atlas-custom { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+.oscm-atlas-card .is-hidden, .oscm-atlas-result.is-hidden, .oscm-atlas-result .is-hidden { display: none; }
+.oscm-atlas-result { position: absolute; inset: 8px; z-index: 30; display: grid; grid-template-rows: auto auto 1fr auto auto; gap: .4rem; padding: .6rem; background: rgba(6, 12, 18, .96); border: 1px solid rgba(160, 200, 220, .35); border-radius: 6px; }
+.oscm-atlas-result-head { display: flex; gap: .6rem; align-items: baseline; }
+.oscm-atlas-result-head button { margin-left: auto; width: auto; }
+.oscm-atlas-result img { width: 100%; height: 100%; min-height: 0; object-fit: contain; background: #0b1218; }
+.oscm-atlas-tabs, .oscm-atlas-actions { display: flex; flex-wrap: wrap; gap: .4rem; }
+.oscm-atlas-tabs button, .oscm-atlas-actions button { width: auto; flex: 0 0 auto; font-size: 11px; }
+.oscm-atlas-tabs button.is-active { outline: 1px solid #9bd4dc; }
+
+.oscm-atlas-paint { border-top: 1px solid rgba(160, 200, 220, .2); padding-top: .4rem; align-items: center; }
+.oscm-atlas-paint [data-atlas-paint-status] { font-size: 11px; }
+.oscm-atlas-paint.is-busy button { opacity: .5; pointer-events: none; }
+.oscm-shell.is-player .oscm-gm-only { display: none !important; }
+.oscm-battle-notes { display: block; font-size: 11px; max-height: 4.2em; overflow: auto; }
+.oscm-atlas-card .oscm-checkbox { display: flex; gap: .4rem; align-items: center; font-size: 11px; }
+.oscm-atlas-result.is-battle [data-atlas-only] { display: none; }
+.oscm-atlas-result.is-battle .oscm-atlas-result-head { flex-wrap: wrap; }
+.oscm-atlas-result.is-battle .oscm-battle-notes { flex-basis: 100%; order: 3; }
+.oscm-dossier-panel { position: absolute; inset: 8px; z-index: 31; display: grid; grid-template-rows: auto 1fr auto; gap: .4rem; padding: .6rem; background: rgba(6, 12, 18, .97); border: 1px solid rgba(160, 200, 220, .35); border-radius: 6px; }
+.oscm-dossier-panel.is-hidden { display: none; }
+.oscm-dossier-body { display: grid; grid-template-columns: minmax(180px, 1fr) 2.2fr; gap: .6rem; min-height: 0; }
+.oscm-dossier-tree, .oscm-dossier-editor { overflow: auto; min-height: 0; }
+.oscm-dossier-tree ul { list-style: none; margin: 0; padding-left: .8rem; }
+.oscm-dossier-tree > ul { padding-left: 0; }
+.oscm-dossier-tree button { width: 100%; text-align: left; background: none; border: 0; color: inherit; padding: .1rem .3rem; font-size: 12px; }
+.oscm-dossier-tree button.is-selected { background: rgba(120, 170, 200, .25); }
+.oscm-dossier-tree .is-archived { opacity: .55; font-style: italic; }
+.oscm-dossier-editor label { display: grid; gap: .15rem; font-size: 11px; margin-bottom: .35rem; }
+.oscm-dossier-editor textarea { min-height: 3.2em; resize: vertical; font-size: 12px; }
+.oscm-dossier-editor pre { white-space: pre-wrap; font-size: 11px; background: rgba(255, 255, 255, .05); padding: .4rem; }
+.oscm-dossier-editor .oscm-atlas-actions { margin: .4rem 0; }
+.oscm-battle-extras summary { cursor: pointer; font-size: 11px; }
+.oscm-battle-extras fieldset { border: 1px solid rgba(160, 200, 220, .2); margin: .25rem 0; padding: .2rem .4rem; }
+.oscm-battle-extras legend { font-size: 10px; color: var(--oscm-muted, #8aa); }
+.oscm-battle-extras label { display: flex; gap: .3rem; align-items: center; font-size: 11px; }

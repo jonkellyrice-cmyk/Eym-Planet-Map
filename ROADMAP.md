@@ -15,6 +15,15 @@ This roadmap was carried over from the Lancer GM Kit and Lancer cluster map, and
 | Live environmental sync to GM Kit | Planned | Static maps synchronized; dynamic environmental snapshot sync unfinished. | Planned. |
 | Elevation/normal/displacement rendering | Deferred | Intended to add depth and relief to illustrated planetary textures. | Deferred. |
 
+## Map ladder and battle maps (agreed 16 November 2026)
+
+Everything lives in this module. Maps are made top-down, each level grounded in the one above:
+
+1. **Planet → continent → region → local/city reference maps** — deterministic, from Eym's data. *Done (step 1)*: the Atlas maps card makes the reference image, a name layer and a packet with the art direction; presets for map sizes and battle-map grids, adjustable in Game Settings.
+2. **Painting them in the module** — an image-generator adapter (OpenAI's image model first; later an open-weight model on Dave's GPU or the Glassbox inference service), the API key kept in the GM's browser only, painted maps saved to the world's data (not the module folder) and registered as canon; lower levels use the painted level above as their reference. *Done (step 2)*, tested against a mocked server; not yet tried with a real key. Later: a second adapter if the open-weight server does not speak the OpenAI image API.
+   - *Done*: the **ground-detail layer** below the 1° data (`scripts/eym-local-detail.mjs`): fields, woods, streams, ponds, marsh, roads, built-up areas and farmsteads at 10–50 m, pinned to the world; shown on the local level.
+3. **Battle maps** *(done, step 3)* — pick a place, date and time: terrain, slope, water, plants, season, weather, light and nearby structures are already known; a deterministic 5-ft layout becomes a painted image and a ready Foundry scene (grid, darkness, weather effects). *Started*: the deterministic 5-ft layout (`buildBattleSite`: cover and height per square, trees, bushes, boulders, buildings, streams, rivers and roads). Defaults: 140 px per square, 24×30 squares (Flip-Mat), all adjustable. Done: the rules engine (settings, PF2e terrain per square, towns, design pass and analysis), the anchored painting brief and Foundry scene creation. Added: the GM's map-feature checklist (with hidden traps), architecture dossiers linked to areas, height (inclines, levels, cliffs, line of sight) and fourteen fantastic settings. Buildings have interiors on native v14 Scene Levels (ground with roofs revealed by sight, upper floors, basements, stairs that change level). Known limits: one walkable outdoor height per square (the ground under a platform or bridge is not walkable); upper floors of buildings on raised terraces use floor bands above the terrain rather than their true height; checked against the v14 data schemas and a stand-in, not yet a live Foundry. Next: paint large battle maps in tiles (the model paints at most 1536 px, so a 3360×4200 map is upscaled about 3×); check regions and walls against a live Foundry v14 and PF2e; GM edits to a battle map before it becomes a scene.
+
 ## Weather design (agreed 3 September 2026)
 
 Weather must be physically plausible, coherent over time and deterministic. The Foundry module must not run a large simulation in the background.
@@ -49,3 +58,18 @@ Weather must be physically plausible, coherent over time and deterministic. The 
 - **Grid:** Eym's coarse geography already uses a 6° grid of 1,800 cells (`data/planet-geography/abydos/eventide.json`). Its 1° cartography raster can supply terrain and ocean proximity.
 - **Climate:** the annual-mean climate in `scripts/eym-cartography.mjs` is a baseline that weather can deviate from.
 - **Continents:** Eym is 98.6% ocean, so maritime weather and tropical cyclones should dominate. Caren straddles the equator, and Garyk sits near 15°N.
+
+## Pixel-art tiers (agreed 16 November 2026)
+
+Battle maps can be drawn without AI, deterministically, by the map server (`webapp/`), from the same map geometry at every tier: identical squares and objects, one three-quarter orthographic perspective, reusable procedural materials and components, pixel-art rendering (not pixelation), cached high-resolution assets, and Foundry scene import.
+
+| Tier | | Status |
+|---|---|---|
+| 1 | Geometric illustration: flat colours, simple geometry, basic dimensional cues | Done (the module's own drawing) |
+| 2 | Traditional RPG pixel art: textures, patterned roofs, detailed foliage, water edges, soil variation, several shadow tones | Done, first version (map server) |
+| 3 | High-definition pixel environments: individual roof tiles, masonry, layered vegetation, material-dependent lighting | Planned |
+| 4 | Volumetric pixel art (KOF XIII-inspired richness in the fixed three-quarter view) | Planned |
+| 5 | Artist-quality procedural pixel art: architectural identities, organic irregularity, environmental storytelling, composition-aware choices | Planned |
+
+Done in Tier 2: object-own shadows and season in the art; lamps as Foundry lights (time-of-day light is Foundry's, live); objects encoded with their heights so Foundry's lights cast their shadows (light-blocking walls with `wall-height` flags, since v14 walls have no height of their own); furniture shading of its own. Next for Tier 2: dedicated sprites for the remaining features (now shaded blocks), animated water and fire frames, autotiled transitions between specific grounds, and more building styles as cultures come up (the format and Dree are done: `scripts/eym-building-styles.mjs`).
+
