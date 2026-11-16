@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.1 (2026-11-16)
+
+- The panel is dressed as a scholar's parchment: ink on vellum, a legible old-style serif, rubricated headings, leather buttons, in place of the light-on-dark instrument look. The map keeps its own colours.
+- Phones and narrow windows: the window now scrolls, so everything under the map can be reached (swipe on the panel; the map itself still takes touches for turning and zooming).
+- The pixel globe fills the whole view; a tall window no longer shows flat blue bars above and below it.
+
 ## 0.15.0 (2026-11-16)
 
 - Eym's globe is drawn as pixel art (Tier 2), by rule from the same coastlines, biomes, mountains, rivers and lakes as the surveyed map: the sea in bands by depth, land by biome with a dark coast, the season's snow and sea ice, and day and night with a dithered twilight. Zoom in past 6× and the surveyed (vector) map takes over.

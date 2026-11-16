@@ -444,12 +444,16 @@ export class BodyView {
   #paintPixels() {
     this.pixelFrame = null; const p = this.pixel; if (!p || this.state.zoom > PIXEL_GLOBE_MAX_ZOOM) return;
     const { yaw, pitch, zoom } = this.state, s = this.environment?.subsolar, clouds = !this.weatherGroups?.clouds?.classList.contains("is-hidden");
-    const key = [yaw.toFixed(4), pitch.toFixed(4), zoom.toFixed(3), s ? `${s.latDeg.toFixed(1)},${s.lonDeg.toFixed(1)}` : "", clouds, p.stamp ?? 0].join("|");
+    // The drawing covers all of the view that shows, which on a tall or wide window is more than the 900×680 frame.
+    const box = this.svg.getBoundingClientRect?.(), fit = box?.width && box?.height ? Math.min(box.width / 900, box.height / 680) : 0;
+    const W = fit ? Math.min(520, Math.ceil(box.width / fit / 2.5)) : 360, H = fit ? Math.min(640, Math.ceil(box.height / fit / 2.5)) : 272;
+    const key = [yaw.toFixed(4), pitch.toFixed(4), zoom.toFixed(3), s ? `${s.latDeg.toFixed(1)},${s.lonDeg.toFixed(1)}` : "", clouds, p.stamp ?? 0, W, H].join("|");
     if (key === p.key) return; p.key = key;
     p.raster ??= buildSurfaceRaster(this.geography);
-    const W = 360, H = 272, sun = s ? orthographicGeoPoint(s.latDeg, s.lonDeg, yaw, pitch, 1) : null;
+    const sun = s ? orthographicGeoPoint(s.latDeg, s.lonDeg, yaw, pitch, 1) : null;
     const data = renderGlobe({ raster: p.raster, width: W, height: H, cx: W / 2, cy: H / 2, radius: 100 * zoom, yaw, pitch, sun, snow: p.snow, ice: p.ice, weather: clouds ? p.weather : null, rivers: p.rivers });
-    p.canvas ??= Object.assign(document.createElement("canvas"), { width: W, height: H });
+    p.canvas ??= document.createElement("canvas"); if (p.canvas.width !== W || p.canvas.height !== H) { p.canvas.width = W; p.canvas.height = H; }
+    for (const [name, value] of [["x", 450 - W * 1.25], ["y", 340 - H * 1.25], ["width", W * 2.5], ["height", H * 2.5]]) p.image.setAttribute(name, value);
     p.canvas.getContext("2d").putImageData(new ImageData(data, W, H), 0, 0); p.image.setAttribute("href", p.canvas.toDataURL("image/png"));
   }
 
