@@ -1,3 +1,4 @@
+import { ringRadius } from "./scholars-model.mjs";
 import { normalizeDegrees, orbitalPeriodDays, orbitalStateAt, rotationStateAt } from "./astronomy.mjs";
 import { deriveAtmosphereMetadata } from "./atmosphere.mjs";
 import { DAY_MS, DAYS_PER_YEAR, UNION_EPOCH_MS } from "./universal-time.mjs";
@@ -172,16 +173,16 @@ export function formatSystemDistance(distanceAu) {
   return `${distanceAu.toFixed(distanceAu < 1 ? 3 : 2)} AU`;
 }
 
+/**
+ * Where a body sits on the system map: on the scholars' model, not at its true distance. Each body keeps
+ * its true direction from what it circles (so the order, the turning and the alignments are real), but
+ * rides an evenly spaced ring (eym: scholars-model.mjs). The physical positions are untouched.
+ */
 export function displayPosition(object, model) {
   if (!object.parentObject) return { x: 0, y: 0, z: 0 };
   const parent = displayPosition(object.parentObject, model);
   const local = orbitVector(object, object.distanceAu, object.phaseDeg, model.referenceTimestampMs);
-  const localMagnitude = Math.max(object.distanceAu, 1e-12);
-  const isLocal = object.distance_unit === "km";
-  const displayRadius = isLocal
-    ? 0.12 + Math.log1p(localMagnitude * AU_KM / 50_000) * 0.055
-    : 0.28 + Math.log1p(localMagnitude * 2.4) / Math.log1p(model.maxAu * 2.4) * 3.35;
-  const scale = displayRadius / localMagnitude;
+  const magnitude = Math.max(Math.hypot(local.x, local.y, local.z), 1e-12), scale = ringRadius(object, model.objects) / magnitude;
   return { x: parent.x + local.x * scale, y: parent.y + local.y * scale, z: parent.z + local.z * scale };
 }
 

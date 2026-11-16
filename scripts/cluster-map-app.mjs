@@ -13,6 +13,7 @@ import { buildSystemModel, loadSystemRegistry } from "./system-data.mjs";
 import { SystemView } from "./system-view.mjs";
 import { BodyView } from "./body-view.mjs";
 import { formatLatLon } from "./body-view-core.mjs";
+import { knownCount, scholarEntry } from "./scholars-model.mjs";
 import { greatCircleKm } from "./eym-surface.mjs";
 import { naturalBodyKind, buildNaturalBodyModel } from "./natural-body-data.mjs";
 import { artificialBodyKind, buildArtificialBodyModel } from "./artificial-body-data.mjs";
@@ -239,8 +240,8 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       root.classList.remove("has-operations");
       root.querySelector('[data-action="back-to-system"]')?.classList.add("is-hidden");
       const title = root.querySelector("[data-map-title]"); if (title) title.textContent = systemDisplayName(system.name);
-      const count = root.querySelector("[data-map-count]"); if (count) count.textContent = `${model.objects.length} mapped objects`;
-      const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Click / tap to select; double-click / double-tap to open";
+      const count = root.querySelector("[data-map-count]"); if (count) count.textContent = `${knownCount(model.objects)} known bodies`;
+      const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Click / tap to select; double-click / double-tap Eym to open its map";
       this.#updateRoutePanel(null, null);
     } catch (error) {
       console.error(`${MODULE_ID} | Unable to enter system view`, error);
@@ -929,7 +930,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
 
   async #enterBody(object) {
     const root = this.element?.querySelector?.(".oscm-shell"), svg = root?.querySelector(".oscm-cluster-svg");
-    if (!root || !svg || ["star", "barycenter"].includes(object.objectClass)) return;
+    if (!root || !svg || ["star", "barycenter"].includes(object.objectClass) || !scholarEntry(object).openable) return;
     try {
       let model;
       if (naturalBodyKind(object)) model = buildNaturalBodyModel(object);
@@ -1227,13 +1228,14 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const card = root?.querySelector(".oscm-object-details");
     if (!card) return;
     card.classList.toggle("is-hidden", this.mode !== "system" || (!origin && !destination));
-    const object = destination ?? origin;
+    // What the scholars know of it: the wanderers are stars to them, so nothing of their true nature shows.
+    const object = destination ?? origin, known = object ? scholarEntry(object) : null;
     const values = {
       objectName: object ? objectDisplayName(object) : "—",
-      objectType: object?.type ?? "—",
+      objectType: known?.label || "—",
       objectParent: (object && parentDisplayName(object)) ?? "—",
-      objectRole: object?.hz_or_role || object?.primary_function || "—",
-      objectScale: object?.dimensions_estimate || (object?.radiusRe ? `${object.radiusRe} Earth radii` : "Schematic marker"),
+      objectRole: known?.note || "—",
+      objectScale: known?.openable ? "Mapped: double-click to open" : "Seen in the sky only",
     };
     for (const [field, value] of Object.entries(values)) {
       const element = root.querySelector(`[data-field="${field}"]`); if (element) element.textContent = value;

@@ -35,3 +35,9 @@
   .oscm-system-object-label { font-size: 13px; }
   .oscm-system-object-type { font-size: 9px; }
 }
+
+/* The scholars' model: rings engraved in gold, painted bodies with crisp pixels. */
+.oscm-system-orbit.is-planetary { stroke: rgba(214, 170, 82, .42); stroke-width: 1.2; }
+.oscm-system-orbit.is-local { stroke: rgba(214, 190, 140, .5); stroke-dasharray: 2 3; }
+.oscm-system-sprite { image-rendering: pixelated; image-rendering: crisp-edges; pointer-events: none; }
+.oscm-system-sun-glow { pointer-events: none; }
