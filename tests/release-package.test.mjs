@@ -31,16 +31,16 @@ test("release workflow packages the registry, cartography, operational, astronom
   assert.match(workflow, /npm run starfield:check && npm run constellations:check/);
 });
 
-test("Foundry and package versions agree on the v0.13.0 eym-planet-map release archive", () => {
+test("Foundry and package versions agree on the v0.13.1 eym-planet-map release archive", () => {
   const manifest = JSON.parse(readFileSync(new URL("module.json", root), "utf8"));
   const packageJson = JSON.parse(readFileSync(new URL("package.json", root), "utf8"));
   const workflow = readFileSync(new URL(".github/workflows/release.yml", root), "utf8");
   assert.equal(manifest.id, "eym-planet-map");
   assert.equal(packageJson.name, manifest.id);
   assert.equal(manifest.version, packageJson.version);
-  assert.equal(manifest.version, "0.13.0");
+  assert.equal(manifest.version, "0.13.1");
   assert.equal(manifest.url, "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map");
   assert.equal(manifest.manifest, "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map/releases/latest/download/module.json");
-  assert.equal(manifest.download, "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map/releases/download/v0.13.0/eym-planet-map-v0.13.0.zip");
+  assert.equal(manifest.download, "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map/releases/download/v0.13.1/eym-planet-map-v0.13.1.zip");
   assert.match(workflow, /ARCHIVE="eym-planet-map-v\$\{VERSION\}\.zip"/);
 });
