@@ -43,3 +43,28 @@ test("the painter's reference and every prompt ask for three-quarter view, never
   assert.match(floorPlanSvg(interiors[0], 0), /height="0\.42"/, "rooms' back walls have height");
   assert.match(artDirection({ spec: { level: "region", widthPx: 1536, heightPx: 1024 }, frame: { center: [0, 0], kmPerPx: 0.3, W: 1536, level: "region" }, cover: [{ words: "forest" }] }), /three-quarter view/);
 });
+
+test("less blocky: corners cut at 45° where grounds meet, hipped roofs, curving cliff lines, round things in stepped circles", async () => {
+  const { chamferCorners } = await import("../scripts/eym-battle-render.mjs");
+  // A 3×3 of grass with water filling the top-left corner region: the centre square gets its corner cut.
+  const col = ["w", "w", "g", "w", "g", "g", "g", "g", "g"];
+  assert.deepEqual(chamferCorners(col, 3, 3).filter(([x, y]) => x === 1 && y === 1), [[1, 1, [1, 1, "w"]]]);
+  assert.match(obliqueBuilding({ x0: 0, y0: 0, x1: 4, y1: 3, door: "s", storeys: 1, label: "house" }, 24, 30), /L2\.00 1\.12 L2\.00 1\.12|L(\d\.\d\d) (\d\.\d\d) L\1 \2|<path d="M0 0 L5 0 L/, "a hipped roof");
+  const canyon = buildBattleMap(asset, { center: at("Bostain", -2.2, -1.8), spec: battleMapSpec(), setting: "canyon-city" });
+  const g = canyon.grid, C = g.columns, edgeRow = (x, lvl) => { for (let y = 0; y < g.rows; y += 1) if (g.levelFt[y * C + x] === lvl && !g.ramp[y * C + x]) return y; return -1; };
+  const rowsAt = new Set(Array.from({ length: C }, (_, x) => edgeRow(x, 40)).filter((v) => v >= 0));
+  assert.ok(rowsAt.size >= 2, "a cliff line steps along its length, not one straight row");
+  assert.ok(canyon.routes.length >= 2);
+  const grove = buildBattleMap(asset, { center: at("Bostain", -2.2, -1.8), spec: battleMapSpec(), setting: "treetop-city" });
+  for (const t of grove.features.filter((f) => f.kind === "giant-trunk")) assert.equal(t.squares.length, 5, "a 3×3 trunk without its corners");
+});
+
+test("atlas reference maps draw relief, forests and settlements in three-quarter view, text-free", async () => {
+  const { buildReferenceMap } = await import("../scripts/eym-reference-map.mjs");
+  const { atlasMapSpec } = await import("../scripts/eym-map-presets.mjs");
+  const caren = buildReferenceMap(asset, atlasMapSpec({ level: "continent" }), { continentId: "caren" });
+  assert.match(caren.baseSvg, /fill="#b8a283"/, "mountains with a lit face"); assert.match(caren.baseSvg, /fill="#6f5a45"/, "and a shaded face");
+  assert.match(caren.baseSvg, /fill="#4a3220"/, "trees with trunks"); assert.match(caren.baseSvg, /fill="#e8dcc0"/, "houses with front walls");
+  assert.ok(!/<text/.test(caren.baseSvg));
+  assert.equal(buildReferenceMap(asset, atlasMapSpec({ level: "continent" }), { continentId: "caren" }).baseSvg, caren.baseSvg, "deterministic");
+});

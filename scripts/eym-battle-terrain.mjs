@@ -152,28 +152,36 @@ export const SCULPTS = Object.freeze({
   /** Terraces stepping up a cliff: a canyon city, a cliffside monastery. Stairs join each level twice. */
   terraces(ctx, { levels = 4, riseFt = 20, floor = "canyon floor", terrace = "carved stone terrace", river = false, voidBelow = false, dwellings = true }) {
     const { grid } = ctx, h = helpers({ ...ctx, riseAxis: ctx.grid.rows >= ctx.grid.columns ? "n" : "w" }), notes = [];
-    const band = Math.max(4, Math.floor(h.A / levels)), levelOf = (a) => Math.min(levels - 1, Math.floor((h.A - 1 - a) / band));
+    // Each cliff line curves: its row shifts by up to a square or two along its length, so the faces step
+    // on the diagonal like a real canyon wall instead of running dead straight.
+    const band = Math.max(4, Math.floor(h.A / levels)), amp = Math.min(2, Math.floor(band / 3));
+    const edgeOf = (k, c) => h.A - k * band + Math.round(amp * Math.sin((2 * Math.PI * c) / (10 + 6 * hash(`${ctx.key}|cp|${k}`)) + 6.28 * hash(`${ctx.key}|ph|${k}`)));
+    const levelAt = (a, c) => { let k = 0; for (let j = 1; j < levels; j += 1) if (a < edgeOf(j, c)) k = j; return k; };
     for (let a = 0; a < h.A; a += 1) for (let c = 0; c < h.C; c += 1) {
-      const i = h.idxAC(a, c), k = levelOf(a); grid.levelFt[i] = k * riseFt;
+      const i = h.idxAC(a, c), k = levelAt(a, c); grid.levelFt[i] = k * riseFt;
       h.setGround(i, k === 0 ? floor : terrace, "normal", 6);
     }
     if (voidBelow) for (let a = h.A - Math.min(3, band - 1); a < h.A; a += 1) for (let c = 0; c < h.C; c += 1) h.voidSq(h.idxAC(a, c));
     else if (river) for (let a = h.A - 2; a < h.A; a += 1) for (let c = 0; c < h.C; c += 1) h.water(h.idxAC(a, c), "river");
     // Stairs: two flights on every cliff, at world-pinned spots in the left and right halves.
     for (let k = 1; k < levels; k += 1) {
-      const edgeA = h.A - k * band; if (edgeA <= 0) continue;
+      if (h.A - k * band <= 0) continue;
       for (const half of [0, 1]) {
-        const c0 = Math.floor(h.C * (0.1 + 0.4 * half + 0.25 * hash(`${ctx.key}|stair|${k}|${half}`))), w = 2;
-        for (let c = c0; c < Math.min(h.C, c0 + w); c += 1) for (const a of [edgeA - 1, edgeA]) { const i = h.idxAC(a, c); if (i < 0 || grid.void[i]) continue; grid.ramp[i] = 1; grid.ground[i] = "stone stairs"; grid.move[i] = "difficult"; }
+        // A flight where the cliff line runs straight for two columns, near the chosen spot.
+        let c0 = Math.floor(h.C * (0.1 + 0.4 * half + 0.25 * hash(`${ctx.key}|stair|${k}|${half}`))), w = 2;
+        for (let t = 0; t < 6 && edgeOf(k, c0) !== edgeOf(k, c0 + 1); t += 1) c0 = Math.min(h.C - 2, c0 + 1);
+        const edgeA = edgeOf(k, c0); if (edgeA <= 0) continue;
+        for (let c = c0; c < Math.min(h.C, c0 + w); c += 1) for (const a of [edgeOf(k, c) - 1, edgeOf(k, c)]) { const i = h.idxAC(a, c); if (i < 0 || grid.void[i]) continue; grid.ramp[i] = 1; grid.ground[i] = "stone stairs"; grid.move[i] = "difficult"; }
         ctx.features.push({ kind: "stairs", x: h.alongAxis === "n" ? c0 : edgeA - 1, y: h.alongAxis === "n" ? edgeA - 1 : c0, size: h.alongAxis === "n" ? [w, 2] : [2, w], fixed: true });
       }
     }
     // Dwellings cut into the back of each terrace (against the cliff above it), doors facing downhill.
     if (dwellings) for (let k = 1; k < levels; k += 1) {
-      const aBack = k === levels - 1 ? 0 : h.A - (k + 1) * band;
       let c = 1 + Math.floor(3 * hash(`${ctx.key}|dw|${k}`));
       while (c + 3 < h.C) {
         const w = 3 + Math.floor(2 * hash(`${ctx.key}|dw|${k}|${c}`)), cells = [];
+        // Against the cliff above: the back row follows the curving cliff line (a dwelling needs it level).
+        const backs = Array.from({ length: w }, (_, t) => (k === levels - 1 ? 0 : edgeOf(k + 1, c + t))), aBack = Math.max(...backs);
         for (let a = aBack; a < aBack + 2; a += 1) for (let cc = c; cc < c + w; cc += 1) cells.push(h.idxAC(a, cc));
         if (cells.every((i) => i >= 0 && !grid.ramp[i] && !grid.void[i] && grid.levelFt[i] === k * riseFt) && hash(`${ctx.key}|dwb|${k}|${c}`) < 0.9) {
           const xs = cells.map((i) => i % h.columns), ys = cells.map((i) => Math.floor(i / h.columns));

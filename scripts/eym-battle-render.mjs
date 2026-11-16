@@ -20,6 +20,26 @@ const GROUND_COLORS = Object.freeze({
 });
 const groundColor = (g) => GROUND_COLORS[g] ?? GROUND_COLORS[g.replace(/ \(mud\)$/, "")] ?? "#93a862";
 const MUD = "#6b5a3e";
+/** Blend two #rrggbb colours (t = share of the second). */
+function mix(a, b, t) { const p = (h) => [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16)), [x, y] = [p(a), p(b)]; return `#${x.map((v, k) => Math.round(v + (y[k] - v) * t).toString(16).padStart(2, "0")).join("")}`; }
+
+/**
+ * Corners to cut at 45°: for each square corner whose two neighbours along the edges share a colour that is
+ * not this square's (and the diagonal neighbour agrees), a half-square triangle of that colour.
+ * Returns [cornerX, cornerY, [dirX, dirY, colour]].
+ */
+export function chamferCorners(col, columns, rows) {
+  const out = [];
+  for (let y = 0; y < rows; y += 1) for (let x = 0; x < columns; x += 1) {
+    const i = y * columns + x;
+    for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      const hx = x + dx, vy = y + dy; if (hx < 0 || vy < 0 || hx >= columns || vy >= rows) continue;
+      const h = col[y * columns + hx], v = col[vy * columns + x], d = col[vy * columns + hx];
+      if (h === v && h !== col[i] && d === h) out.push([x + (dx > 0 ? 1 : 0), y + (dy > 0 ? 1 : 0), [dx > 0 ? -1 : 1, dy > 0 ? -1 : 1, h]]);
+    }
+  }
+  return out;
+}
 const f2 = (v) => Number(v).toFixed(2);
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
@@ -61,15 +81,18 @@ function featureShape(f) {
 
 /** The authoritative layout for the painter: ground, water, buildings, trees, rocks and features; no grid, no text. */
 export function battleReferenceSvg(map, gridPx = map.spec.gridPx) {
-  const { columns, rows } = map.spec, { grid } = map, out = [`<svg xmlns="http://www.w3.org/2000/svg" width="${columns * gridPx}" height="${rows * gridPx}" viewBox="0 0 ${columns} ${rows}" shape-rendering="geometricPrecision">`];
-  for (let y = 0; y < rows; y += 1) for (let x = 0; x < columns; x += 1) {
-    const i = y * columns + x, g = grid.ground[i];
-    out.push(`<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${groundColor(g)}"/>`);
-    if (/\(mud\)$/.test(g)) out.push(`<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${MUD}" fill-opacity="0.35"/>`);
+  const { columns, rows } = map.spec, { grid } = map, n = columns * rows, out = [`<svg xmlns="http://www.w3.org/2000/svg" width="${columns * gridPx}" height="${rows * gridPx}" viewBox="0 0 ${columns} ${rows}" shape-rendering="geometricPrecision">`];
+  // Each square's colour: its ground, mud, and its height (higher a little lighter, lower a little darker).
+  const levels = [...grid.elevationFt].filter((e, i) => !grid.void[i]), lo = Math.min(...levels), hi = Math.max(...levels), col = new Array(n);
+  for (let i = 0; i < n; i += 1) {
+    let c = groundColor(grid.ground[i]); if (/\(mud\)$/.test(grid.ground[i])) c = mix(c, MUD, 0.35);
+    if (hi - lo >= 10 && !grid.void[i]) { const t = (grid.elevationFt[i] - lo) / (hi - lo); c = mix(c, t < 0.5 ? "#000000" : "#ffffff", Math.abs(t - 0.5) * 0.36); }
+    col[i] = c;
   }
-  // Height: lower ground a little darker, higher a little lighter; cliff edges as dark lines with a shadow.
-  const levels = [...grid.elevationFt].filter((e, i) => !grid.void[i]), lo = Math.min(...levels), hi = Math.max(...levels);
-  if (hi - lo >= 10) for (let y = 0; y < rows; y += 1) for (let x = 0; x < columns; x += 1) { const i = y * columns + x; if (grid.void[i]) continue; const t = (grid.elevationFt[i] - lo) / (hi - lo); out.push(`<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${t < 0.5 ? "#000" : "#fff"}" fill-opacity="${f2(Math.abs(t - 0.5) * 0.36)}"/>`); }
+  for (let y = 0; y < rows; y += 1) for (let x = 0; x < columns; x += 1) out.push(`<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${col[y * columns + x]}"/>`);
+  // Soften the grid: where a square's corner is surrounded on both sides by another ground, cut that corner
+  // at 45°, so shores, field edges, cliff lines and island rims read as stepped diagonals, not blocks.
+  for (const [x, y, d] of chamferCorners(col, columns, rows)) out.push(`<path d="M${x} ${y} L${f2(x + d[0] * 0.5)} ${y} L${x} ${f2(y + d[1] * 0.5)} Z" fill="${d[2]}"/>`);
   // Side edges of levels as dark lines; south-facing steps get faces below (drawn with the standing things).
   for (const c of map.cliffs ?? []) if (c.dir === "e") out.push(`<line x1="${c.x + 1}" y1="${c.y}" x2="${c.x + 1}" y2="${c.y + 1}" stroke="#1e1a16" stroke-width="${f2(Math.min(0.3, 0.08 + (c.high - c.low) / 100))}" stroke-linecap="round"/>`);
   const line = (pts) => `M${pts.map(([a, b]) => `${f2(a)} ${f2(b)}`).join(" L")}`;

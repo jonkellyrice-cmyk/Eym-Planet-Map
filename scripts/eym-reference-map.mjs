@@ -120,16 +120,18 @@ export function referenceBaseSvg(asset, frame) {
   for (const lake of asset.hydrology.lakes) { const d = multiPath(frame, [lake.polygon, ...(lake.islands ?? [])]); if (d) parts.push(`<path d="${d}" fill="${WATER}" fill-rule="evenodd" stroke="${WATER_EDGE}" stroke-width="1"/>`); }
   for (const river of asset.hydrology.rivers) { const d = ringPath(frame, river.points, false); if (d) parts.push(`<path d="${d}" fill="none" stroke="${WATER}" stroke-width="${f1(Math.min(4, 0.8 + Math.log10(1 + river.dischargeIndex)))}" stroke-linecap="round" stroke-linejoin="round"/>`); }
   parts.push(`<path d="${land}" fill="none" stroke="${COAST}" stroke-width="1.3" stroke-linejoin="round"/>`);
-  // Settlements as small marks so the painting keeps them where they are.
+  // Relief, forests and settlements as small three-quarter-view drawings (never flat symbols), north to south.
+  const glyphs = terrainGlyphs(asset, frame);
   const markSize = { capital: 6, city: 4.5, port: 3.5, fort: 3.5, town: 3, village: 2.2 };
   for (const site of asset.settlements) {
     if (frame.level === "planet" && site.kind !== "capital") continue;
     if (frame.level === "continent" && !["capital", "city"].includes(site.kind)) continue;
     if (!frame.wraps && !frame.visible([site.lat, site.lon])) continue;
     const [x, y] = frame.project([site.lat, site.lon]); if (x < 0 || y < 0 || x > W || y > H) continue;
-    const r = markSize[site.kind] ?? 3;
-    parts.push(site.kind === "fort" ? `<rect x="${f1(x - r)}" y="${f1(y - r)}" width="${f1(2 * r)}" height="${f1(2 * r)}" fill="#3a2516"/>` : `<circle cx="${f1(x)}" cy="${f1(y)}" r="${r}" fill="#3a2516" stroke="#f3e6c6" stroke-width="1"/>`);
+    glyphs.push({ y, svg: settlementGlyph(site.kind, x, y, (markSize[site.kind] ?? 3) * 1.6) });
   }
+  glyphs.sort((a, b) => a.y - b.y);
+  for (const g of glyphs) parts.push(g.svg);
   return parts.join("");
 }
 
@@ -182,4 +184,57 @@ export function buildReferenceMap(asset, spec, options = {}) {
   const labels = referenceLabelSvg(asset, frame, spec, { title: options.title ?? "" });
   const wrap = (body) => `<svg xmlns="http://www.w3.org/2000/svg" width="${frame.W}" height="${frame.H}" viewBox="0 0 ${frame.W} ${frame.H}" font-family="Georgia, 'Palatino Linotype', serif">${body}</svg>`;
   return { frame, baseSvg: wrap(base), labelSvg: wrap(labels.svg), labelledSvg: wrap(base + labels.svg), features: labels.features };
+}
+
+// ---------------------------------------------------------------- three-quarter-view glyphs
+
+const ghash = (a, b, k) => { let h = Math.imul(Math.round(a * 7.13) ^ Math.imul(Math.round(b * 3.71), 73856093), 19349663) ^ k; h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995); h ^= h >>> 15; return (h >>> 0) / 4294967296; };
+const GLYPH = Object.freeze({ peaks: { spacing: 0.024, size: 0.02 }, mountains: { spacing: 0.024, size: 0.018 }, upland: { spacing: 0.03, size: 0.016 }, forest: { spacing: 0.014, size: 0.009 } });
+
+/** A peak or mountain: a lit west face, a shaded east face, snow on the high ones; its foot on the ground. */
+function mountainGlyph(x, y, s, snow) {
+  const top = y - s * 0.9, left = x - s * 0.65, right = x + s * 0.65, tipx = x + s * 0.05;
+  return `<path d="M${f1(left)} ${f1(y)} L${f1(tipx)} ${f1(top)} L${f1(x)} ${f1(y)} Z" fill="#b8a283"/><path d="M${f1(x)} ${f1(y)} L${f1(tipx)} ${f1(top)} L${f1(right)} ${f1(y)} Z" fill="#6f5a45"/>`
+    + (snow ? `<path d="M${f1(tipx - s * 0.2)} ${f1(top + s * 0.3)} L${f1(tipx)} ${f1(top)} L${f1(tipx + s * 0.22)} ${f1(top + s * 0.3)} L${f1(tipx + s * 0.05)} ${f1(top + s * 0.22)} Z" fill="#f4f4f0"/>` : "")
+    + `<path d="M${f1(left)} ${f1(y)} L${f1(tipx)} ${f1(top)} L${f1(right)} ${f1(y)}" fill="none" stroke="#3e3226" stroke-width="0.8"/>`;
+}
+/** A hill: a low two-tone mound. */
+function hillGlyph(x, y, s) { return `<path d="M${f1(x - s * 0.7)} ${f1(y)} Q${f1(x)} ${f1(y - s * 0.75)} ${f1(x + s * 0.7)} ${f1(y)} Z" fill="#a8946a"/><path d="M${f1(x)} ${f1(y - s * 0.37)} Q${f1(x + s * 0.4)} ${f1(y - s * 0.3)} ${f1(x + s * 0.7)} ${f1(y)} L${f1(x)} ${f1(y)} Z" fill="#7d6a4a"/>`; }
+/** A tree: a trunk and a two-tone crown above its foot. */
+function treeGlyph(x, y, s) { return `<rect x="${f1(x - s * 0.1)}" y="${f1(y - s * 0.5)}" width="${f1(s * 0.2)}" height="${f1(s * 0.5)}" fill="#4a3220"/><circle cx="${f1(x)}" cy="${f1(y - s * 0.9)}" r="${f1(s * 0.55)}" fill="#24492a"/><circle cx="${f1(x - s * 0.15)}" cy="${f1(y - s * 1.02)}" r="${f1(s * 0.33)}" fill="#3a6a3a"/>`; }
+/** A settlement: little houses with roofs and front walls (a tower for a fort, more houses and a keep for a capital). */
+export function settlementGlyph(kind, x, y, s) {
+  const house = (hx, hy, w) => `<path d="M${f1(hx - w / 2)} ${f1(hy - w * 0.45)} L${f1(hx)} ${f1(hy - w * 0.95)} L${f1(hx + w / 2)} ${f1(hy - w * 0.45)} Z" fill="#a8482e"/><rect x="${f1(hx - w / 2)}" y="${f1(hy - w * 0.45)}" width="${f1(w)}" height="${f1(w * 0.45)}" fill="#e8dcc0" stroke="#3a2516" stroke-width="0.6"/>`;
+  const tower = (tx, ty, w) => `<rect x="${f1(tx - w * 0.3)}" y="${f1(ty - w * 1.3)}" width="${f1(w * 0.6)}" height="${f1(w * 1.3)}" fill="#b8b0a0" stroke="#3a2516" stroke-width="0.6"/><path d="M${f1(tx - w * 0.38)} ${f1(ty - w * 1.3)} L${f1(tx)} ${f1(ty - w * 1.75)} L${f1(tx + w * 0.38)} ${f1(ty - w * 1.3)} Z" fill="#5f6f8a"/>`;
+  if (kind === "fort") return tower(x, y, s);
+  if (kind === "capital") return house(x - s * 0.7, y, s * 0.8) + house(x + s * 0.7, y, s * 0.8) + tower(x, y - s * 0.2, s * 0.9) + house(x, y + s * 0.35, s * 0.9);
+  if (kind === "city") return house(x - s * 0.45, y, s * 0.75) + house(x + s * 0.45, y, s * 0.75) + house(x, y + s * 0.3, s * 0.8);
+  if (kind === "town" || kind === "port") return house(x - s * 0.3, y, s * 0.7) + house(x + s * 0.35, y + s * 0.15, s * 0.7);
+  return house(x, y, s * 0.8);
+}
+
+/** Glyphs scattered over the relief and forest areas in view (deterministic), each with its foot's y for ordering. */
+function terrainGlyphs(asset, frame) {
+  const { W, H } = frame, out = [], diag = Math.hypot(W, H);
+  for (const kind of ["forest", "upland", "mountains", "peaks"]) {
+    const rings = [];
+    for (const detail of (asset.terrain.detail ?? []).filter((d) => d.kind === kind)) for (const ring of detail.rings) {
+      if (!frame.wraps && !ring.some((p) => frame.visible(p))) continue;
+      const pts = ring.map((p) => frame.project(p)); let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const [x, y] of pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+      if (x1 < 0 || y1 < 0 || x0 > W || y0 > H || (frame.wraps && x1 - x0 > W / 2)) continue;
+      rings.push({ pts, x0, y0, x1, y1 });
+    }
+    if (!rings.length) continue;
+    const g = GLYPH[kind], step = Math.max(6, g.spacing * diag), size = Math.max(5, g.size * diag);
+    const inside = (x, y) => { let c = false; for (const r of rings) { if (x < r.x0 || x > r.x1 || y < r.y0 || y > r.y1) continue; const p = r.pts; for (let i = 0, j = p.length - 1; i < p.length; j = i, i += 1) if ((p[i][1] > y) !== (p[j][1] > y) && x < ((p[j][0] - p[i][0]) * (y - p[i][1])) / (p[j][1] - p[i][1]) + p[i][0]) c = !c; } return c; };
+    for (let gy = step / 2; gy < H + size; gy += step) for (let gx = (Math.floor(gy / step) % 2) * step / 2; gx < W; gx += step) {
+      const x = gx + (ghash(gx, gy, 1) - 0.5) * step * 0.7, y = gy + (ghash(gx, gy, 2) - 0.5) * step * 0.7;
+      if (!inside(x, y)) continue;
+      const s = size * (0.8 + 0.4 * ghash(gx, gy, 3));
+      out.push({ y, svg: kind === "forest" ? treeGlyph(x, y, s) : kind === "upland" ? hillGlyph(x, y, s) : mountainGlyph(x, y, s, kind === "peaks") });
+      if (out.length > 6000) return out;
+    }
+  }
+  return out;
 }

@@ -71,11 +71,16 @@ export function obliqueBuilding(b, columns, rows) {
   const x0 = Math.max(0, b.x0), y0 = Math.max(0, b.y0), x1 = Math.min(columns - 1, b.x1), y1 = Math.min(rows - 1, b.y1), w = x1 - x0 + 1, d = y1 - y0 + 1;
   const look = BUILDING_LOOK[b.label] ?? BUILDING_LOOK.building, storeys = b.storeys ?? 1;
   const fh = Math.min(0.85 * storeys, Math.max(0.6, d * 0.45)), top = y1 + 1 - fh, parts = [];
-  // Roof: two slopes with the ridge along the middle, the near slope darker; eaves along the front.
-  parts.push(`<rect x="${x0}" y="${y0}" width="${w}" height="${f2(top - y0)}" fill="${shade(look.roof, 0.12)}"/>`);
-  parts.push(`<rect x="${x0}" y="${f2(y0 + (top - y0) / 2)}" width="${w}" height="${f2((top - y0) / 2)}" fill="${look.roof}"/>`);
-  parts.push(`<line x1="${x0}" y1="${f2(y0 + (top - y0) / 2)}" x2="${x0 + w}" y2="${f2(y0 + (top - y0) / 2)}" stroke="${shade(look.roof, -0.35)}" stroke-width="0.08"/>`);
-  parts.push(`<rect x="${x0 - 0.05}" y="${f2(top - 0.12)}" width="${w + 0.1}" height="0.14" fill="${shade(look.roof, -0.45)}"/>`);
+  // Roof: hipped, so its edges run on diagonals — far slope lit, near slope mid, the hips at the ends darker.
+  const rd = top - y0, mid = y0 + rd / 2, hip = Math.min(rd / 2, w / 2), r = look.roof;
+  if (b.label === "rock-cut dwelling") parts.push(`<rect x="${x0}" y="${y0}" width="${w}" height="${f2(rd)}" fill="${shade(r, 0.05)}"/>`);
+  else parts.push(
+    `<path d="M${x0} ${y0} L${x0 + w} ${y0} L${f2(x0 + w - hip)} ${f2(mid)} L${f2(x0 + hip)} ${f2(mid)} Z" fill="${shade(r, 0.16)}"/>`,
+    `<path d="M${f2(x0 + hip)} ${f2(mid)} L${f2(x0 + w - hip)} ${f2(mid)} L${x0 + w} ${f2(top)} L${x0} ${f2(top)} Z" fill="${r}"/>`,
+    `<path d="M${x0} ${y0} L${f2(x0 + hip)} ${f2(mid)} L${x0} ${f2(top)} Z" fill="${shade(r, -0.12)}"/><path d="M${x0 + w} ${y0} L${f2(x0 + w - hip)} ${f2(mid)} L${x0 + w} ${f2(top)} Z" fill="${shade(r, -0.22)}"/>`,
+    `<path d="M${x0} ${y0} L${f2(x0 + hip)} ${f2(mid)} L${f2(x0 + w - hip)} ${f2(mid)} L${x0 + w} ${y0} M${x0} ${f2(top)} L${f2(x0 + hip)} ${f2(mid)} M${x0 + w} ${f2(top)} L${f2(x0 + w - hip)} ${f2(mid)}" fill="none" stroke="${shade(r, -0.4)}" stroke-width="0.06"/>`,
+  );
+  parts.push(`<rect x="${x0 - 0.05}" y="${f2(top - 0.12)}" width="${w + 0.1}" height="0.14" fill="${shade(r, -0.45)}"/>`);
   // Front wall, one band per storey, with windows; the door if the door is on the front.
   parts.push(`<rect x="${x0}" y="${f2(top)}" width="${w}" height="${f2(fh)}" fill="${look.wall}"/>`);
   const band = fh / storeys;
@@ -98,7 +103,12 @@ export function obliqueFaces(grid) {
   const { columns, rows } = grid, out = [];
   for (let y = 0; y < rows - 1; y += 1) for (let x = 0; x < columns; x += 1) {
     const i = y * columns + x, j = i + columns;
-    if (grid.void[j] && !grid.void[i]) { out.push({ y: y + 1, svg: `<path d="M${x} ${y + 1} L${x + 1} ${y + 1} L${f2(x + 0.85)} ${f2(y + 1.7)} L${f2(x + 0.5)} ${f2(y + 1.9)} L${f2(x + 0.15)} ${f2(y + 1.7)} Z" fill="#6e6458"/><line x1="${x}" y1="${y + 1}" x2="${x + 1}" y2="${y + 1}" stroke="#3e362e" stroke-width="0.06"/>` }); continue; }
+    if (grid.void[j] && !grid.void[i]) {
+      // Rock hanging below an island's edge, its depth varying along the rim so the underside looks natural.
+      const v = (k) => ((Math.imul(x * 73 + k * 19, 2654435761) ^ (y * 40503)) >>> 0) / 4294967296, d1 = 0.5 + 0.6 * v(1), d2 = 0.7 + 0.9 * v(2), tip = 0.3 + 0.4 * v(3);
+      out.push({ y: y + 1, svg: `<path d="M${x} ${y + 1} L${x + 1} ${y + 1} L${f2(x + 0.9)} ${f2(y + 1 + d1)} L${f2(x + tip)} ${f2(y + 1 + d2)} L${f2(x + 0.1)} ${f2(y + 1 + d1 * 0.8)} Z" fill="#6e6458"/><path d="M${f2(x + tip)} ${f2(y + 1 + d2)} L${f2(x + 0.9)} ${f2(y + 1 + d1)} L${x + 1} ${y + 1} L${f2(x + 0.6)} ${y + 1} Z" fill="#544b41"/><line x1="${x}" y1="${y + 1}" x2="${x + 1}" y2="${y + 1}" stroke="#3e362e" stroke-width="0.06"/>` });
+      continue;
+    }
     if (grid.void[i] || grid.void[j]) continue;
     const drop = grid.levelFt[i] - grid.levelFt[j]; if (drop < 5 || grid.ramp[i] || grid.ramp[j]) continue;
     const water = grid.move[j] === "swim" || grid.water?.[j];

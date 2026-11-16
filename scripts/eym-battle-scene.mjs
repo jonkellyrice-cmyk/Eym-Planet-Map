@@ -74,7 +74,12 @@ export function battleScenePlan(map, interiors, { name, images, gridPx = map.spe
       walls.push({ levelKeys: [key], c, move: SENSE.normal, sight: wl.window ? SENSE.none : SENSE.normal, light: wl.window ? SENSE.none : SENSE.normal, sound: wl.window ? SENSE.limited : SENSE.normal, door: wl.door ? 1 : 0, ds: 0, flags: { "wall-height": { bottom: base + 10 * Math.max(0, f.floor), top: base + 10 * (Math.max(0, f.floor) + 1) }, "eym-planet-map": { building: b.id, floor: f.floor, window: Boolean(wl.window) } } });
     }
   }
-  for (const ft of map.features) if (FEATURES[ft.kind]?.wall) {
+  for (const ft of map.features) if (FEATURES[ft.kind]?.wall && FEATURES[ft.kind].round) {
+    // A round tower: an eight-sided wall around it.
+    const cx = ft.x + ft.w / 2, cy = ft.y + ft.h / 2, r = ft.w / 2 - 0.05, pts = Array.from({ length: 8 }, (_, k) => [cx + r * Math.cos((Math.PI / 4) * k + Math.PI / 8), cy + r * Math.sin((Math.PI / 4) * k + Math.PI / 8)].map(px));
+    for (let k = 0; k < 8; k += 1) walls.push({ levelKeys: ["floor0"], c: [...pts[k], ...pts[(k + 1) % 8]], move: SENSE.normal, sight: SENSE.normal, light: SENSE.normal, sound: SENSE.normal, door: 0, ds: 0 });
+  }
+  for (const ft of map.features) if (FEATURES[ft.kind]?.wall && !FEATURES[ft.kind].round) {
     const r = [ft.x, ft.y, ft.x + ft.w, ft.y + ft.h].map(px);
     for (const c of [[r[0], r[1], r[2], r[1]], [r[2], r[1], r[2], r[3]], [r[2], r[3], r[0], r[3]], [r[0], r[3], r[0], r[1]]]) walls.push({ levelKeys: ["floor0"], c, move: SENSE.normal, sight: SENSE.normal, light: SENSE.normal, sound: SENSE.normal, door: 0, ds: 0 });
   }

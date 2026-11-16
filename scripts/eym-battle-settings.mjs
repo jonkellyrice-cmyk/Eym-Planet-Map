@@ -93,7 +93,7 @@ export const FEATURES = Object.freeze({
   trapdoor: F("trapdoor", [1, 1], MOVE.normal, 0, { shape: "crate", color: "#6b4e30", words: "a wooden trapdoor in the ground" }),
   "palisade-wall": F("palisade", [1, 4], MOVE.impassable, 2, { heightFt: 10, wall: true, shape: "palisade", color: "#7a5a36", words: "a wooden palisade of sharpened logs" }),
   watchtower: F("watchtower", [2, 2], MOVE.climb, 3, { heightFt: 20, shape: "tower", color: "#6e5233", high: true, words: "a wooden watchtower with a ladder" }),
-  "stone-tower": F("stone tower", [3, 3], MOVE.impassable, 3, { heightFt: 30, wall: true, shape: "tower", color: "#8d877c", words: "a round stone tower" }),
+  "stone-tower": F("stone tower", [3, 3], MOVE.impassable, 3, { heightFt: 30, wall: true, round: true, shape: "round", color: "#8d877c", words: "a round stone tower" }),
   earthwork: F("earthwork bank", [1, 5], MOVE.climb, 2, { heightFt: 5, shape: "rise", color: "#8a7a52", high: true, words: "an earthwork bank" }),
   trench: F("trench", [1, 5], MOVE.difficult, 2, { heightFt: -5, shape: "ditch", color: "#5e5236", words: "a dug trench" }),
   abatis: F("sharpened stakes", [1, 4], MOVE.hazardous, 1, { shape: "stakes", color: "#7a5a36", hazard: "stakes: 1d6 piercing on entering", words: "a row of sharpened wooden stakes" }),
@@ -118,7 +118,7 @@ export const FEATURES = Object.freeze({
   // Height and the shaped settings
   stairs: F("stairs", [2, 2], MOVE.difficult, 0, { shape: "stairs", color: "#a39a8a", words: "a flight of stone stairs cut into the rock" }),
   pillar: F("pillar", [1, 1], MOVE.impassable, 2, { solidFt: 40, shape: "round", color: "#9c968a", words: "a massive carved stone pillar" }),
-  "giant-trunk": F("giant tree trunk", [3, 3], MOVE.impassable, 3, { solidFt: 120, canopyFt: 120, shape: "trunk", color: "#5a3e26", words: "the trunk of a colossal tree, wide as a house" }),
+  "giant-trunk": F("giant tree trunk", [3, 3], MOVE.impassable, 3, { round: true, solidFt: 120, canopyFt: 120, shape: "trunk", color: "#5a3e26", words: "the trunk of a colossal tree, wide as a house" }),
   gondola: F("gondola", [1, 2], MOVE.difficult, 1, { shape: "cart", color: "#2a2a30", words: "a moored gondola" }),
   // Wonders and magic
   "crystal-cluster": F("crystal cluster", [2, 2], MOVE.impassable, 2, { heightFt: 10, shape: "crystal", color: "#9fd8f0", light: 20, words: "a cluster of tall glowing crystals" }),
@@ -136,7 +136,7 @@ export const FEATURES = Object.freeze({
   "dragon-skull": F("dragon skull", [3, 3], MOVE.difficult, 2, { heightFt: 10, shape: "blob", color: "#e6dcc4", words: "the enormous skull of a dragon" }),
   "colossus-head": F("fallen colossus head", [4, 3], MOVE.climb, 3, { heightFt: 15, shape: "blob", color: "#b8b0a0", high: true, words: "the toppled stone head of a colossal statue" }),
   "rune-door": F("rune-sealed door", [2, 1], MOVE.impassable, 2, { heightFt: 10, shape: "rect", color: "#5a4a8a", light: 10, words: "a rune-sealed stone door set in the ground" }),
-  "world-tree": F("great sacred tree", [3, 3], MOVE.impassable, 3, { solidFt: 80, canopyFt: 80, shape: "trunk", color: "#4a3a20", words: "an ancient sacred tree with silver-veined bark" }),
+  "world-tree": F("great sacred tree", [3, 3], MOVE.impassable, 3, { round: true, solidFt: 80, canopyFt: 80, shape: "trunk", color: "#4a3a20", words: "an ancient sacred tree with silver-veined bark" }),
   "bone-throne": F("bone throne", [2, 2], MOVE.climb, 2, { heightFt: 5, shape: "rect", color: "#d8ccb0", high: true, words: "a throne built of bones on a stepped dais" }),
   "levitation-disc": F("levitation disc", [2, 2], MOVE.normal, 0, { shape: "circle", color: "#a0c0f0", light: 10, words: "a glowing disc that lifts whoever stands on it" }),
   "teleport-circle": F("teleportation circle", [3, 3], MOVE.normal, 0, { shape: "circle", color: "#60a0f0", light: 10, words: "a teleportation circle inlaid in silver" }),

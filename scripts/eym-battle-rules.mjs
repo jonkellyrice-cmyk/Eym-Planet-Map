@@ -253,8 +253,11 @@ function reachable(grid, sources) { const { dist } = distances(grid, sources); l
 
 /** Paint a feature's squares onto the grid (returns the squares, or null if it does not fit). */
 function footprintSquares(grid, kind, x, y, rotate, allowed, size = null) {
-  const base = size ?? FEATURES[kind].footprint, [w, h] = rotate ? [base[1], base[0]] : base, out = [];
-  for (let dy = 0; dy < h; dy += 1) for (let dx = 0; dx < w; dx += 1) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= grid.columns || ny >= grid.rows) return null; const i = ny * grid.columns + nx; if (!allowed(i)) return null; out.push(i); }
+  const base = size ?? FEATURES[kind].footprint, [w, h] = rotate ? [base[1], base[0]] : base, out = [], round = FEATURES[kind].round && w >= 3 && h >= 3;
+  for (let dy = 0; dy < h; dy += 1) for (let dx = 0; dx < w; dx += 1) {
+    // Round things take a stepped circle: the corner squares stay free.
+    if (round && (dx === 0 || dx === w - 1) && (dy === 0 || dy === h - 1)) continue;
+    const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= grid.columns || ny >= grid.rows) return null; const i = ny * grid.columns + nx; if (!allowed(i)) return null; out.push(i); }
   return { squares: out, w, h };
 }
 function applyFeature(grid, id, kind, squares) {
