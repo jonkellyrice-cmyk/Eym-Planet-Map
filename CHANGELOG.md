@@ -1,7 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.14.0 (2026-11-16)
 
+- The system map is now the scholars' model of the heavens, in the manner of a Renaissance orrery (`scripts/scholars-model.mjs`). The bodies ride evenly spaced rings in their true order and true directions, so they still turn with the clock, but not at their true distances. The registry keeps the true orbits for the calendar, sky, eclipses and tides.
+- Only Eym opens. The four wanderers are shown as wandering stars, with nothing of their true nature in labels or the details card; their surface data stays in the module, hidden. The wandering star Iarn's moon is not shown at all (it cannot be seen without a glass). The ownership badge over the Sun is gone.
+- The model is painted in Tier 2 pixel art, drawn by rule in the browser (`scripts/system-sprites.mjs`): an ornate Sun in splendour with a face and sixteen straight and wavy rays, the wanderers as eight-pointed jewelled stars in their own colours, Eym as a small globe, the white and red moons, and rings engraved in gold. Bodies are drawn large; moon names show when zoomed in or selected.
 - Map server: a module preview at `/module/` runs the module's own scripts, template, styles and data outside Foundry (for phones, or without a world), on a small stand-in for the parts of Foundry the module uses. Settings are kept in the browser; creating scenes still needs Foundry.
 
 ## 0.13.2 (2026-11-16)

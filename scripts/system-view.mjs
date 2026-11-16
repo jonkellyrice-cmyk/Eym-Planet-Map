@@ -2,6 +2,8 @@ import { displayPosition, orbitVector } from "./system-data.mjs";
 import { createFactionEmblem, factionPresentationForOwner } from "./capital-icons.mjs";
 import { STAR_CLASSES, TWINKLE_GROUPS, buildSkyFrame } from "./starfield.mjs";
 import { objectDisplayName, parentDisplayName, systemDisplayName } from "./display-names.mjs";
+import { scholarEntry } from "./scholars-model.mjs";
+import { spriteDataUrl } from "./system-sprites.mjs";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -31,7 +33,18 @@ function paletteFor(object) {
   return { fill: "#718d72", core: "#b9c996" };
 }
 
+/** Half the drawn size of a body of the scholars' model (they draw the heavens large), or null. */
+function modelRadius(object) {
+  const entry = scholarEntry(object);
+  if (entry.kind === "sun") return 48;
+  if (entry.kind === "world") return 26;
+  if (entry.kind === "wanderer") return [24, 21, 19, 18][entry.rank ?? 3];
+  if (entry.kind === "moon") return /red/i.test(object.name) ? 11 : 13;
+  return null;
+}
+
 function baseRadius(object) {
+  const model = modelRadius(object); if (model) return model;
   if (object.objectClass === "star") return 11;
   if (object.objectClass === "giant") return 8.5;
   if (object.objectClass === "moon") return 3.6;
@@ -42,6 +55,14 @@ function baseRadius(object) {
 }
 
 function appendGlyph(group, object, radius, colors) {
+  // The scholars' model is painted: pixel-art sprites (the Sun in splendour, jewelled wandering stars…).
+  const entry = scholarEntry(object), sprite = modelRadius(object) ? spriteDataUrl(entry.kind, { name: object.name, rank: entry.rank }) : null;
+  if (sprite) {
+    if (entry.kind === "sun") group.append(svgElement("circle", { class: "oscm-system-sun-glow", r: radius * 1.5, fill: "#f4ce68", opacity: 0.07 }));
+    const image = svgElement("image", { class: `oscm-system-sprite is-${entry.kind}`, href: sprite.url, x: -radius, y: -radius, width: radius * 2, height: radius * 2 });
+    image.style.imageRendering = "pixelated"; group.append(image);
+    return;
+  }
   if (object.objectClass === "belt") {
     group.append(svgElement("ellipse", { class: "oscm-system-belt-glyph", rx: 13, ry: 4.5, fill: "none", stroke: colors.fill, "stroke-width": 2, "stroke-dasharray": "2 3" }));
     return;
@@ -77,7 +98,9 @@ export class SystemView {
     this.starfield = options.starfield ?? null;
     this.onSelectionChange = options.onSelectionChange ?? (() => {});
     this.onExitRequested = options.onExitRequested ?? (() => {});
-    this.onObjectActivate = options.onObjectActivate ?? (() => {});
+    // Only what the scholars can map opens (the world); the Sun, moons and wandering stars are looked at, not entered.
+    const activate = options.onObjectActivate ?? (() => {});
+    this.onObjectActivate = (object) => { if (scholarEntry(object).openable) activate(object); };
     this.onShipDrag = options.onShipDrag ?? null;
     this.state = { yaw: -0.62, pitch: 0.82, zoom: 1, panX: 0, panY: 0 };
     // What the camera centres and pivots on: Mictir (the origin) until a body is selected.
@@ -176,7 +199,8 @@ export class SystemView {
     const faction = factionPresentationForOwner(this.model.ownerFaction);
     this.factionAnchorObjects = this.model.objects.filter((object) => object.objectClass === "star");
     this.factionMarker = null;
-    if (faction && this.factionAnchorObjects.length) {
+    // The scholars' model carries no badge of ownership over the Sun.
+    if (faction && this.factionAnchorObjects.length && !this.factionAnchorObjects.some((object) => scholarEntry(object).kind === "sun")) {
       const marker = svgElement("g", { class: `oscm-faction-context-marker is-${faction.factionId}` });
       marker.append(svgElement("line", { class: "oscm-faction-context-leader", x1: 0, y1: 18, x2: 0, y2: 35 }));
       marker.append(createFactionEmblem(faction));
@@ -187,7 +211,7 @@ export class SystemView {
 
     this.orbitNodes = [];
     for (const object of this.model.objects) {
-      if (!object.parentObject || object.distanceAu <= 0) continue;
+      if (!object.parentObject || object.distanceAu <= 0 || scholarEntry(object).hidden) continue;
       const parentDisplay = this.displayPositions.get(object.parentObject.id) ?? { x: 0, y: 0, z: 0 };
       const display = this.displayPositions.get(object.id);
       const radius = Math.hypot(display.x - parentDisplay.x, display.y - parentDisplay.y, display.z - parentDisplay.z);
@@ -201,12 +225,13 @@ export class SystemView {
 
     this.objectNodes = new Map();
     for (const object of this.model.objects) {
-      if (object.objectClass === "barycenter") continue;
+      if (object.objectClass === "barycenter" || scholarEntry(object).hidden) continue;
+      const known = scholarEntry(object);
       const group = svgElement("g", {
         class: `oscm-system-object is-${object.objectClass}${object.selectable ? " is-selectable" : ""}`,
         tabindex: object.selectable ? 0 : -1,
         role: object.selectable ? "button" : "img",
-        "aria-label": `${objectDisplayName(object)}, ${object.type}`,
+        "aria-label": `${objectDisplayName(object)}, ${known.label}`,
         "data-object-id": object.id,
       });
       const radius = baseRadius(object), colors = paletteFor(object);
@@ -215,8 +240,8 @@ export class SystemView {
       const glyph = svgElement("g", { class: "oscm-system-glyph" });
       appendGlyph(glyph, object, radius, colors);
       const label = svgElement("text", { class: "oscm-system-object-label", x: radius + 8, y: -4 }); label.textContent = objectDisplayName(object);
-      const type = svgElement("text", { class: "oscm-system-object-type", x: radius + 8, y: 9 }); type.textContent = object.type;
-      const title = svgElement("title"); title.textContent = `${objectDisplayName(object)} — ${object.type}; parent: ${parentDisplayName(object)}; reference distance: ${object.distance_from_parent} ${object.distance_unit}`;
+      const type = svgElement("text", { class: "oscm-system-object-type", x: radius + 8, y: 9 }); type.textContent = known.kind === "moon" ? "" : known.label;
+      const title = svgElement("title"); title.textContent = `${objectDisplayName(object)}, ${known.label}; parent: ${parentDisplayName(object)}`;
       group.append(hit, selection, glyph, label, type, title); this.objectLayer.append(group);
       this.objectNodes.set(object.id, { group, glyph, label, type, selection, object });
       if (object.selectable) {
@@ -369,6 +394,8 @@ export class SystemView {
       const point = this.#project(this.displayPositions.get(node.object.id)); projected.push({ ...node, point });
       node.group.setAttribute("transform", `translate(${point.x} ${point.y})`);
       node.glyph.setAttribute("transform", `scale(${clamp(point.scale, .72, 1.3)})`);
+      // Moons sit close to their world: their names show once zoomed in, or when one is chosen.
+      if (node.object.objectClass === "moon") node.label.style.display = this.state.zoom >= 1.5 || this.origin?.id === node.object.id || this.destination?.id === node.object.id ? "" : "none";
     }
     projected.sort((a, b) => a.point.z - b.point.z).forEach((node) => this.objectLayer.append(node.group));
     if (this.factionMarker && this.factionAnchorObjects.length) {
