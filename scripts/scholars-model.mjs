@@ -30,6 +30,9 @@ export function scholarEntry(object) {
 /** Rings of the model, in display units: the wanderers and the world about the Sun, moons about their world. */
 export const ORRERY = Object.freeze({ firstRing: 1.3, ringStep: 0.72, firstMoonRing: 0.42, moonRingStep: 0.2 });
 
+/** Whether a badge of ownership floats above a body (system view and globe). Off: the scholars' sky has no owners. */
+export const JURISDICTION_BADGES = false;
+
 /** How many bodies the scholars' model shows. */
 export const knownCount = (objects) => objects.filter((o) => o.objectClass !== "barycenter" && !scholarEntry(o).hidden).length;
 

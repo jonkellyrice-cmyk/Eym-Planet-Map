@@ -2,7 +2,7 @@ import { displayPosition, orbitVector } from "./system-data.mjs";
 import { createFactionEmblem, factionPresentationForOwner } from "./capital-icons.mjs";
 import { STAR_CLASSES, TWINKLE_GROUPS, buildSkyFrame } from "./starfield.mjs";
 import { objectDisplayName, parentDisplayName, systemDisplayName } from "./display-names.mjs";
-import { scholarEntry } from "./scholars-model.mjs";
+import { JURISDICTION_BADGES, scholarEntry } from "./scholars-model.mjs";
 import { spriteDataUrl } from "./system-sprites.mjs";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -200,7 +200,7 @@ export class SystemView {
     this.factionAnchorObjects = this.model.objects.filter((object) => object.objectClass === "star");
     this.factionMarker = null;
     // The scholars' model carries no badge of ownership over the Sun.
-    if (faction && this.factionAnchorObjects.length && !this.factionAnchorObjects.some((object) => scholarEntry(object).kind === "sun")) {
+    if (JURISDICTION_BADGES && faction && this.factionAnchorObjects.length && !this.factionAnchorObjects.some((object) => scholarEntry(object).kind === "sun")) {
       const marker = svgElement("g", { class: `oscm-faction-context-marker is-${faction.factionId}` });
       marker.append(svgElement("line", { class: "oscm-faction-context-leader", x1: 0, y1: 18, x2: 0, y2: 35 }));
       marker.append(createFactionEmblem(faction));
