@@ -44,7 +44,7 @@ import { battleArtDirection, battleGridSvg, battlePacket, battleReferenceSvg, ba
 import { BATTLE_SIZE_PRESETS, GRID_DENSITY_PRESETS, battleMapSpec } from "./eym-map-presets.mjs";
 import { placeHistory, describeWeather } from "./eym-weather.mjs";
 import { sunAltitudeDeg, yearFraction } from "./eym-seasons.mjs";
-import { sunPosition } from "./eym-battle-lighting.mjs";
+import { foliageSeason } from "./eym-battle-season.mjs";
 
 export const MODULE_ID = "eym-planet-map";
 /** The only system this module exposes. Its name must match the `system` column of the registry CSV. */
@@ -692,12 +692,11 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const history = this._weather ? placeHistory(this._weather, lat, lon) : null;
     const report = placeReport({ field: this._eymField, subsolar: this._sun.subsolar, latDeg: lat, lonDeg: lon, timeMs: this._sun.t });
     const altitude = sunAltitudeDeg(lat, lon, this._sun.subsolar);
-    // The light at this place and moment: the sun's bearing from the subsolar point, cloud, rain, fog, season.
-    const hourAngle = ((((lon - this._sun.subsolar.lonDeg) % 360) + 540) % 360) - 180, bearing = sunPosition(lat, this._sun.subsolar.latDeg, hourAngle);
-    const lighting = { latDeg: lat, sunAltitudeDeg: altitude, sunAzimuthDeg: bearing.azimuth, cloud: now?.cloud ?? 0.2, precipKind: now?.precipMmH > 0.1 ? now.precipKind : null, precipMmH: now?.precipMmH ?? 0, fog: (now?.humidity ?? 0) > 0.97 && (now?.windMs ?? 0) < 3, thunder: Boolean(now?.thunder), yearFraction: yearFraction(this._sun.t) };
+    // The season the trees and grass are in (light and shadow are Foundry's, live).
+    const season = foliageSeason(lat, yearFraction(this._sun.t));
     return {
       conditions: { snowDepthCm: history?.snowDepthCm ?? 0, ground: history?.ground ?? "dry", tempC: now?.tempC ?? report.values.temperature.nowC, precipKind: now?.precipMmH > 0.1 ? now.precipKind : null, precipMmH: now?.precipMmH ?? 0, windMs: now?.windMs ?? 0, thunder: Boolean(now?.thunder), fog: (now?.humidity ?? 0) > 0.97 && (now?.windMs ?? 0) < 3, sunAltitudeDeg: altitude, season: report.season },
-      lighting,
+      season,
       words: { time: `${report.localTime}, ${report.season}; the sun ${report.sun}`, weather: now ? describeWeather(now) : "", light: altitude >= 0 ? "daylight" : altitude > -6 ? "civil twilight (dim)" : altitude > -12 ? "dusk or dawn (dim to dark)" : "night (darkness, moonlight aside)" },
     };
   }
@@ -710,11 +709,11 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const spec = this.#battleSpec(root), useClock = root.querySelector('[name="battleConditions"]')?.checked ?? true;
     ui.notifications.info("Laying out the battle map…");
     await new Promise((resolve) => setTimeout(resolve, 30));
-    const env = useClock ? await this.#battleConditions(lat, lon) : { conditions: {}, lighting: null, words: { time: "", weather: "", light: "" } };
+    const env = useClock ? await this.#battleConditions(lat, lon) : { conditions: {}, season: null, words: { time: "", weather: "", light: "" } };
     const extras = [...root.querySelectorAll('[name="battleExtra"]:checked')].map((box) => box.value), settingChoice = root.querySelector('[name="battleSetting"]')?.value ?? "auto";
     const map = buildBattleMap(this._eymGeography, { center: [lat, lon], spec, conditions: env.conditions, setting: settingChoice, extras });
     // Exactly what built this map, so the map server can build the same one.
-    const serverRequest = { center: [lat, lon], columns: spec.columns, rows: spec.rows, gridPx: spec.gridPx, setting: settingChoice, extras, conditions: env.conditions, lighting: env.lighting };
+    const serverRequest = { center: [lat, lon], columns: spec.columns, rows: spec.rows, gridPx: spec.gridPx, setting: settingChoice, extras, conditions: env.conditions, season: env.season };
     const dossier = await this.#dossierForBattle(root, lat, lon);
     const architecture = architecturePrompt(dossier);
     const nearest = this._eymGeography.settlements.filter((s) => s.properName).reduce((best, s) => { const d = Math.hypot(s.lat - lat, (s.lon - lon) * Math.cos(lat * Math.PI / 180)); return d < best.d ? { s, d } : best; }, { s: null, d: Infinity });
@@ -722,7 +721,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const title = `${BATTLE_SETTINGS[map.setting].label}, ${place}`;
     const referenceSvg = battleReferenceSvg(map), tacticalSvg = battleTacticalSvg(map), interiors = buildInteriors(map);
     const basePng = await svgToPng(referenceSvg, spec.widthPx, spec.heightPx), labelledPng = await layerSvg(basePng, tacticalSvg, spec.widthPx, spec.heightPx);
-    const prompt = battleArtDirection(map, { architecture, lighting: env.lighting, timeWords: env.words.time ? `Season and time: ${env.words.time}.` : "", weatherWords: env.words.weather ? `Weather: ${env.words.weather}; show its effect on the ground (wet, snowy or dry) but not falling rain or snow.` : "" });
+    const prompt = battleArtDirection(map, { architecture, season: env.season, timeWords: env.words.time ? `Season and time: ${env.words.time}.` : "", weatherWords: env.words.weather ? `Weather: ${env.words.weather}; show its effect on the ground (wet, snowy or dry) but not falling rain or snow.` : "" });
     const packet = battlePacket(map, { title, place, timeWords: env.words.time, weatherWords: env.words.weather, lightWords: env.words.light, architecture, dossierName: dossier?.name ?? "" });
     for (const url of this._atlasResult?.urls ?? []) URL.revokeObjectURL(url);
     const floorsPng = interiors.length ? await svgToPng(floorSvg(map, interiors, 0, { outdoorSvg: referenceSvg }), spec.widthPx, spec.heightPx) : basePng;
@@ -834,10 +833,12 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     if (idOf.get("floor0")) await scene.update?.({ initialLevel: idOf.get("floor0") });
     await scene.createEmbeddedDocuments?.("Wall", plan.walls.map(({ levelKeys, ...w }) => ({ ...w, levels: ids(levelKeys) })));
     if (plan.tiles.length) await scene.createEmbeddedDocuments?.("Tile", plan.tiles.map(({ levelKey, ...t }) => ({ ...t, levels: ids([levelKey]) })));
+    // Lights: Foundry lights them live (lanterns and candles come on as the scene darkens).
+    if (plan.lights.length) { try { await scene.createEmbeddedDocuments?.("AmbientLight", plan.lights.map(({ levelKeys, ...l }) => ({ ...l, levels: ids(levelKeys) }))); } catch (error) { console.warn(`${MODULE_ID} | Some lights were refused`, error); ui.notifications.warn("Some lights could not be added on this Foundry version."); } }
     const regions = plan.regions.map(({ levelKeys, ...r }) => ({ ...r, levels: ids(levelKeys) }));
     try { await scene.createEmbeddedDocuments?.("Region", regions); }
     catch (error) { console.warn(`${MODULE_ID} | Some regions were refused; retrying without behaviours`, error); await scene.createEmbeddedDocuments?.("Region", regions.map((r) => ({ ...r, behaviors: [] }))); ui.notifications.warn("Region behaviours (stairs, movement costs) could not be added on this Foundry version; the areas are marked."); }
-    this.#paintStatus(`Scene created: ${scene?.name ?? current.title} — ${plan.levels.map((l) => l.name).join(", ")}; ${plan.walls.length} walls, ${plan.tiles.length} roof layer${plan.tiles.length === 1 ? "" : "s"}, ${plan.regions.filter((r) => r.behaviors.some((b) => b.type === "changeLevel")).length} stairs.`);
+    this.#paintStatus(`Scene created: ${scene?.name ?? current.title} — ${plan.levels.map((l) => l.name).join(", ")}; ${plan.walls.length} walls, ${plan.tiles.length} roof layer${plan.tiles.length === 1 ? "" : "s"}, ${plan.regions.filter((r) => r.behaviors.some((b) => b.type === "changeLevel")).length} stairs, ${plan.lights.length} lights.`);
     ui.notifications.info(`Scene "${current.title}" created.`);
   }
 

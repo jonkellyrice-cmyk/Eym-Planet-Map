@@ -56,29 +56,27 @@ transparency, the basement over solid dark), and `preview` (native size).
 
 Every tier draws the same geometry; a tier is a renderer registered in `server.mjs` (`RENDERERS`).
 
-## Light and shadow
+## Light and shadow: Foundry's live, the objects' own in the art
 
-Light is drawn into the pixel art, worked out from where and when the map is (`scripts/eym-battle-lighting.mjs`,
-`render/light.mjs`). From Foundry it comes from the campaign clock and the weather. The sun's height and
-bearing come from the exact subsolar point for the place; the cloud, rain and fog from the weather; the
-season from the date and hemisphere. On the page you choose the time of day, season and weather.
+Foundry draws everything that changes with the time of day, live, as the clock moves: the sun's direction
+and cast shadows, darkness, the colour of the light, lamps coming on, weather. The art therefore carries
+only light and shade that are true at any hour:
 
-- **Sun shadows** are cast from a height field of the ground, the buildings and everything standing. Cliffs, walls, towers and pillars throw them away from the sun, longer as it sinks. Trees throw stretched crown shadows.
-- **Contact shadows** sit at the foot of everything. They are all an overcast sky leaves.
-- **Sprites are lit from the sun's side:** tree crowns, rocks, roof facets and block tops. South-facing walls are sunlit or in shade depending on where the sun stands.
-- **The colour of the light** changes through the day: neutral by day, golden when low, blue-violet at twilight, moonlit blue at night. Cloud greys and desaturates it, and fog hazes it.
-- **Rain** darkens and wets the ground, with puddles that hold the sky.
-- **Seasons:**
-  - Spring: fresh green, with blossom on some trees.
-  - Summer: full leaf.
-  - Autumn: orange, gold and red crowns, with warmer grass.
-  - Winter: bare broadleaf trees, with conifers kept, and duller grass.
-  - Within the tropics trees stay evergreen.
-- **Lamps** are lit at dusk and at night: door lanterns, glowing windows, fires, lava, crystals, magic. They show as stepped pools of light in the pixel-art manner and never light the roofs.
-- **Indoors** has its own light: daylight through the windows by day, candles in every room and hearths at night. Basements are dark apart from their lamps, and underground settings have no sun.
+- **Neutral form light.** Forms are lit from above so they read as solid: tree crowns, rocks, roof facets, block tops.
+- **Shadows objects make of themselves:**
+  - under eaves and overhangs
+  - in the shade beneath tree crowns
+  - contact shadows at the foot of buildings, walls, rocks and everything standing, and at the base of cliffs
+  - in window recesses
+  - indoors, along the foot of every wall and under the furniture
+- **The season the trees and grass are in** when the map is made: spring blossom, summer leaf, autumn colours, bare winter broadleaves. Within the tropics trees stay evergreen.
 
-Each light is cached separately (the light is part of a render's id). The painter's prompt in the module
-describes the same light, with its direction, length of shadows, colour and season.
+Lamps are not painted in. The scene comes with **Foundry lights** on the right floors:
+
+- **Switch on as the scene darkens:** door lanterns, window glow at the street front, a candle in every room, and lamps in cellars.
+- **Always lit:** hearths, campfires, lava, crystals, glowing water, magic, and braziers in underground halls.
+
+Foundry handles them with its own lighting and walls.
 
 ## Tier 2 rendering (`render/`)
 

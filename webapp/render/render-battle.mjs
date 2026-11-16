@@ -11,13 +11,13 @@ import { Framebuffer, rgb } from "./framebuffer.mjs";
 import { groundPixel, h2, mixc, noise, ramp } from "./materials.mjs";
 import { drawBlock, drawBuilding, drawBush, drawFeature, drawFurniture, drawRock, drawTree, setSpriteLight } from "./sprites.mjs";
 import { inFootprint } from "./footprint.mjs";
-import { applyShadows, gradeLayer, lightSources, shadowMask } from "./light.mjs";
-import { lightModel } from "../../scripts/eym-battle-lighting.mjs";
+import { applyShadows, occlusionMask } from "./light.mjs";
+import { normalizeSeason } from "../../scripts/eym-battle-season.mjs";
 import { FEATURES } from "../../scripts/eym-battle-settings.mjs";
 import { standHeightFt } from "../../scripts/eym-battle-oblique.mjs";
 import { footprintPolygon } from "../../scripts/eym-battle-buildings.mjs";
 
-export const RENDERER = Object.freeze({ tier: 2, name: "Traditional RPG pixel art", version: "eym-pixel-t2-v2" });
+export const RENDERER = Object.freeze({ tier: 2, name: "Traditional RPG pixel art", version: "eym-pixel-t2-v3" });
 
 /** Native pixels per square and a whole-number scale that gives the scene's grid size. */
 export function pixelPlan(gridPx) {
@@ -30,14 +30,13 @@ const HARD = new Set(["cobbled street", "paved square", "marble quay", "stone br
 const WATERS = new Set(["deep water", "river", "canal", "shallow stream", "deep channel", "shallows", "glowing pool"]);
 const SEASONAL = new Set(["grass", "meadow", "wet meadow", "scrub", "field", "yard", "floating rock", "forest floor"]);
 const SEASON_TINT = { spring: [[150, 210, 100, 255], 0.08], autumn: [[190, 150, 80, 255], 0.18], winter: [[140, 138, 116, 255], 0.24] };
-const WETTABLE = new Set(["grass", "meadow", "scrub", "field", "yard", "dirt lane", "road", "cobbled street", "paved square", "marble quay", "stone bridge", "forest floor", "sand", "canyon floor", "carved stone terrace", "monastery terrace", "lower terrace", "grave earth", "floating rock"]);
 const TREE_STYLE = { taiga: "conifer", alpine: "conifer", glacier: "conifer", tundra: "conifer", jungle: "jungle", "blighted-wood": "dead", "mushroom-forest": "broadleaf" };
 
 export { inFootprint } from "./footprint.mjs";
 
 // ---------------------------------------------------------------- the ground
 
-function drawGround(fb, map, P, model) {
+function drawGround(fb, map, P, season) {
   const { grid } = map, { columns, rows } = map.spec, [ox, oy] = map.origin, W = columns * P, H = rows * P;
   const water = new Uint8Array(W * H), levels = [...grid.levelFt].filter((v, i) => !grid.void[i]), lo = Math.min(...levels), hi = Math.max(...levels);
   for (let y = 0; y < H; y += 1) for (let x = 0; x < W; x += 1) {
@@ -49,9 +48,8 @@ function drawGround(fb, map, P, model) {
       if (j !== i && !HARD.has(grid.ground[j]) && grid.levelFt[j] === grid.levelFt[i] && grid.building[j] < 0) g = grid.ground[j];
     }
     let px = groundPixel(g, wx, wy); const name = g.replace(/ \(mud\)$/, "");
-    // The season in the grass; rain on the ground: darker, with puddles that hold the sky.
-    if (SEASONAL.has(name) && SEASON_TINT[model.season]) px = mixc(px, SEASON_TINT[model.season][0], SEASON_TINT[model.season][1]);
-    if (model.wet && WETTABLE.has(name)) { px = mixc(px, [40, 44, 52, 255], 0.14); const pud = noise(wx, wy, 22, 61) * 0.75 + noise(wx, wy, 7, 63) * 0.25; if (pud > 0.74 && grid.move[i] !== "swim") px = pud > 0.775 ? mixc([126, 148, 178, 255], [190, 206, 226, 255], noise(wx, wy, 5, 64) > 0.7 ? 0.6 : 0) : mixc(px, [70, 78, 92, 255], 0.35); }
+    // The season in the grass (light and weather are Foundry's, live).
+    if (SEASONAL.has(name) && SEASON_TINT[season]) px = mixc(px, SEASON_TINT[season][0], SEASON_TINT[season][1]);
     fb.set(x, y, px);
     if (WATERS.has(g.replace(/ \(mud\)$/, ""))) water[y * W + x] = 1;
     if (hi - lo >= 10 && !grid.void[i]) { const t = (grid.levelFt[i] - lo) / (hi - lo) - 0.5; if (Math.abs(t) > 0.05) fb.tone(x, y, t * 0.3); }
@@ -141,6 +139,12 @@ function drawInterior(fb, map, building, floor, P) {
     }
   }
   if (building.stairs) { const s = building.stairs; for (let y = s.y * P; y < (s.y + s.h) * P; y += 1) for (let x = s.x * P; x < (s.x + s.w) * P; x += 1) fb.set(x, y, ((s.w > s.h ? x - s.x * P : y - s.y * P) % 4) === 0 ? rgb("#6e604a") : rgb("#d6c7a8")); }
+  // Shadows the rooms make of themselves: along the foot of every wall, and under the furniture.
+  for (const wl of f.walls) {
+    const [a, b, c, d] = (wl.diag ?? (wl.dir === "e" ? [wl.x + 1, wl.y, wl.x + 1, wl.y + 1] : [wl.x, wl.y + 1, wl.x + 1, wl.y + 1])).map((v) => v * P);
+    for (let t = 1; t <= 3; t += 1) for (const sgn of [-1, 1]) { const nx = a === c ? sgn * t : 0, ny = b === d ? sgn * t : 0, n = Math.max(Math.abs(c - a), Math.abs(d - b)); for (let k = 0; k <= n; k += 1) { const x = Math.round(a + ((c - a) * k) / n + nx), y = Math.round(b + ((d - b) * k) / n + ny); if (inside(x, y)) fb.tone(x, y, -0.2 + t * 0.05); } }
+  }
+  for (const it of f.furniture) if (it.kind !== "rug") for (let x = Math.round(it.x * P + 1); x < Math.round((it.x + it.w) * P - 1); x += 1) for (let k = 0; k < 2; k += 1) fb.tone(x, Math.round((it.y + it.h) * P) - 1 + k, -0.22);
   for (const it of [...f.furniture].sort((a, b) => a.y + a.h - (b.y + b.h))) drawFurniture(fb, it, P, it.x * 7 + it.y);
   const dark = rgb("#241a12"), door = rgb("#d9b77a"), glass = rgb("#9fd0f0");
   for (const wl of f.walls) {
@@ -153,16 +157,12 @@ function drawInterior(fb, map, building, floor, P) {
 // ---------------------------------------------------------------- the layers
 
 /** All the layers of a battle map at native size. interiors: from buildInteriors(map). */
-export function renderBattleLayers(map, interiors, { gridPx = map.spec.gridPx, lighting = null } = {}) {
-  const { native: P, scale } = pixelPlan(gridPx), W = map.spec.columns * P, H = map.spec.rows * P;
-  // The light: the sun's height and bearing, cloud, fog, rain, season; underground maps have none.
-  const light = lighting ?? { latDeg: map.center[0] }, model = lightModel(light, { underground: map.underground }), indoor = lightModel(light, { indoors: true }), below = lightModel(light, { underground: true });
-  const alt = model.lighting.sunAltitudeDeg;
-  setSpriteLight({ toSun: alt > 0 && !map.underground ? model.toSun : [-0.6, -0.8], altitudeDeg: alt > 0 ? alt : 40, season: model.season, faceTone: map.underground ? -0.3 : model.faceTone, direct: model.direct, lightsOn: model.lightsOn });
+export function renderBattleLayers(map, interiors, { gridPx = map.spec.gridPx, season = null } = {}) {
+  const { native: P, scale } = pixelPlan(gridPx), W = map.spec.columns * P, H = map.spec.rows * P, theSeason = normalizeSeason(season, map.center[0]);
+  // Neutral light from above, so forms read; time of day, sun shadows, darkness and lamps are Foundry's, live.
+  setSpriteLight({ toSun: [-0.35, -0.5], altitudeDeg: 65, season: theSeason, faceTone: 0, direct: 0.7, lightsOn: false });
   const exterior = new Framebuffer(W, H);
-  drawGround(exterior, map, P, model); drawFaces(exterior, map, P); applyShadows(exterior, shadowMask(map, P, model), model); drawStanding(exterior, map, P);
-  const roofsAbove = new Uint8Array(W * H); for (const b of map.buildings) for (let y = Math.max(0, b.y0 * P); y < Math.min(H, (b.y1 + 1) * P); y += 1) for (let x = Math.max(0, b.x0 * P); x < Math.min(W, (b.x1 + 1) * P); x += 1) if (inFootprint(b, (x + 0.5) / P, (y + 0.5) / P)) roofsAbove[y * W + x] = 1;
-  gradeLayer(exterior, model, lightSources(map, P, model), { unlit: roofsAbove });
+  drawGround(exterior, map, P, theSeason); drawFaces(exterior, map, P); applyShadows(exterior, occlusionMask(map, P)); drawStanding(exterior, map, P);
   const floors = [...new Set(interiors.flatMap((b) => b.floors.map((f) => f.floor)))].sort((a, b) => a - b);
   const footprintMask = (list) => { const m = new Uint8Array(W * H); for (const b of list) { const fb = { ...b.rect, rects: b.rects, chamfers: b.chamfers }; for (let y = b.rect.y0 * P; y < (b.rect.y1 + 1) * P; y += 1) for (let x = b.rect.x0 * P; x < (b.rect.x1 + 1) * P; x += 1) if (x >= 0 && y >= 0 && x < W && y < H && inFootprint(fb, (x + 0.5) / P, (y + 0.5) / P)) m[y * W + x] = 1; } return m; };
   const copyMasked = (src, mask) => { const out = new Framebuffer(W, H); for (let k = 0; k < W * H; k += 1) if (mask[k]) { out.data.set(src.data.subarray(k * 4, k * 4 + 4), k * 4); } return out; };
@@ -170,7 +170,6 @@ export function renderBattleLayers(map, interiors, { gridPx = map.spec.gridPx, l
   const ground = new Framebuffer(W, H); ground.data.set(exterior.data);
   if (interiors.length) {
     const inner = new Framebuffer(W, H); for (const b of interiors) drawInterior(inner, map, b, 0, P);
-    gradeLayer(inner, indoor, lightSources(map, P, indoor, { interiors, floor: 0 }));
     const all = footprintMask(interiors); for (let k = 0; k < W * H; k += 1) if (all[k] && inner.data[k * 4 + 3]) ground.data.set(inner.data.subarray(k * 4, k * 4 + 4), k * 4);
   }
   const roofs = {}, floorLayers = {};
@@ -179,10 +178,10 @@ export function renderBattleLayers(map, interiors, { gridPx = map.spec.gridPx, l
     const having = interiors.filter((b) => b.floors.some((f) => f.floor === floor)), layer = new Framebuffer(W, H, floor < 0 ? "#141210" : null);
     if (floor < 0) for (let y = 0; y < H; y += 1) for (let x = 0; x < W; x += 1) if (h2(x, y, 99) < 0.04) layer.set(x, y, rgb("#22201c"));
     const inner = new Framebuffer(W, H); for (const b of having) drawInterior(inner, map, b, floor, P);
-    const m0 = floor < 0 ? below : indoor; gradeLayer(inner, m0, lightSources(map, P, m0, { interiors: having, floor })); if (floor < 0) gradeLayer(layer, below, []);
+
     const m = footprintMask(having); for (let k = 0; k < W * H; k += 1) if (m[k] && inner.data[k * 4 + 3]) layer.data.set(inner.data.subarray(k * 4, k * 4 + 4), k * 4);
     floorLayers[floor] = layer;
     if (floor > 0) roofs[floor] = copyMasked(exterior, footprintMask(interiors.filter((b) => Math.max(...b.floors.map((f) => f.floor)) === floor)));
   }
-  return { native: P, scale, width: W * scale, height: H * scale, exterior, ground, roofs, floors: floorLayers, floorList: floors, light: { sunAltitudeDeg: alt, sunAzimuthDeg: model.lighting.sunAzimuthDeg, season: model.season, direct: Math.round(model.direct * 100) / 100, night: model.night } };
+  return { native: P, scale, width: W * scale, height: H * scale, exterior, ground, roofs, floors: floorLayers, floorList: floors, season: theSeason };
 }

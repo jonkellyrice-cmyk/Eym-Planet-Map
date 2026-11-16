@@ -19,6 +19,52 @@ import { FEATURES, MOVE } from "./eym-battle-settings.mjs";
 import { mapFloors } from "./eym-battle-interiors.mjs";
 
 export const OCCLUSION_VISION = 8;
+
+/**
+ * Light sources as Foundry lights, so the scene's own lighting handles them live: those that need dark
+ * (door lanterns, candles, windows) switch on by themselves as the scene darkens; fires, hearths, lava,
+ * crystals and magic are always lit. Distances in feet (grid units). Each on its floor's Level.
+ */
+export const LIGHT_KINDS = Object.freeze({
+  lantern: { bright: 10, dim: 20, color: "#ffb85c", alpha: 0.4, darkness: { min: 0.45, max: 1 }, animation: { type: "torch", speed: 2, intensity: 2 } },
+  window: { bright: 0, dim: 10, color: "#ffc070", alpha: 0.3, darkness: { min: 0.55, max: 1 } },
+  candle: { bright: 5, dim: 10, color: "#ffd28a", alpha: 0.35, darkness: { min: 0.4, max: 1 }, animation: { type: "torch", speed: 3, intensity: 1 } },
+  cellarLamp: { bright: 5, dim: 15, color: "#ffc070", alpha: 0.4, darkness: { min: 0, max: 1 }, animation: { type: "torch", speed: 2, intensity: 1 } },
+  hearth: { bright: 10, dim: 20, color: "#ff9a50", alpha: 0.45, darkness: { min: 0, max: 1 }, animation: { type: "torch", speed: 3, intensity: 3 } },
+  fire: { bright: 20, dim: 40, color: "#ffa040", alpha: 0.45, darkness: { min: 0, max: 1 }, animation: { type: "torch", speed: 3, intensity: 3 } },
+  brazier: { bright: 15, dim: 30, color: "#ffa850", alpha: 0.45, darkness: { min: 0, max: 1 }, animation: { type: "torch", speed: 2, intensity: 2 } },
+  lava: { bright: 10, dim: 20, color: "#ff6a20", alpha: 0.5, darkness: { min: 0, max: 1 }, animation: { type: "pulse", speed: 1, intensity: 2 } },
+  crystal: { bright: 5, dim: 15, color: "#7fd8ff", alpha: 0.4, darkness: { min: 0, max: 1 } },
+  glow: { bright: 0, dim: 10, color: "#6fe8d0", alpha: 0.35, darkness: { min: 0, max: 1 } },
+  magic: { bright: 5, dim: 10, color: "#b08aff", alpha: 0.4, darkness: { min: 0, max: 1 }, animation: { type: "pulse", speed: 2, intensity: 2 } },
+});
+const FEATURE_LIGHT = { campfire: "fire", beacon: "fire", "lava-channel": "lava", fumarole: "lava", "elemental-vent": "lava", "crystal-cluster": "crystal", "glowing-pool": "glow", "glowing-mushrooms": "glow", "sacred-spring": "glow", "ley-nexus": "magic", "magic-circle": "magic", "teleport-circle": "magic", "planar-rift": "magic", "ward-stone": "magic", "rune-door": "magic", "levitation-disc": "magic" };
+
+/** The lights of a battle map, by floor. Positions in pixels; `levelKeys` name the floor's Level. */
+export function battleLights(map, interiors, { gridPx = map.spec.gridPx } = {}) {
+  const out = [], { columns } = map.spec, g = map.grid;
+  const add = (kind, x, y, levelKey = "floor0", elevation = 0, name = kind) => { const k = LIGHT_KINDS[kind]; out.push({ levelKeys: [levelKey], name, x: Math.round(x * gridPx), y: Math.round(y * gridPx), elevation, walls: true, vision: false, config: { bright: k.bright, dim: k.dim, color: k.color, alpha: k.alpha, darkness: k.darkness, coloration: 1, luminosity: 0.5, attenuation: 0.5, ...(k.animation ? { animation: k.animation } : {}) }, flags: { "eym-planet-map": { light: kind } } }); };
+  const levelAt = (x, y) => g.levelFt[Math.max(0, Math.min(g.levelFt.length - 1, Math.floor(y) * columns + Math.floor(x)))] ?? 0;
+  for (const f of map.features) {
+    const kind = FEATURE_LIGHT[f.kind] ?? (map.underground && f.kind === "pillar" ? "brazier" : null); if (!kind) continue;
+    const x = f.x + f.w / 2, y = f.y + f.h / 2; add(kind, x, y, "floor0", levelAt(x, y) + 2, f.kind);
+  }
+  // Lava and molten metal in the ground itself: one light every few squares along it.
+  for (let i = 0; i < g.ground.length; i += 1) { const x = i % columns, y = Math.floor(i / columns); if (["molten-metal channel", "planar rift"].includes(g.ground[i]) && (x + y) % 3 === 0) add(g.ground[i] === "planar rift" ? "magic" : "lava", x + 0.5, y + 0.5, "floor0", g.levelFt[i]); }
+  for (const b of map.buildings) {
+    const e = b.doorEdge; if (!e || b.label === "mausoleum") continue;
+    // A lantern just outside the door, and the glow of the street-front windows.
+    const [dx, dy] = e.dir === "e" ? [e.x + 1, e.y + 0.5] : [e.x + 0.5, e.y + 1], out_ = e.dir === "e" ? [b.x1 >= e.x + 1 ? -0.4 : 0.4, 0] : [0, b.y1 >= e.y + 1 ? -0.4 : 0.4];
+    add("lantern", dx + out_[0], dy + out_[1], "floor0", levelAt(dx, dy) + 7, "door lantern");
+    if (e.dir !== "e") add("window", (b.x0 + b.x1 + 1) / 2, dy + out_[1] * 2, "floor0", levelAt(dx, dy) + 5, "window glow");
+  }
+  for (const b of interiors) for (const f of b.floors) {
+    const key = `floor${f.floor}`, base = f.floor < 0 ? -8 : 10 * Math.max(0, f.floor);
+    for (const it of f.furniture) if (it.kind === "hearth") add("hearth", it.x + it.w / 2, it.y + it.h, key, base + 2, "hearth");
+    for (const r of f.rooms) add(f.floor < 0 ? "cellarLamp" : "candle", (r.x0 + r.x1 + 1) / 2, (r.y0 + r.y1 + 1) / 2, key, base + 4, f.floor < 0 ? "lamp" : "candle");
+  }
+  return out;
+}
 const SENSE = { none: 0, limited: 10, normal: 20 };
 const MOVEMENT_ACTIONS = ["walk", "crawl", "climb", "fly", "jump", "burrow", "swim", "blink", "displace"];
 
@@ -105,5 +151,6 @@ export function battleScenePlan(map, interiors, { name, images, gridPx = map.spe
     const keys = b.floors.map((f) => byFloor.get(f.floor)?.key).filter(Boolean); if (keys.length < 2) continue;
     regions.push({ levelKeys: keys, name: `Stairs (${b.floors.map((f) => f.name).join(" – ")})`, color: "#27ae60", shapes: [rect(b.stairs)], elevation: { bottom: null, top: null }, behaviors: [{ type: "changeLevel", name: "Stairs", system: { movementActions: MOVEMENT_ACTIONS } }], visibility: 0 });
   }
-  return { scene, levels, walls, tiles, regions, bands };
+  const lights = battleLights(map, interiors, { gridPx }).filter((l) => l.levelKeys.every((k) => byFloor.has(Number(k.slice(5)))));
+  return { scene, levels, walls, tiles, regions, lights, bands };
 }

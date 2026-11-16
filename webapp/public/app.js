@@ -23,8 +23,7 @@ function request() {
   let lat = Number(form.lat.value), lon = Number(form.lon.value);
   if (!form.lat.value || !form.lon.value) { const [slat, slon] = form.settlement.value.split(",").map(Number); lat = slat + Number(form.dy.value || 0) / KM_LAT; lon = slon + Number(form.dx.value || 0) / (KM_LAT * Math.cos((slat * Math.PI) / 180)); }
   const conditions = {}; if (form.snowDepthCm.value) conditions.snowDepthCm = Number(form.snowDepthCm.value); if (form.ground.value) conditions.ground = form.ground.value;
-  const light = { hour: Number(form.hour.value), season: form.season.value, weather: form.weather.value };
-  return { center: [lat, lon], columns, rows, gridPx: density.px, light, setting: form.setting.value, extras: [...form.querySelectorAll('[name="extra"]:checked')].map((b) => b.value), conditions, tier: Number(form.tier.value) };
+  return { center: [lat, lon], columns, rows, gridPx: density.px, season: form.season.value || undefined, setting: form.setting.value, extras: [...form.querySelectorAll('[name="extra"]:checked')].map((b) => b.value), conditions, tier: Number(form.tier.value) };
 }
 
 form.addEventListener("submit", async (event) => {
@@ -34,7 +33,7 @@ form.addEventListener("submit", async (event) => {
     if (!res.ok) throw new Error(m.error ?? res.statusText);
     const base = `/api/battle-maps/${m.id}/files/`, link = (name, label) => { const li = document.createElement("li"), a = Object.assign(document.createElement("a"), { href: base + name, textContent: label, download: name }); li.append(a); return li; };
     $("#title").textContent = `${options.settings.find((s) => s.id === m.setting)?.label ?? m.setting} — Tier ${m.tier}`;
-    $("#summary").textContent = `${m.spec.columns}×${m.spec.rows} squares · ${m.width}×${m.height} px (${m.native} px per square, ×${m.scale}) · floors: ${m.floors.length ? m.floors.join(", ") : "ground only"} · sun ${Math.round(m.light.sunAltitudeDeg)}° up, bearing ${Math.round(m.light.sunAzimuthDeg)}° · ${m.light.season}`;
+    $("#summary").textContent = `${m.spec.columns}×${m.spec.rows} squares · ${m.width}×${m.height} px (${m.native} px per square, ×${m.scale}) · floors: ${m.floors.length ? m.floors.join(", ") : "ground only"} · ${m.season}`;
     $("#preview").src = base + m.files.preview;
     $("#files").replaceChildren(link(m.files.exterior, "Outside with roofs"), link(m.files.ground, "Ground (buildings opened)"), ...Object.entries(m.files.roofs).map(([f, n]) => link(n, `Roofs over floor ${f}`)), ...Object.entries(m.files.floors).map(([f, n]) => link(n, Number(f) < 0 ? "Basement" : Number(f) === 1 ? "Upper floor" : `Floor ${Number(f) + 1}`)));
     $("#notes").replaceChildren(...m.notes.map((t) => Object.assign(document.createElement("li"), { textContent: t })));
