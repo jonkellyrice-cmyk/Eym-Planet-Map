@@ -2,6 +2,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 import { buildBodyLayers } from "./body-layers.mjs";
 import { orthographicGeoPoint, projectGeoPath, selectCartographyLabels } from "./body-cartography.mjs";
 import { nightOutlinePath, TWILIGHT_STEPS } from "./eym-seasons.mjs";
+import { PIXEL_GLOBE_MAX_ZOOM, buildSurfaceRaster, coverMask, renderGlobe, weatherGrid } from "./eym-globe-pixels.mjs";
 import { renderSuperstructureAtlas } from "./superstructure-atlas-visuals.mjs";
 import { factionFamilyFor, superstructureProfile, SUPERSTRUCTURE_MODEL_VERSION } from "./superstructure-identities.mjs";
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -95,7 +96,7 @@ export class BodyView {
   destroy() { for (const [event, handler] of Object.entries(this.listeners)) this.svg.removeEventListener(event, handler); this.svg.replaceChildren(); }
   resetView() { Object.assign(this.state, { yaw: -.35, pitch: .18, zoom: 1 }); this.render(); }
   clearSelection() { this.onFeatureSelected(null); }
-  setLayerVisibility(layer, visible) { this.layerGroups?.get(layer)?.classList.toggle("is-hidden", !visible); }
+  setLayerVisibility(layer, visible) { this.layerGroups?.get(layer)?.classList.toggle("is-hidden", !visible); if (this.pixel) this.#queuePixels(); }
 
   build() {
     this.svg.replaceChildren(); this.svg.setAttribute("viewBox", "0 0 900 680"); this.svg.classList.add("oscm-body-view");
@@ -183,6 +184,10 @@ export class BodyView {
       const blur = svg("filter", { id: "oscm-weather-blur", filterUnits: "userSpaceOnUse", x: -200, y: -200, width: 1300, height: 1080 }); this.weatherBlur = svg("feGaussianBlur", { stdDeviation: 6 }); blur.append(this.weatherBlur); this.svg.querySelector("defs").append(blur);
       for (const id of ["clouds", "storms", "wind"]) { const group = svg("g", { class: `oscm-body-layer oscm-weather-layer is-weather-${id}` }); this.surface.append(group); this.layerGroups.set(`weather-${id}`, group); this.weatherGroups[id] = group; }
       this.weatherGroups.wind.classList.add("is-hidden");
+      // The globe as pixel art (scripts/eym-globe-pixels.mjs): it stands in for the ground, water, cloud and night
+      // until the view is close enough for the surveyed map to take over.
+      this.pixel = { image: svg("image", { class: "oscm-globe-pixels", x: 0, y: 0, width: 900, height: 680, preserveAspectRatio: "none" }), rivers: asset.hydrology.rivers.map((river) => river.points) };
+      this.layerGroups.get("hydrology").after(this.pixel.image);
       // Night and the three twilights, darkest last, over everything on the surface.
       this.nightLayer = svg("g", { class: "oscm-terminator is-hidden" }); this.surface.append(this.nightLayer);
       this.nightBands = TWILIGHT_STEPS.map((step) => { const node = svg("path", { class: `oscm-night-band below-${-step}` }); this.nightLayer.append(node); return { node, belowDeg: -step }; });
@@ -213,6 +218,7 @@ export class BodyView {
   setEnvironment(environment) {
     if (!this.nightLayer) return;
     this.environment = environment;
+    if (this.pixel && this.pixel.coverOf !== environment.snow) { this.pixel.coverOf = environment.snow; this.pixel.snow = coverMask(environment.snow); this.pixel.ice = coverMask(environment.ice); this.pixel.stamp = (this.pixel.stamp ?? 0) + 1; }
     this.night.classList.add("is-hidden"); this.nightLayer.classList.remove("is-hidden");
     for (const node of this.staticIceNodes ?? []) node.style.display = "none";
     this.featureNodes = this.featureNodes.filter((item) => !item.seasonal);
@@ -231,6 +237,7 @@ export class BodyView {
    */
   setWeather(globe) {
     if (!this.weatherGroups) return;
+    if (this.pixel) { this.pixel.weather = weatherGrid(globe); this.pixel.stamp = (this.pixel.stamp ?? 0) + 1; }
     this.featureNodes = this.featureNodes.filter((item) => !item.weather);
     for (const group of Object.values(this.weatherGroups)) group.replaceChildren();
     const point = (group, node, lat, lon, extra = {}) => { group.append(node); this.featureNodes.push({ node, lat, lon, feature: extra.feature ?? {}, minZoom: extra.minZoom ?? 0, radiusDeg: extra.radiusDeg, weather: true, steadyOpacity: extra.steadyOpacity }); };
@@ -431,8 +438,24 @@ export class BodyView {
   #hideReadout() { this.readout?.setAttribute("display", "none"); }
 
   changeZoom(requested) { if (requested < .43 && !this.exitTriggered) { this.exitTriggered = true; this.onExitRequested(); return; } this.state.zoom = clamp(requested, .46, this.maxZoom ?? 4.5); this.render(); }
+  #queuePixels() { if (this.pixelFrame == null) this.pixelFrame = (globalThis.requestAnimationFrame ?? ((run) => setTimeout(run, 16)))(() => this.#paintPixels()); }
+
+  /** Paint Eym's globe as pixel art for the view as it now stands (only when something has changed). */
+  #paintPixels() {
+    this.pixelFrame = null; const p = this.pixel; if (!p || this.state.zoom > PIXEL_GLOBE_MAX_ZOOM) return;
+    const { yaw, pitch, zoom } = this.state, s = this.environment?.subsolar, clouds = !this.weatherGroups?.clouds?.classList.contains("is-hidden");
+    const key = [yaw.toFixed(4), pitch.toFixed(4), zoom.toFixed(3), s ? `${s.latDeg.toFixed(1)},${s.lonDeg.toFixed(1)}` : "", clouds, p.stamp ?? 0].join("|");
+    if (key === p.key) return; p.key = key;
+    p.raster ??= buildSurfaceRaster(this.geography);
+    const W = 360, H = 272, sun = s ? orthographicGeoPoint(s.latDeg, s.lonDeg, yaw, pitch, 1) : null;
+    const data = renderGlobe({ raster: p.raster, width: W, height: H, cx: W / 2, cy: H / 2, radius: 100 * zoom, yaw, pitch, sun, snow: p.snow, ice: p.ice, weather: clouds ? p.weather : null, rivers: p.rivers });
+    p.canvas ??= Object.assign(document.createElement("canvas"), { width: W, height: H });
+    p.canvas.getContext("2d").putImageData(new ImageData(data, W, H), 0, 0); p.image.setAttribute("href", p.canvas.toDataURL("image/png"));
+  }
+
   render() {
     const radius = 250 * this.state.zoom; this.discClip?.setAttribute("r", radius);
+    if (this.pixel) { const on = this.state.zoom <= PIXEL_GLOBE_MAX_ZOOM; this.svg.classList.toggle("is-pixel-globe", on); if (on) this.#queuePixels(); }
     if (this.fadeNightWithZoom) this.night.style.opacity = String(clamp(1.8 - this.state.zoom * 0.8, 0, 1));
     this.weatherBlur?.setAttribute("stdDeviation", (radius * 0.022).toFixed(1));
     if (this.environment?.subsolar && this.nightBands) {
