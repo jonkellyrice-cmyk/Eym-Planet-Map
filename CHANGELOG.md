@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.1 (2026-11-16)
+
+- Eym's globe: click anywhere to choose a place. A click on or near a settlement selects it (Dree, for instance); a click on open ground or sea selects that latitude and longitude, shown in the selection card with the nearest settlement and its distance. Either way it becomes the place for the sky view, Here and now, atlas and battle maps, to four decimals (it was one, about 11 km). Fixed: clicks never reached the markers, because the globe captures the pointer to drag it; the globe now picks for them, and a drag never selects.
+- A latitude and longitude readout follows the cursor over the globe (more decimals as you zoom in), naming the settlement under it.
+
 ## 0.13.0 (2026-11-16)
 
 - Atlas maps: deterministic reference maps of Eym at four levels (planet, continent, region, local) with a text-free base for image models, a name layer, a PNG with names and an information packet with a painterly fantasy art direction (`scripts/eym-reference-map.mjs`, `scripts/eym-map-packet.mjs`).
