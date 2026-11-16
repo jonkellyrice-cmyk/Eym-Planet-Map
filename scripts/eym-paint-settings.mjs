@@ -4,6 +4,7 @@
 // The canon list is a world setting written only by the GM.
 import { DEFAULT_IMAGE_BASE_URL, DEFAULT_IMAGE_MODEL, DEFAULT_IMAGE_QUALITY, IMAGE_MODELS, IMAGE_QUALITIES } from "./eym-image-provider.mjs";
 import { CANON_SETTING } from "./eym-canon.mjs";
+import { ARCHITECTURE_SETTING, normalizeLibrary } from "./eym-architecture.mjs";
 
 export const PAINT_SETTING_KEYS = Object.freeze(["imageApiKey", "imageBaseUrl", "imageModel", "imageModelCustom", "imageQuality", CANON_SETTING]);
 
@@ -25,3 +26,9 @@ export function paintingSettings(moduleId) {
 }
 
 export function canonList(moduleId) { try { return game.settings.get(moduleId, CANON_SETTING) ?? []; } catch { return []; } }
+
+/** The architecture dossiers (a world setting; the GM writes it). */
+export function registerArchitectureSettings(moduleId) {
+  game.settings.register(moduleId, ARCHITECTURE_SETTING, { scope: "world", config: false, type: Object, default: { version: 1, folders: [], dossiers: [] } });
+}
+export function architectureLibrary(moduleId) { try { return normalizeLibrary(game.settings.get(moduleId, ARCHITECTURE_SETTING)); } catch { return normalizeLibrary(null); } }

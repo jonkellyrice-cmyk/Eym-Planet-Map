@@ -20,6 +20,7 @@ import { COVER, COVER_NAMES, battleAnchor, buildBattleSite, hashUnit } from "./e
 import { environmentField } from "./eym-seasons.mjs";
 import { fromLocal, toLocal } from "./eym-surface.mjs";
 import { FEATURES, MOVE, MOVE_COST, SETTINGS } from "./eym-battle-settings.mjs";
+import { placeExtras } from "./eym-battle-features.mjs";
 
 export const BATTLE_RULES_VERSION = "eym-battle-v1";
 const SQUARE_KM = (5 * 0.3048) / 1000;
@@ -92,7 +93,7 @@ function groundFor(cover, setting, conditions) {
 /** A blank grid of squares. */
 function makeGrid(columns, rows) {
   const n = columns * rows;
-  return { columns, rows, ground: new Array(n).fill("grass"), cover: new Uint8Array(n), move: new Array(n).fill(MOVE.normal), coverGiven: new Uint8Array(n), concealed: new Uint8Array(n), elevationFt: new Int16Array(n), feature: new Int16Array(n).fill(-1), building: new Int16Array(n).fill(-1), street: new Uint8Array(n), walls: new Map() };
+  return { columns, rows, ground: new Array(n).fill("grass"), cover: new Uint8Array(n), move: new Array(n).fill(MOVE.normal), coverGiven: new Uint8Array(n), concealed: new Uint8Array(n), elevationFt: new Int16Array(n), feature: new Int16Array(n).fill(-1), building: new Int16Array(n).fill(-1), street: new Uint8Array(n), trap: new Uint8Array(n), walls: new Map() };
 }
 const edgeKey = (x, y, dir) => `${x},${y},${dir}`; // dir: "e" (east edge of square x,y) or "s" (south edge)
 
@@ -249,8 +250,8 @@ function openDistance(grid, sheltered) {
 function reachable(grid, sources) { const { dist } = distances(grid, sources); let n = 0; for (const v of dist) if (Number.isFinite(v)) n += 1; return n; }
 
 /** Paint a feature's squares onto the grid (returns the squares, or null if it does not fit). */
-function footprintSquares(grid, kind, x, y, rotate, allowed) {
-  const def = FEATURES[kind], [w, h] = rotate ? [def.footprint[1], def.footprint[0]] : def.footprint, out = [];
+function footprintSquares(grid, kind, x, y, rotate, allowed, size = null) {
+  const base = size ?? FEATURES[kind].footprint, [w, h] = rotate ? [base[1], base[0]] : base, out = [];
   for (let dy = 0; dy < h; dy += 1) for (let dx = 0; dx < w; dx += 1) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= grid.columns || ny >= grid.rows) return null; const i = ny * grid.columns + nx; if (!allowed(i)) return null; out.push(i); }
   return { squares: out, w, h };
 }
@@ -274,7 +275,7 @@ function weighted(weights, u) {
  * @param conditions optional { snowDepthCm, ground, tempC, precipKind, sunAltitudeDeg, cloud, windMs, season }
  * @param setting "auto" or a SETTINGS id (e.g. "volcanic" where the world has no volcano of its own)
  */
-export function buildBattleMap(asset, { center, spec, conditions = {}, setting = "auto" }) {
+export function buildBattleMap(asset, { center, spec, conditions = {}, setting = "auto", extras = [] }) {
   const snap = snapToWorldGrid(center, spec), site = buildBattleSite(asset, { center: snap.center, spec });
   const { columns, rows } = spec, n = columns * rows, cell = environmentField(asset).cellAt(...snap.center);
   const sorted = [...site.heights].sort((a, b) => a - b), median = sorted[Math.floor(n / 2)], reliefFt = (sorted[n - 1] - sorted[0]) / 0.3048;
@@ -314,26 +315,38 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
   const along = (i) => { const x = i % columns, y = Math.floor(i / columns); return axis[0] === "n" ? y / (rows - 1) : x / (columns - 1); };
   // Fixed town features (squares, gardens) first.
   const protectedSquare = (i) => zoneOf[i] > 0;
-  const place = (kind, x, y, { force = false, allowWater = false, allowStreet = false } = {}) => {
+  /**
+   * Place a feature with its top-left at (x, y) if it fits and keeps the map playable; returns its entry
+   * (with an undo) or null. size overrides the footprint; orient "across"/"along" fixes its long side
+   * relative to the line between the sides; accept(squares) can veto a fit.
+   */
+  const place = (kind, x, y, { force = false, allowWater = false, allowStreet = false, size = null, orient = null, accept = null } = {}) => {
+    const base = size ?? FEATURES[kind].footprint, longIsH = base[1] > base[0];
     for (const rotate of [false, true]) {
-      if (rotate && FEATURES[kind].footprint[0] === FEATURES[kind].footprint[1]) continue;
-      const fit = footprintSquares(grid, kind, x, y, rotate, (i) => (force || !protectedSquare(i)) && grid.feature[i] < 0 && grid.building[i] < 0 && (allowStreet || !grid.street[i]) && (allowWater || !WATER.has(grid.cover[i])) && Number.isFinite(MOVE_COST[grid.move[i]]));
-      if (!fit) continue;
-      const lanesBefore = placed.lanes ?? 0, reachBefore = placed.reach ?? 0;
-      const undo = applyFeature(grid, placed.length, kind, fit.squares);
+      if (rotate && base[0] === base[1]) continue;
+      if (orient) { const vertical = rotate ? !longIsH : longIsH, acrossIsVertical = axis[0] !== "n"; if ((orient === "across") !== (vertical === acrossIsVertical)) continue; }
+      const fit = footprintSquares(grid, kind, x, y, rotate, (i) => (force || !protectedSquare(i)) && grid.feature[i] < 0 && grid.building[i] < 0 && !grid.trap[i] && (allowStreet || !grid.street[i]) && (allowWater || !WATER.has(grid.cover[i])) && (allowWater || Number.isFinite(MOVE_COST[grid.move[i]])), size);
+      if (!fit || (accept && !accept(fit.squares))) continue;
+      const lanesBefore = placed.lanes ?? 0, reachBefore = placed.reach ?? 0, id = placed.nextId++;
+      const undo = applyFeature(grid, id, kind, fit.squares);
       const lanes = routes(grid, zones).length, reach = reachable(grid, zones[0]), blocked = fit.squares.filter((i) => !Number.isFinite(MOVE_COST[grid.move[i]])).length;
       if (!force && (lanes < Math.min(2, lanesBefore) || (reachBefore && reach < reachBefore - blocked))) { undo(); continue; }
-      placed.lanes = lanes; placed.reach = reach;
-      placed.push({ id: placed.length, kind, x, y, w: fit.w, h: fit.h, squares: fit.squares });
-      return true;
+      const entry = { id, kind, x, y, w: fit.w, h: fit.h, squares: fit.squares };
+      entry.remove = () => { undo(); const k = placed.indexOf(entry); if (k >= 0) placed.splice(k, 1); placed.lanes = routes(grid, zones).length; placed.reach = reachable(grid, zones[0]); };
+      placed.lanes = lanes; placed.reach = reach; placed.push(entry);
+      return entry;
     }
-    return false;
+    return null;
   };
+  placed.nextId = 0;
   placed.lanes = routes(grid, zones).length; placed.reach = reachable(grid, zones[0]);
   for (const f of fixedFeatures) { const x = f.gx - snap.origin[0], y = f.gy - snap.origin[1]; place(f.kind, x, y, { allowStreet: !f.soft }); }
   const designKey = (step) => hashUnit(`${key}|${step}`);
   const middle = (i) => { const a = along(i); return a > 0.33 && a < 0.67; };
   const order = (filter, step) => [...Array(n).keys()].filter(filter).sort((a, b) => hashUnit(`${key}|${step}|${a}`) - hashUnit(`${key}|${step}|${b}`));
+  // The GM's chosen features (shrine, dungeon entrance, palisade, traps…) before anything the design adds.
+  const perp = (i) => { const x = i % columns, y = Math.floor(i / columns); return axis[0] === "n" ? x / Math.max(1, columns - 1) : y / Math.max(1, rows - 1); };
+  const extraResult = placeExtras({ extras, axis, grid, columns, rows, along, perp, place, routes: () => routes(grid, zones), order: (filter, step) => [...Array(n).keys()].filter(filter).sort((a, b) => hashUnit(`${key}|${step}|${a}`) - hashUnit(`${key}|${step}|${b}`)), protectedSquare, WATER });
   // A hazard in the middle third, beside the main route (a risk to take, not a wall).
   const firstRoute = routes(grid, zones)[0]?.set ?? new Set();
   const nearRoute = (i) => { const x = i % columns, y = Math.floor(i / columns); for (const j of firstRoute) { const jx = j % columns, jy = Math.floor(j / columns); const d = Math.max(Math.abs(jx - x), Math.abs(jy - y)); if (d >= 1 && d <= 3) return true; } return false; };
@@ -346,7 +359,7 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
     for (const i of order((i) => Math.abs(along(i) - 0.5) < 0.12, "high").slice(0, 80)) if (place(kind, i % columns, Math.floor(i / columns))) break;
   }
   // A centrepiece where the middle is open.
-  const hasCentrepiece = placed.some((p) => rules.poi.includes(p.kind));
+  const hasCentrepiece = placed.some((p) => rules.poi.includes(p.kind) || p.central);
   if (rules.poi.length && !hasCentrepiece) {
     const cx = Math.floor(columns / 2), cy = Math.floor(rows / 2), kind = rules.poi[Math.floor(designKey("poi") * rules.poi.length)];
     const spots = [[cx, cy], [cx - 1, cy], [cx, cy - 1], [cx - 1, cy - 1], [cx + 1, cy], [cx, cy + 1]];
@@ -391,9 +404,10 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
     buildings: buildings.length, features: placed.length,
   };
   notes.push(...battleNotes(analysis, axis, placed, conditions, grid.ground.filter((g) => g.endsWith("(mud)")).length));
+  notes.push(...extraResult.notes);
   return {
     version: BATTLE_RULES_VERSION, key, center: snap.center, anchor: snap.anchor, origin: snap.origin, spec, setting: chosen, biome: cell.biome, conditions,
-    site, grid, buildings, objects, features: placed.map((p) => ({ ...p, ...FEATURES[p.kind], kind: p.kind, squares: p.squares })), zones, axis,
+    site, grid, buildings, objects, features: placed.map(({ remove, ...p }) => ({ ...p, ...FEATURES[p.kind], kind: p.kind, squares: p.squares, extra: Boolean(p.extra) })), traps: extraResult.traps, extras: extraResult.placed, zones, axis,
     routes: finalRoutes.map((r) => r.squares), chokepoints, analysis, notes,
   };
 }

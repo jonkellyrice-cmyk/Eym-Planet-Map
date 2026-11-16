@@ -53,3 +53,20 @@
 .oscm-atlas-result.is-battle [data-atlas-only] { display: none; }
 .oscm-atlas-result.is-battle .oscm-atlas-result-head { flex-wrap: wrap; }
 .oscm-atlas-result.is-battle .oscm-battle-notes { flex-basis: 100%; order: 3; }
+.oscm-dossier-panel { position: absolute; inset: 8px; z-index: 31; display: grid; grid-template-rows: auto 1fr auto; gap: .4rem; padding: .6rem; background: rgba(6, 12, 18, .97); border: 1px solid rgba(160, 200, 220, .35); border-radius: 6px; }
+.oscm-dossier-panel.is-hidden { display: none; }
+.oscm-dossier-body { display: grid; grid-template-columns: minmax(180px, 1fr) 2.2fr; gap: .6rem; min-height: 0; }
+.oscm-dossier-tree, .oscm-dossier-editor { overflow: auto; min-height: 0; }
+.oscm-dossier-tree ul { list-style: none; margin: 0; padding-left: .8rem; }
+.oscm-dossier-tree > ul { padding-left: 0; }
+.oscm-dossier-tree button { width: 100%; text-align: left; background: none; border: 0; color: inherit; padding: .1rem .3rem; font-size: 12px; }
+.oscm-dossier-tree button.is-selected { background: rgba(120, 170, 200, .25); }
+.oscm-dossier-tree .is-archived { opacity: .55; font-style: italic; }
+.oscm-dossier-editor label { display: grid; gap: .15rem; font-size: 11px; margin-bottom: .35rem; }
+.oscm-dossier-editor textarea { min-height: 3.2em; resize: vertical; font-size: 12px; }
+.oscm-dossier-editor pre { white-space: pre-wrap; font-size: 11px; background: rgba(255, 255, 255, .05); padding: .4rem; }
+.oscm-dossier-editor .oscm-atlas-actions { margin: .4rem 0; }
+.oscm-battle-extras summary { cursor: pointer; font-size: 11px; }
+.oscm-battle-extras fieldset { border: 1px solid rgba(160, 200, 220, .2); margin: .25rem 0; padding: .2rem .4rem; }
+.oscm-battle-extras legend { font-size: 10px; color: var(--oscm-muted, #8aa); }
+.oscm-battle-extras label { display: flex; gap: .3rem; align-items: center; font-size: 11px; }

@@ -36,6 +36,17 @@ function featureShape(f) {
     case "stall": return `<rect x="${f2(x + 0.05)}" y="${f2(y + 0.05)}" width="${f2(w - 0.1)}" height="${f2(h - 0.1)}" fill="${c}" stroke="#5a2a14" stroke-width="0.06"/>`;
     case "dots": return Array.from({ length: Math.max(2, Math.round(w * h * 2)) }, (_, k) => `<circle cx="${f2(x + 0.25 + ((k * 0.618) % 1) * (w - 0.5))}" cy="${f2(y + 0.25 + ((k * 0.382 + 0.2) % 1) * (h - 0.5))}" r="0.2" fill="${c}"/>`).join("");
     case "rise": return `<rect x="${f2(x + 0.1)}" y="${f2(y + 0.1)}" width="${f2(w - 0.2)}" height="${f2(h - 0.2)}" rx="${f2(Math.min(w, h) / 2.2)}" fill="${c}" fill-opacity="0.9"/>`;
+    case "shrine": return `<rect x="${f2(x + 0.1)}" y="${f2(y + 0.1)}" width="${f2(w - 0.2)}" height="${f2(h - 0.2)}" fill="${c}" stroke="#5a4a2a" stroke-width="0.08"/><path d="M${f2(x + 0.1)} ${f2(y + 0.1)} L${f2(x + w - 0.1)} ${f2(y + h - 0.1)} M${f2(x + w - 0.1)} ${f2(y + 0.1)} L${f2(x + 0.1)} ${f2(y + h - 0.1)}" stroke="#8a7240" stroke-width="0.06"/>`;
+    case "floor": return `<rect x="${f2(x)}" y="${f2(y)}" width="${f2(w)}" height="${f2(h)}" fill="${c}"/>`;
+    case "stairs": return `<rect x="${f2(x + 0.1)}" y="${f2(y + 0.1)}" width="${f2(w - 0.2)}" height="${f2(h - 0.2)}" fill="#8f8577"/>${Array.from({ length: 5 }, (_, k) => `<rect x="${f2(x + 0.25)}" y="${f2(y + 0.25 + k * (h - 0.5) / 5)}" width="${f2(w - 0.5)}" height="${f2((h - 0.5) / 5 - 0.04)}" fill="${c}" fill-opacity="${f2(0.35 + k * 0.13)}"/>`).join("")}`;
+    case "cave": return `<ellipse cx="${f2(cx)}" cy="${f2(cy)}" rx="${f2(w / 2)}" ry="${f2(h / 2)}" fill="#6d665c"/><ellipse cx="${f2(cx)}" cy="${f2(cy + 0.1)}" rx="${f2(w / 2 - 0.4)}" ry="${f2(h / 2 - 0.35)}" fill="${c}"/>`;
+    case "palisade": return `<rect x="${f2(x + 0.05)}" y="${f2(y + 0.05)}" width="${f2(w - 0.1)}" height="${f2(h - 0.1)}" fill="${c}" stroke="#3e2a16" stroke-width="0.08"/>`;
+    case "tower": return `<rect x="${f2(x + 0.05)}" y="${f2(y + 0.05)}" width="${f2(w - 0.1)}" height="${f2(h - 0.1)}" fill="${c}" stroke="#2e2418" stroke-width="0.12"/><rect x="${f2(x + 0.35)}" y="${f2(y + 0.35)}" width="${f2(w - 0.7)}" height="${f2(h - 0.7)}" fill="none" stroke="#2e2418" stroke-width="0.06"/>`;
+    case "stakes": return Array.from({ length: Math.max(w, h) * 2 }, (_, k) => { const t = (k + 0.5) / (Math.max(w, h) * 2); const px = w > h ? x + t * w : cx, py = w > h ? cy : y + t * h; return `<path d="M${f2(px - 0.2)} ${f2(py + 0.2)} L${f2(px + 0.2)} ${f2(py - 0.2)}" stroke="${c}" stroke-width="0.12" stroke-linecap="round"/>`; }).join("");
+    case "tent": return `<path d="M${f2(x + 0.15)} ${f2(y + h - 0.15)} L${f2(cx)} ${f2(y + 0.15)} L${f2(x + w - 0.15)} ${f2(y + h - 0.15)} Z" fill="${c}" stroke="#6b5a3a" stroke-width="0.06"/>`;
+    case "fire": return `<circle cx="${f2(cx)}" cy="${f2(cy)}" r="0.38" fill="#6d665c"/><circle cx="${f2(cx)}" cy="${f2(cy)}" r="0.24" fill="${c}"/>`;
+    case "graves": return `<rect x="${f2(x + 0.05)}" y="${f2(y + 0.05)}" width="${f2(w - 0.1)}" height="${f2(h - 0.1)}" fill="${c}"/>${Array.from({ length: w * h }, (_, k) => `<rect x="${f2(x + 0.3 + (k % w))}" y="${f2(y + 0.3 + Math.floor(k / w))}" width="0.4" height="0.22" fill="#b8b3a8"/>`).join("")}`;
+    case "circle": return `<circle cx="${f2(cx)}" cy="${f2(cy)}" r="${f2(Math.min(w, h) / 2 - 0.1)}" fill="none" stroke="${c}" stroke-width="0.12"/><circle cx="${f2(cx)}" cy="${f2(cy)}" r="${f2(Math.min(w, h) / 2 - 0.45)}" fill="none" stroke="${c}" stroke-width="0.06"/>`;
     default: return `<rect x="${f2(x + 0.08)}" y="${f2(y + 0.08)}" width="${f2(w - 0.16)}" height="${f2(h - 0.16)}" rx="${f2(Math.min(w, h) * 0.35)}" fill="${c}"/>`;
   }
 }
@@ -87,7 +98,8 @@ export function battleTacticalSvg(map, gridPx = map.spec.gridPx) {
   for (let y = 0; y <= rows; y += 1) out.push(`<line x1="0" y1="${y}" x2="${columns}" y2="${y}" stroke="#000" stroke-opacity="0.25" stroke-width="0.025"/>`);
   map.routes.forEach((route, k) => out.push(`<path d="M${route.map((i) => `${(i % columns) + 0.5} ${Math.floor(i / columns) + 0.5}`).join(" L")}" fill="none" stroke="${["#ffffff", "#c3f0ca", "#ffe08a"][k]}" stroke-opacity="0.85" stroke-width="0.12" stroke-dasharray="0.35 0.25"/>`));
   for (const i of map.chokepoints) out.push(`<circle cx="${(i % columns) + 0.5}" cy="${Math.floor(i / columns) + 0.5}" r="0.4" fill="none" stroke="#f2994a" stroke-width="0.08"/>`);
-  for (const f of map.features) out.push(`<text x="${f2(f.x + f.w / 2)}" y="${f2(f.y + f.h / 2 + 0.1)}" font-size="0.32" text-anchor="middle" fill="#fff" stroke="#000" stroke-width="0.05" paint-order="stroke" font-family="sans-serif">${esc(FEATURES[f.kind].label)}</text>`);
+  for (const t of map.traps ?? []) out.push(`<rect x="${t.x + 0.08}" y="${t.y + 0.08}" width="${t.w - 0.16}" height="${t.h - 0.16}" fill="#d0342c" fill-opacity="0.3" stroke="#d0342c" stroke-width="0.08" stroke-dasharray="0.2 0.12"/><text x="${f2(t.x + t.w / 2)}" y="${f2(t.y + t.h / 2 + 0.12)}" font-size="0.36" text-anchor="middle" fill="#fff" stroke="#000" stroke-width="0.05" paint-order="stroke" font-family="sans-serif">TRAP</text>`);
+  for (const f of map.features.filter((g) => !g.group || g.labelled)) out.push(`<text x="${f2(f.x + f.w / 2)}" y="${f2(f.y + f.h / 2 + 0.1)}" font-size="0.32" text-anchor="middle" fill="#fff" stroke="#000" stroke-width="0.05" paint-order="stroke" font-family="sans-serif">${esc(FEATURES[f.kind].label)}</text>`);
   out.push("</svg>");
   return out.join("");
 }
@@ -114,13 +126,16 @@ function legend(map) {
 }
 
 /** The prompt: paint over the layout, keep everything where it is, a clean top-down battle map, no grid or text. */
-export function battleArtDirection(map, { timeWords = "", weatherWords = "" } = {}) {
+export function battleArtDirection(map, { timeWords = "", weatherWords = "", architecture = "" } = {}) {
   const rules = SETTINGS[map.setting], { columns, rows, widthPx, heightPx } = map.spec;
+  const chosen = (map.extras ?? []).map((e) => `${e.label.toLowerCase()} in ${e.at}`);
   return [
     `Paint a top-down (orthographic, straight down) fantasy tabletop battle map in a rich, detailed, painterly digital style like professional virtual-tabletop battle maps: natural textures, soft shadows cast toward the lower right, readable shapes.`,
     `The setting: ${rules.words}.${timeWords ? ` ${timeWords}` : ""}${weatherWords ? ` ${weatherWords}` : ""} Paint in even, clear daylight so the map reads well; lighting is added in play.`,
     `The attached reference image is the authoritative layout of the battlefield, ${columns} by ${rows} squares of 5 feet (${columns * 5} by ${rows * 5} feet). Keep every building footprint, wall, door, tree trunk, boulder, log, wall, ridge, hazard, water edge, road and street exactly where it is, at the same size and shape: the game rules depend on them. Do not add, remove, move or merge any obstacle, building, water or path. You may add small surface detail (grass tufts, pebbles, leaf litter, cracks, roof tiles) that does not change what blocks or slows movement.`,
     `Colours in the reference mean: ${legend(map).join("; ")}. Paint each as the real thing, not as flat colour.`,
+    ...(chosen.length ? [`The map must clearly show these features, where the reference has them: ${chosen.join("; ")}.`] : []),
+    ...(architecture ? [architecture] : []),
     `Draw no grid lines, text, labels, numbers, tokens, people, creatures, compass or border. Fill the whole image to the edges, at ${widthPx}×${heightPx} pixels.`,
   ].join("\n\n");
 }
@@ -128,7 +143,7 @@ export function battleArtDirection(map, { timeWords = "", weatherWords = "" } = 
 const colName = (x) => (x < 26 ? String.fromCharCode(65 + x) : `${String.fromCharCode(64 + Math.floor(x / 26))}${String.fromCharCode(65 + (x % 26))}`);
 
 /** The brief as Markdown: place, setting, conditions, analysis, features with squares, hazards and the prompt. */
-export function battlePacket(map, { title = "Battle map", place = "", timeWords = "", weatherWords = "", lightWords = "" } = {}) {
+export function battlePacket(map, { title = "Battle map", place = "", timeWords = "", weatherWords = "", lightWords = "", architecture = "", dossierName = "" } = {}) {
   const rules = SETTINGS[map.setting], a = map.analysis;
   const hazards = map.features.filter((f) => FEATURES[f.kind].hazard);
   return [
@@ -142,7 +157,9 @@ export function battlePacket(map, { title = "Battle map", place = "", timeWords 
     ...map.features.map((f) => `- **${FEATURES[f.kind].label}** at ${colName(f.x)}${f.y + 1}${f.w * f.h > 1 ? `–${colName(f.x + f.w - 1)}${f.y + f.h}` : ""}: ${FEATURES[f.kind].move}${FEATURES[f.kind].cover ? `, ${["", "lesser", "standard", "greater"][FEATURES[f.kind].cover]} cover` : ""}${FEATURES[f.kind].concealed ? ", concealment" : ""}${FEATURES[f.kind].heightFt ? `, ${FEATURES[f.kind].heightFt > 0 ? "+" : ""}${FEATURES[f.kind].heightFt} ft` : ""}`),
     ...(map.buildings.length ? [`- **${map.buildings.length} buildings**, each with a door on a street side.`] : []), "",
     ...(hazards.length ? ["## Hazards", "", ...[...new Set(hazards.map((f) => FEATURES[f.kind].hazard))].map((h) => `- ${h}`), ""] : []),
-    "## Art direction", "", battleArtDirection(map, { timeWords, weatherWords }), "",
+    ...((map.traps ?? []).length ? ["## Hidden traps (GM only; not painted)", "", ...map.traps.map((t) => `- **${FEATURES[t.kind].label}** at ${colName(t.x)}${t.y + 1}: ${t.hazard}`), ""] : []),
+    ...(dossierName ? [`## Architecture: ${dossierName}`, "", architecture, ""] : []),
+    "## Art direction", "", battleArtDirection(map, { timeWords, weatherWords, architecture }), "",
   ].join("\n");
 }
 
@@ -197,12 +214,13 @@ export function battleSceneData(map, { name, imagePath, gridPx = map.spec.gridPx
     region("Greater difficult terrain", "#f2994a", (i) => map.grid.move[i] === MOVE.greater, 3),
     region("Hazardous terrain", "#eb5757", (i) => map.grid.move[i] === MOVE.hazardous, 2),
     region("Deep water (swim)", "#2f80ed", (i) => map.grid.move[i] === MOVE.swim, null),
+    ...(map.traps ?? []).map((t) => ({ name: `Hidden trap: ${FEATURES[t.kind].label}`, color: "#d0342c", shapes: [{ type: "rectangle", x: px(t.x), y: px(t.y), width: px(t.w), height: px(t.h), rotation: 0, hole: false }], behaviors: [], visibility: 0, flags: { "eym-planet-map": { trap: t.hazard } } })),
   ].filter(Boolean);
   return {
     name, width: W, height: H, padding: 0, backgroundColor: "#000000",
     background: { src: imagePath }, grid: { type: 1, size: gridPx, distance: 5, units: "ft" },
     environment: { darknessLevel: darkness, globalLight: { enabled: darkness < 0.5 } }, darkness, weather,
     tokenVision: true, walls, regions,
-    flags: { "eym-planet-map": { battle: { version: map.version, key: map.key, setting: map.setting, center: map.center, spec: { columns, rows, gridPx }, analysis: map.analysis, notes } } },
+    flags: { "eym-planet-map": { battle: { version: map.version, key: map.key, setting: map.setting, center: map.center, spec: { columns, rows, gridPx }, analysis: map.analysis, notes, extras: (map.extras ?? []).map((e) => e.id), traps: (map.traps ?? []).map((t) => ({ kind: t.kind, x: t.x, y: t.y, hazard: t.hazard })) } } },
   };
 }

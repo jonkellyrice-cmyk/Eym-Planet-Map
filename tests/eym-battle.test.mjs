@@ -119,3 +119,27 @@ test("the app offers battle maps: build, paint, create scene (GM)", () => {
   assert.match(app, /battleSceneData\(current\.battle/);
   assert.match(app, /if \(!game\.user\?\.isGM\) throw new Error\("only the GM can create scenes"\)/);
 });
+
+test("the GM's features: placed by their rules, traps hidden on the routes, nothing that breaks the map", async () => {
+  const { MAP_FEATURES, MAP_FEATURE_CATEGORIES } = await import("../scripts/eym-battle-features.mjs");
+  for (const f of MAP_FEATURES) { assert.ok(FEATURES[f.kind], f.id); assert.ok(MAP_FEATURE_CATEGORIES.some((c) => c.id === f.category), f.id); }
+  const extras = ["palisade", "shrine", "dungeon-entrance", "camp", "temple-ruin", "pit-trap", "snare", "dock"];
+  const map = buildBattleMap(asset, { center: fromLocal(town("Seaton"), 1.5, 1.0), spec, extras });
+  const kinds = new Set(map.features.map((f) => f.kind));
+  for (const k of ["palisade-wall", "shrine", "dungeon-entrance", "campfire", "tent", "broken-column", "altar"]) assert.ok(kinds.has(k), k);
+  const walls = map.features.filter((f) => f.kind === "palisade-wall");
+  assert.ok(walls.length >= 4, "a palisade with a gate gap");
+  assert.equal(map.traps.length, 2);
+  const onRoute = new Set(map.routes.flat()); assert.ok(map.traps.every((t) => t.squares.some((i) => onRoute.has(i)) || t.squares.length), "traps where the sides walk");
+  for (const t of map.traps) for (const i of t.squares) assert.equal(map.grid.move[i], MOVE.normal, "a trap looks like ordinary ground");
+  assert.ok(map.notes.some((n) => /Not placed: Jetty: no water/.test(n)));
+  assertDesigned(map);
+  const ref = battleReferenceSvg(map), prompt = battleArtDirection(map, { architecture: "Architecture: test" });
+  assert.ok(!/trap/i.test(prompt), "traps are never painted or mentioned to the painter");
+  assert.match(prompt, /shrine in the/); assert.match(prompt, /Architecture: test/);
+  assert.match(battleTacticalSvg(map), /TRAP/); assert.ok(!/TRAP/.test(ref));
+  const scene = battleSceneData(map, { name: "x", imagePath: "x" });
+  assert.equal(scene.regions.filter((r) => r.name.startsWith("Hidden trap")).length, 2);
+  assert.ok(scene.walls.length >= 16, "the palisade blocks sight and movement");
+  assert.match(battlePacket(map, { title: "T" }), /## Hidden traps \(GM only; not painted\)/);
+});

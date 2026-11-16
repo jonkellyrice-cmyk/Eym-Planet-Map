@@ -1,5 +1,10 @@
 <div class="oscm-shell">
   <section class="oscm-view" aria-label="3D system map">
+    <div class="oscm-dossier-panel is-hidden" data-dossier-panel>
+      <div class="oscm-atlas-result-head"><strong>Architecture dossiers</strong><label class="oscm-checkbox"><input type="checkbox" name="dossierShowArchived"> Show archived</label><button type="button" data-action="dossier-close" title="Close"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="oscm-dossier-body"><div class="oscm-dossier-tree" data-dossier-tree></div><div class="oscm-dossier-editor" data-dossier-editor></div></div>
+      <div class="oscm-atlas-actions"><button type="button" data-action="dossier-new-folder"><i class="fa-solid fa-folder-plus"></i> New folder</button><button type="button" data-action="dossier-new"><i class="fa-solid fa-file-circle-plus"></i> New dossier</button><span class="oscm-muted" data-dossier-status></span></div>
+    </div>
     <div class="oscm-atlas-result is-hidden" data-atlas-result>
       <div class="oscm-atlas-result-head"><strong data-atlas-title>Reference map</strong><span class="oscm-muted" data-atlas-result-summary></span><span class="oscm-muted oscm-battle-notes" data-battle-notes></span><button type="button" data-action="atlas-close" title="Close"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="oscm-atlas-tabs"><button type="button" data-atlas-view="labelled" class="is-active" data-atlas-tab-label>With names</button><button type="button" data-atlas-view="base">For the image model</button><button type="button" data-atlas-view="detail" class="is-hidden">Ground detail</button><button type="button" data-atlas-view="painted" class="is-hidden">Painted</button><button type="button" data-atlas-view="paintedBare" class="is-hidden">Painted, no names</button></div>
@@ -162,6 +167,9 @@
       <label><span>Pixels per square</span><select name="battleDensity"></select></label>
       <label><span>Orientation</span><select name="battleOrientation"><option value="auto">As the preset</option><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
       <label class="oscm-checkbox"><input type="checkbox" name="battleConditions" checked> Ground, light and weather from the campaign clock</label>
+      <label><span>Architecture</span><select name="battleArchitecture"></select></label>
+      <button type="button" class="oscm-gm-only" data-action="dossier-open"><i class="fa-solid fa-landmark"></i> Architecture dossiers…</button>
+      <details class="oscm-battle-extras"><summary>Map features <span data-battle-extras-count></span></summary><div data-battle-extras></div><button type="button" data-action="battle-extras-clear">Clear all</button></details>
       <p class="oscm-muted" data-battle-summary>—</p>
       <p class="oscm-muted">Centred on the Here and now place, snapped to the world's 5-ft grid.</p>
       <button class="oscm-apply" type="button" data-action="battle-build"><i class="fa-solid fa-chess-board"></i> Make battle map</button>

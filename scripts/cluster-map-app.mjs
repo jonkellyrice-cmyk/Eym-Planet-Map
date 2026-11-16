@@ -33,8 +33,10 @@ import { phaseName } from "./moon-events.mjs";
 import { buildLocalTile, localDetailLayout, localDetailOverlaySvg, tileRgba } from "./eym-local-detail.mjs";
 import { DEFAULT_IMAGE_BASE_URL, checkBaseUrl, paintMap } from "./eym-image-provider.mjs";
 import { CANON_SETTING, activeCanon, canonAbove, canonEntry, canonFolder, canonFor, frameRecord, mergeCanon, parentDirection, textHash } from "./eym-canon.mjs";
-import { canonList, paintingSettings } from "./eym-paint-settings.mjs";
+import { architectureLibrary, canonList, paintingSettings } from "./eym-paint-settings.mjs";
 import { buildBattleMap } from "./eym-battle-rules.mjs";
+import { MAP_FEATURE_CATEGORIES, MAP_FEATURES } from "./eym-battle-features.mjs";
+import { ARCHITECTURE_SETTING, DEFAULT_LINK_RADIUS_KM, DOSSIER_FIELDS, archiveDossier, architecturePrompt, coversPlace, createDossier, createFolder, deleteDossier, deleteFolder, dossierChoices, dossierForPlace, dossierTree, folderPath, linkArea, moveFolder, renameFolder, unlinkArea, updateDossier } from "./eym-architecture.mjs";
 import { SETTINGS as BATTLE_SETTINGS } from "./eym-battle-settings.mjs";
 import { battleArtDirection, battleGridSvg, battlePacket, battleReferenceSvg, battleSceneData, battleTacticalSvg, darknessFor, weatherEffectFor } from "./eym-battle-render.mjs";
 import { BATTLE_SIZE_PRESETS, GRID_DENSITY_PRESETS, battleMapSpec } from "./eym-map-presets.mjs";
@@ -388,6 +390,9 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const title = spec.level === "planet" ? "Eym" : spec.level === "continent" ? continentName : nearest.s && nearest.d < 1.5 ? (spec.level === "local" ? nearest.s.properName : `The country around ${nearest.s.properName}`) : `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? "N" : "S"}, ${Math.abs(lon).toFixed(1)}°${lon >= 0 ? "E" : "W"}`;
     const map = buildReferenceMap(this._eymGeography, spec, { center: [lat, lon], continentId, title });
     const packet = mapPacket({ asset: this._eymGeography, spec, frame: map.frame, features: map.features, title });
+    // Region and local maps: the architecture dossier linked to the area goes into the prompt too.
+    const areaDossier = ["region", "local"].includes(spec.level) ? dossierForPlace(architectureLibrary(MODULE_ID), ...map.frame.center)?.dossier : null;
+    if (areaDossier) { const text = architecturePrompt(areaDossier); packet.prompt = `${packet.prompt}\n\n${text}`; packet.markdown = `${packet.markdown}\n## Architecture: ${areaDossier.name}\n\n${text}\n`; }
     const [basePng, labelledPng] = await Promise.all([svgToPng(map.baseSvg, spec.widthPx, spec.heightPx), svgToPng(map.labelledSvg, spec.widthPx, spec.heightPx)]);
     // The local level also gets the ground in detail: fields, woods, streams, lanes and farmsteads.
     let detailPng = null;
@@ -548,6 +553,16 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     for (const el of [size, density, root.querySelector('[name="battleOrientation"]')]) el?.addEventListener("change", sync);
     sync();
     const guard = (label, task) => () => void task().catch((error) => { console.error(`${MODULE_ID} | ${label}`, error); this.#paintStatus(`${label}: ${error.message}`); ui.notifications.error(`${label}: ${error.message}`); });
+    // The GM's checklist of features, by category.
+    const extras = root.querySelector("[data-battle-extras]");
+    if (extras) {
+      extras.replaceChildren(...MAP_FEATURE_CATEGORIES.map((cat) => { const set = document.createElement("fieldset"); set.append(Object.assign(document.createElement("legend"), { textContent: cat.label })); for (const f of MAP_FEATURES.filter((x) => x.category === cat.id)) { const label = document.createElement("label"); label.append(Object.assign(document.createElement("input"), { type: "checkbox", name: "battleExtra", value: f.id }), document.createTextNode(f.label)); set.append(label); } return set; }));
+      const count = () => { const n = root.querySelectorAll('[name="battleExtra"]:checked').length, el = root.querySelector("[data-battle-extras-count]"); if (el) el.textContent = n ? `(${n} chosen)` : ""; };
+      extras.addEventListener("change", count);
+      root.querySelector('[data-action="battle-extras-clear"]')?.addEventListener("click", () => { for (const box of root.querySelectorAll('[name="battleExtra"]')) box.checked = false; count(); });
+    }
+    this.#refreshArchitectureSelect();
+    this.#setUpDossierPanel(root);
     root.querySelector('[data-action="battle-build"]')?.addEventListener("click", guard("Unable to make the battle map", () => this.#buildBattle()));
     root.querySelector('[data-action="battle-create-scene"]')?.addEventListener("click", guard("Unable to create the scene", () => this.#createBattleScene()));
   }
@@ -556,6 +571,105 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const value = (name) => root.querySelector(`[name="${name}"]`)?.value;
     const saved = savedMapDefaults(MODULE_ID).battle;
     return battleMapSpec({ ...saved, size: value("battleSize") ?? saved.size, density: value("battleDensity") ?? saved.density, orientation: value("battleOrientation") ?? "auto" });
+  }
+
+  // ---------------------------------------------------------------- architecture dossiers
+
+  #library() { return architectureLibrary(MODULE_ID); }
+  async #saveLibrary(lib, message = "") {
+    if (!game.user?.isGM) throw new Error("only the GM edits the architecture dossiers");
+    await game.settings.set(MODULE_ID, ARCHITECTURE_SETTING, lib);
+    this.#refreshArchitectureSelect(); this.#renderDossierPanel();
+    if (message) { const el = this.element?.querySelector?.("[data-dossier-status]"); if (el) el.textContent = message; }
+  }
+  #newId() { return foundry.utils?.randomID?.() ?? `d${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`; }
+  async #confirm(title, text) {
+    const Dialog = foundry.applications?.api?.DialogV2;
+    if (Dialog?.confirm) return Boolean(await Dialog.confirm({ window: { title }, content: `<p>${text}</p>`, rejectClose: false }));
+    return globalThis.confirm ? globalThis.confirm(text) : false;
+  }
+
+  /** The battle card's architecture choice: automatic (the dossier linked to the area), none, or one dossier. */
+  #refreshArchitectureSelect() {
+    const select = this.element?.querySelector?.('[name="battleArchitecture"]'); if (!select) return;
+    const previous = select.value || "auto", option = (value, label) => Object.assign(document.createElement("option"), { value, textContent: label });
+    const groups = new Map(); for (const c of dossierChoices(this.#library())) { if (!groups.has(c.path)) groups.set(c.path, []); groups.get(c.path).push(c); }
+    select.replaceChildren(option("auto", "The dossier linked to this area"), option("none", "None"), ...[...groups].map(([path, items]) => { const g = Object.assign(document.createElement("optgroup"), { label: path || "Top level" }); g.append(...items.map((c) => option(c.id, c.name))); return g; }));
+    select.value = [...select.options].some((o) => o.value === previous) ? previous : "auto";
+  }
+
+  /** The dossier for a battle map; a dossier picked by hand is linked to the area, so next time it comes up by itself. */
+  async #dossierForBattle(root, lat, lon) {
+    const choice = root.querySelector('[name="battleArchitecture"]')?.value ?? "auto", lib = this.#library();
+    if (choice === "none") return null;
+    if (choice === "auto") return dossierForPlace(lib, lat, lon)?.dossier ?? null;
+    const dossier = lib.dossiers.find((d) => d.id === choice); if (!dossier) return null;
+    if (game.user?.isGM && !coversPlace(dossier, lat, lon)) {
+      const nearest = this._eymGeography.settlements.filter((s) => s.properName).map((s) => ({ s, km: Math.hypot(s.lat - lat, (s.lon - lon) * Math.cos(lat * Math.PI / 180)) * 111.2 })).sort((a, b) => a.km - b.km)[0];
+      const area = nearest && nearest.km < DEFAULT_LINK_RADIUS_KM ? { lat: nearest.s.lat, lon: nearest.s.lon, radiusKm: DEFAULT_LINK_RADIUS_KM, label: nearest.s.properName } : { lat, lon, radiusKm: DEFAULT_LINK_RADIUS_KM, label: `${lat.toFixed(3)}°, ${lon.toFixed(3)}°` };
+      await this.#saveLibrary(linkArea(lib, dossier.id, area));
+      ui.notifications.info(`"${dossier.name}" will be used for ${area.label} from now on.`);
+      root.querySelector('[name="battleArchitecture"]').value = "auto";
+    }
+    return dossier;
+  }
+
+  #setUpDossierPanel(root) {
+    const panel = root.querySelector("[data-dossier-panel]"); if (!panel) return;
+    const guard = (label, task) => (event) => void Promise.resolve(task(event)).catch((error) => { console.error(`${MODULE_ID} | ${label}`, error); ui.notifications.error(`${label}: ${error.message}`); });
+    root.querySelector('[data-action="dossier-open"]')?.addEventListener("click", () => { panel.classList.remove("is-hidden"); this.#renderDossierPanel(); });
+    panel.querySelector('[data-action="dossier-close"]')?.addEventListener("click", () => panel.classList.add("is-hidden"));
+    panel.querySelector('[name="dossierShowArchived"]')?.addEventListener("change", () => this.#renderDossierPanel());
+    const parent = () => (this._dossierSelection?.type === "folder" ? this._dossierSelection.id : this.#library().dossiers.find((d) => d.id === this._dossierSelection?.id)?.folderId ?? null);
+    panel.querySelector('[data-action="dossier-new-folder"]')?.addEventListener("click", guard("New folder", async () => { const id = this.#newId(), parentId = parent(); this._dossierSelection = { type: "folder", id }; await this.#saveLibrary(createFolder(this.#library(), { name: "New folder", parentId }, id), "Folder created."); }));
+    panel.querySelector('[data-action="dossier-new"]')?.addEventListener("click", guard("New dossier", async () => { const id = this.#newId(), folderId = parent(); this._dossierSelection = { type: "dossier", id }; await this.#saveLibrary(createDossier(this.#library(), { name: "New dossier", folderId }, id, new Date().toISOString()), "Dossier created: write it once, use it everywhere."); }));
+    panel.querySelector("[data-dossier-tree]")?.addEventListener("click", (event) => { const button = event.target.closest("[data-select]"); if (!button) return; const [type, id] = button.dataset.select.split(":"); this._dossierSelection = { type, id }; this.#renderDossierPanel(); });
+    panel.querySelector("[data-dossier-editor]")?.addEventListener("click", guard("Dossier", async (event) => {
+      const button = event.target.closest("[data-dossier-action]"); if (!button) return;
+      const editor = panel.querySelector("[data-dossier-editor]"), sel = this._dossierSelection, lib = this.#library(), now = new Date().toISOString(), value = (name) => editor.querySelector(`[name="${name}"]`)?.value ?? "";
+      switch (button.dataset.dossierAction) {
+        case "save-dossier": await this.#saveLibrary(updateDossier(lib, sel.id, { name: value("name"), folderId: value("folderId") || null, ...Object.fromEntries(DOSSIER_FIELDS.map(({ key }) => [key, value(key)])) }, now), "Saved."); break;
+        case "archive": await this.#saveLibrary(archiveDossier(lib, sel.id, !lib.dossiers.find((d) => d.id === sel.id)?.archived, now), "Archive status changed."); break;
+        case "delete-dossier": if (await this.#confirm("Delete dossier", `Delete "${lib.dossiers.find((d) => d.id === sel.id)?.name}"? Archive it instead to keep it.`)) { this._dossierSelection = null; await this.#saveLibrary(deleteDossier(lib, sel.id), "Deleted."); } break;
+        case "unlink": await this.#saveLibrary(unlinkArea(lib, sel.id, Number(button.dataset.index)), "Area removed."); break;
+        case "link-here": {
+          const lat = Number(root.querySelector('[name="lookUpLat"]')?.value), lon = Number(root.querySelector('[name="lookUpLon"]')?.value); if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error("set a place in Here and now first");
+          await this.#saveLibrary(linkArea(lib, sel.id, { lat, lon, radiusKm: Math.max(0.5, Number(value("radiusKm")) || DEFAULT_LINK_RADIUS_KM), label: value("areaLabel") || `${lat.toFixed(3)}°, ${lon.toFixed(3)}°` }), "Linked to the Here and now place.");
+          break;
+        }
+        case "save-folder": { let next = renameFolder(lib, sel.id, value("name")); next = moveFolder(next, sel.id, value("parentId") || null); await this.#saveLibrary(next, "Folder saved."); break; }
+        case "delete-folder": if (await this.#confirm("Delete folder", "Delete this folder? Its dossiers and folders move up a level; nothing is lost.")) { this._dossierSelection = null; await this.#saveLibrary(deleteFolder(lib, sel.id), "Folder deleted; its contents moved up."); } break;
+        default: break;
+      }
+    }));
+  }
+
+  /** Draw the folder tree and the editor for the selection. */
+  #renderDossierPanel() {
+    const panel = this.element?.querySelector?.("[data-dossier-panel]"); if (!panel || panel.classList.contains("is-hidden")) return;
+    const lib = this.#library(), sel = this._dossierSelection, showArchived = panel.querySelector('[name="dossierShowArchived"]')?.checked ?? false;
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+    const item = (type, x, icon, extra = "") => `<button type="button" data-select="${type}:${esc(x.id)}" class="${sel?.type === type && sel.id === x.id ? "is-selected" : ""} ${extra}"><i class="fa-solid ${icon}"></i> ${esc(x.name)}${x.archived ? " (archived)" : ""}</button>`;
+    const tree = (node) => `<ul>${node.folders.map((f) => `<li>${item("folder", f, "fa-folder")}${tree(f)}</li>`).join("")}${node.dossiers.map((d) => `<li>${item("dossier", d, "fa-landmark", d.archived ? "is-archived" : "")}</li>`).join("")}</ul>`;
+    const root = dossierTree(lib, { showArchived });
+    panel.querySelector("[data-dossier-tree]").innerHTML = root.folders.length || root.dossiers.length ? tree(root) : `<p class="oscm-muted">No dossiers yet. Make one for each people's way of building; link it to the places where they live.</p>`;
+    const folderOptions = (selected, exclude = null) => `<option value="">Top level</option>${lib.folders.filter((f) => f.id !== exclude).map((f) => ({ f, path: folderPath(lib, f.id) })).sort((a, b) => a.path.localeCompare(b.path)).map(({ f, path }) => `<option value="${esc(f.id)}" ${f.id === selected ? "selected" : ""}>${esc(path)}</option>`).join("")}`;
+    const editor = panel.querySelector("[data-dossier-editor]");
+    const dossier = sel?.type === "dossier" ? lib.dossiers.find((d) => d.id === sel.id) : null, folder = sel?.type === "folder" ? lib.folders.find((f) => f.id === sel.id) : null;
+    if (dossier) {
+      editor.innerHTML = `<label><span>Name</span><input name="name" value="${esc(dossier.name)}"></label>
+        <label><span>Folder</span><select name="folderId">${folderOptions(dossier.folderId)}</select></label>
+        ${DOSSIER_FIELDS.map(({ key, label, short }) => `<label><span>${esc(label)}</span>${short ? `<input name="${key}" value="${esc(dossier[key])}">` : `<textarea name="${key}">${esc(dossier[key])}</textarea>`}</label>`).join("")}
+        <div class="oscm-atlas-actions"><button type="button" data-dossier-action="save-dossier"><i class="fa-solid fa-floppy-disk"></i> Save</button><button type="button" data-dossier-action="archive">${dossier.archived ? "Unarchive" : "Archive"}</button><button type="button" data-dossier-action="delete-dossier"><i class="fa-solid fa-trash"></i> Delete</button></div>
+        <strong>Used in these areas</strong>
+        <ul>${dossier.areas.map((a, k) => `<li>${esc(a.label || `${a.lat.toFixed(3)}°, ${a.lon.toFixed(3)}°`)} · ${a.radiusKm} km <button type="button" data-dossier-action="unlink" data-index="${k}">Remove</button></li>`).join("") || "<li class='oscm-muted'>None yet: pick it for a battle map, or link it here.</li>"}</ul>
+        <div class="oscm-atlas-actions"><input name="areaLabel" placeholder="Area name (optional)"><input name="radiusKm" type="number" min="0.5" max="500" step="0.5" value="${DEFAULT_LINK_RADIUS_KM}" title="Radius (km)"><button type="button" data-dossier-action="link-here">Link to the Here and now place</button></div>
+        <strong>In the image prompt</strong><pre>${esc(architecturePrompt(dossier) || "(empty: write something above and save)")}</pre>`;
+    } else if (folder) {
+      editor.innerHTML = `<label><span>Folder name</span><input name="name" value="${esc(folder.name)}"></label>
+        <label><span>Inside</span><select name="parentId">${folderOptions(folder.parentId, folder.id)}</select></label>
+        <div class="oscm-atlas-actions"><button type="button" data-dossier-action="save-folder"><i class="fa-solid fa-floppy-disk"></i> Save</button><button type="button" data-dossier-action="delete-folder"><i class="fa-solid fa-trash"></i> Delete folder</button></div>`;
+    } else editor.innerHTML = `<p class="oscm-muted">Choose a dossier or folder, or make a new one.</p>`;
   }
 
   /** Ground, weather and light at a place now (from the campaign clock), for the rules and the scene. */
@@ -582,14 +696,17 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     ui.notifications.info("Laying out the battle map…");
     await new Promise((resolve) => setTimeout(resolve, 30));
     const env = useClock ? await this.#battleConditions(lat, lon) : { conditions: {}, words: { time: "", weather: "", light: "" } };
-    const map = buildBattleMap(this._eymGeography, { center: [lat, lon], spec, conditions: env.conditions, setting: root.querySelector('[name="battleSetting"]')?.value ?? "auto" });
+    const extras = [...root.querySelectorAll('[name="battleExtra"]:checked')].map((box) => box.value);
+    const map = buildBattleMap(this._eymGeography, { center: [lat, lon], spec, conditions: env.conditions, setting: root.querySelector('[name="battleSetting"]')?.value ?? "auto", extras });
+    const dossier = await this.#dossierForBattle(root, lat, lon);
+    const architecture = architecturePrompt(dossier);
     const nearest = this._eymGeography.settlements.filter((s) => s.properName).reduce((best, s) => { const d = Math.hypot(s.lat - lat, (s.lon - lon) * Math.cos(lat * Math.PI / 180)); return d < best.d ? { s, d } : best; }, { s: null, d: Infinity });
     const place = nearest.s && nearest.d < 0.3 ? `near ${nearest.s.properName}` : `${Math.abs(lat).toFixed(3)}°${lat >= 0 ? "N" : "S"}, ${Math.abs(lon).toFixed(3)}°${lon >= 0 ? "E" : "W"}`;
     const title = `${BATTLE_SETTINGS[map.setting].label}, ${place}`;
     const referenceSvg = battleReferenceSvg(map), tacticalSvg = battleTacticalSvg(map);
     const basePng = await svgToPng(referenceSvg, spec.widthPx, spec.heightPx), labelledPng = await layerSvg(basePng, tacticalSvg, spec.widthPx, spec.heightPx);
-    const prompt = battleArtDirection(map, { timeWords: env.words.time ? `Season and time: ${env.words.time}.` : "", weatherWords: env.words.weather ? `Weather: ${env.words.weather}; show its effect on the ground (wet, snowy or dry) but not falling rain or snow.` : "" });
-    const packet = battlePacket(map, { title, place, timeWords: env.words.time, weatherWords: env.words.weather, lightWords: env.words.light });
+    const prompt = battleArtDirection(map, { architecture, timeWords: env.words.time ? `Season and time: ${env.words.time}.` : "", weatherWords: env.words.weather ? `Weather: ${env.words.weather}; show its effect on the ground (wet, snowy or dry) but not falling rain or snow.` : "" });
+    const packet = battlePacket(map, { title, place, timeWords: env.words.time, weatherWords: env.words.weather, lightWords: env.words.light, architecture, dossierName: dossier?.name ?? "" });
     for (const url of this._atlasResult?.urls ?? []) URL.revokeObjectURL(url);
     const urls = { base: URL.createObjectURL(basePng), labelled: URL.createObjectURL(labelledPng) };
     const fileStem = `eym-battle-${map.setting}-${place.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
@@ -598,7 +715,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this.#setResultKind("battle");
     this.#showPainted(null);
     root.querySelector("[data-atlas-title]").textContent = title;
-    root.querySelector("[data-atlas-result-summary]").textContent = `${spec.summary} · ${map.analysis.routes} routes · cover ${Math.round(map.analysis.coverShare * 100)}%`;
+    root.querySelector("[data-atlas-result-summary]").textContent = `${spec.summary} · ${map.analysis.routes} routes · cover ${Math.round(map.analysis.coverShare * 100)}%${dossier ? ` · architecture: ${dossier.name}` : ""}`;
     const notes = root.querySelector("[data-battle-notes]"); if (notes) notes.textContent = map.notes.join(" ");
     this.#paintStatus(game.user?.isGM ? "Not painted yet: the scene can use the reference layout, or paint it first." : "");
     root.querySelector("[data-atlas-result]")?.classList.remove("is-hidden");
