@@ -59,6 +59,25 @@ export function orthographicProject(latDeg, lonDeg, yaw = 0, pitch = 0, radius =
   return { x: x * radius, y: -y * radius, z, visible: z >= 0 };
 }
 
+/**
+ * The inverse of orthographicProject: a point on the disc (x, y relative to the globe's centre, the same
+ * units as `radius`) back to latitude and longitude in degrees; null off the globe.
+ */
+export function orthographicUnproject(x, y, yaw = 0, pitch = 0, radius = 250) {
+  const X = x / radius, Y = -y / radius, r2 = X * X + Y * Y; if (!(r2 <= 1)) return null;
+  const Z = Math.sqrt(1 - r2), y0 = Y * Math.cos(pitch) + Z * Math.sin(pitch), z0 = -Y * Math.sin(pitch) + Z * Math.cos(pitch);
+  const lat = Math.asin(Math.max(-1, Math.min(1, y0))) * 180 / Math.PI, lon = (Math.atan2(X, z0) - yaw) * 180 / Math.PI;
+  return { lat, lon: ((((lon + 180) % 360) + 360) % 360) - 180 };
+}
+
+/** A latitude and longitude as text, e.g. "6.79°S 0.41°E" (decimals as asked). */
+export function formatLatLon(lat, lon, decimals = 2) {
+  return `${Math.abs(lat).toFixed(decimals)}°${lat >= 0 ? "N" : "S"} ${Math.abs(lon).toFixed(decimals)}°${lon >= 0 ? "E" : "W"}`;
+}
+
+/** Decimals worth showing at a zoom (the globe is ~500 units across at zoom 1). */
+export const latLonDecimals = (zoom) => (zoom < 2 ? 1 : zoom < 8 ? 2 : 3);
+
 export function bodyVisualContract(model, geography = null) {
   if (geography) return { kind: geography.schemaVersion === 2 ? "refined-cartographic-globe" : "geographic-globe", atmosphere: true, features: geography.schemaVersion === 2 ? geography.gazetteer.length + geography.settlements.length : geography.cells.length };
   if (["terrestrial", "moon", "minor-world", "giant"].includes(model.kind)) return { kind: `${model.kind}-globe`, atmosphere: model.kind === "giant" || model.atmosphere !== "none or negligible", features: model.regions.length };
@@ -66,9 +85,9 @@ export function bodyVisualContract(model, geography = null) {
 }
 
 export class BodyView {
-  constructor(svgRoot, { model, geography = null, onExitRequested = () => {}, onFeatureSelected = () => {} }) {
+  constructor(svgRoot, { model, geography = null, onExitRequested = () => {}, onFeatureSelected = () => {}, onPlaceSelected = () => {} }) {
     this.svg = svgRoot; this.model = model; this.geography = geography;
-    this.onExitRequested = onExitRequested; this.onFeatureSelected = onFeatureSelected;
+    this.onExitRequested = onExitRequested; this.onFeatureSelected = onFeatureSelected; this.onPlaceSelected = onPlaceSelected;
     this.state = { yaw: -.35, pitch: .18, zoom: 1 }; this.pointers = new Map(); this.drag = null; this.pinch = null; this.exitTriggered = false;
     this.build(); this.attachEvents(); this.render();
   }
@@ -354,15 +373,62 @@ export class BodyView {
   attachEvents() {
     const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
     this.listeners = {
-      pointerdown: (event) => { const p = { id: event.pointerId, x: event.clientX, y: event.clientY }; this.pointers.set(p.id, p); this.svg.setPointerCapture?.(p.id); if (this.pointers.size === 1) this.drag = { ...p, yaw: this.state.yaw, pitch: this.state.pitch }; else { const [a, b] = [...this.pointers.values()]; this.drag = null; this.pinch = { distance: dist(a, b), zoom: this.state.zoom }; } },
-      pointermove: (event) => { const p = this.pointers.get(event.pointerId); if (!p) return; p.x = event.clientX; p.y = event.clientY; if (this.pinch && this.pointers.size > 1) { const [a, b] = [...this.pointers.values()]; this.changeZoom(this.pinch.zoom * dist(a, b) / this.pinch.distance); } else if (this.drag) { this.state.yaw = this.drag.yaw + (event.clientX - this.drag.x) * .008; this.state.pitch = clamp(this.drag.pitch + (event.clientY - this.drag.y) * .008, -1.45, 1.45); this.render(); } },
-      pointerup: (event) => { this.pointers.delete(event.pointerId); this.drag = null; this.pinch = null; },
+      pointerdown: (event) => { const p = { id: event.pointerId, x: event.clientX, y: event.clientY }; this.press = this.pointers.size === 0 ? { ...p } : null; this.pointers.set(p.id, p); this.svg.setPointerCapture?.(p.id); if (this.pointers.size === 1) this.drag = { ...p, yaw: this.state.yaw, pitch: this.state.pitch }; else { const [a, b] = [...this.pointers.values()]; this.drag = null; this.pinch = { distance: dist(a, b), zoom: this.state.zoom }; } },
+      pointermove: (event) => { this.#hover(event); const p = this.pointers.get(event.pointerId); if (!p) return; p.x = event.clientX; p.y = event.clientY; if (this.pinch && this.pointers.size > 1) { const [a, b] = [...this.pointers.values()]; this.changeZoom(this.pinch.zoom * dist(a, b) / this.pinch.distance); } else if (this.drag) { this.state.yaw = this.drag.yaw + (event.clientX - this.drag.x) * .008; this.state.pitch = clamp(this.drag.pitch + (event.clientY - this.drag.y) * .008, -1.45, 1.45); this.render(); } },
+      // A press that ends where it began is a click (the pointer capture used for dragging keeps clicks
+      // from reaching the markers, so the view picks for them): a settlement or feature near it, else the place.
+      pointerup: (event) => { const press = this.press; this.press = null; this.pointers.delete(event.pointerId); this.drag = null; this.pinch = null; if (press && press.id === event.pointerId && Math.hypot(event.clientX - press.x, event.clientY - press.y) < 6) this.#click(event); },
+      pointerleave: () => this.#hideReadout(),
       pointercancel: (event) => this.listeners.pointerup(event),
       wheel: (event) => { event.preventDefault(); this.changeZoom(this.state.zoom * Math.exp(-event.deltaY * .0012)); },
       dblclick: (event) => { if (event.target === this.svg) this.resetView(); },
     };
     for (const [event, handler] of Object.entries(this.listeners)) this.svg.addEventListener(event, handler, event === "wheel" ? { passive: false } : undefined);
   }
+
+  /** A client (screen) point in the view's own units, relative to the globe's centre. */
+  #local(event) {
+    const m = this.svg.getScreenCTM?.(); if (!m || typeof DOMPoint === "undefined") return null;
+    const p = new DOMPoint(event.clientX, event.clientY).matrixTransform(m.inverse()); return { x: p.x - 450, y: p.y - 340, sx: p.x, sy: p.y };
+  }
+
+  /** The visible point feature (a settlement first) within reach of a point in view units, if any. */
+  pickFeature(sx, sy, reach = 11) {
+    const radius = 250 * this.state.zoom; let best = null;
+    for (const item of this.featureNodes ?? []) {
+      if (item.cartographicPath || item.schematic || !Number.isFinite(item.lat) || item.node?.hidden || !item.feature) continue;
+      const p = orthographicProject(item.lat, item.lon, this.state.yaw, this.state.pitch, radius); if (!p.visible) continue;
+      const settlement = /settlement/.test(item.node?.getAttribute?.("class") ?? "") || ["capital", "city", "town", "village", "fort", "port"].includes(item.feature.featureClass ?? item.feature.kind);
+      const d = Math.hypot(450 + p.x - sx, 340 + p.y - sy) - (settlement ? 4 : 0); if (d > reach) continue;
+      if (!best || d < best.d) best = { d, feature: item.feature };
+    }
+    return best?.feature ?? null;
+  }
+
+  #click(event) {
+    if (!this.geography) return;
+    const at = this.#local(event); if (!at) return;
+    const feature = this.pickFeature(at.sx, at.sy); if (feature) { this.onFeatureSelected(feature); return; }
+    const place = orthographicUnproject(at.x, at.y, this.state.yaw, this.state.pitch, 250 * this.state.zoom); if (place) this.onPlaceSelected(place);
+  }
+
+  /** The latitude and longitude under the cursor, beside it (and the settlement under it, if any). */
+  #hover(event) {
+    if (!this.geography || this.drag || this.pinch) { if (this.drag || this.pinch) this.#hideReadout(); return; }
+    const at = this.#local(event), place = at && orthographicUnproject(at.x, at.y, this.state.yaw, this.state.pitch, 250 * this.state.zoom); if (!place) { this.#hideReadout(); return; }
+    if (!this.readout?.isConnected) {
+      const ns = "http://www.w3.org/2000/svg"; this.readout = document.createElementNS(ns, "g"); this.readout.setAttribute("class", "oscm-cursor-readout"); this.readout.setAttribute("pointer-events", "none");
+      this.readoutBox = document.createElementNS(ns, "rect"); this.readoutBox.setAttribute("rx", "3"); this.readoutText = document.createElementNS(ns, "text");
+      this.readout.append(this.readoutBox, this.readoutText); this.svg.append(this.readout);
+    }
+    const feature = this.pickFeature(at.sx, at.sy), name = feature ? (feature.properName ?? feature.name ?? "") : "";
+    this.readoutText.textContent = `${name ? `${name} · ` : ""}${formatLatLon(place.lat, place.lon, latLonDecimals(this.state.zoom))}`;
+    const w = 7.2 * this.readoutText.textContent.length + 10, x = Math.min(900 - w - 4, at.sx + 14), y = Math.max(18, at.sy - 14);
+    this.readoutBox.setAttribute("x", x); this.readoutBox.setAttribute("y", y - 13); this.readoutBox.setAttribute("width", w); this.readoutBox.setAttribute("height", 18);
+    this.readoutText.setAttribute("x", x + 5); this.readoutText.setAttribute("y", y); this.readout.removeAttribute("display");
+  }
+
+  #hideReadout() { this.readout?.setAttribute("display", "none"); }
 
   changeZoom(requested) { if (requested < .43 && !this.exitTriggered) { this.exitTriggered = true; this.onExitRequested(); return; } this.state.zoom = clamp(requested, .46, this.maxZoom ?? 4.5); this.render(); }
   render() {

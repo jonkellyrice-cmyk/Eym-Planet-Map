@@ -137,3 +137,7 @@
 .oscm-weather-wind { fill: none; stroke: rgba(230,245,255,.75); stroke-width: 1; pointer-events: none; }
 .oscm-weather-wind.is-gale { stroke: #ffcf6b; stroke-width: 1.4; }
 .oscm-sky-cloud { fill: #8a96a3; pointer-events: none; }
+
+/* The latitude and longitude under the cursor on Eym's globe. */
+.oscm-cursor-readout rect { fill: rgba(10, 14, 22, 0.86); stroke: rgba(242, 239, 230, 0.35); stroke-width: 1; }
+.oscm-cursor-readout text { fill: #f2efe6; font: 600 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }

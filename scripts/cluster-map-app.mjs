@@ -12,6 +12,8 @@
 import { buildSystemModel, loadSystemRegistry } from "./system-data.mjs";
 import { SystemView } from "./system-view.mjs";
 import { BodyView } from "./body-view.mjs";
+import { formatLatLon } from "./body-view-core.mjs";
+import { greatCircleKm } from "./eym-surface.mjs";
 import { naturalBodyKind, buildNaturalBodyModel } from "./natural-body-data.mjs";
 import { artificialBodyKind, buildArtificialBodyModel } from "./artificial-body-data.mjs";
 import { inspectSurfaceFeature } from "./body-layers.mjs";
@@ -945,7 +947,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
         if (operations && artificialBodyKind(object)) model = buildArtificialBodyModel(object, operations);
       }
       this._clusterView?.destroy();
-      this._clusterView = new BodyView(svg, { model, geography, operations, ownerFaction: object.owner_faction, onExitRequested: () => this.#showSystem(), onFeatureSelected: (feature) => this.#updateBodyFeature(feature) });
+      this._clusterView = new BodyView(svg, { model, geography, operations, ownerFaction: object.owner_faction, onExitRequested: () => this.#showSystem(), onFeatureSelected: (feature) => this.#updateBodyFeature(feature), onPlaceSelected: (place) => this.#selectPlace(place) });
       this.#leaveSky(root);
       this.mode = "body"; this.activeBody = object;
       // Eym: real day and night and the seasons on the globe, kept current with the clock.
@@ -981,11 +983,27 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const lat = Number(feature.lat ?? feature.at?.[0]), lon = Number(feature.lon ?? feature.at?.[1]);
     if (Number.isFinite(lat) && Number.isFinite(lon)) {
       const latInput = root.querySelector('[name="lookUpLat"]'), lonInput = root.querySelector('[name="lookUpLon"]');
-      if (latInput) latInput.value = lat.toFixed(1);
-      if (lonInput) lonInput.value = ((((lon + 180) % 360) + 360) % 360 - 180).toFixed(1);
+      if (latInput) latInput.value = String(Math.round(lat * 1e4) / 1e4);
+      if (lonInput) lonInput.value = String(Math.round(((((lon + 180) % 360) + 360) % 360 - 180) * 1e4) / 1e4);
       this.#updatePlaceReadout();
     }
     const values = { objectName: inspected.name, objectType: inspected.type, objectParent: (this.activeBody && objectDisplayName(this.activeBody)) || "—", objectRole: inspected.detail, objectScale: inspected.scale ?? (feature.suitability != null ? `Settlement suitability ${feature.suitability}` : "Survey extent not fixed") };
+    for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-field="${field}"]`); if (element) element.textContent = value; }
+  }
+
+  /** A place clicked on Eym's surface (not on a feature): it becomes the place for the sky, Here and now, atlas and battle maps. */
+  #selectPlace({ lat, lon }) {
+    const root = this.element?.querySelector?.(".oscm-shell"), card = root?.querySelector(".oscm-object-details"); if (!root) return;
+    const round = (v) => String(Math.round(v * 1e4) / 1e4), latInput = root.querySelector('[name="lookUpLat"]'), lonInput = root.querySelector('[name="lookUpLon"]');
+    if (latInput) latInput.value = round(lat); if (lonInput) lonInput.value = round(lon);
+    this.#updatePlaceReadout();
+    const named = (this._eymGeography?.settlements ?? []).filter((x) => x.properName && Number.isFinite(x.lat));
+    const nearest = named.reduce((best, x) => { const d = greatCircleKm([lat, lon], [x.lat, x.lon]); return d < best.d ? { x, d } : best; }, { x: null, d: Infinity });
+    const values = {
+      objectName: formatLatLon(lat, lon, 4), objectType: "A place on Eym (clicked)", objectParent: (this.activeBody && objectDisplayName(this.activeBody)) || "Eym",
+      objectRole: nearest.x ? `${Math.round(nearest.d)} km from ${nearest.x.properName} (${nearest.x.kind})` : "—", objectScale: "Set as the place for the sky, Here and now, atlas and battle maps",
+    };
+    card?.classList.remove("is-hidden");
     for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-field="${field}"]`); if (element) element.textContent = value; }
   }
 
