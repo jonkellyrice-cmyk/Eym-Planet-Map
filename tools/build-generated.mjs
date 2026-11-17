@@ -7,6 +7,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { parseCsv } from "../scripts/system-data.mjs";
 import { tectonicSourcesSha256 } from "./generate-eym-tectonics.mjs";
+import { climateSourcesSha256 } from "./generate-eym-climate.mjs";
 
 const root = new URL("../", import.meta.url), cwd = fileURLToPath(root);
 const run = (...args) => execFileSync(process.execPath, args, { cwd, stdio: "inherit" });
@@ -23,7 +24,12 @@ if (tect?.sourcesSha256 !== tectonicSourcesSha256()) {
   if (tect?.sourcesSha256 !== tectonicSourcesSha256()) { console.log("The tectonic history is not finished: run npm run build again."); process.exit(0); }
 }
 
-// (Imported only now: it reads the tectonic history written above.)
+// The ocean climate (data/eym/climate.json) follows the land: made again (about a quarter of a minute) when its
+// sources changed, the tectonic history among them.
+const readClimate = () => { try { return JSON.parse(readFileSync(new URL("data/eym/climate.json", root), "utf8")); } catch { return null; } };
+if (readClimate()?.sourcesSha256 !== climateSourcesSha256()) { run("tools/generate-eym-climate.mjs"); changed = true; }
+
+// (Imported only now: it reads the tectonic history and the climate written above.)
 const { eymFingerprintFromRepo } = await import("./eym-world.mjs");
 const csvUrl = new URL("docs/system-orbital-distances.csv", root), csv = readFileSync(csvUrl, "utf8");
 const row = parseCsv(csv).find((r) => r.object === "Eventide"), fingerprint = eymFingerprintFromRepo();
