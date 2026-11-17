@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.20.0 (2026-11-17)
+
+Stage 2a of Eym's physical history: ocean currents, sea temperature and climate.
+
+- Wind-driven surface currents from the wind belts, Eym's rotation and the coastlines (`tools/generate-eym-climate.mjs`, solved for four seasons on a 2° grid), with Ekman drift and upwelling. A strong circumpolar current runs east in the southern westerlies; gyres and boundary currents form where Caren, Garyk and Gaffa block the flow. The currents are in their own file, `data/planet-cartography/abydos/eventide-ocean.json`, loaded only for the currents overlay; `scripts/eym-climate.mjs` reads them back (`currentAt`).
+- A sea-temperature anomaly map by season (`data/eym/climate.json`), carried by the year-round currents: warm and cold wakes keep their sign all year, are at most about 2 °C, are strongest in each hemisphere's winter and fade 20–30° downstream. Each wide equatorial basin has a warm pool in the west and a cold tongue in the east.
+- A slow El Niño-like oscillation, deterministic from the clock (three cycles of 3.7, 5.3 and 2.6 years), warming or cooling the east of the great equatorial ocean by up to about 2 °C (`ensoIndex`, `describeEnso`).
+- Fed into what exists: coastal and sea temperatures (`seasonalTemperature` takes the anomaly), rain on nearby coasts (wetter beside warm water, drier beside cold), biomes, the weather and battle-map conditions.
+- The tropical rain belt follows the Sun through the year, at 0.4 of its declination (weaker than Earth's, as on an aquaplanet). Daily ranges on land are narrowed to 2–4 °C and the inland seasonal swing is weighed down.
+- Tropical cyclones form only over sea at 25.5 °C or warmer, so they come from the warm pools: about 58 a year (threshold and rate changed). Rain was recalibrated with `tools/calibrate-eym-weather.mjs`, so mean rainfall matches the climate as before.
+- The weather on any given date changes. On the land: 3 of Caren's 128 cells change biome (rainforest and seasonal forest), 1 of Garyk's 109 (steppe to savanna), 18 elsewhere. Caren's and Garyk's stored region tiles are left as they are until Stage 3.
+- Tests: a new `tests/eym-climate.test.mjs` (6 tests). Updated: the pinned hash of `docs/system-orbital-distances.csv` in `tests/cartography-acceptance.test.mjs`, because the cartography fingerprint now covers the climate.
+
 ## 0.19.0 (2026-11-17)
 
 Gaffa, Khohalis and Demani move to the far side of Eym (the owner's decision); the plates are fitted again.
