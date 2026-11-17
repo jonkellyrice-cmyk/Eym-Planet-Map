@@ -23,6 +23,12 @@ const GROUND_COLORS = Object.freeze({
   "deep channel": "#2f7fa8", shallows: "#6fc8c8", sandbar: "#efe2b8", road: "#a58a62", "cobbled street": "#9b9488", "dirt lane": "#a88c62", "paved square": "#b3ab9c", floor: "#8a6a4a", "black rock": "#3d3836", "ash and cinders": "#6f6a66",
 });
 const groundColor = (g) => GROUND_COLORS[g] ?? GROUND_COLORS[g.replace(/ \(mud\)$/, "")] ?? "#93a862";
+/** A square's colour on this map: bare rock takes the colour of the local bedrock (scripts/eym-geology.mjs). */
+const groundColorOn = (map, g) => (g === "bare rock" && map.geology?.rock ? mix(GROUND_COLORS["bare rock"], map.geology.rock.colour, 0.7) : groundColor(g));
+/** The natural rock features, which take the local rock's colour too. */
+const NATURAL_ROCK = new Set(["boulder", "boulder-pile", "rock-outcrop", "rock-shelf", "scree", "ledge", "sea-stack"]);
+/** A feature's definition on this map (natural rock tinted to the local bedrock). */
+const featureDefOn = (map, kind) => { const def = FEATURES[kind]; return NATURAL_ROCK.has(kind) && map.geology?.rock ? { ...def, color: mix(def.color, map.geology.rock.colour, 0.6) } : def; };
 const MUD = "#6b5a3e";
 /** Blend two #rrggbb colours (t = share of the second). */
 function mix(a, b, t) { const p = (h) => [1, 3, 5].map((k) => parseInt(h.slice(k, k + 2), 16)), [x, y] = [p(a), p(b)]; return `#${x.map((v, k) => Math.round(v + (y[k] - v) * t).toString(16).padStart(2, "0")).join("")}`; }
@@ -48,8 +54,8 @@ const f2 = (v) => Number(v).toFixed(2);
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 /** One feature drawn in square units (x, y top-left; w, h). */
-function featureShape(f) {
-  const { x, y, w, h } = f, cx = x + w / 2, cy = y + h / 2, def = FEATURES[f.kind], c = def.color;
+function featureShape(f, def = FEATURES[f.kind]) {
+  const { x, y, w, h } = f, cx = x + w / 2, cy = y + h / 2, c = def.color;
   switch (def.shape) {
     case "round": return `<circle cx="${f2(cx)}" cy="${f2(cy)}" r="${f2(Math.min(w, h) * 0.42)}" fill="${c}" stroke="#2a2622" stroke-width="0.06"/>`;
     case "tree": return `<circle cx="${f2(cx)}" cy="${f2(cy)}" r="${f2(0.75 * Math.min(w, h))}" fill="${c}" fill-opacity="0.92"/><circle cx="${f2(cx)}" cy="${f2(cy)}" r="0.18" fill="#5a3d24"/>`;
@@ -89,7 +95,7 @@ export function battleReferenceSvg(map, gridPx = map.spec.gridPx) {
   // Each square's colour: its ground, mud, and its height (higher a little lighter, lower a little darker).
   const levels = [...grid.elevationFt].filter((e, i) => !grid.void[i]), lo = Math.min(...levels), hi = Math.max(...levels), col = new Array(n);
   for (let i = 0; i < n; i += 1) {
-    let c = groundColor(grid.ground[i]); if (/\(mud\)$/.test(grid.ground[i])) c = mix(c, MUD, 0.35);
+    let c = groundColorOn(map, grid.ground[i]); if (/\(mud\)$/.test(grid.ground[i])) c = mix(c, MUD, 0.35);
     if (hi - lo >= 10 && !grid.void[i]) { const t = (grid.elevationFt[i] - lo) / (hi - lo); c = mix(c, t < 0.5 ? "#000000" : "#ffffff", Math.abs(t - 0.5) * 0.36); }
     col[i] = c;
   }
@@ -103,8 +109,8 @@ export function battleReferenceSvg(map, gridPx = map.spec.gridPx) {
   if (!map.flattened) for (const s of map.site.streams) out.push(`<path d="${line(s.line)}" fill="none" stroke="${s.kind === "river" ? "#4d8fbb" : "#6aa8cf"}" stroke-width="${f2(Math.max(0.6, s.widthSquares))}" stroke-linecap="round" stroke-linejoin="round"/>`);
   // Flat things lie on the ground; everything that stands is drawn in three-quarter view, north to south.
   const standing = [];
-  for (const f of map.features) { const def = FEATURES[f.kind]; if (def.shape === "tree") { standing.push({ y: f.y + f.h, x: f.x, svg: (f.kind === "planter-tree" ? `<rect x="${f2(f.x + 0.2)}" y="${f2(f.y + 0.55)}" width="0.6" height="0.35" fill="#8f877a"/>` : "") + obliqueTree({ x: f.x + f.w / 2, y: f.y + f.h - 0.2, size: f.kind === "planter-tree" ? 0.62 : 0.95 }) }); continue; } if (standHeightFt(f.kind, def) > 0) standing.push({ y: f.y + f.h, x: f.x, svg: obliqueFeature(f, def, featureShape(f)) }); else out.push(featureShape(f)); }
-  for (const o of map.objects) standing.push({ y: o.y, x: o.x, svg: o.kind === "tree" ? obliqueTree(o) : o.kind === "bush" ? obliqueBush(o) : obliqueBoulder(o) });
+  for (const f of map.features) { const def = featureDefOn(map, f.kind); if (def.shape === "tree") { standing.push({ y: f.y + f.h, x: f.x, svg: (f.kind === "planter-tree" ? `<rect x="${f2(f.x + 0.2)}" y="${f2(f.y + 0.55)}" width="0.6" height="0.35" fill="#8f877a"/>` : "") + obliqueTree({ x: f.x + f.w / 2, y: f.y + f.h - 0.2, size: f.kind === "planter-tree" ? 0.62 : 0.95 }) }); continue; } if (standHeightFt(f.kind, def) > 0) standing.push({ y: f.y + f.h, x: f.x, svg: obliqueFeature(f, def, featureShape(f, def)) }); else out.push(featureShape(f, def)); }
+  for (const o of map.objects) standing.push({ y: o.y, x: o.x, svg: o.kind === "tree" ? obliqueTree(o) : o.kind === "bush" ? obliqueBush(o) : obliqueBoulder(o, map.geology?.rock?.colour) });
   // An overhanging building shows its widest (top) outline: the painter is told its upper floors step out.
   for (const b of map.buildings) { const top = b.floorRects ? b.floorRects[(b.storeys ?? 2) - 1] : null, shown = top ? { ...b, ...top, rects: [top], chamfers: [] } : b; standing.push({ y: shown.y1 + 1, x: shown.x0, svg: obliqueShapedBuilding(shown, columns, rows, shown.chamfers?.length ? footprintPolygon(shown) : null) }); }
   for (const k of map.skybridges ?? []) { const r = { x0: k.x0, y0: k.y0, x1: k.x1, y1: k.y1 }; standing.push({ y: k.y1 + 1, x: k.x0, svg: obliqueShapedBuilding({ ...r, rects: [r], chamfers: [], storeys: 2, label: "house", door: null }, columns, rows, null) }); }
@@ -162,11 +168,11 @@ export function battleGridSvg(spec, gridPx = spec.gridPx) {
 
 /** What the colours and shapes in the reference mean, for the painter. */
 function legend(map) {
-  const grounds = [...new Set(map.grid.ground)].map((g) => `${groundColor(g)} = ${g}`);
-  const things = [...new Set(map.features.map((f) => `${FEATURES[f.kind].color} = ${FEATURES[f.kind].words ?? FEATURES[f.kind].label}`))];
+  const grounds = [...new Set(map.grid.ground)].map((g) => `${groundColorOn(map, g)} = ${g}`);
+  const things = [...new Set(map.features.map((f) => `${featureDefOn(map, f.kind).color} = ${FEATURES[f.kind].words ?? FEATURES[f.kind].label}`))];
   if (map.objects.some((o) => o.kind === "tree")) things.push("dark green discs = tree canopies (a brown dot marks a big trunk)");
   if (map.objects.some((o) => o.kind === "bush")) things.push("small mid-green discs = bushes");
-  if (map.objects.some((o) => o.kind === "boulder")) things.push("grey discs = boulders and stones");
+  if (map.objects.some((o) => o.kind === "boulder")) things.push(map.geology?.rock ? `${map.geology.rock.colourWords} discs = boulders and stones of the local ${map.geology.rock.name.split(" (")[0]}` : "grey discs = boulders and stones");
   if (map.buildings.length) things.push("brown rectangles with dark outlines = buildings seen from above (roofs); gold marks on their edges = doors");
   if (map.site.streams.length && !map.flattened) things.push("blue bands = water (streams and rivers)");
   if ((map.cliffs ?? []).length) things.push("thick dark lines = cliff edges and ledges (sheer drops of 10 ft or more; paint them as rock faces with strong shadows)");
@@ -198,6 +204,7 @@ export function battleArtDirection(map, { timeWords = "", weatherWords = "", arc
     `The setting: ${rules.words}.${timeWords ? ` ${timeWords}` : ""}${weatherWords ? ` ${weatherWords}` : ""} ${NEUTRAL_LIGHT}${season ? ` Season: ${seasonWords(season)}.` : ""}`,
     `The attached reference image is the authoritative layout of the battlefield, ${columns} by ${rows} squares of 5 feet (${columns * 5} by ${rows * 5} feet). Keep every building footprint, wall, door, tree trunk, boulder, log, wall, ridge, hazard, water edge, road and street exactly where it is, at the same size and shape: the game rules depend on them. Do not add, remove, move or merge any obstacle, building, water or path. You may add small surface detail (grass tufts, pebbles, leaf litter, cracks, roof tiles) that does not change what blocks or slows movement.`,
     `Colours in the reference mean: ${legend(map).join("; ")}. Paint each as the real thing, not as flat colour.`,
+    ...(map.geology?.rock ? [`The local rock is ${map.geology.rock.battle}. Paint exposed rock, cliff faces, ledges and boulders as this rock.`] : []),
     ...(heightWords(map) ? [heightWords(map)] : []),
     ...(chosen.length ? [`The map must clearly show these features, where the reference has them: ${chosen.join("; ")}.`] : []),
     ...(architecture ? [architecture] : []),
@@ -218,6 +225,7 @@ export function battlePacket(map, { title = "Battle map", place = "", timeWords 
     `- Setting: ${rules.label}${map.setting !== a.setting ? "" : ""} (biome: ${map.biome})`,
     `- Place: ${place || `${map.center[0].toFixed(5)}°, ${map.center[1].toFixed(5)}°`}; north at the top`,
     `- Size: ${map.spec.summary}`,
+    ...(map.geology?.rock ? [`- Rock: ${map.geology.rock.name}; soil: ${map.geology.soilWords}`, `- Stone and ores: ${map.geology.rock.stone}; ${map.geology.rock.ores.join(", ")}`] : []),
     ...(timeWords ? [`- When: ${timeWords}`] : []), ...(weatherWords ? [`- Weather: ${weatherWords}`] : []), ...(lightWords ? [`- Light: ${lightWords}`] : []), "",
     "## The field", "", ...map.notes.map((n) => `- ${n}`), "",
     "## Features", "",

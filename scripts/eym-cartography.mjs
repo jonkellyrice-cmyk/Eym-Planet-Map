@@ -11,6 +11,7 @@ import { buildElevationMesh, circlePolygon, smoothOpen } from "./planet-cartogra
 import { polygonize } from "./cartography-regions.mjs";
 import { EYM_LAYOUT, EYM_SURFACE_MODEL, fromLocal, greatCircleKm } from "./eym-surface.mjs";
 import { seaLevelTemperatureC, zonalPrecipitationMm } from "./eym-seasons.mjs";
+import { soilFromRock } from "./eym-geology.mjs";
 
 const DEG = Math.PI / 180;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -329,7 +330,8 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
       : cell.temperatureC < -1 ? "sea-ice" : cell.temperatureC > 23 ? "tropical-ocean" : "open-ocean";
     if (tect && cell.landCovered) { cell.arcKm = rangeKm(cell, "subduction"); cell.sutureKm = rangeKm(cell, "suture"); }
     cell.bedrock = tect ? bedrockFor(cell) : null;
-    cell.soil = soilFor(cell);
+    // With the plates, soil grows from the bedrock and the climate (scripts/eym-geology.mjs).
+    cell.soil = tect ? soilFromRock(cell) : soilFor(cell);
     cell.resource = resourceFor(cell);
     const comfort = clamp(1 - Math.abs(cell.temperatureC - 18) / 32, 0, 1), moisture = clamp(cell.precipitationMm / 1000, 0.1, 1.15), terrain = clamp(1 - Math.max(0, cell.elevationM - 1200) / 5000, 0.1, 1);
     cell.suitability = cell.landCovered ? Number((comfort * moisture * terrain * (["volcanic-fertile", "alluvial-fertile", "temperate-loam"].includes(cell.soil) ? 1 : 0.55)).toFixed(3)) : 0;
@@ -421,8 +423,10 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
     ...(tectonics ? { geology: {
       model: tectonics.model, seed: tectonics.seed,
       plates: tectonics.plates.map(({ id, name, kind, micro, pole, rateDegPerMyr }) => ({ id, name, kind, micro, pole, rateDegPerMyr })),
-      volcanoes: tectonics.volcanoes, history: tectonics.history, caren: tectonics.caren, garyk: tectonics.garyk,
-      bedrockKinds: BEDROCK_KINDS,
+      // (Volcanoes without their plate id and at 0.01°, to keep the asset within its mobile budget.)
+      volcanoes: tectonics.volcanoes.map(({ plate, at, ...v }) => ({ at: at.map((x) => Math.round(x * 100) / 100), ...v })), history: tectonics.history, caren: tectonics.caren, garyk: tectonics.garyk,
+      // The plate boundaries, for earthquakes (scripts/eym-quakes.mjs).
+      boundaries: packBoundaries(tectonics.boundaries),
     } } : {}),
     resolutionDeg: res, grid,
   };
@@ -491,6 +495,12 @@ function bedrockFor(cell) {
   if (cell.coastKm > (cell.continent === "Garyk" ? 100 : 280)) return "granite-gneiss";
   if (cell.temperatureC > 18 && cell.landElevationM < 300 && cell.coastKm < 250) return "limestone";
   return "sandstone-shale";
+}
+
+/** The plate boundaries packed small (the asset has a mobile budget): each kind's points as int16 tenths of a degree, lat then lon, base64. */
+function packBoundaries(boundaries) {
+  const pack = (points) => { const v = new Int16Array(points.length * 2); points.forEach(([lat, lon], i) => { v[2 * i] = Math.round(lat * 10); v[2 * i + 1] = Math.round(lon * 10); }); return Buffer.from(v.buffer).toString("base64"); };
+  return { encoding: "int16-le-tenth-degree", trenches: pack(boundaries.trenches), collisions: pack(boundaries.collisions), ridges: pack(boundaries.ridges) };
 }
 
 /** Points every `stepKm` along a [lat, lon] line. */

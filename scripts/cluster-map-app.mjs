@@ -47,6 +47,8 @@ import { SETTINGS as BATTLE_SETTINGS } from "./eym-battle-settings.mjs";
 import { battleArtDirection, battleGridSvg, battlePacket, battleReferenceSvg, battleSceneData, battleTacticalSvg, darknessFor, weatherEffectFor } from "./eym-battle-render.mjs";
 import { BATTLE_SIZE_PRESETS, GRID_DENSITY_PRESETS, battleMapSpec } from "./eym-map-presets.mjs";
 import { placeHistory, describeWeather } from "./eym-weather.mjs";
+import { describeGround, describeStone, geologyAt, localStonePrompt } from "./eym-geology.mjs";
+import { describeTremors, tremorsAt } from "./eym-quakes.mjs";
 import { sunAltitudeDeg, yearFraction } from "./eym-seasons.mjs";
 import { foliageSeason } from "./eym-battle-season.mjs";
 import { guardPageZoom } from "./zoom-guard.mjs";
@@ -412,7 +414,8 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const packet = mapPacket({ asset: this._eymGeography, spec, frame: map.frame, features: map.features, title });
     // Region and local maps: the architecture dossier linked to the area goes into the prompt too.
     const areaDossier = ["region", "local"].includes(spec.level) ? dossierForPlace(architectureLibrary(MODULE_ID), ...map.frame.center)?.dossier : null;
-    if (areaDossier) { const text = architecturePrompt(areaDossier); packet.prompt = `${packet.prompt}\n\n${text}`; packet.markdown = `${packet.markdown}\n## Architecture: ${areaDossier.name}\n\n${text}\n`; }
+    // A dossier that says nothing of materials takes the local stone (scripts/eym-geology.mjs).
+    if (areaDossier) { const text = [architecturePrompt(areaDossier), areaDossier.materials ? "" : localStonePrompt(geologyAt(this._eymGeography, ...map.frame.center))].filter(Boolean).join("\n\n"); packet.prompt = `${packet.prompt}\n\n${text}`; packet.markdown = `${packet.markdown}\n## Architecture: ${areaDossier.name}\n\n${text}\n`; }
     const [basePng, labelledPng] = await Promise.all([svgToPng(map.baseSvg, spec.widthPx, spec.heightPx), svgToPng(map.labelledSvg, spec.widthPx, spec.heightPx)]);
     // The local level also gets the ground in detail: fields, woods, streams, lanes and farmsteads.
     let detailPng = null;
@@ -734,7 +737,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const map = buildBattleMap(this._eymGeography, { center: [lat, lon], spec, conditions: env.conditions, setting: settingChoice, extras, style });
     // Exactly what built this map, so the map server can build the same one.
     const serverRequest = { center: [lat, lon], columns: spec.columns, rows: spec.rows, gridPx: spec.gridPx, setting: settingChoice, extras, conditions: env.conditions, season: env.season, style };
-    const architecture = architecturePrompt(dossier) || styleArchitecturePrompt(style);
+    const architecture = [architecturePrompt(dossier) || styleArchitecturePrompt(style), dossier?.materials ? "" : localStonePrompt(map.geology)].filter(Boolean).join(" ");
     const nearest = this._eymGeography.settlements.filter((s) => s.properName).reduce((best, s) => { const d = Math.hypot(s.lat - lat, (s.lon - lon) * Math.cos(lat * Math.PI / 180)); return d < best.d ? { s, d } : best; }, { s: null, d: Infinity });
     const place = nearest.s && nearest.d < 0.3 ? `near ${nearest.s.properName}` : `${Math.abs(lat).toFixed(3)}°${lat >= 0 ? "N" : "S"}, ${Math.abs(lon).toFixed(3)}°${lon >= 0 ? "E" : "W"}`;
     const title = `${BATTLE_SETTINGS[map.setting].label}, ${place}`;
@@ -880,6 +883,12 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       const { values: ignored, ...words } = weather; void ignored;
       Object.assign(values, words, { temperature: `${weather.weatherTemperature} (seasonal high ${Math.round(report.values.temperature.highC)}, low ${Math.round(report.values.temperature.lowC)})`, ground: weather.groundNow });
     }
+    // The rock and soil here, and the earthquakes and eruptions of the last 30 days (worked out once a day per place).
+    const geo = geologyAt(this._eymGeography, latDeg, lonDeg);
+    Object.assign(values, { rock: describeGround(geo), stone: describeStone(geo) });
+    const key = `${latDeg.toFixed(3)},${lonDeg.toFixed(3)},${Math.floor(this._sun.t / DAY_MS)}`;
+    if (this._tremorKey !== key) { this._tremorKey = key; this._tremorText = describeTremors(tremorsAt(this._eymGeography?.geology, { lat: latDeg, lon: lonDeg, fromMs: this._sun.t - 30 * DAY_MS, toMs: this._sun.t, onGodstone: geo?.onGodstone }), this._sun.t); }
+    values.tremors = this._tremorText;
     for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-place-field="${field}"]`); if (element && typeof value === "string") element.textContent = value; }
   }
 
