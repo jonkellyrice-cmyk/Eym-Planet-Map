@@ -31,7 +31,7 @@ import { BUILDING_STYLES, styleForPlace } from "../scripts/eym-building-styles.m
 import { decodePng, encodePng } from "./render/png.mjs";
 import { Framebuffer } from "./render/framebuffer.mjs";
 import { gzipSync } from "node:zlib";
-import { REGION_CELL_KM, REGION_MODEL, REGION_TILE_CELLS, buildRegionTile, flatRegionTile, regionFrames, renderRegionTile } from "../scripts/eym-region-layer.mjs";
+import { REGION_CELL_KM, REGION_MODEL, REGION_TILE_CELLS, buildRegionTile, flatRegionTile, regionFrameHasTile, regionFrames, renderRegionTile } from "../scripts/eym-region-layer.mjs";
 import { regionStore, sha256 } from "./region-store.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -130,14 +130,15 @@ export function regionShapesFile(tile) {
 }
 /**
  * One region tile's picture. Land tiles are kept in the store once made (the pixel art with its shapes
- * beside it); open sea is never kept, being quicker to make than to fetch.
+ * beside it); open sea is never kept, being quicker to make than to fetch, and nor is anything outside
+ * the frame's own tiles (Caren, Garyk and the sea between them are the only area kept).
  * @returns { png, source: "store" | "made" | "made and kept", sea, error? }
  */
 export async function regionTilePicture(asset, frames, store, frameId, tx, ty, kind = "pixels", { read = true } = {}) {
-  const frame = frames.find((f) => f.id === frameId), index = frames.indexOf(frame), path = regionTilePath(frameId, kind, tx, ty);
+  const frame = frames.find((f) => f.id === frameId), index = frame.store, path = regionTilePath(frameId, kind, tx, ty);
   if (store && read) { const kept = await store.read(path); if (kept) return { png: kept, source: "store", sea: false }; }
   const tile = buildRegionTile(asset, frame, tx, ty), png = encodePng({ width: tile.cells, height: tile.cells, data: REGION_KINDS[kind](tile) });
-  if (!store || tile.sea) return { png, source: "made", sea: tile.sea };
+  if (!store || tile.sea || !regionFrameHasTile(frame, tx, ty)) return { png, source: "made", sea: tile.sea };
   try {
     await store.write(store.buckets.tiles, path, png, "image/png");
     await store.record({ layer: "region", kind, z: index, x: tx, y: ty, rules_version: REGION_MODEL, bucket: store.buckets.tiles, path, bytes: png.length, sha256: sha256(png), is_sea: false });
@@ -193,7 +194,8 @@ export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (p
       const tileMatch = /^\/api\/region\/tile\/([a-z0-9-]+)\/(-?\d{1,4})\/(-?\d{1,4})\.png$/.exec(path);
       if (req.method === "GET" && tileMatch) {
         const kind = url.searchParams.get("kind") ?? "pixels"; if (!REGION_KINDS[kind]) return send(res, 400, { error: "kind is pixels or flat" });
-        if (!regionFramesOnce().some((f) => f.id === tileMatch[1])) return send(res, 404, { error: "no such frame" });
+        const frame = regionFramesOnce().find((f) => f.id === tileMatch[1]); if (!frame) return send(res, 404, { error: "no such frame" });
+        if (!regionFrameHasTile(frame, Number(tileMatch[2]), Number(tileMatch[3]))) return send(res, 404, { error: "no such tile: outside the frame" });
         const made = await (queue = queue.then(() => regionTilePicture(data, regionFramesOnce(), store, tileMatch[1], Number(tileMatch[2]), Number(tileMatch[3]), kind)));
         res.setHeader("x-eym-source", made.source); if (made.error) res.setHeader("x-eym-store-error", made.error.replace(/[^ -~]/g, " ").slice(0, 200));
         res.writeHead(200, { "content-type": "image/png", "cache-control": made.source === "made" && !made.sea ? "no-store" : "public, max-age=86400" }); res.end(made.png); return;
@@ -204,9 +206,10 @@ export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (p
         const all = regionFramesOnce(), frame = all.find((f) => f.id === url.searchParams.get("frame")); if (!frame) return send(res, 404, { error: "no such frame" });
         const { tx0, tx1, ty0, ty1 } = frame.tiles, width = tx1 - tx0 + 1, total = width * (ty1 - ty0 + 1), start = Math.max(0, Number(url.searchParams.get("start") ?? 0) | 0), count = Math.min(400, Math.max(1, Number(url.searchParams.get("count") ?? 60) | 0)), budgetMs = Math.min(50000, Math.max(1000, Number(url.searchParams.get("ms") ?? 40000) | 0));
         const report = await (queue = queue.then(async () => {
-          const began = Date.now(), have = await store.listed("region", "pixels", all.indexOf(frame)), out = { frame: frame.id, total, start, next: start, kept: 0, already: 0, sea: 0, errors: [] };
+          const began = Date.now(), have = await store.listed("region", "pixels", frame.store), out = { frame: frame.id, total, start, next: start, kept: 0, already: 0, sea: 0, outside: 0, errors: [] };
           for (let k = start; k < total && out.kept < count && Date.now() - began < budgetMs; k += 1) {
             const tx = tx0 + (k % width), ty = ty0 + Math.floor(k / width); out.next = k + 1;
+            if (!regionFrameHasTile(frame, tx, ty)) { out.outside += 1; continue; }
             if (have.has(`${tx},${ty}`)) { out.already += 1; continue; }
             const made = await regionTilePicture(data, all, store, frame.id, tx, ty, "pixels", { read: false }); // the list above says it is not kept
             if (made.sea) out.sea += 1; else if (made.source === "made and kept" || made.source === "store") out.kept += 1; else { out.errors.push(`${tx},${ty}: ${made.error ?? "not kept"}`); if (out.errors.length >= 3) break; }

@@ -7,7 +7,7 @@
 // A tile is first its shapes (cover, height, shade, rivers, roads, settlements); pictures are made from
 // those: a plain flat one for checking, and the pixel art. Pure: no canvas, no storage here.
 
-import { fromLocal, toLocal } from "./eym-surface.mjs";
+import { fromLocal, greatCircleKm, toLocal } from "./eym-surface.mjs";
 import { annualMeanTemperatureC } from "./eym-seasons.mjs";
 import { COVER, COVER_COLORS, coarseAt, globeNoise, hashUnit, localContext, roadsNear } from "./eym-local-detail.mjs";
 
@@ -24,27 +24,70 @@ const FARMLAND_KM = { capital: 9, city: 6, port: 3, town: 3.5, fort: 1.2, villag
 // ---------------------------------------------------------------- frames and tiles
 
 /**
- * The flat frames the layer is laid out on: one to a continent (with its own islands; an island that
- * belongs to none goes with the continent it lies nearest). Each has its centre and the range of tiles
- * that holds its land: tile (tx, ty) covers x from tx·76.8 km eastward and y from −ty·76.8 km southward
- * of the centre.
+ * Only Caren, Garyk and the sea directly between them get the Region layer (the owner's decision of 17
+ * November 2026); the other continents and the rest of the ocean stay as the globe draws them. Each frame
+ * keeps its number in the store (`z` of eym_tiles) for good: Caren and Garyk keep the numbers they had
+ * when there were five frames, and the sea between them takes a new one.
+ */
+const DETAILED_CONTINENTS = [{ name: "Caren", store: 1 }, { name: "Garyk", store: 2 }];
+const STRAIT = { id: "caren-garyk-sea", name: "The sea between Caren and Garyk", store: 5, halfWidthKm: 300 };
+
+const tileRange = (cells) => {
+  let tx0 = Infinity, tx1 = -Infinity, ty0 = Infinity, ty1 = -Infinity;
+  for (const [tx, ty] of cells) { tx0 = Math.min(tx0, tx); tx1 = Math.max(tx1, tx); ty0 = Math.min(ty0, ty); ty1 = Math.max(ty1, ty); }
+  return { tx0, tx1, ty0, ty1 };
+};
+const segmentDistance = ([ax, ay], [bx, by], x, y) => {
+  const dx = bx - ax, dy = by - ay, t = clamp(((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy), 0, 1);
+  return Math.hypot(x - ax - t * dx, y - ay - t * dy);
+};
+
+/** A continent's frame: centred on its mainland, holding its mainland and its own islands, nothing else. */
+function continentFrame(asset, { name, store }) {
+  const own = asset.terrain.coastlines.filter((c) => c.continent === name), mainland = own.find((c) => c.kind === "mainland");
+  let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+  for (const [lat, lon] of mainland.points) { minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat); minLon = Math.min(minLon, lon); maxLon = Math.max(maxLon, lon); }
+  const center = [Math.round((minLat + maxLat) / 2 * 100) / 100, Math.round((minLon + maxLon) / 2 * 100) / 100];
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const c of own) for (const [lat, lon] of c.points) { const [x, y] = toLocal(center, lat, lon); minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
+  return { id: slug(name), name, store, center, tiles: { tx0: Math.floor(minX / REGION_TILE_KM), tx1: Math.floor(maxX / REGION_TILE_KM), ty0: Math.floor(-maxY / REGION_TILE_KM), ty1: Math.floor(-minY / REGION_TILE_KM) } };
+}
+
+/**
+ * The sea between the two: a frame of its own, centred midway along the shortest line between their coasts
+ * (islands included), so the flat frame stays true to within a few per cent along its whole length. It holds
+ * the tiles within 300 km of that line, a corridor some 600 km wide, and no others.
+ */
+function straitFrame(asset) {
+  const coast = (name) => asset.terrain.coastlines.filter((c) => c.continent === name).flatMap((c) => c.points);
+  const a = coast(DETAILED_CONTINENTS[0].name), b = coast(DETAILED_CONTINENTS[1].name);
+  let best = Infinity, ends = null;
+  for (const p of a) for (const q of b) { const d = greatCircleKm(p, q); if (d < best) { best = d; ends = [p, q]; } }
+  const [ax, ay] = toLocal(ends[0], ...ends[1]), mid = fromLocal(ends[0], ax / 2, ay / 2), center = [Math.round(mid[0] * 100) / 100, Math.round(mid[1] * 100) / 100];
+  const from = toLocal(center, ...ends[0]).map((v) => Math.round(v * 10) / 10), to = toLocal(center, ...ends[1]).map((v) => Math.round(v * 10) / 10);
+  const corridor = { from, to, halfWidthKm: STRAIT.halfWidthKm }, reach = Math.ceil((Math.max(Math.abs(from[0]), Math.abs(to[0]), Math.abs(from[1]), Math.abs(to[1])) + STRAIT.halfWidthKm) / REGION_TILE_KM) + 1, cells = [];
+  for (let ty = -reach; ty <= reach; ty += 1) for (let tx = -reach; tx <= reach; tx += 1) if (inCorridor(corridor, tx, ty)) cells.push([tx, ty]);
+  return { id: STRAIT.id, name: STRAIT.name, store: STRAIT.store, center, corridor, tiles: tileRange(cells) };
+}
+
+/** Whether a tile lies in a corridor: its centre within the half-width (and half a tile's diagonal) of the line. */
+function inCorridor(corridor, tx, ty) {
+  return segmentDistance(corridor.from, corridor.to, (tx + 0.5) * REGION_TILE_KM, -(ty + 0.5) * REGION_TILE_KM) <= corridor.halfWidthKm + REGION_TILE_KM * Math.SQRT1_2;
+}
+
+/**
+ * The flat frames the layer is laid out on: Caren and Garyk, each with its own islands, and the sea between
+ * them. Each has its centre, its number in the store, and the range of tiles that holds it: tile (tx, ty)
+ * covers x from tx·76.8 km eastward and y from −ty·76.8 km southward of the centre.
  */
 export function regionFrames(asset) {
-  const mainlands = asset.terrain.coastlines.filter((c) => c.kind === "mainland" && c.continent), frames = mainlands.map((c) => {
-    let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
-    for (const [lat, lon] of c.points) { minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat); minLon = Math.min(minLon, lon); maxLon = Math.max(maxLon, lon); }
-    return { id: slug(c.continent), name: c.continent, center: [Math.round((minLat + maxLat) / 2 * 100) / 100, Math.round((minLon + maxLon) / 2 * 100) / 100], rings: [] };
-  });
-  for (const c of asset.terrain.coastlines) {
-    let frame = frames.find((f) => f.name === c.continent);
-    if (!frame) { let best = Infinity; for (const f of frames) { const [x, y] = toLocal(f.center, c.points[0][0], c.points[0][1]), d = Math.hypot(x, y); if (d < best) { best = d; frame = f; } } }
-    frame.rings.push(c.points);
-  }
-  return frames.map(({ rings, ...frame }) => {
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (const ring of rings) for (const [lat, lon] of ring) { const [x, y] = toLocal(frame.center, lat, lon); minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
-    return { ...frame, tiles: { tx0: Math.floor(minX / REGION_TILE_KM), tx1: Math.floor(maxX / REGION_TILE_KM), ty0: Math.floor(-maxY / REGION_TILE_KM), ty1: Math.floor(-minY / REGION_TILE_KM) } };
-  });
+  return [...DETAILED_CONTINENTS.map((c) => continentFrame(asset, c)), straitFrame(asset)];
+}
+
+/** Whether a tile belongs to a frame: inside its range and, for the sea between, inside the corridor. Nothing else is rendered or kept. */
+export function regionFrameHasTile(frame, tx, ty) {
+  const { tx0, tx1, ty0, ty1 } = frame.tiles;
+  return tx >= tx0 && tx <= tx1 && ty >= ty0 && ty <= ty1 && (!frame.corridor || inCorridor(frame.corridor, tx, ty));
 }
 
 /** The tile of a frame that holds a place, and where in it (in squares from its north-west corner). */
