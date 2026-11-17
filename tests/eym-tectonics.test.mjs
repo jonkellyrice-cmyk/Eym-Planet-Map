@@ -15,11 +15,15 @@ const sha = (value) => createHash("sha256").update(JSON.stringify(value)).digest
 const convergent = [...tect.boundaries.trenches, ...tect.boundaries.collisions];
 const nearestKm = (ll, list) => Math.min(...list.map((q) => greatCircleKm(ll, q)));
 
-test("Caren, Garyk and the open-ocean archipelagos keep their coasts byte for byte", () => {
+test("Caren, Garyk and the open-ocean archipelagos keep their coasts byte for byte (one archipelago moved whole)", () => {
   // The coasts as they were before the tectonic history (eym-surface-v1): authored, traced and seeded once.
   assert.equal(sha(asset.terrain.coastlines.filter((c) => c.continent === "Caren")), "6200884021edf3166e8c7cb6b209431b188bd6dd9a5706412f2504815c43bb5f");
   assert.equal(sha(asset.terrain.coastlines.filter((c) => c.continent === "Garyk")), "953d7b92cd342baab154888dcddb499306d0d2e91380f1da52b43f0dc1d837e0");
-  assert.equal(sha(asset.terrain.coastlines.filter((c) => !c.continent)), "ea906a056a7a584acea84c4660ff31ff54f2e182e189e0c90bbccb904fdedd4b");
+  // Nine of the ten ocean archipelagos are unchanged since eym-surface-v1. The sixth moved on 17 November 2026
+  // (the owner's decision), from 8.8°N 152.4°E, where Gaffa now stands, to 8.8°N 39°E: same islands, new place.
+  const archipelagos = asset.terrain.coastlines.filter((c) => !c.continent), sixth = (c) => c.id.startsWith("archipelago-6-");
+  assert.equal(sha(archipelagos.filter((c) => !sixth(c))), "f527012d71b9c086cb30fd8b419fbd572ae4c2131678183d6a96b1bedb6a5195");
+  assert.equal(sha(archipelagos.filter(sixth)), "935b202ae9719d528c713d8b2a931f410e1b6bdfc48de65ecba8d4209d1dcc50");
 });
 
 test("Gaffa, Khohalis and Demani meet their targets, each centred on its own land", () => {
