@@ -1,18 +1,19 @@
 /* The night sky from the ground (scripts/sky-view.mjs). */
-.oscm-shell.is-sky-mode .oscm-cluster-svg { background: #020409; }
-.oscm-ground-backdrop { fill: #020409; }
-.oscm-ground-horizon { stroke: rgba(160, 190, 210, 0.45); stroke-width: 1.2; }
-.oscm-ground-cardinal { fill: #a9c2d4; font: 700 13px var(--font-primary, sans-serif); pointer-events: none; }
-.oscm-ground-constellation-lines { stroke: #6fb6ff; stroke-width: 1; }
-.oscm-ground-label { font: 11px var(--font-primary, sans-serif); paint-order: stroke; stroke: rgba(2, 4, 9, 0.85); stroke-width: 3px; pointer-events: none; }
-.oscm-ground-label.is-star { fill: #d7e3f2; }
+.oscm-shell.is-sky-mode .oscm-cluster-svg { background: #05070c; }
+/* The chart is pixel art on a canvas under the drawing; the drawing keeps the compass ring and the names. */
+.oscm-cluster-svg.is-pixel-sky { position: relative; background: transparent !important; touch-action: none; }
+.oscm-sky-canvas { background: #05070c; }
+.oscm-ground-horizon { stroke: #b89a4a; stroke-width: 1.6; }
+.oscm-ground-ticks { stroke: #b89a4a; stroke-width: 1.4; }
+.oscm-ground-cardinal { fill: #e3c878; font: 700 17px var(--oscm-serif, Georgia, serif); paint-order: stroke; stroke: rgba(5, 7, 12, 0.85); stroke-width: 4px; pointer-events: none; }
+.oscm-ground-label { font: 13px var(--oscm-serif, Georgia, serif); paint-order: stroke; stroke: rgba(5, 7, 12, 0.9); stroke-width: 3.5px; pointer-events: none; }
+.oscm-ground-label.is-star { fill: #e6ddc4; }
 .oscm-ground-label.is-pole-star { fill: #ffd36b; font-weight: 700; }
 .oscm-ground-label.is-planet { fill: #ffe7b0; font-style: italic; }
 .oscm-ground-label.is-moon { fill: #f2efe6; font-weight: 700; }
-.oscm-ground-label.is-constellation { fill: rgba(111, 182, 255, 0.85); font-size: 10px; letter-spacing: 0.04em; }
-.oscm-ground-planet { filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.6)); }
-.oscm-ground-sun { filter: drop-shadow(0 0 6px rgba(255, 230, 170, 0.9)); }
-.oscm-cluster-svg.is-daylight .oscm-ground-label.is-star { display: none; }
+.oscm-ground-label.is-constellation { fill: #c9a84f; font-size: 11px; font-style: italic; letter-spacing: 0.04em; }
+.oscm-ground-label.is-chosen { fill: #fff3cf; font-size: 15px; font-weight: 700; font-style: normal; }
+.oscm-cluster-svg.is-daylight .oscm-ground-label.is-star:not(.is-chosen) { display: none; }
 
 /* Panel: the "Look up" card shows on Eym's surface map; the sky card shows while looking up. */
 .oscm-look-up-card, .oscm-sky-card { display: none; }
