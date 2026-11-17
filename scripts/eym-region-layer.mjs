@@ -17,9 +17,12 @@ const PAD = 2, DEG = Math.PI / 180, R_KM = 6371;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const toKmVector = (lat, lon) => { const a = lat * DEG, b = lon * DEG; return [R_KM * Math.cos(a) * Math.cos(b), R_KM * Math.cos(a) * Math.sin(b), R_KM * Math.sin(a)]; };
 const slug = (name) => name.toLowerCase().replace(/^the /, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const BIOME_FARMS = { "temperate-forest": 1, "seasonal-forest": 1, savanna: 0.85, steppe: 0.7, "temperate-rainforest": 0.6, "tropical-rainforest": 0.45, taiga: 0.25 };
+const HINTERLAND_KM = 40; // how far from the nearest town fields still reach, thinning out
 const BIOME_WOODS = { "tropical-rainforest": 0.85, "temperate-rainforest": 0.85, "temperate-forest": 0.7, taiga: 0.7, "seasonal-forest": 0.45, savanna: 0.15, steppe: 0.06, tundra: 0.03, "cold-desert": 0.02, "hot-desert": 0.01, "ice-cap": 0 };
 const SETTLEMENT_RADIUS_KM = { capital: 1.2, city: 0.75, port: 0.42, town: 0.38, fort: 0.16, village: 0.18 };
-const FARMLAND_KM = { capital: 9, city: 6, port: 3, town: 3.5, fort: 1.2, village: 2 };
+const FARMLAND_KM = { capital: 14, city: 10, port: 6, town: 6, fort: 2, village: 4 };
+const SEA_NEAR_CELLS = 40; // 12 km: sea bands nearer the shore than this are measured exactly, with this margin round the tile
 
 // ---------------------------------------------------------------- frames and tiles
 
@@ -110,6 +113,41 @@ function projected(ctx, frame) {
   byFrame.set(frame.id, p); return p;
 }
 
+/** Exact Euclidean distance (in squares) from every square to the nearest set square (Felzenszwalb's two passes). */
+function distanceToSet(mask, n) {
+  const INF = 1e12, f = new Float64Array(n), d = new Float64Array(n), v = new Int32Array(n), z = new Float64Array(n + 1), g = new Float64Array(n * n);
+  const pass = (get, put) => {
+    for (let q = 0; q < n; q += 1) f[q] = get(q);
+    let k = 0; v[0] = 0; z[0] = -INF; z[1] = INF;
+    for (let q = 1; q < n; q += 1) { let s; for (;;) { s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k]); if (s <= z[k] && k > 0) k -= 1; else break; } if (s <= z[k]) { v[0] = q; z[0] = -INF; z[1] = INF; k = 0; continue; } k += 1; v[k] = q; z[k] = s; z[k + 1] = INF; }
+    k = 0; for (let q = 0; q < n; q += 1) { while (z[k + 1] < q) k += 1; d[q] = (q - v[k]) ** 2 + f[v[k]]; put(q, d[q]); }
+  };
+  for (let c = 0; c < n; c += 1) pass((r) => (mask[r * n + c] ? 0 : INF), (r, val) => { g[r * n + c] = val; });
+  for (let r = 0; r < n; r += 1) pass((c) => g[r * n + c], (c, val) => { g[r * n + c] = val; });
+  for (let i = 0; i < n * n; i += 1) g[i] = Math.sqrt(g[i]);
+  return g;
+}
+
+/**
+ * How far each square of a tile lies off the land, in km (to 255). Within 12 km it is measured exactly
+ * on the squares, from a window reaching 12 km past the tile, so neighbouring tiles agree; beyond that it is
+ * the coarse distance, read on a grid of every eighth square of the frame (so tiles share their samples) and
+ * blended smoothly between them.
+ */
+function seaDistance(ctx, p, frame, tx, ty, x0, yTop, n, res) {
+  const M = SEA_NEAR_CELLS, wide = n + 2 * M, land = fill(p.coasts, x0 - M * res, yTop + M * res, wide, res);
+  const near = land.some(Boolean) ? distanceToSet(land, wide) : null, out = new Float32Array(n * n), samples = new Map();
+  const gx0 = tx * REGION_TILE_CELLS - PAD, gy0 = ty * REGION_TILE_CELLS - PAD;
+  const coarse = (gx, gy) => { const key = `${gx},${gy}`; let v = samples.get(key); if (v === undefined) { const x = (gx + 0.5) * res, y = -(gy + 0.5) * res, [lat, lon] = fromLocal(frame.center, x, y); v = coarseAt(ctx, lat, lon).coastKm; samples.set(key, v); } return v; };
+  for (let r = 0; r < n; r += 1) for (let c = 0; c < n; c += 1) {
+    const gx = gx0 + c, gy = gy0 + r, ax = Math.floor(gx / 8) * 8, ay = Math.floor(gy / 8) * 8, fx = (gx - ax) / 8, fy = (gy - ay) / 8;
+    const far = (1 - fy) * ((1 - fx) * coarse(ax, ay) + fx * coarse(ax + 8, ay)) + fy * ((1 - fx) * coarse(ax, ay + 8) + fx * coarse(ax + 8, ay + 8));
+    const exact = near ? near[(r + M) * wide + c + M] * res : Infinity;
+    out[r * n + c] = Math.min(255, exact < M * res ? exact : Math.max(far, M * res));
+  }
+  return out;
+}
+
 /** Even-odd fill of outlines laid on a frame into an n×n window (north-west corner x0, yTop; squares of `res` km). */
 function fill(outlines, x0, yTop, n, res) {
   const out = new Uint8Array(n * n), x1 = x0 + n * res, yBottom = yTop - n * res, live = outlines.filter((o) => o.maxX >= x0 && o.minX <= x1 && o.maxY >= yBottom && o.minY <= yTop);
@@ -134,9 +172,8 @@ export function buildRegionTile(asset, frame, tx, ty) {
   const landMask = fill(p.coasts, x0, yTop, n, res), cover = new Uint8Array(n * n), elevation = new Int16Array(n * n), shade = new Uint8Array(n * n).fill(75), coastKm = new Uint8Array(n * n);
   const cellXY = (c, r) => [x0 + (c + 0.5) * res, yTop - (r + 0.5) * res], inTile = (o, slack = 1) => o.maxX >= x0 - slack && o.minX <= x0 + n * res + slack && o.maxY >= yTop - n * res - slack && o.minY <= yTop + slack;
   if (!landMask.some(Boolean)) {
-    // Open sea: only how far off the land it lies (read on the coarse lattice, a few squares apart).
-    for (let r = 0; r < n; r += 1) for (let c = 0; c < n; c += 1) { const cr = Math.min(n - 1, (r >> 3 << 3) + 4), cc = Math.min(n - 1, (c >> 3 << 3) + 4); if (r === cr && c === cc) { const [x, y] = cellXY(c, r), [lat, lon] = fromLocal(frame.center, x, y); coastKm[r * n + c] = Math.min(255, coarseAt(ctx, lat, lon).coastKm); } }
-    for (let r = 0; r < n; r += 1) for (let c = 0; c < n; c += 1) coastKm[r * n + c] = coastKm[Math.min(n - 1, (r >> 3 << 3) + 4) * n + Math.min(n - 1, (c >> 3 << 3) + 4)];
+    // Open sea: only how far off the land it lies.
+    const far = seaDistance(ctx, p, frame, tx, ty, x0, yTop, n, res); for (let i = 0; i < n * n; i += 1) coastKm[i] = Math.round(far[i]);
     return { model: REGION_MODEL, frame: frame.id, tx, ty, cells: REGION_TILE_CELLS, pad: PAD, cover, elevation, shade, coastKm, rivers: [], roads: [], settlements: [], sea: true };
   }
   const waterMask = fill(p.waters, x0, yTop, n, res), forestMask = fill(p.forest, x0, yTop, n, res), relief = [fill(p.upland, x0, yTop, n, res), fill(p.mountains, x0, yTop, n, res), fill(p.peaks, x0, yTop, n, res)];
@@ -158,21 +195,27 @@ export function buildRegionTile(asset, frame, tx, ty) {
     if (touched) rivers.push({ widthM: river.widthM, line });
   }
   // Roads near the tile (fields line them a little way out), and the towns whose ground reaches it.
+  const towns = p.settlements.filter((s) => s.x > x0 - HINTERLAND_KM && s.x < x0 + n * res + HINTERLAND_KM && s.y < yTop + HINTERLAND_KM && s.y > yTop - n * res - HINTERLAND_KM);
   const roads = p.roads.filter((road) => inTile(road, 2)), near = p.settlements.filter((s) => s.x > x0 - 10 && s.x < x0 + n * res + 10 && s.y < yTop + 10 && s.y > yTop - n * res - 10).map((s) => ({ ...s, radiusKm: SETTLEMENT_RADIUS_KM[s.kind] ?? 0.3, farmKm: FARMLAND_KM[s.kind] ?? 2 }));
-  const roadSide = new Float32Array(n * n), band = 0.6;
+  const roadSide = new Float32Array(n * n), band = 1.4;
   for (const road of roads) for (let k = 0; k + 1 < road.xs.length; k += 1) {
     const ax = road.xs[k], ay = road.ys[k], bx = road.xs[k + 1], by = road.ys[k + 1], c0 = Math.floor((Math.min(ax, bx) - band - x0) / res), c1 = Math.ceil((Math.max(ax, bx) + band - x0) / res), r0 = Math.floor((yTop - Math.max(ay, by) - band) / res), r1 = Math.ceil((yTop - Math.min(ay, by) + band) / res);
-    for (let r = Math.max(0, r0); r <= Math.min(n - 1, r1); r += 1) for (let c = Math.max(0, c0); c <= Math.min(n - 1, c1); c += 1) { const [x, y] = cellXY(c, r), dx = bx - ax, dy = by - ay, t = clamp(((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1), 0, 1), d = Math.hypot(x - ax - t * dx, y - ay - t * dy); if (d < band) roadSide[r * n + c] = Math.max(roadSide[r * n + c], 0.35 * (1 - d / band)); }
+    for (let r = Math.max(0, r0); r <= Math.min(n - 1, r1); r += 1) for (let c = Math.max(0, c0); c <= Math.min(n - 1, c1); c += 1) { const [x, y] = cellXY(c, r), dx = bx - ax, dy = by - ay, t = clamp(((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1), 0, 1), d = Math.hypot(x - ax - t * dx, y - ay - t * dy); if (d < band) roadSide[r * n + c] = Math.max(roadSide[r * n + c], 0.55 * (1 - d / band)); }
   }
   // Height and the coarse facts, square by square.
   const facts = new Array(n * n), height = new Float32Array(n * n);
   for (let r = 0; r < n; r += 1) for (let c = 0; c < n; c += 1) {
     const i = r * n + c, [x, y] = cellXY(c, r), [lat, lon] = fromLocal(frame.center, x, y), f = coarseAt(ctx, lat, lon), v = toKmVector(lat, lon);
+    // The climate field changes kind along whole degrees of latitude and longitude: read the biome a noisy way off, so its edges wander.
+    f.biome = coarseAt(ctx, lat + 0.3 * globeNoise(v, 40, 5, 61), lon + 0.3 * globeNoise(v, 40, 5, 67)).biome;
     f.lat = lat; f.v = v; f.land = Boolean(landMask[i]); f.water = f.land && Boolean(waterMask[i]); f.reliefClass = relief[2][i] ? 3 : relief[1][i] ? 2 : relief[0][i] ? 1 : 0; f.forestMask = Boolean(forestMask[i]);
     const rough = 15 + 70 * f.relief + 120 * Math.max(0, f.relief - 1.5) ** 2;
-    height[i] = f.land ? Math.max(f.water ? 2 : 1, f.elevationM + rough * globeNoise(v, 6, 0.6, 11)) : Math.min(-2, f.elevationM);
-    facts[i] = f; elevation[i] = clamp(Math.round(height[i]), -32000, 32000); coastKm[i] = Math.min(255, f.coastKm);
+    // Hill country: ridges and dells a few kilometres across, so uplands read as hills and not as a raised plain.
+    const hills = 140 * Math.min(1, f.relief) * (1 - 2 * Math.abs(globeNoise(v, 9, 1.2, 17)));
+    height[i] = f.land ? Math.max(f.water ? 2 : 1, f.elevationM + rough * globeNoise(v, 6, 0.6, 11) + hills) : Math.min(-2, f.elevationM);
+    facts[i] = f; elevation[i] = clamp(Math.round(height[i]), -32000, 32000);
   }
+  const offshore = seaDistance(ctx, p, frame, tx, ty, x0, yTop, n, res); for (let i = 0; i < n * n; i += 1) coastKm[i] = facts[i].land ? Math.min(255, Math.round(facts[i].coastKm)) : Math.round(offshore[i]);
   const seaAt = (r, c) => r >= 0 && c >= 0 && r < n && c < n && !facts[r * n + c].land;
   for (let r = 0; r < n; r += 1) for (let c = 0; c < n; c += 1) {
     const i = r * n + c, f = facts[i];
@@ -180,13 +223,17 @@ export function buildRegionTile(asset, frame, tx, ty) {
     if (f.water) { cover[i] = COVER.lake; continue; }
     if (riverMask[i]) { cover[i] = COVER.river; continue; }
     const [x, y] = cellXY(c, r), e = height[i], dzx = (height[r * n + Math.min(n - 1, c + 1)] - height[r * n + Math.max(0, c - 1)]) / (2 * res * 1000), dzy = (height[Math.min(n - 1, r + 1) * n + c] - height[Math.max(0, r - 1) * n + c]) / (2 * res * 1000);
-    const slope = Math.hypot(dzx, dzy); shade[i] = Math.round(100 * clamp(0.75 + (-dzx * 0.7 + dzy * 0.7) * 5, 0.35, 1.25));
+    const slope = Math.hypot(dzx, dzy); shade[i] = Math.round(100 * clamp(0.75 + (-dzx * 0.7 + dzy * 0.7) * 9, 0.3, 1.3));
     // (The local layer's finest variation, under a kilometre, averages away over a 300 m square and its neighbours:
     // here the ground changes in clumps of a kilometre or more, which is also what reads at this scale.)
     const temp = annualMeanTemperatureC(f.lat, e), n1 = globeNoise(f.v, 5, 1.2, 3), n2 = globeNoise(f.v, 2.4, 1.2, 5);
     let settled = Infinity, farming = 0;
     for (const s of near) { const d = Math.hypot(x - s.x, y - s.y); settled = Math.min(settled, d / Math.max(s.radiusKm, res * 0.75)); farming = Math.max(farming, 1 - d / s.farmKm); }
     farming = Math.max(farming, roadSide[i]);
+    // The hinterland: good, level, low ground is farmed well beyond the named towns (the villages are not in the data), thinning out with distance from them.
+    let townKm = Infinity; for (const s of towns) townKm = Math.min(townKm, Math.hypot(x - s.x, y - s.y));
+    const arable = (BIOME_FARMS[f.biome] ?? 0) * clamp(1 - e / 1400, 0, 1) * clamp(1 - Math.max(0, f.relief - 0.4), 0, 1) * clamp((f.precipMm - 350) / 400, 0, 1);
+    farming = Math.max(farming, 0.42 * arable * clamp(1 - townKm / HINTERLAND_KM, 0, 1));
     const rugged = Math.max(f.relief, f.reliefClass), shoreline = seaAt(r - 1, c) || seaAt(r + 1, c) || seaAt(r, c - 1) || seaAt(r, c + 1);
     if (temp < -3 || (f.relief > 2.4 && temp < 1)) cover[i] = COVER.snow;
     else if (slope > 0.45 || (rugged > 1.8 && n1 > 0.25)) cover[i] = COVER.rock;
@@ -195,7 +242,7 @@ export function buildRegionTile(asset, frame, tx, ty) {
     else if (slope < 0.01 && e < 14 && f.precipMm > 900 && n1 > 0.28) cover[i] = COVER.marsh;
     else {
       const woods = clamp((BIOME_WOODS[f.biome] ?? 0.4) * 0.6 + (0.6 * f.forestShare + 0.4 * (f.forestMask ? 1 : 0)) * 0.55 - (temp < 2 ? 0.4 : 0), 0, 1);
-      if (slope < 0.14 && farming > 0 && n1 * 0.6 + n2 * 0.25 + farming > 0.45 + 0.3 * f.forestShare) cover[i] = COVER.farmland;
+      if (slope < 0.14 && farming > 0 && n1 * 0.6 + n2 * 0.25 + farming > 0.3 + 0.3 * f.forestShare) cover[i] = COVER.farmland;
       else if (n1 * 0.5 + n2 * 0.35 + (woods - 0.5) > 0.12) cover[i] = COVER.woods;
       else if (n1 * 0.5 + n2 * 0.35 + (woods - 0.5) > -0.1) cover[i] = COVER.scrub;
       else cover[i] = COVER.meadow;

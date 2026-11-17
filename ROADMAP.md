@@ -2,7 +2,7 @@
 
 This roadmap was carried over from the Lancer GM Kit and Lancer cluster map, and most of it still applies to Eym. The table gives each item's status as recorded there, then where it stands in this repository now. The weather design below it was agreed on 3 September 2026.
 
-## Where we are and what is left (17 November 2026, version 0.16.2)
+## Where we are and what is left (17 November 2026, version 0.16.4)
 
 This section is the current plan. The sections below it are the earlier agreements it builds on.
 
@@ -14,7 +14,22 @@ This overrides anything below that plans for all five continents.
 - **The three unnamed continents** (eastern, northern and southern) stay exactly as they are now: no further detail, no deeper zoom, no stored tiles.
 - **The rest of the ocean** stays as it is now too, including the island groups that belong to no continent.
 - The point is to cut rendering a great deal. Nothing outside that area is rendered or stored. Outside it, zoom stops where it does today.
-- Caren's and Garyk's frames hold only their own mainland and their own islands. How the sea between them is framed (a frame of its own, or an extension of one continent's frame) is to be proposed to the owner.
+- Caren's and Garyk's frames hold only their own mainland and their own islands. The sea between them has a frame of its own: a corridor 600 km wide along the shortest line between their coasts (owner's choice, 17 November 2026: the narrow sea-route corridor, not the whole basin). It is all open sea; no ocean tile is stored until the sea gets detail of its own.
+
+### Owner's decisions and order (17 November 2026, later the same day)
+
+These override anything below where they differ.
+
+- **The System view is finished** at tier 2. No further work on it; it is not in any tier trial.
+- **Tier 2 everywhere first.** Continent, Region and Local are made at the current tier-2 pixel art; the owner then judges each layer side by side and decides which need a higher tier. No tier-3-or-higher work on any layer until then. Later, probably: the globe to tier 3 at most (it is redrawn live on the phone; tier 3 would mean softer layered clouds, relief shading and graded shallows); the sky higher, since it is cheap. Both wait for the side-by-side.
+- **Detail only for Caren, Garyk and the ocean between them**, as above.
+- **Order of work:**
+  1. Finish Region step 1: rivers (done, 0.16.3); long straight roads, faint hills, sparse farmland, octagonal shore bands (0.16.4). Renders shown to the owner.
+  2. The `eym_tiles` frame-column migration: the SQL file shown at a named commit; nothing runs before the owner's yes.
+  3. Render the 829 land tiles into the store and report what was kept.
+  4. Night-sky legibility (a release), before any higher tier: text sized in screen pixels (about 12–13 px for star and body names, 11–12 px for constellations; on a phone the 900-unit chart is scaled to about 0.4×, so names now come out at 4–6 px); the lower-priority label hidden where two overlap; a darker, calmer sky with little or no dither in its middle, a higher minimum brightness for faint stars, solid brighter gold constellation lines and a softer Desna's Path; one art pixel at a constant on-screen size (about 2 CSS px) on every device, and clearly visible stars at least 2×2. Phone-sized renders shown before submitting.
+  5. Globe fixes (a release, not a tier change): the vertical dotted streaks in the ocean around Caren at deep zoom; labels in the panel's serif, hidden where they would overlap (Gowain, Caren and Lyle pile up); the H and L pressure letters off by default, behind the weather toggle; sea ice and cloud in clearly different colours.
+  6. The Continent layer at tier 2 (Caren and Garyk, two pictures; no tier-2 renderer for it exists yet), then the Local layer at tier 2 for sample places only (Dree, a coast, mountains, farmland, forest), then the side-by-side for the owner's judgement.
 
 ### Done
 
@@ -23,23 +38,27 @@ This overrides anything below that plans for all five continents.
 - **Night sky**: a pixel-art star chart (`scripts/eym-sky-pixels.mjs`) with pan, magnify and tap-to-name.
 - **Panel**: parchment styling and a serif face (`styles/parchment.css`); the panel scrolls on phones; a pinch on the map never zooms the page (`scripts/zoom-guard.mjs`).
 - **Atlas maps, painted maps, battle maps** (tier 2 pixel art from the map server, interiors, floors, Foundry scenes): see the sections below and the README.
+- **Rivers** (0.16.3): Caren's and Garyk's river channels, 5 to 40 km wide in the traced maps, are drawn as rivers 114 m to 1.2 km wide on the Region layer, the ground detail and battle maps (`scripts/eym-river-courses.mjs`).
+- **Region step 1** (0.16.4): roads follow the land; hills, hinterland farmland and smooth shore bands on the Region layer.
 - **Stored layers, first slice**: the Region layer's generator (`scripts/eym-region-layer.mjs`: shapes first, then a flat check picture, then pixel art) and its store (`webapp/region-store.mjs`: Supabase project `eym-world`, buckets `eym-tiles` and `eym-shapes`, tables `eym_tiles` and `eym_render_runs`). One Caren tile has been made, kept and served back from the store.
 
 ### The layers and their intended pixel-art tier
 
-The tiers are provisional until the trial in step 2. Cheap layers (few pictures) can afford a high tier; layers with very many tiles cannot. The System view is finished and is not part of the trial.
+Every layer is made at tier 2 first; the intended tiers below are provisional until the owner's side-by-side (see the order above). Cheap layers (few pictures) can afford a high tier; layers with very many tiles cannot. The System view is finished and is not part of the trial.
 
 | Layer | What it is | Where it is made | Stored | Intended tier | State |
 |---|---|---|---|---|---|
 | System | The model of the heavens | Module, live | No | — | Done at tier 2; no further work |
 | Night sky | The dome from a place and time | Module, live | No | 4–5 | Tier 2 done |
-| Planet | Eym's globe | Module, live | No | 3 | Tier 2 done |
+| Planet | Eym's globe | Module, live | No | 3 at most | Tier 2 done |
 | Continent | One picture each for Caren and Garyk (two) | Map server, once | Yes | 5 | Not started |
-| Region | 76.8 km tiles at 0.3 km a cell: Caren, Garyk and the sea between | Map server, once | Yes | 3 | Generator and store done; layer not rendered |
+| Region | 76.8 km tiles at 0.3 km a cell: Caren, Garyk and the sea between | Map server, once | Yes | 3 | Generator, store and step 1 done; layer not rendered |
 | Local | Ground detail at 10–50 m: Caren and Garyk | Map server, once | Yes | 2 | Generator exists but is slow; not rendered |
 | Battle map | 5-ft squares at one place and time | Map server, on request | Per map | 5 | Tier 2 done |
 
 ### Steps to completion, in order
+
+The order of work above comes first; the steps below are the fuller list it is drawn from.
 
 0. **Hold the code to the scope.** `regionFrames()` in `scripts/eym-region-layer.mjs` returns five frames (Caren, Garyk and the three unnamed continents), and Garyk's takes in far-off islands that belong to no continent. Limit it to Caren and Garyk with their own islands, add the sea between them, and keep each frame's number in the store (`z`) unchanged, since the one stored Caren tile is filed under it.
 1. **Finish the Region layer** (Caren, Garyk and the sea between them only).
@@ -72,6 +91,7 @@ Every layer in the table is drawn in pixel art at its chosen tier. The Continent
 - Every code change goes through Twig, which tests it and opens a pull request. Nothing is pushed to GitHub directly. Twig does not merge.
 - A module release happens only when the squash-merge title contains `[release]`. Each release bumps `module.json` (version and download address), `package.json` and the three version strings in `tests/release-package.test.mjs`. Web-app-only and documentation changes merge without it.
 - No test is weakened, skipped or deleted without the owner's yes.
+- A pull request that is behind `main` is tested again in full through Twig, on top of the current `main`, before it is merged; never a subset of the tests.
 - No secret is stored in the repository or pasted into chat. The image API key is a client-scope setting; the Supabase service-role key lives only in Vercel's environment.
 - Shapes first, pixel art after. Everything is drawn by rule: the same input always gives the same picture.
 
