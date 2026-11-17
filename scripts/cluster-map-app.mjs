@@ -49,6 +49,7 @@ import { BATTLE_SIZE_PRESETS, GRID_DENSITY_PRESETS, battleMapSpec } from "./eym-
 import { placeHistory, describeWeather } from "./eym-weather.mjs";
 import { describeGround, describeStone, geologyAt, localStonePrompt } from "./eym-geology.mjs";
 import { describeTremors, tremorsAt } from "./eym-quakes.mjs";
+import { attachGeology } from "./cartography-asset.mjs";
 import { sunAltitudeDeg, yearFraction } from "./eym-seasons.mjs";
 import { foliageSeason } from "./eym-battle-season.mjs";
 import { guardPageZoom } from "./zoom-guard.mjs";
@@ -343,6 +344,20 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     return true;
   }
 
+  /**
+   * Eym's geology (rock, volcanoes, fault lines) is a separate file, fetched the first time something asks
+   * about rock or earthquakes (scripts/cartography-asset.mjs). Resolves once it is attached (or it is absent).
+   */
+  #ensureEymGeology() {
+    const asset = this._eymGeography;
+    if (!asset?.geologyFile || asset.geology) return Promise.resolve();
+    this._geologyLoading ??= fetch(`modules/${MODULE_ID}/data/planet-cartography/${asset.system.toLowerCase()}/${asset.geologyFile}`)
+      .then((response) => { if (!response.ok) throw new Error(`geology fetch failed (${response.status})`); return response.json(); })
+      .then((document) => { attachGeology(asset, document); })
+      .catch((error) => { console.warn(`${MODULE_ID} | Eym's geology is unavailable`, error); this._geologyLoading = null; });
+    return this._geologyLoading;
+  }
+
   /** The weather at a place now, in words (null before the weather is ready). */
   #weatherHere(latDeg, lonDeg) {
     if (!this._weather || !this._sun) return null;
@@ -404,6 +419,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
 
   /** Build the reference map, its name layer and packet, and show them. */
   async #buildAtlasMap() {
+    await this.#ensureEymGeology();
     const root = this.element?.querySelector?.(".oscm-shell"); if (!root || !this._eymGeography) return;
     const spec = this.#atlasSpec(root), continentId = root.querySelector('[name="atlasContinent"]')?.value;
     const lat = Number(root.querySelector('[name="lookUpLat"]')?.value), lon = Number(root.querySelector('[name="lookUpLon"]')?.value);
@@ -725,6 +741,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
   /** Make a battle map at the Here and now place and show it with its tactical overlay. */
   async #buildBattle() {
     const root = this.element?.querySelector?.(".oscm-shell"); if (!root || !this._eymGeography) return;
+    await this.#ensureEymGeology();
     const lat = Number(root.querySelector('[name="lookUpLat"]')?.value), lon = Number(root.querySelector('[name="lookUpLon"]')?.value);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error("set a place in Here and now first");
     const spec = this.#battleSpec(root), useClock = root.querySelector('[name="battleConditions"]')?.checked ?? true;
@@ -884,6 +901,13 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       Object.assign(values, words, { temperature: `${weather.weatherTemperature} (seasonal high ${Math.round(report.values.temperature.highC)}, low ${Math.round(report.values.temperature.lowC)})`, ground: weather.groundNow });
     }
     // The rock and soil here, and the earthquakes and eruptions of the last 30 days (worked out once a day per place).
+    if (this._eymGeography.geologyFile && !this._eymGeography.geology) {
+      // Not here yet: say so, and fill these in when it arrives.
+      Object.assign(values, { rock: "…", stone: "…", tremors: "…" });
+      void this.#ensureEymGeology().then(() => { if (this._eymGeography?.geology) this.#updatePlaceReadout(); });
+      for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-place-field="${field}"]`); if (element && typeof value === "string") element.textContent = value; }
+      return;
+    }
     const geo = geologyAt(this._eymGeography, latDeg, lonDeg);
     Object.assign(values, { rock: describeGround(geo), stone: describeStone(geo) });
     const key = `${latDeg.toFixed(3)},${lonDeg.toFixed(3)},${Math.floor(this._sun.t / DAY_MS)}`;
@@ -966,7 +990,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       // Eym: real day and night and the seasons on the globe, kept current with the clock.
       window.clearInterval(this._bodyTicker); this._bodyTicker = null;
       if (object.name === "Eventide" && geography?.terrain?.coastlineSource === "vector") {
-        this._eymGeography = geography;
+        this._eymGeography = geography; this._geologyLoading = null;
         this._eymField = environmentField(geography); this._coverDay = null; this._weatherStep = null; this._weatherSnow = null;
         void this.#refreshBodyEnvironment().catch((error) => console.warn(`${MODULE_ID} | Unable to show day and night`, error));
         this._bodyTicker = window.setInterval(() => void this.#refreshBodyEnvironment().catch(() => {}), 10000);

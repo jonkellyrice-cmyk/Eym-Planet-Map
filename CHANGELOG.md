@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.18.1 (2026-11-17)
+
+Room for the climate stages: the map every view loads is a quarter smaller.
+
+- Eym's geology (the bedrock grid, plates, volcanoes, fault lines and history) moves to its own file, `data/planet-cartography/abydos/eventide-geology.json` (123 KB), fetched the first time something asks about rock or earthquakes: the "Here and now" card, a battle map or an atlas map. Geology changes on a time scale that does not touch play; only earthquakes and eruptions need it, and they need little.
+- Every world's height grid is stored as packed 16-bit numbers instead of a JSON list (`scripts/cartography-asset.mjs`). The values are the same.
+- Eym's main cartography file goes from 1,749,497 to 1,412,717 bytes (budget 1,750,000); the other worlds' files shrink too. A new test keeps the geology file within 200 KB and out of the main file.
+
 ## 0.18.0 (2026-11-17)
 
 Stage 1b of Eym's physical history: soils, rock in the maps and dossiers, earthquakes and eruptions.

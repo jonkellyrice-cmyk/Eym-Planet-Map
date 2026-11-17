@@ -7,6 +7,7 @@ import { buildNamedGeography } from "../scripts/cartography-names.mjs";
 import { buildSettlementCartography } from "../scripts/cartography-settlements.mjs";
 import { parseCsv } from "../scripts/system-data.mjs";
 import { isEymRow, loadEymWorld } from "./eym-world.mjs";
+import { packCartography } from "../scripts/cartography-asset.mjs";
 
 const root = new URL("../", import.meta.url), coarseManifest = JSON.parse(readFileSync(new URL("data/planet-geography/manifest.json", root), "utf8"));
 const registryRows = parseCsv(readFileSync(new URL("docs/system-orbital-distances.csv", root), "utf8"));
@@ -31,10 +32,25 @@ const civilizationProfileFor = (registryRow) => ({
 /** Eym's refined asset comes whole from its surface builder; add the common header and write it. */
 function writeAsset(coarse, registryRow, built) {
   const asset = { schemaVersion: 2, status, modelVersion: registryRow.geography_model_version, system: coarse.system, body: coarse.body, ownerFaction: registryRow.owner_faction, civilizationProfile: civilizationProfileFor(registryRow), sourceSeed: coarse.seed, sourceFingerprint: coarse.inputFingerprint, resolutionDeg: built.resolutionDeg, grid: built.grid, terrain: built.terrain, hydrology: built.hydrology, regions: built.regions, gazetteer: built.gazetteer, settlements: built.settlements, transportRoutes: built.transportRoutes, raster: built.raster, ...(built.geology ? { geology: built.geology } : {}) };
-  const text = `${JSON.stringify(asset)}\n`, path = `data/planet-cartography/${slug(coarse.system)}/${slug(coarse.body)}.json`, diskPath = new URL(path, root);
-  mkdirSync(dirname(diskPath.pathname), { recursive: true }); writeFileSync(diskPath, text);
   process.stdout.write(`generated ${coarse.system}/${coarse.body}\n`);
-  return { system: coarse.system, body: coarse.body, path, sourceSeed: coarse.seed, sourceFingerprint: coarse.inputFingerprint, sha256: hash(text), bytes: Buffer.byteLength(text) };
+  return { system: coarse.system, body: coarse.body, ...writeFiles(coarse, asset), sourceSeed: coarse.seed, sourceFingerprint: coarse.inputFingerprint };
+}
+
+/**
+ * Write an asset as it is stored (scripts/cartography-asset.mjs): the height grid packed, and any geology in its
+ * own file beside it. Returns the manifest's file fields.
+ */
+function writeFiles(coarse, asset) {
+  const path = `data/planet-cartography/${slug(coarse.system)}/${slug(coarse.body)}.json`, diskPath = new URL(path, root);
+  const { main, geology } = packCartography(asset, path), text = `${JSON.stringify(main)}\n`;
+  mkdirSync(dirname(diskPath.pathname), { recursive: true }); writeFileSync(diskPath, text);
+  const out = { path, sha256: hash(text), bytes: Buffer.byteLength(text) };
+  if (geology) {
+    const geoPath = `${dirname(path)}/${main.geologyFile}`, geoText = `${JSON.stringify(geology)}\n`;
+    writeFileSync(new URL(geoPath, root), geoText);
+    out.geology = { path: geoPath, sha256: hash(geoText), bytes: Buffer.byteLength(geoText) };
+  }
+  return out;
 }
 
 const worlds = [];
@@ -82,9 +98,7 @@ for (const entry of coarseManifest.worlds) {
       resource: encodeByteField(regions.cells, "resource"),
     },
   };
-  const text = `${JSON.stringify(asset)}\n`, path = `data/planet-cartography/${slug(coarse.system)}/${slug(coarse.body)}.json`, diskPath = new URL(path, root);
-  mkdirSync(dirname(diskPath.pathname), { recursive: true }); writeFileSync(diskPath, text);
-  worlds.push({ system: coarse.system, body: coarse.body, path, sourceSeed: coarse.seed, sourceFingerprint: coarse.inputFingerprint, sha256: hash(text), bytes: Buffer.byteLength(text) });
+  worlds.push({ system: coarse.system, body: coarse.body, ...writeFiles(coarse, asset), sourceSeed: coarse.seed, sourceFingerprint: coarse.inputFingerprint });
   process.stdout.write(`generated ${coarse.system}/${coarse.body}\n`);
 }
 const manifest = { schemaVersion: 2, status, modelVersion: "orphaned-sun-cartography-v1", sourceManifest: "data/planet-geography/manifest.json", worlds };

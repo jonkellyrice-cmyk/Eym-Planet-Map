@@ -7,6 +7,7 @@ import { bodyFrame, twilightPhase } from "./ground-sky.mjs";
 import { normalize } from "./sky-frame.mjs";
 import { polygonize } from "./cartography-regions.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "./universal-time.mjs";
+import { elevationGrid } from "./cartography-asset.mjs";
 
 const DEG = Math.PI / 180;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -131,7 +132,7 @@ function decodeBytes(base64) {
 export function environmentField(asset) {
   if (fieldCache.has(asset)) return fieldCache.get(asset);
   const { latCount, lonCount } = asset.grid, res = asset.resolutionDeg, n = latCount * lonCount;
-  const ocean = decodeBytes(asset.raster.oceanMaskBase64), elevation = asset.raster.elevationM;
+  const ocean = decodeBytes(asset.raster.oceanMaskBase64), elevation = elevationGrid(asset);
   const biomes = { categories: asset.raster.biome.categories, values: decodeBytes(asset.raster.biome.valuesBase64) };
   const distKm = new Float32Array(n).fill(Infinity), queue = [];
   for (let i = 0; i < n; i += 1) if (ocean[i]) { distKm[i] = 0; queue.push(i); }

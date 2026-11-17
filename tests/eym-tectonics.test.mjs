@@ -4,10 +4,13 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { EYM_LAYOUT, fromLocal, greatCircleKm } from "../scripts/eym-surface.mjs";
 import { CAREN_GEOLOGY } from "../scripts/eym-tectonics.mjs";
+import { attachGeology, elevationGrid } from "../scripts/cartography-asset.mjs";
 import { OCEAN_FRACTION, TARGET_TOLERANCE, TECTONIC_SEEDS, buildTectonics, tectonicSourcesSha256 } from "../tools/generate-eym-tectonics.mjs";
 
 const root = new URL("../", import.meta.url), read = (path) => readFileSync(new URL(path, root), "utf8");
 const tect = JSON.parse(read("data/eym/tectonics.json")), asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
+// Eym's geology is its own file beside the asset (scripts/cartography-asset.mjs).
+attachGeology(asset, JSON.parse(read(`data/planet-cartography/abydos/${asset.geologyFile}`)));
 const sha = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const convergent = [...tect.boundaries.trenches, ...tect.boundaries.collisions];
 const nearestKm = (ll, list) => Math.min(...list.map((q) => greatCircleKm(ll, q)));
@@ -93,7 +96,7 @@ test("Caren is masked out: its geology is stated, not simulated; elsewhere bedro
 });
 
 test("the sea floor: trenches deeper than the abyss, ridges shallower, shelves wider on rifted coasts", () => {
-  const mesh = asset.raster.elevationM, ocean = [...Buffer.from(asset.raster.oceanMaskBase64, "base64")];
+  const mesh = [...elevationGrid(asset)], ocean = [...Buffer.from(asset.raster.oceanMaskBase64, "base64")];
   const deep = mesh.filter((e, i) => ocean[i]);
   assert.ok(Math.min(...deep) < -7000, "trenches");
   assert.ok(deep.filter((e) => e > -3000 && e < -1500).length > 200, "ridges and slopes");
