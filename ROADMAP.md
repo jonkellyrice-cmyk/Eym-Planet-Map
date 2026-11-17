@@ -18,7 +18,7 @@ This overrides anything below that plans for all five continents.
 
 ### Done
 
-- **System view**: pixel sprites for the Sun, worlds, moons and wanderers; a label only for the body that was clicked; no ownership badges.
+- **System view**: finished at tier 2 (owner's decision, 17 November 2026). Pixel sprites for the Sun, worlds, moons and wanderers; every body in its orbit; tap a body to name it; double-tap Eym to open its map; no ownership badges. No further art or detail work.
 - **Eym's globe**: pixel art at every zoom up to 30× (`scripts/eym-globe-pixels.mjs`), drawn by rule, with weather, day and night, seasonal snow and ragged sea ice; cached and drawn at half sharpness while moving.
 - **Night sky**: a pixel-art star chart (`scripts/eym-sky-pixels.mjs`) with pan, magnify and tap-to-name.
 - **Panel**: parchment styling and a serif face (`styles/parchment.css`); the panel scrolls on phones; a pinch on the map never zooms the page (`scripts/zoom-guard.mjs`).
@@ -27,11 +27,11 @@ This overrides anything below that plans for all five continents.
 
 ### The layers and their intended pixel-art tier
 
-The tiers are provisional until the trial in step 2. Cheap layers (few pictures) can afford a high tier; layers with very many tiles cannot.
+The tiers are provisional until the trial in step 2. Cheap layers (few pictures) can afford a high tier; layers with very many tiles cannot. The System view is finished and is not part of the trial.
 
 | Layer | What it is | Where it is made | Stored | Intended tier | State |
 |---|---|---|---|---|---|
-| System | The model of the heavens | Module, live | No | 5 | Tier 2 sprites done |
+| System | The model of the heavens | Module, live | No | — | Done at tier 2; no further work |
 | Night sky | The dome from a place and time | Module, live | No | 4–5 | Tier 2 done |
 | Planet | Eym's globe | Module, live | No | 3 | Tier 2 done |
 | Continent | One picture each for Caren and Garyk (two) | Map server, once | Yes | 5 | Not started |
@@ -46,6 +46,7 @@ The tiers are provisional until the trial in step 2. Cheap layers (few pictures)
    - Decided by the owner, 17 November 2026: mend the rivers first, then render the layer once.
    - Rivers: the data's channels are 5–10 km wide angular polygons. Narrow them to believable widths with natural banks.
    - Roads run in long straight stretches; hills shade too faintly; farmland is sparse; sea shore bands are octagonal.
+   - Size (17 November 2026). The five old frames held 43,393 tiles (Northern 16,740; Garyk 12,320; Southern 6,732; Eastern 6,215; Caren 1,386); Caren's and Garyk's were stretched by island groups that belong to no continent. Held to their own islands (pull request 20) Caren has 464 tiles and Garyk 798. Of these, 72 of Caren's and 361 of Garyk's are entirely water and are skipped (made to check, never stored), which leaves 829 tiles to store: about 2% of the old layer, some two minutes of rendering at 0.15 s a tile. The sea frame between them (870 tiles) is all water and stores nothing until the sea gets detail of its own. The Local layer follows land area and should shrink by a similar share; it is measured before step 4.
    - Give `eym_tiles` a column for the continent frame (it is held in `z` for now). This is a SQL migration: the owner must approve it.
    - Render the whole layer into the store with `GET /api/region/fill?frame=&start=&count=&ms=`, frame by frame, recording each run in `eym_render_runs`. About 0.15 s a tile after a 7 s warm-up.
 2. **Try the tiers.** Define tiers 3, 4 and 5 concretely (only tiers 1 and 2 exist), render the same place at each for the layers in question (a Dree side-by-side was offered), and let the owner fix a tier for each layer. Update the table above.
@@ -58,6 +59,7 @@ The tiers are provisional until the trial in step 2. Cheap layers (few pictures)
    - Dialogs (dossier manager, settings) and the window title bar are not parchment-styled.
    - About 3 MB of other bodies' cartography data is unused.
    - The test suite takes five minutes on every change; arrange it so unaffected tests can be skipped.
+   - Only if the owner asks, two phone fixes for the System view: shrink its help card to one line or hide it after the first tap (on a phone it takes three lines and covers the bottom of the orbits), and open slightly more zoomed out so the outermost orbit is not at the edge.
 8. **Verify where it will be used.** A live Foundry world (nothing has been checked in one yet) and a real iPhone (the pinch guard and the sky's two-finger pinch).
 9. **Carried over from the table below.** Check Caren's settlement names; name Garyk's settlements; a road network between settlements; live environmental sync to the GM Kit.
 
