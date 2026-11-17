@@ -291,7 +291,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       root.querySelector('[data-action="back-to-system"]')?.classList.remove("is-hidden");
       root.querySelector('[data-action="back-to-body"]')?.classList.remove("is-hidden");
       const title = root.querySelector("[data-map-title]"); if (title) title.textContent = `The sky over ${displayNameFor(HOME_SYSTEM.name, "Eventide")}`;
-      const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Drag to turn · wheel to zoom · double-click to reset";
+      const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Tap a star, moon or wanderer to name it · closer in, drag moves about · double-tap to reset";
       this.#updateSkyReadout(snapshot, sky);
       window.clearInterval(this._skyTicker);
       // The sky turns slowly; with the clock running, refresh it every few seconds.

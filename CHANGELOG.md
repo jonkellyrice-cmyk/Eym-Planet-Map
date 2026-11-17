@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.2 (2026-11-17)
+
+- The night sky is now a pixel-art star chart, in keeping with the globe: stars as single pixels or small sparkles by their brightness, the wandering stars as eight-pointed stars, the moons as discs with their phase, the Sun in its rays, Desna's Path as a dithered band, constellation figures as dotted gilt lines, and a gilt compass ring with the four winds in the panel's serif. It is drawn by rule: the same sky always gives the same picture.
+- Look closer at the sky: pinch or scroll to magnify (up to six times), and drag to move about once magnified (at the whole sky a drag still turns it). Magnifying only enlarges the chart; no new stars appear. Double-tap to reset.
+- Names are off until asked for: tap a star, moon or wanderer to name it (a star in a figure names and lights its constellation). "All names" shows them all.
+
 ## 0.16.1 (2026-11-16)
 
 - A pinch on the map zooms the map, never the page. On iPhone Safari the browser was also zooming the whole page, so the two fought.

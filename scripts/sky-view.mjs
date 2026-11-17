@@ -1,17 +1,16 @@
-// The night sky from the ground: a zenith-centred dome drawn from a groundSky() snapshot.
-// North is at the top and east on the left, as on a star chart held overhead. Drag to turn, wheel or
-// pinch to zoom, double-click to reset. Objects sizes are exaggerated for legibility, but a moon's disc
-// over the Sun is drawn in true proportion so eclipses read correctly.
-import { STAR_CLASSES, TWINKLE_GROUPS, starClassIndex } from "./starfield.mjs";
-import { cross, normalize } from "./sky-frame.mjs";
+// The night sky from the ground: a zenith-centred dome drawn from a groundSky() snapshot, as a pixel-art star
+// chart (scripts/eym-sky-pixels.mjs) on a canvas, with the compass ring and the names drawn over it.
+// North is at the top and east on the left, as on a star chart held overhead. Drag to turn the whole sky;
+// pinch or scroll to look closer, and then drag to move about; tap a star, moon or wanderer to name it;
+// double-tap to reset. Looking closer only enlarges the chart: no new stars appear. Object sizes are
+// exaggerated for legibility, but a moon's disc over the Sun is drawn in true proportion so eclipses read correctly.
+import { moonRadius, renderSkyPixels, skyPoint, SUN_PIXELS } from "./eym-sky-pixels.mjs";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const CX = 450, CY = 340, HORIZON_RADIUS = 315;
-const MOON_SCALE = 5;           // moons drawn this many times their true angular size
-const MIN_MOON_RADIUS = 8;
-const SUN_DISPLAY_RADIUS = 13;
-const PLANET_COLORS = Object.freeze({ Thraximundus: "#d9ecff", Tribune: "#f3e3c2", Kandahar: "#f0a36a", Ramses: "#ffe7a3" });
-const MOON_COLORS = Object.freeze({ "White Moon": { lit: "#f6f3ea", dark: "#262a33", eclipse: "#7a2f1a" }, "Red Moon": { lit: "#d9673f", dark: "#2a1a17", eclipse: "#5c1f12" } });
+const ART_UNIT = 2.5;            // chart units to one art pixel
+/** How much closer than the whole sky the view can go. */
+export const SKY_MAX_ZOOM = 6;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 function el(name, attrs = {}) {
@@ -44,179 +43,164 @@ export function litPath(r, k) {
   return `M 0 ${-r} A ${r} ${r} 0 0 1 0 ${r} A ${rx.toFixed(2)} ${r} 0 0 ${k > 0.5 ? 1 : 0} 0 ${-r} Z`;
 }
 
+/** Keep a view within bounds: zoom 1..SKY_MAX_ZOOM, and the dome never dragged further than its own growth. */
+export function clampSkyView(state) {
+  state.zoom = clamp(state.zoom, 1, SKY_MAX_ZOOM);
+  const limit = HORIZON_RADIUS * (state.zoom - 1), d = Math.hypot(state.panX, state.panY);
+  if (d > limit) { const k = d ? limit / d : 0; state.panX *= k; state.panY *= k; }
+  return state;
+}
+
+/** Look closer (or less close) by `factor`, keeping the chart point (x, y) under the finger where it is. */
+export function zoomSkyAbout(state, factor, x = CX, y = CY) {
+  const zoom = clamp(state.zoom * factor, 1, SKY_MAX_ZOOM), k = zoom / state.zoom;
+  state.panX = x + (CX + state.panX - x) * k - CX; state.panY = y + (CY + state.panY - y) * k - CY; state.zoom = zoom;
+  return clampSkyView(state);
+}
+
 export class SkyView {
   constructor(svg, { snapshot, sky, starfield, displayName = (name) => name, layers = {} }) {
     this.svg = svg; this.sky = sky; this.starfield = starfield; this.displayName = displayName;
-    this.layers = { lines: false, names: true, ...layers };
-    this.state = { rotationDeg: 0, zoom: 1 };
-    this.snapshot = snapshot;
+    this.layers = { lines: false, names: false, ...layers };
+    this.state = { rotationDeg: 0, zoom: 1, panX: 0, panY: 0 };
+    this.snapshot = snapshot; this.cloud = 0; this.selection = null; this.stamp = 0;
+    // Which figure each star belongs to, and which stars have names: what a tap can name.
+    this.figureOf = new Map(); this.nameOf = new Map();
+    for (const c of sky.constellations) for (const pair of c.lines) for (const id of pair) if (!this.figureOf.has(id)) this.figureOf.set(id, c);
+    for (const named of sky.namedStars) this.nameOf.set(named.star, named);
     this.#build(); this.#attach(); this.render();
   }
 
   destroy() {
     for (const [name, handler] of Object.entries(this._listeners ?? {})) this.svg.removeEventListener(name, handler);
-    this.svg.replaceChildren();
+    if (this.frame != null) (globalThis.cancelAnimationFrame ?? clearTimeout)(this.frame);
+    this.canvas?.remove(); this.svg.classList.remove("is-pixel-sky", "is-daylight"); this.svg.replaceChildren();
   }
 
-  update(snapshot) { this.snapshot = snapshot; this.render(); }
+  update(snapshot) { this.snapshot = snapshot; this.stamp += 1; this.render(); }
   /** Cloud cover (0–1) over the observer, from the weather. */
-  setCloud(cloud) {
-    const day = (this.snapshot?.sun?.altDeg ?? -90) > -6;
-    this.cloudVeil.setAttribute("fill-opacity", (Math.max(0, cloud - 0.1) ** 1.3 * (day ? 0.8 : 0.93)).toFixed(2));
-    this.cloudVeil.style.fill = day ? "#c4ccd4" : "#1b2229";
-  }
-  setLayerVisibility(layer, visible) { this.layers[layer] = Boolean(visible); this.render(); }
-  resetView() { Object.assign(this.state, { rotationDeg: 0, zoom: 1 }); this.render(); }
-  clearSelection() {}
+  setCloud(cloud) { if (cloud !== this.cloud) { this.cloud = cloud; this.stamp += 1; this.render(); } }
+  setLayerVisibility(layer, visible) { this.layers[layer] = Boolean(visible); this.stamp += 1; this.render(); }
+  resetView() { Object.assign(this.state, { rotationDeg: 0, zoom: 1, panX: 0, panY: 0 }); this.render(); }
+  clearSelection() { this.selection = null; this.stamp += 1; this.render(); }
 
-  /** Screen position of an altitude/azimuth (null below the horizon). */
-  place(altDeg, azDeg) {
-    if (altDeg < 0) return null;
-    const r = (90 - altDeg) / 90 * HORIZON_RADIUS * this.state.zoom, a = (azDeg + this.state.rotationDeg) * Math.PI / 180;
-    return { x: CX - r * Math.sin(a), y: CY - r * Math.cos(a) };
-  }
-
+  get #frameNow() { return { cx: CX + this.state.panX, cy: CY + this.state.panY, radius: HORIZON_RADIUS * this.state.zoom, rotationDeg: this.state.rotationDeg }; }
+  /** Chart position of an altitude/azimuth (null below the horizon). */
+  place(altDeg, azDeg) { return skyPoint(altDeg, azDeg, this.#frameNow); }
   #placeDir(direction) { const p = this.snapshot.project(direction); return this.place(p.altDeg, p.azDeg); }
 
   #build() {
     this.svg.replaceChildren();
     this.svg.setAttribute("viewBox", "0 0 900 680");
-    const defs = el("defs");
-    const sky = el("radialGradient", { id: "oscm-ground-sky", cx: "50%", cy: "50%", r: "50%" });
-    this.skyStops = [el("stop", { offset: "0%" }), el("stop", { offset: "100%" })];
-    sky.append(...this.skyStops);
-    const glow = el("radialGradient", { id: "oscm-ground-glow" });
-    glow.append(el("stop", { offset: "0%", "stop-color": "#dfe8ff", "stop-opacity": 1 }), el("stop", { offset: "100%", "stop-color": "#dfe8ff", "stop-opacity": 0 }));
-    const sunGlow = el("radialGradient", { id: "oscm-ground-sun-glow" });
-    sunGlow.append(el("stop", { offset: "0%", "stop-color": "#fff6d8", "stop-opacity": 0.95 }), el("stop", { offset: "100%", "stop-color": "#ffd27a", "stop-opacity": 0 }));
-    const clip = el("clipPath", { id: "oscm-ground-dome" }); this.clipCircle = el("circle", { cx: CX, cy: CY }); clip.append(this.clipCircle);
-    defs.append(sky, glow, sunGlow, clip);
-    this.background = el("circle", { cx: CX, cy: CY, fill: "url(#oscm-ground-sky)" });
-    this.dome = el("g", { "clip-path": "url(#oscm-ground-dome)" });
-    this.bandLayer = el("g", { class: "oscm-ground-band" });
-    this.lineLayer = el("path", { class: "oscm-ground-constellation-lines", fill: "none" });
-    this.starPaths = STAR_CLASSES.map((entry, classIndex) => Array.from({ length: TWINKLE_GROUPS }, (_, twinkle) => el("path", { class: `oscm-sky-stars is-class-${classIndex} is-twinkle-${twinkle}`, fill: "none", stroke: "#ffffff", "stroke-linecap": "round", "stroke-width": entry.size * 1.15, "stroke-opacity": entry.opacity })));
-    this.bodyLayer = el("g", { class: "oscm-ground-bodies" });
-    this.labelLayer = el("g", { class: "oscm-ground-labels" });
-    // Cloud cover from the weather veils the sky: stars first, then the moons and planets.
-    this.cloudVeil = el("circle", { cx: CX, cy: CY, r: 2000, class: "oscm-sky-cloud", "fill-opacity": 0 });
-    this.dome.append(this.bandLayer, this.lineLayer, ...this.starPaths.flat(), this.bodyLayer, this.cloudVeil, this.labelLayer);
-    this.horizon = el("circle", { cx: CX, cy: CY, class: "oscm-ground-horizon", fill: "none" });
+    this.svg.classList.add("is-pixel-sky");
+    this.canvas = Object.assign(document.createElement("canvas"), { className: "oscm-globe-canvas oscm-sky-canvas is-on" });
+    this.svg.parentNode?.insertBefore(this.canvas, this.svg);
+    this.horizon = el("circle", { class: "oscm-ground-horizon", fill: "none" });
+    this.ticks = el("path", { class: "oscm-ground-ticks", fill: "none" });
     this.cardinals = ["N", "E", "S", "W"].map((label) => { const t = el("text", { class: "oscm-ground-cardinal", "text-anchor": "middle", "dominant-baseline": "middle" }); t.textContent = label; return t; });
-    this.svg.append(defs, el("rect", { x: 0, y: 0, width: 900, height: 680, class: "oscm-ground-backdrop" }), this.background, this.dome, this.horizon, ...this.cardinals);
+    this.labelLayer = el("g", { class: "oscm-ground-labels" });
+    this.svg.append(this.horizon, this.ticks, this.labelLayer, ...this.cardinals);
+  }
+
+  /** A pointer's place on the chart (the 900 × 680 frame, which the window may show more or less of). */
+  #chartPoint(event) {
+    const box = this.svg.getBoundingClientRect(), fit = Math.min(box.width / 900, box.height / 680) || 1;
+    return { x: 450 + (event.clientX - box.left - box.width / 2) / fit, y: 340 + (event.clientY - box.top - box.height / 2) / fit, fit };
   }
 
   #attach() {
-    let drag = null;
+    const fingers = new Map(); let drag = null, pinch = null, lastTap = 0;
+    const spread = () => { const [a, b] = [...fingers.values()]; return { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1, mid: this.#chartPoint({ clientX: (a.clientX + b.clientX) / 2, clientY: (a.clientY + b.clientY) / 2 }) }; };
+    const end = (e) => {
+      const had = fingers.delete(e.pointerId); if (fingers.size < 2) pinch = null;
+      if (had && drag?.id === e.pointerId) {
+        const tap = !drag.moved && e.type === "pointerup"; drag = null;
+        if (tap) { const now = Date.now(); if (now - lastTap < 350) { lastTap = 0; this.resetView(); } else { lastTap = now; this.#select(this.#chartPoint(e)); } }
+      }
+    };
     this._listeners = {
-      pointerdown: (e) => { drag = { x: e.clientX, rotation: this.state.rotationDeg, id: e.pointerId }; this.svg.setPointerCapture?.(e.pointerId); },
-      pointermove: (e) => { if (!drag || drag.id !== e.pointerId) return; this.state.rotationDeg = drag.rotation - (e.clientX - drag.x) * 0.35; this.render(); },
-      pointerup: (e) => { if (drag?.id === e.pointerId) drag = null; },
-      pointercancel: () => { drag = null; },
-      wheel: (e) => { e.preventDefault(); this.state.zoom = clamp(this.state.zoom * Math.exp(-e.deltaY * 0.0012), 1, 4); this.render(); },
-      dblclick: () => this.resetView(),
+      pointerdown: (e) => {
+        fingers.set(e.pointerId, e); this.svg.setPointerCapture?.(e.pointerId);
+        if (fingers.size === 2) { pinch = spread(); if (drag) drag.moved = true; }
+        else if (fingers.size === 1) drag = { id: e.pointerId, x: e.clientX, y: e.clientY, rotation: this.state.rotationDeg, panX: this.state.panX, panY: this.state.panY, moved: false };
+      },
+      pointermove: (e) => {
+        if (!fingers.has(e.pointerId)) return; fingers.set(e.pointerId, e);
+        if (pinch && fingers.size >= 2) { const now = spread(); zoomSkyAbout(this.state, now.d / pinch.d, now.mid.x, now.mid.y); pinch = now; this.render(); return; }
+        if (!drag || drag.id !== e.pointerId) return;
+        const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (!drag.moved && Math.hypot(dx, dy) < 6) return; drag.moved = true;
+        // At the whole sky, a drag turns it; looked at closer, a drag moves about it.
+        if (this.state.zoom <= 1.02) this.state.rotationDeg = drag.rotation - dx * 0.35;
+        else { const { fit } = this.#chartPoint(e); this.state.panX = drag.panX + dx / fit; this.state.panY = drag.panY + dy / fit; clampSkyView(this.state); }
+        this.render();
+      },
+      pointerup: end, pointercancel: end,
+      wheel: (e) => { e.preventDefault(); const p = this.#chartPoint(e); zoomSkyAbout(this.state, Math.exp(-e.deltaY * 0.0012), p.x, p.y); this.render(); },
     };
     for (const [name, handler] of Object.entries(this._listeners)) this.svg.addEventListener(name, handler, name === "wheel" ? { passive: false } : undefined);
   }
 
-  render() {
-    const s = this.snapshot; if (!s) return;
-    const radius = HORIZON_RADIUS * this.state.zoom;
-    this.background.setAttribute("r", radius); this.clipCircle.setAttribute("r", radius); this.horizon.setAttribute("r", radius);
-    const colors = skyColors(s.sun.altDeg, s.sun.coverage);
-    this.skyStops[0].setAttribute("stop-color", colors.zenith); this.skyStops[1].setAttribute("stop-color", colors.horizon);
-    this.svg.classList.toggle("is-daylight", s.twilight === "day" && s.sun.coverage < 0.9);
-    ["N", "E", "S", "W"].forEach((_, i) => { const a = (i * 90 + this.state.rotationDeg) * Math.PI / 180, r = Math.min(radius, 325) + 14; this.cardinals[i].setAttribute("x", CX - r * Math.sin(a)); this.cardinals[i].setAttribute("y", CY - r * Math.cos(a)); });
-    const darkness = clamp((s.limitingMagnitude + 1) / 6.6, 0, 1);
+  /** Everything a tap can name, with where it stands on the chart now. */
+  #targets() {
+    const s = this.snapshot, out = [], add = (p, entry) => { if (p) out.push({ ...entry, x: p.x, y: p.y }); };
+    const sun = this.place(s.sun.altDeg, s.sun.azDeg);
+    add(sun, { key: "sun", reach: 26, lift: SUN_PIXELS * ART_UNIT + 8, text: s.sun.coverage > 0 ? `The Sun · ${Math.round(s.sun.coverage * 100)}% eclipsed` : "The Sun", cls: "is-moon" });
+    for (const moon of s.moons) if (moon.visible) add(this.place(moon.altDeg, moon.azDeg), { key: `moon:${moon.name}`, reach: 24, lift: moonRadius(moon, HORIZON_RADIUS * this.state.zoom / ART_UNIT) * ART_UNIT + 6, text: `${this.displayName(moon.name)} · ${Math.round(moon.illuminated * 100)}% lit${moon.umbralFraction > 0.01 ? " · eclipsed" : ""}`, short: this.displayName(moon.name), cls: "is-moon" });
+    for (const planet of s.planets) if (planet.visible) add(this.place(planet.altDeg, planet.azDeg), { key: `planet:${planet.name}`, reach: 22, lift: 14, text: this.displayName(planet.name), cls: "is-planet" });
+    for (const star of s.stars) {
+      if (!star.visible || star.altDeg < 0) continue;
+      const id = `star-${String(star.index + 1).padStart(4, "0")}`, named = this.nameOf.get(id), figure = this.figureOf.get(id); if (!named && !figure) continue;
+      add(this.place(star.altDeg, star.azDeg), { key: id, reach: named ? 20 : 16, lift: 10, text: named ? (figure ? `${named.name} · ${figure.name}` : named.name) : figure.name, short: named?.name, figure: figure?.id ?? null, cls: named?.poleStar ? "is-pole-star" : named ? "is-star" : "is-constellation" });
+    }
+    return out;
+  }
 
-    // Desna's Path: the galactic band, on dark nights only.
-    this.bandLayer.replaceChildren();
-    if (s.galacticBandVisible) {
-      const { northPole, center, bandHalfWidthDeg } = this.starfield.galaxy;
-      const side = normalize(cross(northPole, center));
-      for (let l = 0; l < 360; l += 4) {
-        const rad = l * Math.PI / 180, dir = center.map((c, i) => c * Math.cos(rad) + side[i] * Math.sin(rad));
-        const p = this.#placeDir(dir); if (!p) continue;
-        const core = ((1 + Math.cos(rad)) / 2) ** 2;
-        this.bandLayer.append(el("circle", { cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: (bandHalfWidthDeg * (0.7 + 0.6 * core) * radius / 90).toFixed(1), fill: "url(#oscm-ground-glow)", opacity: ((0.03 + 0.06 * core) * darkness).toFixed(3) }));
+  /** Name what was tapped (the nearest thing within reach), or put the name away. */
+  #select(point) {
+    let best = null, bestD = Infinity;
+    for (const t of this.#targets()) { const d = Math.hypot(t.x - point.x, t.y - point.y); if (d <= t.reach && d < bestD) { best = t; bestD = d; } }
+    this.selection = best && best.key !== this.selection?.key ? { key: best.key, figure: best.figure ?? null } : null;
+    this.stamp += 1; this.render();
+  }
+
+  render() {
+    if (!this.snapshot) return;
+    // Many changes in one frame (a finger moving) are drawn once, at the next frame.
+    if (this.frame == null) this.frame = (globalThis.requestAnimationFrame ?? ((run) => setTimeout(run, 16)))(() => { this.frame = null; this.#draw(); });
+  }
+
+  #draw() {
+    const s = this.snapshot, { cx, cy, radius, rotationDeg } = this.#frameNow;
+    this.svg.classList.toggle("is-daylight", s.twilight === "day" && s.sun.coverage < 0.9);
+
+    // The chart itself, as pixels: it covers all of the view that shows, which may be more than the frame.
+    const box = this.svg.getBoundingClientRect?.(), fit = box?.width && box?.height ? Math.min(box.width / 900, box.height / 680) : 0;
+    if (fit) {
+      const W = Math.min(520, Math.ceil(box.width / fit / ART_UNIT)), H = Math.min(640, Math.ceil(box.height / fit / ART_UNIT));
+      const key = [rotationDeg.toFixed(2), this.state.zoom.toFixed(3), this.state.panX.toFixed(1), this.state.panY.toFixed(1), this.stamp, W, H].join("|");
+      if (key !== this.paintKey) {
+        this.paintKey = key;
+        const data = renderSkyPixels({ width: W, height: H, cx: W / 2 + (cx - 450) / ART_UNIT, cy: H / 2 + (cy - 340) / ART_UNIT, radius: radius / ART_UNIT, rotationDeg, snapshot: s, sky: this.sky, starfield: this.starfield, colors: skyColors(s.sun.altDeg, s.sun.coverage), lines: this.layers.lines, highlight: this.selection?.figure ?? null, cloud: this.cloud, scale: this.state.zoom });
+        if (this.canvas.width !== W || this.canvas.height !== H) { this.canvas.width = W; this.canvas.height = H; }
+        const shown = [W * ART_UNIT * fit, H * ART_UNIT * fit];
+        Object.assign(this.canvas.style, { width: `${shown[0]}px`, height: `${shown[1]}px`, left: `${this.svg.offsetLeft + (box.width - shown[0]) / 2}px`, top: `${this.svg.offsetTop + (box.height - shown[1]) / 2}px` });
+        this.canvas.getContext("2d").putImageData(new ImageData(data, W, H), 0, 0);
       }
     }
 
-    // Stars.
-    const groups = STAR_CLASSES.map(() => Array.from({ length: TWINKLE_GROUPS }, () => []));
-    for (const star of s.stars) {
-      if (!star.visible) continue;
-      const p = this.place(star.altDeg, star.azDeg); if (!p) continue;
-      groups[starClassIndex(star.magnitude)][star.index % TWINKLE_GROUPS].push(`M${p.x.toFixed(1)} ${p.y.toFixed(1)}h0`);
-    }
-    groups.forEach((byTwinkle, c) => byTwinkle.forEach((dots, t) => this.starPaths[c][t].setAttribute("d", dots.join(""))));
+    // The compass ring: the horizon, a tick every fifteen degrees (longer at the quarters), and the four winds.
+    for (const [k, v] of [["cx", cx], ["cy", cy], ["r", radius + 3]]) this.horizon.setAttribute(k, v.toFixed(1));
+    let ticks = "";
+    for (let a = 0; a < 360; a += 15) { const rad = (a + rotationDeg) * Math.PI / 180, r1 = radius + 3, r2 = r1 + (a % 90 === 0 ? 11 : a % 45 === 0 ? 8 : 5); ticks += `M${(cx - r1 * Math.sin(rad)).toFixed(1)} ${(cy - r1 * Math.cos(rad)).toFixed(1)}L${(cx - r2 * Math.sin(rad)).toFixed(1)} ${(cy - r2 * Math.cos(rad)).toFixed(1)}`; }
+    this.ticks.setAttribute("d", ticks);
+    ["N", "E", "S", "W"].forEach((_, i) => { const a = (i * 90 + rotationDeg) * Math.PI / 180, r = radius + 26; this.cardinals[i].setAttribute("x", (cx - r * Math.sin(a)).toFixed(1)); this.cardinals[i].setAttribute("y", (cy - r * Math.cos(a)).toFixed(1)); });
 
-    // Constellation lines (toggle). Shown even by day for reference, but faint.
-    const starAt = (id) => s.stars[Number(id.slice(5)) - 1];
-    let lines = "";
-    if (this.layers.lines) for (const c of this.sky.constellations) for (const [a, b] of c.lines) {
-      const pa = starAt(a), pb = starAt(b); const qa = this.place(pa.altDeg, pa.azDeg), qb = this.place(pb.altDeg, pb.azDeg);
-      if (qa && qb) lines += `M${qa.x.toFixed(1)} ${qa.y.toFixed(1)}L${qb.x.toFixed(1)} ${qb.y.toFixed(1)}`;
-    }
-    this.lineLayer.setAttribute("d", lines);
-    this.lineLayer.setAttribute("stroke-opacity", (0.25 + 0.4 * darkness).toFixed(2));
-
-    // Bodies and labels.
-    this.bodyLayer.replaceChildren(); this.labelLayer.replaceChildren();
-    const label = (p, text, cls, dy = -9) => { const t = el("text", { x: (p.x + 7).toFixed(1), y: (p.y + dy).toFixed(1), class: `oscm-ground-label ${cls}` }); t.textContent = text; this.labelLayer.append(t); };
-    if (this.layers.lines) for (const c of this.sky.constellations) {
-      const p = this.#placeDir(c.center); if (p) { const t = el("text", { x: p.x.toFixed(1), y: p.y.toFixed(1), class: "oscm-ground-label is-constellation", "text-anchor": "middle" }); t.textContent = c.name; this.labelLayer.append(t); }
-    }
-    if (this.layers.names) for (const named of this.sky.namedStars) {
-      const star = starAt(named.star); if (!star.visible) continue;
-      const p = this.place(star.altDeg, star.azDeg); if (p) label(p, named.name, named.poleStar ? "is-pole-star" : "is-star");
-    }
-    for (const planet of s.planets) {
-      if (!planet.visible) continue;
-      const p = this.place(planet.altDeg, planet.azDeg); if (!p) continue;
-      this.bodyLayer.append(el("circle", { cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: clamp(3.3 - 0.45 * planet.magnitude, 1.8, 6).toFixed(2), fill: PLANET_COLORS[planet.name] ?? "#fff", class: "oscm-ground-planet" }));
-      label(p, this.displayName(planet.name), "is-planet");
-    }
-    const sunPoint = this.place(s.sun.altDeg, s.sun.azDeg);
-    for (const moon of s.moons) {
-      const p = this.place(moon.altDeg, moon.azDeg); if (!p || !moon.visible) continue;
-      this.#drawMoon(moon, p, radius);
-      label(p, this.displayName(moon.name), "is-moon", -Math.max(MIN_MOON_RADIUS, moon.radiusDeg * radius / 90 * MOON_SCALE) - 4);
-    }
-    if (sunPoint) this.#drawSun(sunPoint, radius);
-  }
-
-  #drawMoon(moon, p, radius) {
-    const colors = MOON_COLORS[moon.name] ?? MOON_COLORS["White Moon"];
-    const r = Math.max(MIN_MOON_RADIUS, moon.radiusDeg * radius / 90 * MOON_SCALE);
-    const toward = this.#placeDir(normalize(moon.dir.map((v, i) => v + 0.02 * moon.brightLimb[i]))) ?? p;
-    const angle = Math.atan2(toward.y - p.y, toward.x - p.x) * 180 / Math.PI;
-    const lit = mix(colors.lit.slice(1), colors.eclipse.slice(1), moon.umbralFraction * 0.95);
-    const g = el("g", { transform: `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${angle.toFixed(1)})`, class: "oscm-ground-moon", "data-moon": moon.name });
-    // The unlit side shows against a dark sky but melts into a bright one, as Earth's Moon's does by day.
-    const darkness = clamp((this.snapshot.limitingMagnitude + 1) / 6.6, 0, 1);
-    g.append(el("circle", { r: r.toFixed(2), fill: colors.dark, opacity: (0.1 + 0.75 * darkness).toFixed(2) }));
-    g.append(el("path", { d: litPath(r, moon.illuminated), fill: lit, opacity: (1 - 0.35 * Math.max(0, moon.penumbralFraction - moon.umbralFraction)).toFixed(2) }));
-    const title = el("title"); title.textContent = `${this.displayName(moon.name)} · ${Math.round(moon.illuminated * 100)}% lit${moon.umbralFraction > 0.01 ? " · eclipsed" : ""}`; g.append(title);
-    this.bodyLayer.append(g);
-  }
-
-  #drawSun(p, radius) {
-    const s = this.snapshot;
-    const g = el("g", { class: "oscm-ground-sun" });
-    g.append(el("circle", { cx: p.x, cy: p.y, r: SUN_DISPLAY_RADIUS * (s.sun.coverage > 0.98 ? 3.5 : 2.6), fill: "url(#oscm-ground-sun-glow)", opacity: s.sun.coverage > 0.98 ? 0.55 : 0.9 }));
-    g.append(el("circle", { cx: p.x, cy: p.y, r: SUN_DISPLAY_RADIUS, fill: "#fff7dc" }));
-    // A moon in front of the Sun: drawn at the true offset and size relative to the Sun's disc.
-    const k = SUN_DISPLAY_RADIUS / s.sun.radiusDeg;
-    for (const moon of s.moons) {
-      if (moon.sunCoverage <= 0) continue;
-      const m = this.place(moon.altDeg, moon.azDeg) ?? p;
-      const pxPerDeg = radius / 90;
-      const dx = (m.x - p.x) / pxPerDeg * k, dy = (m.y - p.y) / pxPerDeg * k;
-      g.append(el("circle", { cx: (p.x + dx).toFixed(2), cy: (p.y + dy).toFixed(2), r: (moon.radiusDeg * k).toFixed(2), fill: moon.name === "Red Moon" ? "#1f0f0c" : "#0d0f14" }));
-    }
-    const title = el("title"); title.textContent = s.sun.coverage > 0 ? `The Sun · ${Math.round(s.sun.coverage * 100)}% eclipsed` : "The Sun"; g.append(title);
-    this.bodyLayer.append(g);
+    // Names: only what was tapped, unless every name is asked for.
+    this.labelLayer.replaceChildren();
+    const targets = this.#targets(), chosen = this.selection ? targets.find((t) => t.key === this.selection.key) : null;
+    const label = (t, text, extra = "") => { if (t.x < -20 || t.x > 920 || t.y < -20 || t.y > 700) return; const node = el("text", { x: clamp(t.x, 60, 840).toFixed(1), y: Math.max(16, t.y - t.lift).toFixed(1), class: `oscm-ground-label ${t.cls} ${extra}`, "text-anchor": "middle" }); node.textContent = text; this.labelLayer.append(node); };
+    if (this.layers.names) for (const t of targets) if (t !== chosen && (t.short || t.cls === "is-planet")) label(t, t.short ?? t.text);
+    if (this.layers.lines) for (const c of this.sky.constellations) { if (c.id === this.selection?.figure) continue; const p = this.#placeDir(c.center); if (p) label({ ...p, lift: 0, cls: "is-constellation" }, c.name); }
+    if (chosen) label(chosen, chosen.text, "is-chosen");
   }
 }
-
