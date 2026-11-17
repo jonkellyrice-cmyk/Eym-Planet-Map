@@ -8,7 +8,11 @@ import { moonRadius, renderSkyPixels, skyPoint, SUN_PIXELS } from "./eym-sky-pix
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const CX = 450, CY = 340, HORIZON_RADIUS = 315;
-const ART_UNIT = 2.5;            // chart units to one art pixel
+const ART_PX = 2;               // one art pixel is this many CSS pixels on every screen
+const MAX_ART = 720;            // art pixels across, at most (a very large window gets larger pixels instead)
+/** Screen sizes of the names, in CSS pixels, by kind; and which kind of name gives way to which where two would overlap. */
+const LABEL_PX = { "is-chosen": 15, "is-moon": 13, "is-planet": 13, "is-pole-star": 13, "is-star": 12.5, "is-constellation": 11.5 };
+const LABEL_RANK = { "is-chosen": 0, "is-moon": 1, "is-pole-star": 2, "is-planet": 3, "is-star": 4, "is-constellation": 5 };
 /** How much closer than the whole sky the view can go. */
 export const SKY_MAX_ZOOM = 6;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -62,7 +66,7 @@ export class SkyView {
   constructor(svg, { snapshot, sky, starfield, displayName = (name) => name, layers = {} }) {
     this.svg = svg; this.sky = sky; this.starfield = starfield; this.displayName = displayName;
     this.layers = { lines: false, names: false, ...layers };
-    this.state = { rotationDeg: 0, zoom: 1, panX: 0, panY: 0 };
+    this.state = { rotationDeg: 0, zoom: 1, panX: 0, panY: 0 }; this.artUnit = 2.5; this.fit = 1;
     this.snapshot = snapshot; this.cloud = 0; this.selection = null; this.stamp = 0;
     // Which figure each star belongs to, and which stars have names: what a tap can name.
     this.figureOf = new Map(); this.nameOf = new Map();
@@ -144,13 +148,13 @@ export class SkyView {
   #targets() {
     const s = this.snapshot, out = [], add = (p, entry) => { if (p) out.push({ ...entry, x: p.x, y: p.y }); };
     const sun = this.place(s.sun.altDeg, s.sun.azDeg);
-    add(sun, { key: "sun", reach: 26, lift: SUN_PIXELS * ART_UNIT + 8, text: s.sun.coverage > 0 ? `The Sun · ${Math.round(s.sun.coverage * 100)}% eclipsed` : "The Sun", cls: "is-moon" });
-    for (const moon of s.moons) if (moon.visible) add(this.place(moon.altDeg, moon.azDeg), { key: `moon:${moon.name}`, reach: 24, lift: moonRadius(moon, HORIZON_RADIUS * this.state.zoom / ART_UNIT) * ART_UNIT + 6, text: `${this.displayName(moon.name)} · ${Math.round(moon.illuminated * 100)}% lit${moon.umbralFraction > 0.01 ? " · eclipsed" : ""}`, short: this.displayName(moon.name), cls: "is-moon" });
+    add(sun, { key: "sun", reach: 26, lift: SUN_PIXELS * this.artUnit + 8, text: s.sun.coverage > 0 ? `The Sun · ${Math.round(s.sun.coverage * 100)}% eclipsed` : "The Sun", cls: "is-moon" });
+    for (const moon of s.moons) if (moon.visible) add(this.place(moon.altDeg, moon.azDeg), { key: `moon:${moon.name}`, reach: 24, lift: moonRadius(moon, HORIZON_RADIUS * this.state.zoom / this.artUnit) * this.artUnit + 6, text: `${this.displayName(moon.name)} · ${Math.round(moon.illuminated * 100)}% lit${moon.umbralFraction > 0.01 ? " · eclipsed" : ""}`, short: this.displayName(moon.name), cls: "is-moon" });
     for (const planet of s.planets) if (planet.visible) add(this.place(planet.altDeg, planet.azDeg), { key: `planet:${planet.name}`, reach: 22, lift: 14, text: this.displayName(planet.name), cls: "is-planet" });
     for (const star of s.stars) {
       if (!star.visible || star.altDeg < 0) continue;
       const id = `star-${String(star.index + 1).padStart(4, "0")}`, named = this.nameOf.get(id), figure = this.figureOf.get(id); if (!named && !figure) continue;
-      add(this.place(star.altDeg, star.azDeg), { key: id, reach: named ? 20 : 16, lift: 10, text: named ? (figure ? `${named.name} · ${figure.name}` : named.name) : figure.name, short: named?.name, figure: figure?.id ?? null, cls: named?.poleStar ? "is-pole-star" : named ? "is-star" : "is-constellation" });
+      add(this.place(star.altDeg, star.azDeg), { key: id, reach: named ? 20 : 16, lift: 10, text: named ? (figure ? `${named.name} · ${figure.name}` : named.name) : figure.name, short: named?.name, magnitude: star.magnitude, figure: figure?.id ?? null, cls: named?.poleStar ? "is-pole-star" : named ? "is-star" : "is-constellation" });
     }
     return out;
   }
@@ -176,7 +180,10 @@ export class SkyView {
     // The chart itself, as pixels: it covers all of the view that shows, which may be more than the frame.
     const box = this.svg.getBoundingClientRect?.(), fit = box?.width && box?.height ? Math.min(box.width / 900, box.height / 680) : 0;
     if (fit) {
-      const W = Math.min(520, Math.ceil(box.width / fit / ART_UNIT)), H = Math.min(640, Math.ceil(box.height / fit / ART_UNIT));
+      // One art pixel is ART_PX CSS pixels whatever the screen (a larger window gets more of them, up to MAX_ART across).
+      const unit = Math.max(ART_PX / fit, Math.max(box.width, box.height) / fit / MAX_ART), ART_UNIT = unit; this.artUnit = unit; this.fit = fit;
+      this.svg.style?.setProperty?.("--sky-px", (1 / fit).toFixed(4));
+      const W = Math.ceil(box.width / fit / ART_UNIT), H = Math.ceil(box.height / fit / ART_UNIT);
       const key = [rotationDeg.toFixed(2), this.state.zoom.toFixed(3), this.state.panX.toFixed(1), this.state.panY.toFixed(1), this.stamp, W, H].join("|");
       if (key !== this.paintKey) {
         this.paintKey = key;
@@ -198,9 +205,19 @@ export class SkyView {
     // Names: only what was tapped, unless every name is asked for.
     this.labelLayer.replaceChildren();
     const targets = this.#targets(), chosen = this.selection ? targets.find((t) => t.key === this.selection.key) : null;
-    const label = (t, text, extra = "") => { if (t.x < -20 || t.x > 920 || t.y < -20 || t.y > 700) return; const node = el("text", { x: clamp(t.x, 60, 840).toFixed(1), y: Math.max(16, t.y - t.lift).toFixed(1), class: `oscm-ground-label ${t.cls} ${extra}`, "text-anchor": "middle" }); node.textContent = text; this.labelLayer.append(node); };
-    if (this.layers.names) for (const t of targets) if (t !== chosen && (t.short || t.cls === "is-planet")) label(t, t.short ?? t.text);
-    if (this.layers.lines) for (const c of this.sky.constellations) { if (c.id === this.selection?.figure) continue; const p = this.#placeDir(c.center); if (p) label({ ...p, lift: 0, cls: "is-constellation" }, c.name); }
-    if (chosen) label(chosen, chosen.text, "is-chosen");
+    // Each name is a fixed size on the screen; where two would overlap, the less important one is left out.
+    const wanted = [], px = 1 / (this.fit || 1);
+    const want = (t, text, kind) => { if (t.x < -20 || t.x > 920 || t.y < -20 || t.y > 700) return; const size = LABEL_PX[kind] * px, w = text.length * size * 0.52, x = clamp(t.x, w / 2 + 4, 900 - w / 2 - 4), y = Math.max(size + 2, t.y - Math.max(t.lift, 6 * px)); wanted.push({ t, text, kind, x, y, w, h: size * 1.15, rank: LABEL_RANK[kind] + (t.magnitude ?? 0) / 100 }); };
+    if (chosen) want(chosen, chosen.text, "is-chosen");
+    if (this.layers.names) for (const t of targets) if (t !== chosen && (t.short || t.cls === "is-planet")) want(t, t.short ?? t.text, t.cls);
+    if (this.layers.lines) for (const c of this.sky.constellations) { if (c.id === this.selection?.figure) continue; const p = this.#placeDir(c.center); if (p) want({ ...p, lift: 0 }, c.name, "is-constellation"); }
+    // The four winds are placed first: no name is drawn over them.
+    const placed = ["N", "E", "S", "W"].map((_, i) => { const a = (i * 90 + rotationDeg) * Math.PI / 180, r = radius + 26, x = cx - r * Math.sin(a), y = cy - r * Math.cos(a), h = 10 * px; return { x0: x - h, x1: x + h, y0: y - h, y1: y + h }; });
+    for (const l of wanted.sort((a, b) => a.rank - b.rank)) {
+      const box = { x0: l.x - l.w / 2 - 2 * px, x1: l.x + l.w / 2 + 2 * px, y0: l.y - l.h, y1: l.y + 2 * px };
+      if (placed.some((b) => box.x0 < b.x1 && box.x1 > b.x0 && box.y0 < b.y1 && box.y1 > b.y0)) continue;
+      placed.push(box);
+      const node = el("text", { x: l.x.toFixed(1), y: l.y.toFixed(1), class: `oscm-ground-label ${l.kind === "is-chosen" ? `${l.t.cls} is-chosen` : l.kind}`, "text-anchor": "middle" }); node.textContent = l.text; this.labelLayer.append(node);
+    }
   }
 }

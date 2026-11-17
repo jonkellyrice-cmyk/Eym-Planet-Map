@@ -15,9 +15,9 @@ const hashUnit = (n) => { let h = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b); h ^= h 
 
 export const SKY_PALETTE = Object.freeze({
   starTints: [hex("#ffffff"), hex("#ffe6c2"), hex("#d6e4ff")], // white, warm, cool
-  faint: [hex("#d6def0"), hex("#aab4cc"), hex("#7f8aa6"), hex("#5a6480")], // single pixels, bright to dim
+  faint: [hex("#cfd7ea"), hex("#a9b3cc"), hex("#8791ae"), hex("#6f7998")], // single pixels, bright to dim (the dimmest still reads on a phone)
   band: hex("#aeb8dc"),
-  line: hex("#8a7434"), lineBright: hex("#e0bc58"),
+  line: hex("#c79c3e"), lineBright: hex("#f2cf6a"),
   wanderers: { Thraximundus: hex("#d9ecff"), Tribune: hex("#f3e3c2"), Kandahar: hex("#f0a36a"), Ramses: hex("#ffe7a3") },
   moons: { "White Moon": { lit: [hex("#b9bec8"), hex("#dcdfe4"), hex("#f6f3ea")], dark: hex("#262a33"), eclipse: hex("#7a2f1a") }, "Red Moon": { lit: [hex("#8a3a28"), hex("#b4533a"), hex("#d9673f")], dark: hex("#2a1a17"), eclipse: hex("#5c1f12") } },
   sun: { disc: hex("#fff7dc"), ray: hex("#f2c14e"), glow: hex("#ffe9a8") },
@@ -45,11 +45,11 @@ export function renderSkyPixels({ width, height, cx, cy, radius, rotationDeg = 0
   const place = (alt, az) => skyPoint(alt, az, frame), placeDir = (dir) => { const p = s.project(dir); return place(p.altDeg, p.azDeg); };
   const darkness = clamp((s.limitingMagnitude + 1) / 6.6, 0, 1), zenith = hex(colors.zenith), horizon = hex(colors.horizon);
 
-  // The dome: zenith to horizon in eight dithered bands.
+  // The dome: a calm, solid sky overhead, shading toward the horizon in dithered bands only in its outer part.
   const x0 = Math.max(0, Math.floor(cx - radius)), x1 = Math.min(width - 1, Math.ceil(cx + radius)), y0 = Math.max(0, Math.floor(cy - radius)), y1 = Math.min(height - 1, Math.ceil(cy + radius));
   for (let y = y0; y <= y1; y += 1) for (let x = x0; x <= x1; x += 1) {
     const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy) / radius; if (d > 1) continue;
-    const level = clamp(Math.floor(d ** 1.7 * 7 + bayer(x, y)), 0, 7), c = lerp(zenith, horizon, level / 7), o = (y * width + x) * 4;
+    const t = Math.max(0, d - 0.55) / 0.45, level = clamp(Math.floor(t ** 1.4 * 6 + (t > 0 ? bayer(x, y) : 0)), 0, 6), c = lerp(zenith, horizon, level / 6), o = (y * width + x) * 4;
     out[o] = c[0]; out[o + 1] = c[1]; out[o + 2] = c[2]; out[o + 3] = 255;
   }
 
@@ -62,7 +62,8 @@ export function renderSkyPixels({ width, height, cx, cy, radius, rotationDeg = 0
       const core = ((1 + Math.cos(rad)) / 2) ** 2, reach = bandHalfWidthDeg * (0.7 + 0.6 * core) * radius / 90, strength = 0.1 + 0.2 * core;
       for (let y = Math.max(0, Math.floor(p.y - reach)); y <= Math.min(height - 1, Math.ceil(p.y + reach)); y += 1) for (let x = Math.max(0, Math.floor(p.x - reach)); x <= Math.min(width - 1, Math.ceil(p.x + reach)); x += 1) { const q = Math.hypot(x + 0.5 - p.x, y + 0.5 - p.y) / reach; if (q < 1) light[y * width + x] += strength * (1 - q) ** 1.5; }
     }
-    for (let y = y0; y <= y1; y += 1) for (let x = x0; x <= x1; x += 1) { const v = light[y * width + x] * darkness; if (v > 0.04) blend(x, y, P.band, v > bayer(x, y) * 0.9 + 0.1 ? 0.3 : v > bayer(x, y) * 0.45 ? 0.14 : 0); }
+    // a soft glow, graded in a few even steps rather than dithered into a grid of squares
+    for (let y = y0; y <= y1; y += 1) for (let x = x0; x <= x1; x += 1) { const v = light[y * width + x] * darkness; if (v > 0.04) blend(x, y, P.band, Math.round(Math.min(1, v) * 5) / 5 * 0.24); }
   }
 
   // Constellation figures: dotted gilt lines between their stars.
@@ -72,7 +73,7 @@ export function renderSkyPixels({ width, height, cx, cy, radius, rotationDeg = 0
     for (const [a, b] of c.lines) {
       const sa = starAt(a), sb = starAt(b), pa = place(sa.altDeg, sa.azDeg), pb = place(sb.altDeg, sb.azDeg); if (!pa || !pb) continue;
       const steps = Math.max(1, Math.ceil(Math.max(Math.abs(pb.x - pa.x), Math.abs(pb.y - pa.y))));
-      for (let k = 2; k <= steps - 2; k += 1) if (bright || k % 3 !== 0) blend(pa.x + (pb.x - pa.x) * k / steps, pa.y + (pb.y - pa.y) * k / steps, bright ? P.lineBright : P.line, bright ? 0.9 : 0.35 + 0.4 * darkness);
+      for (let k = 2; k <= steps - 2; k += 1) blend(pa.x + (pb.x - pa.x) * k / steps, pa.y + (pb.y - pa.y) * k / steps, bright ? P.lineBright : P.line, bright ? 0.95 : 0.6 + 0.3 * darkness); // solid gilt
     }
   }
 
@@ -85,8 +86,8 @@ export function renderSkyPixels({ width, height, cx, cy, radius, rotationDeg = 0
       const arm = size === 0 ? 2 : 1; put(x, y, P.starTints[0]);
       for (let k = 1; k <= arm; k += 1) for (const [dx, dy] of [[k, 0], [-k, 0], [0, k], [0, -k]]) blend(x + dx, y + dy, tint, k === 1 ? 0.85 : 0.4);
       if (size === 0) for (const [dx, dy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) blend(x + dx, y + dy, tint, 0.25);
-    } else if (size === 2) { put(x, y, P.starTints[0]); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) blend(x + dx, y + dy, tint, 0.3); }
-    else blend(x, y, P.faint[size - 3], 0.55 + 0.45 * darkness);
+    } else if (size === 2) { put(x, y, P.starTints[0]); put(x + 1, y, tint); put(x, y + 1, tint); blend(x + 1, y + 1, tint, 0.75); } // clearly visible: two by two
+    else blend(x, y, P.faint[size - 3], size >= 5 ? 0.55 + 0.25 * darkness : 0.75 + 0.25 * darkness);
   }
 
   // The wandering stars: eight points, as on the model of the heavens.
