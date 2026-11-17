@@ -2,6 +2,66 @@
 
 This roadmap was carried over from the Lancer GM Kit and Lancer cluster map, and most of it still applies to Eym. The table gives each item's status as recorded there, then where it stands in this repository now. The weather design below it was agreed on 3 September 2026.
 
+## Where we are and what is left (17 November 2026, version 0.16.2)
+
+This section is the current plan. The sections below it are the earlier agreements it builds on.
+
+### Done
+
+- **System view**: pixel sprites for the Sun, worlds, moons and wanderers; a label only for the body that was clicked; no ownership badges.
+- **Eym's globe**: pixel art at every zoom up to 30× (`scripts/eym-globe-pixels.mjs`), drawn by rule, with weather, day and night, seasonal snow and ragged sea ice; cached and drawn at half sharpness while moving.
+- **Night sky**: a pixel-art star chart (`scripts/eym-sky-pixels.mjs`) with pan, magnify and tap-to-name.
+- **Panel**: parchment styling and a serif face (`styles/parchment.css`); the panel scrolls on phones; a pinch on the map never zooms the page (`scripts/zoom-guard.mjs`).
+- **Atlas maps, painted maps, battle maps** (tier 2 pixel art from the map server, interiors, floors, Foundry scenes): see the sections below and the README.
+- **Stored layers, first slice**: the Region layer's generator (`scripts/eym-region-layer.mjs`: shapes first, then a flat check picture, then pixel art) and its store (`webapp/region-store.mjs`: Supabase project `eym-world`, buckets `eym-tiles` and `eym-shapes`, tables `eym_tiles` and `eym_render_runs`). One Caren tile has been made, kept and served back from the store.
+
+### The layers and their intended pixel-art tier
+
+The tiers are provisional until the trial in step 2. Cheap layers (few pictures) can afford a high tier; layers with very many tiles cannot.
+
+| Layer | What it is | Where it is made | Stored | Intended tier | State |
+|---|---|---|---|---|---|
+| System | The model of the heavens | Module, live | No | 5 | Tier 2 sprites done |
+| Night sky | The dome from a place and time | Module, live | No | 4–5 | Tier 2 done |
+| Planet | Eym's globe | Module, live | No | 3 | Tier 2 done |
+| Continent | One picture per continent (five) | Map server, once | Yes | 5 | Not started |
+| Region | 76.8 km tiles at 0.3 km a cell, per continent | Map server, once | Yes | 3 | Generator and store done; layer not rendered |
+| Local | Ground detail at 10–50 m | Map server, once | Yes | 2 | Generator exists but is slow; not rendered |
+| Battle map | 5-ft squares at one place and time | Map server, on request | Per map | 5 | Tier 2 done |
+
+### Steps to completion, in order
+
+1. **Finish the Region layer.**
+   - Decide with the owner: mend the rivers first (recommended), or render now and again later.
+   - Rivers: the data's channels are 5–10 km wide angular polygons. Narrow them to believable widths with natural banks.
+   - Roads run in long straight stretches; hills shade too faintly; farmland is sparse; sea shore bands are octagonal.
+   - Give `eym_tiles` a column for the continent frame (it is held in `z` for now). This is a SQL migration: the owner must approve it.
+   - Render the whole layer into the store with `GET /api/region/fill?frame=&start=&count=&ms=`, continent by continent, recording each run in `eym_render_runs`. About 0.15 s a tile after a 7 s warm-up.
+2. **Try the tiers.** Define tiers 3, 4 and 5 concretely (only tiers 1 and 2 exist), render the same place at each for the layers in question (a Dree side-by-side was offered), and let the owner fix a tier for each layer. Update the table above.
+3. **Continent layer.** Five pictures at the chosen tier, shapes first and pixel art after, kept in the store.
+4. **Local layer.** Speed up `scripts/eym-local-detail.mjs` (about 128,000 cells a second now, which is days on one core for the whole layer), then render and store it like the Region layer. Battle maps are already cut from this detail.
+5. **The module reads the stored layers.** Zooming past the globe shows Region and then Local tiles from the web app; a chosen view is exported into the Foundry world as a picture or a scene. Only what is exported is kept in Foundry; the web app holds the rest.
+6. **Battle maps to their tier.** Dedicated sprites for the remaining features, autotiled ground transitions, animated water and fire, more building styles, then tiers 3 to 5 as chosen in step 2.
+7. **Polish.**
+   - Names collide on the globe when zoomed on Caren, and in the sky with every name shown.
+   - Dialogs (dossier manager, settings) and the window title bar are not parchment-styled.
+   - About 3 MB of other bodies' cartography data is unused.
+   - The test suite takes five minutes on every change; arrange it so unaffected tests can be skipped.
+8. **Verify where it will be used.** A live Foundry world (nothing has been checked in one yet) and a real iPhone (the pinch guard and the sky's two-finger pinch).
+9. **Carried over from the table below.** Check Caren's settlement names; name Garyk's settlements; a road network between settlements; live environmental sync to the GM Kit.
+
+### Complete means
+
+Every layer in the table is drawn in pixel art at its chosen tier. The Continent, Region and Local layers are fully rendered and stored. From Foundry a GM can go from the system down to any place on Eym, export that view, and make a battle map there. All of it has been checked in a live world.
+
+### Working rules
+
+- Every code change goes through Twig, which tests it and opens a pull request. Nothing is pushed to GitHub directly. Twig does not merge.
+- A module release happens only when the squash-merge title contains `[release]`. Each release bumps `module.json` (version and download address), `package.json` and the three version strings in `tests/release-package.test.mjs`. Web-app-only and documentation changes merge without it.
+- No test is weakened, skipped or deleted without the owner's yes.
+- No secret is stored in the repository or pasted into chat. The image API key is a client-scope setting; the Supabase service-role key lives only in Vercel's environment.
+- Shapes first, pixel art after. Everything is drawn by rule: the same input always gives the same picture.
+
 ## Status
 
 | Area | Recorded status | Recorded notes | Eym now |
