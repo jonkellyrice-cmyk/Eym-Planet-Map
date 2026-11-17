@@ -1,0 +1,37 @@
+// npm run build: makes Eym's derived data again when what it is made from has changed, and does nothing (fast)
+// when it has not. In order: the tectonic history (data/eym/tectonics.json, when its sources changed), then,
+// if Eym's input fingerprint moved, the registry row's fingerprint, the geography and cartography assets and
+// the frozen atlas snapshot. Everything it writes is drawn by rule, so running it twice changes nothing.
+import { readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { parseCsv } from "../scripts/system-data.mjs";
+import { tectonicSourcesSha256 } from "./generate-eym-tectonics.mjs";
+
+const root = new URL("../", import.meta.url), cwd = fileURLToPath(root);
+const run = (...args) => execFileSync(process.execPath, args, { cwd, stdio: "inherit" });
+let changed = false;
+
+const readTect = () => { try { return JSON.parse(readFileSync(new URL("data/eym/tectonics.json", root), "utf8")); } catch { return null; } };
+let tect = readTect();
+// The fit takes minutes, so it runs in steps of about half a minute, one seed a step
+// (seeds already found to fail are kept in .cache/, which is not committed);
+// until it is done, the build says so and stops: run it again.
+if (tect?.sourcesSha256 !== tectonicSourcesSha256()) {
+  run("tools/generate-eym-tectonics.mjs", "--budget-s", "20"); changed = true;
+  tect = readTect();
+  if (tect?.sourcesSha256 !== tectonicSourcesSha256()) { console.log("The tectonic history is not finished: run npm run build again."); process.exit(0); }
+}
+
+// (Imported only now: it reads the tectonic history written above.)
+const { eymFingerprintFromRepo } = await import("./eym-world.mjs");
+const csvUrl = new URL("docs/system-orbital-distances.csv", root), csv = readFileSync(csvUrl, "utf8");
+const row = parseCsv(csv).find((r) => r.object === "Eventide"), fingerprint = eymFingerprintFromRepo();
+if (row.geography_input_fingerprint !== fingerprint) {
+  writeFileSync(csvUrl, csv.replace(row.geography_input_fingerprint, fingerprint));
+  run("tools/generate-planet-geography.mjs", "--accept");
+  run("tools/generate-planet-cartography.mjs", "--accept");
+  run("tools/export-atlas-snapshots.mjs");
+  changed = true;
+}
+console.log(changed ? "Eym's derived data was made again." : "Eym's derived data is up to date.");

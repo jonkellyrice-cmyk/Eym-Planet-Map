@@ -1,10 +1,12 @@
 {
   "name": "eym-planet-map",
-  "version": "0.16.6",
+  "version": "0.17.0",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
+    "build": "node tools/build-generated.mjs",
+    "tectonics:generate": "node tools/generate-eym-tectonics.mjs",
     "webapp": "node webapp/server.mjs",
     "atlas:snapshot": "node tools/export-atlas-snapshots.mjs",
     "atlas:snapshot:check": "node tools/export-atlas-snapshots.mjs --check",

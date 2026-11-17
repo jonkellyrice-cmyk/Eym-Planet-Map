@@ -8,7 +8,8 @@ import { eymFingerprintFromRepo } from "../tools/eym-world.mjs";
 const root = new URL("../", import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), "utf8");
 const traced = JSON.parse(read("data/eym/traced-continents.json"));
-const { surface, sampler } = buildEymSurface(traced);
+const tectonics = JSON.parse(read("data/eym/tectonics.json"));
+const { surface, sampler } = buildEymSurface(traced, EYM_LAYOUT, tectonics);
 const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
 const CAREN_KM2 = 590_000 * 2.589988110336;
 const continent = (id) => surface.continents.find((item) => item.id === id);
@@ -22,7 +23,7 @@ test("Caren and Garyk keep the sizes their cartographer gave", () => {
 });
 
 test("the surface is deterministic", () => {
-  assert.deepEqual(buildEymSurface(traced).surface, surface);
+  assert.deepEqual(buildEymSurface(traced, EYM_LAYOUT, tectonics).surface, surface);
 });
 
 test("Caren straddles the equator; Garyk lies slightly north of it, three weeks west-north-west by steamer", () => {

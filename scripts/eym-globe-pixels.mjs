@@ -33,7 +33,8 @@ export const GLOBE_PALETTE = Object.freeze({
   rock: ramp("#54483e", "#74665a", "#968676", "#b8aa98"),
   peak: ramp("#7c7c88", "#aeb0bc", "#dde1ea", "#ffffff"),
   snow: ramp("#9fb2c8", "#c4d2e2", "#e6eef6", "#ffffff"),
-  ice: ramp("#9cc0d8", "#c2dcea", "#e2f0f6", "#f6fbff"),
+  // Sea ice is a cold grey-cyan, never cloud's white: it reads as ice on the water, not weather over it.
+  ice: ramp("#5f8e9c", "#7eabb6", "#9fc6cc", "#bcdcdc"),
   coast: hex("#1c2a1e"),
   cloud: { lit: hex("#ffffff"), body: hex("#e8eef4"), shade: hex("#b0bfd2"), rain: hex("#8e9cb2"), streak: hex("#5c7aa8"), flash: hex("#ffec78"), snow: hex("#ffffff") },
   night: hex("#080c1e"),
@@ -189,6 +190,21 @@ export function buildSurfaceRaster(asset, { perDegree = 4 } = {}) {
     }
     frontier = next;
   }
+  // Where the world has a sea floor of its own (Eym's, from its plates), the bands follow its depth: wide
+  // shallows on rifted coasts, deep water close in on active ones, ridges paler and trenches darker.
+  if (asset.geology && asset.raster.elevationM) {
+    const E = asset.raster.elevationM, at = (r, c) => E[clamp(r, 0, latCount - 1) * lonCount + ((c % lonCount) + lonCount) % lonCount];
+    const bandOf = (e) => (e >= -150 ? 2 + (-e) / 150 : e >= -1000 ? 3 + (-e - 150) / 850 * 4 : e >= -3200 ? 7 + (-e - 1000) / 2200 * 5 : 12 + Math.min(8, (-e - 3200) / 600));
+    for (let i = 0; i < W * H; i += 1) {
+      if (!shore[i] || shore[i] === 1) continue;
+      const y = Math.floor(i / W), x = i % W, lat = 90 - (y + 0.5) / perDegree, lon = -180 + (x + 0.5) / perDegree;
+      const fy = (lat + 90) / res - 0.5, fx = (lon + 180) / res - 0.5, r0 = Math.floor(fy), c0 = Math.floor(fx), ty = fy - r0, tx = fx - c0;
+      const e = (at(r0, c0) * (1 - tx) + at(r0, c0 + 1) * tx) * (1 - ty) + (at(r0 + 1, c0) * (1 - tx) + at(r0 + 1, c0 + 1) * tx) * ty;
+      const band = Math.round(clamp(bandOf(e), 2, 20));
+      // Open sea that is both far from land and abyssal stays "far" (255), as before.
+      if (!(shore[i] === 255 && band > 12)) shore[i] = band;
+    }
+  }
   return { W, H, perDegree, cls, relief, shore, biomes: BIOMES, rings, biomeAt };
 }
 
@@ -321,7 +337,10 @@ export function renderGlobe({ raster, width, height, cx, cy, radius, yaw = 0, pi
           const fx = (lon + 180) * perDegree - 0.5, fy = clamp((90 - lat) * perDegree - 0.5, 0, H - 1), ax = Math.floor(fx), ay = Math.floor(fy), tx = fx - ax, ty = fy - ay, by2 = Math.min(H - 1, ay + 1);
           const s = (yy, xx) => { const v = raster.shore[yy * W + (((xx % W) + W) % W)]; return v === 255 ? 14 : v; };
           // (The bands' edges are wobbled a little by the ground's grain, or they would show the raster's corners.)
-          shore = Math.max(0.6, (s(ay, ax) * (1 - tx) + s(ay, ax + 1) * tx) * (1 - ty) + (s(by2, ax) * (1 - tx) + s(by2, ax + 1) * tx) * ty + (noise3(bx * 150, by * 150, bz * 150, 12) - 0.5) * 1.3); c = c === STATIC_ICE ? STATIC_ICE : 0;
+          // The bands' edges wander at the view's own scale too (a few dozen art pixels), or a long straight
+          // coast draws them as straight lines down the sea.
+          const wander = (noise3(bx * 150, by * 150, bz * 150, 12) - 0.5) * 1.3 + (noise3(bx * radius * 0.06, by * radius * 0.06, bz * radius * 0.06, 13) - 0.5) * 1.6;
+          shore = Math.max(0.6, (s(ay, ax) * (1 - tx) + s(ay, ax + 1) * tx) * (1 - ty) + (s(by2, ax) * (1 - tx) + s(by2, ax + 1) * tx) * ty + wander); c = c === STATIC_ICE ? STATIC_ICE : 0;
         }
       }
     }
@@ -329,7 +348,7 @@ export function renderGlobe({ raster, width, height, cx, cy, radius, yaw = 0, pi
     lit[i] = sun ? nx * sun.x + ny * sun.y + nz * sun.z : 1;
     tex[i] = noise3(bx * 34, by * 34, bz * 34, 3) * 0.6 + noise3(bx * 90, by * 90, bz * 90, 4) * 0.4;
     // Close in, a finer grain is added (a few pixels across, whatever the zoom) so the ground does not go smooth.
-    if (grain) tex[i] = tex[i] * 0.62 + noise3(bx * grain, by * grain, bz * grain, 8) * 0.38;
+    if (grain && c !== 0 && c !== STATIC_ICE) tex[i] = tex[i] * 0.62 + noise3(bx * grain, by * grain, bz * grain, 8) * 0.38;
     const cover = kind[i] === 1 ? ice : kind[i] === 2 ? snow : null;
     // The edge of the ice is ragged and breaks into floes; the snow line wanders a little.
     if (cover && Math.abs(lat) > cover.reach - 14) { b[0] = bx; b[1] = by; b[2] = bz; const edge = coverAt(cover, lat, lon, b, kind[i] === 1 ? 16 : 5); white[i] = edge === 1 || (edge === 2 && tex[i] > (kind[i] === 1 ? 0.52 : 0.4)) ? 1 : 0; }
@@ -363,7 +382,11 @@ export function renderGlobe({ raster, width, height, cx, cy, radius, yaw = 0, pi
     const limb = depth[i] < 0.34 ? (0.34 - depth[i]) * 1.1 : 0, t = tex[i];
     if (isSea(k)) {
       if (white[i]) c = P.ice[tone(clamp(0.45 + (t - 0.5) * 1.1 - limb, 0, 1), 4, px, py)];
-      else { const set = k === 4 ? P.warmSea : P.sea, d = off[i], base = d <= 1 ? 1 : d <= 3 ? 0.75 : d <= 7 ? 0.5 : d <= 12 ? 0.25 : 0.02; c = set[tone(clamp(base + (t - 0.5) * 0.1 - limb, 0, 1), 5, px, py)]; }
+      else {
+        // Close in (a patch), the sea's bands are flat colour: dithering them makes columns of dots along each edge.
+        const set = k === 4 ? P.warmSea : P.sea, d = off[i], base = d <= 1 ? 1 : d <= 3 ? 0.75 : d <= 7 ? 0.5 : d <= 12 ? 0.25 : 0.02, v = clamp(base + (t - 0.5) * 0.1 - limb, 0, 1);
+        c = set[patch ? clamp(Math.round(v * 4), 0, 4) : tone(v, 5, px, py)];
+      }
     } else if (k === 3) c = P.water;
     else {
       const r = rel[i] & 3, wooded = rel[i] & 4, shoreline = isSea(at(px + 1, py)) || isSea(at(px - 1, py)) || isSea(at(px, py + 1)) || isSea(at(px, py - 1));

@@ -53,9 +53,11 @@ test("canonical CSV is pinned to the five-continents canon edit", () => {
   // Sumatra and Ventus: the four "wandering stars" Ramses, Thraximundus, Kandahar and Tribune remain besides Eventide.
   // Re-pinned deliberately again for Eym's new surface: five continents (Caren and Garyk traced from their maps,
   // three seeded) in a 98.6% ocean, replacing the archipelago canon (eym-surface-v1).
+  // Re-pinned deliberately again for Stage 1 of the physical history (17 November 2026): Eventide's
+  // geography_input_fingerprint now covers data/eym/tectonics.json and the fixed archipelago centres.
   // Any further registry change must re-pin this on purpose.
   const csv = readFileSync(new URL("docs/system-orbital-distances.csv", root));
-  assert.equal(createHash("sha256").update(csv).digest("hex"), "15b87e6bf1bc89b7c76fa5cfbd1f66eae9ce38ca95db3238bfb5adc473519117");
+  assert.equal(createHash("sha256").update(csv).digest("hex"), "c2bb5356439872fb18edb6a638137dda1a795c6ac95d338f06796406c871e50a");
 });
 
 test("Eym's accepted canon has five continents in a planet-wide ocean", () => {

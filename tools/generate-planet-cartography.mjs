@@ -30,7 +30,7 @@ const civilizationProfileFor = (registryRow) => ({
 });
 /** Eym's refined asset comes whole from its surface builder; add the common header and write it. */
 function writeAsset(coarse, registryRow, built) {
-  const asset = { schemaVersion: 2, status, modelVersion: registryRow.geography_model_version, system: coarse.system, body: coarse.body, ownerFaction: registryRow.owner_faction, civilizationProfile: civilizationProfileFor(registryRow), sourceSeed: coarse.seed, sourceFingerprint: coarse.inputFingerprint, resolutionDeg: built.resolutionDeg, grid: built.grid, terrain: built.terrain, hydrology: built.hydrology, regions: built.regions, gazetteer: built.gazetteer, settlements: built.settlements, transportRoutes: built.transportRoutes, raster: built.raster };
+  const asset = { schemaVersion: 2, status, modelVersion: registryRow.geography_model_version, system: coarse.system, body: coarse.body, ownerFaction: registryRow.owner_faction, civilizationProfile: civilizationProfileFor(registryRow), sourceSeed: coarse.seed, sourceFingerprint: coarse.inputFingerprint, resolutionDeg: built.resolutionDeg, grid: built.grid, terrain: built.terrain, hydrology: built.hydrology, regions: built.regions, gazetteer: built.gazetteer, settlements: built.settlements, transportRoutes: built.transportRoutes, raster: built.raster, ...(built.geology ? { geology: built.geology } : {}) };
   const text = `${JSON.stringify(asset)}\n`, path = `data/planet-cartography/${slug(coarse.system)}/${slug(coarse.body)}.json`, diskPath = new URL(path, root);
   mkdirSync(dirname(diskPath.pathname), { recursive: true }); writeFileSync(diskPath, text);
   process.stdout.write(`generated ${coarse.system}/${coarse.body}\n`);

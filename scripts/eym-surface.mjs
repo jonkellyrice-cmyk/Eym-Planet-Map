@@ -28,7 +28,10 @@ export const EYM_LAYOUT = Object.freeze({
     { id: "northern", name: "the Northern Continent", areaKm2: 0.65 * CAREN_AREA_KM2, center: [52, 18], elongation: 1.8, orientationDeg: 70, ridges: [2900], offshoreIslands: 9 },
     { id: "southern", name: "the Southern Continent", areaKm2: 0.55 * CAREN_AREA_KM2, center: [-50, -14], elongation: 1.6, orientationDeg: 115, ridges: [3300], offshoreIslands: 8 },
   ],
-  archipelagos: { count: 10, islands: [5, 14], spreadKm: 420, minCoastClearanceKm: 900, areaKm2: [60, 18_000] },
+  // The archipelagos' centres are fixed (they were placed in eym-surface-v1 by 18 draws against the old seeded
+  // coasts); the draws are still taken so each archipelago's islands come out exactly as before.
+  archipelagos: { count: 10, islands: [5, 14], spreadKm: 420, minCoastClearanceKm: 900, areaKm2: [60, 18_000], placementDraws: 36,
+    centers: [[-33.425, 154.562], [-15.44, -64.333], [-13.744, 60.808], [36.419, 115.164], [12.415, 95.444], [8.836, 152.381], [-21.136, -115.839], [20.432, -131.434], [-20.699, -163.072], [-16.488, 19.933]] },
 });
 
 // ---------------------------------------------------------------- geometry
@@ -269,7 +272,7 @@ function minGapKm(ringsA, ringsB, step = 4) {
  * Build Eym's surface from the traced continents and the layout. Returns the
  * serializable surface (rings in [lat, lon]) and a sampler over it.
  */
-export function buildEymSurface(traced, layout = EYM_LAYOUT) {
+export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null) {
   const rng = createRng(`${layout.seed}|shapes`), noise = valueNoise2(`${layout.seed}|relief`);
   const frames = [], continents = [], coasts = [], inlandWater = [];
   const addCoasts = (frame, ringsKm, kinds, areas) => ringsKm.forEach((ring, index) => {
@@ -305,27 +308,34 @@ export function buildEymSurface(traced, layout = EYM_LAYOUT) {
     continents.push({ id: key, name: source.name, origin: "authored", center: center.map(round3), mainlandAreaKm2: Math.round(ringAreaKm2(mainland(source))), islands: source.coasts.length - 1, sourceSha256: source.sourceImage.sha256 });
   }
 
-  // Seeded continents, each with offshore islands.
+  // The three unnamed continents: from the tectonic history (data/eym/tectonics.json) when it is given, else
+  // the old seeded shapes.
   for (const spec of layout.seeded) {
-    const shapeRng = createRng(`${layout.seed}|continent|${spec.id}`);
-    const main = seededRing(shapeRng, { areaKm2: spec.areaKm2, elongation: spec.elongation, orientationDeg: spec.orientationDeg, vertices: 180, subdivisions: 3, lobes: 4 });
-    const rings = [main], kinds = ["mainland"], areas = [ringAreaKm2(main)];
-    const reach = Math.max(...main.map(([x, y]) => Math.hypot(x, y)));
-    for (let index = 0; index < spec.offshoreIslands; index += 1) {
-      const angle = shapeRng() * Math.PI * 2, along = main[Math.floor(shapeRng() * main.length)];
-      const outward = 60 + shapeRng() * 260, length = Math.hypot(...along) || 1;
-      const cx = along[0] + along[0] / length * outward + Math.cos(angle) * 40, cy = along[1] + along[1] / length * outward + Math.sin(angle) * 40;
-      const area = Math.exp(Math.log(150) + shapeRng() * (Math.log(22_000) - Math.log(150)));
-      const island = seededRing(shapeRng, { areaKm2: area, elongation: 1 + shapeRng() * 1.6, orientationDeg: shapeRng() * 180, vertices: 20, subdivisions: 2, lobes: 1 }).map(([x, y]) => [x + cx, y + cy]);
-      rings.push(island); kinds.push("island"); areas.push(ringAreaKm2(island));
+    const fitted = tectonics?.continents?.[spec.id];
+    let rings, kinds, areas, ridges;
+    if (fitted) {
+      rings = fitted.rings; kinds = fitted.kinds; areas = rings.map((ring) => ringAreaKm2(ring)); ridges = fitted.ridges.map(({ heightM, widthKm, points }) => ({ heightM, widthKm, points }));
+    } else {
+      const shapeRng = createRng(`${layout.seed}|continent|${spec.id}`);
+      const main = seededRing(shapeRng, { areaKm2: spec.areaKm2, elongation: spec.elongation, orientationDeg: spec.orientationDeg, vertices: 180, subdivisions: 3, lobes: 4 });
+      rings = [main]; kinds = ["mainland"]; areas = [ringAreaKm2(main)];
+      const reach = Math.max(...main.map(([x, y]) => Math.hypot(x, y)));
+      for (let index = 0; index < spec.offshoreIslands; index += 1) {
+        const angle = shapeRng() * Math.PI * 2, along = main[Math.floor(shapeRng() * main.length)];
+        const outward = 60 + shapeRng() * 260, length = Math.hypot(...along) || 1;
+        const cx = along[0] + along[0] / length * outward + Math.cos(angle) * 40, cy = along[1] + along[1] / length * outward + Math.sin(angle) * 40;
+        const area = Math.exp(Math.log(150) + shapeRng() * (Math.log(22_000) - Math.log(150)));
+        const island = seededRing(shapeRng, { areaKm2: area, elongation: 1 + shapeRng() * 1.6, orientationDeg: shapeRng() * 180, vertices: 20, subdivisions: 2, lobes: 1 }).map(([x, y]) => [x + cx, y + cy]);
+        rings.push(island); kinds.push("island"); areas.push(ringAreaKm2(island));
+      }
+      ridges = spec.ridges.map((heightM, index) => {
+        // Ranges run roughly along the continent; a second range lies parallel to one side.
+        const axis = (spec.orientationDeg + shapeRng() * 24 - 12) * DEG, span = reach * (index ? 0.4 : 0.62);
+        const offset = index ? (shapeRng() < 0.5 ? -1 : 1) * reach * (0.28 + shapeRng() * 0.12) : (shapeRng() - 0.5) * reach * 0.2;
+        const points = Array.from({ length: 6 }, (_, k) => { const t = -1 + 2 * k / 5, wobble = (shapeRng() - 0.5) * reach * 0.12; return [Math.cos(axis) * span * t - Math.sin(axis) * (offset + wobble), Math.sin(axis) * span * t + Math.cos(axis) * (offset + wobble)]; });
+        return { heightM, widthKm: 70 + shapeRng() * 50, points };
+      });
     }
-    const ridges = spec.ridges.map((heightM, index) => {
-      // Ranges run roughly along the continent; a second range lies parallel to one side.
-      const axis = (spec.orientationDeg + shapeRng() * 24 - 12) * DEG, span = reach * (index ? 0.4 : 0.62);
-      const offset = index ? (shapeRng() < 0.5 ? -1 : 1) * reach * (0.28 + shapeRng() * 0.12) : (shapeRng() - 0.5) * reach * 0.2;
-      const points = Array.from({ length: 6 }, (_, k) => { const t = -1 + 2 * k / 5, wobble = (shapeRng() - 0.5) * reach * 0.12; return [Math.cos(axis) * span * t - Math.sin(axis) * (offset + wobble), Math.sin(axis) * span * t + Math.cos(axis) * (offset + wobble)]; });
-      return { heightM, widthKm: 70 + shapeRng() * 50, points };
-    });
     const frame = buildFrame({ id: spec.id, continent: spec.name, origin: "seeded", center: spec.center, rings, ridges, cellKm: 10, noise });
     frames.push(frame); addCoasts(frame, rings, kinds, areas);
     continents.push({ id: spec.id, name: spec.name, origin: "seeded", placeholderName: true, center: spec.center, mainlandAreaKm2: Math.round(areas[0]), islands: rings.length - 1 });
@@ -333,15 +343,20 @@ export function buildEymSurface(traced, layout = EYM_LAYOUT) {
 
   // Seeded archipelagos in the open ocean.
   const archRng = createRng(`${layout.seed}|archipelagos`), clusterCenters = [];
-  const allCoastPoints = () => coasts.flatMap((coast) => coast.points.filter((_, i) => i % 6 === 0));
-  let attempts = 0;
-  while (clusterCenters.length < layout.archipelagos.count && attempts++ < 4000) {
-    const lat = Math.asin(archRng() * 2 - 1) / DEG, lon = archRng() * 360 - 180;
-    if (Math.abs(lat) > 66) continue;
-    const candidate = [lat, lon];
-    if (clusterCenters.some((other) => greatCircleKm(other, candidate) < 2400)) continue;
-    if (allCoastPoints().some((point) => greatCircleKm(point, candidate) < layout.archipelagos.minCoastClearanceKm + layout.archipelagos.spreadKm)) continue;
-    clusterCenters.push(candidate.map(round3));
+  if (layout.archipelagos.centers) {
+    for (let k = 0; k < layout.archipelagos.placementDraws; k += 1) archRng();
+    clusterCenters.push(...layout.archipelagos.centers.map((c) => c.slice()));
+  } else {
+    const allCoastPoints = () => coasts.flatMap((coast) => coast.points.filter((_, i) => i % 6 === 0));
+    let attempts = 0;
+    while (clusterCenters.length < layout.archipelagos.count && attempts++ < 4000) {
+      const lat = Math.asin(archRng() * 2 - 1) / DEG, lon = archRng() * 360 - 180;
+      if (Math.abs(lat) > 66) continue;
+      const candidate = [lat, lon];
+      if (clusterCenters.some((other) => greatCircleKm(other, candidate) < 2400)) continue;
+      if (allCoastPoints().some((point) => greatCircleKm(point, candidate) < layout.archipelagos.minCoastClearanceKm + layout.archipelagos.spreadKm)) continue;
+      clusterCenters.push(candidate.map(round3));
+    }
   }
   clusterCenters.forEach((center, clusterIndex) => {
     const [minCount, maxCount] = layout.archipelagos.islands, count = minCount + Math.floor(archRng() * (maxCount - minCount + 1));
