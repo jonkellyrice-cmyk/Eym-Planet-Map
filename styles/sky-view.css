@@ -1,8 +1,8 @@
 /* The night sky from the ground (scripts/sky-view.mjs). */
 .oscm-shell.is-sky-mode .oscm-cluster-svg { background: #05070c; }
-/* The chart is pixel art on a canvas under the drawing; the drawing keeps the compass ring and the names. */
+/* The sky is drawn on a canvas at the screen's own sharpness under the drawing; the drawing keeps the compass ring and the names. */
 .oscm-cluster-svg.is-pixel-sky { position: relative; background: transparent !important; touch-action: none; }
-.oscm-sky-canvas { background: #05070c; }
+.oscm-sky-canvas { background: #05070c; image-rendering: auto; }
 .oscm-ground-horizon { stroke: #b89a4a; stroke-width: 1.6; }
 .oscm-ground-ticks { stroke: #b89a4a; stroke-width: 1.4; }
 .oscm-ground-cardinal { fill: #e3c878; font: 700 17px var(--oscm-serif, Georgia, serif); paint-order: stroke; stroke: rgba(5, 7, 12, 0.85); stroke-width: 4px; pointer-events: none; }
@@ -13,13 +13,22 @@
 .oscm-ground-label.is-moon { fill: #f2efe6; font-weight: 700; }
 .oscm-ground-label.is-constellation { fill: #c9a84f; font-size: 11px; font-style: italic; letter-spacing: 0.04em; }
 .oscm-ground-label.is-chosen { fill: #fff3cf; font-size: 15px; font-weight: 700; font-style: normal; }
-/* Names keep one size on the screen however small the chart is drawn: --sky-px is chart units per CSS pixel. */
-.is-pixel-sky .oscm-ground-label { font-size: calc(var(--sky-px, 1) * 12.5px); stroke-width: calc(var(--sky-px, 1) * 3.5px); }
-.is-pixel-sky .oscm-ground-label.is-moon, .is-pixel-sky .oscm-ground-label.is-planet, .is-pixel-sky .oscm-ground-label.is-pole-star { font-size: calc(var(--sky-px, 1) * 13px); }
-.is-pixel-sky .oscm-ground-label.is-constellation { font-size: calc(var(--sky-px, 1) * 11.5px); }
-.is-pixel-sky .oscm-ground-label.is-chosen { font-size: calc(var(--sky-px, 1) * 15px); }
-.is-pixel-sky .oscm-ground-cardinal { font-size: calc(var(--sky-px, 1) * 15px); stroke-width: calc(var(--sky-px, 1) * 4px); }
+/* In the drawn sky: names keep one size on the screen (--sky-px is chart units per CSS pixel); star and body names
+   off-white and upright, figure names a paler parchment in italic, each in a solid halo of the sky's own colour so
+   no star or line shows through the letters. */
+.is-pixel-sky .oscm-ground-label { font-size: calc(var(--sky-px, 1) * 12.5px); font-style: normal; stroke: #070b16; stroke-width: calc(var(--sky-px, 1) * 4px); stroke-linejoin: round; }
+.is-pixel-sky .oscm-ground-label.is-star { fill: #ece6d6; }
+.is-pixel-sky .oscm-ground-label.is-moon, .is-pixel-sky .oscm-ground-label.is-planet, .is-pixel-sky .oscm-ground-label.is-pole-star { font-size: calc(var(--sky-px, 1) * 13px); fill: #f3eee2; }
+.is-pixel-sky .oscm-ground-label.is-pole-star { fill: #ffe39a; }
+.is-pixel-sky .oscm-ground-label.is-constellation { font-size: calc(var(--sky-px, 1) * 11.5px); fill: #d8cba6; font-style: italic; }
+.is-pixel-sky .oscm-ground-label.is-chosen { font-size: calc(var(--sky-px, 1) * 15px); fill: #fff3cf; }
+.is-pixel-sky .oscm-ground-cardinal { font-size: calc(var(--sky-px, 1) * 14px); stroke-width: calc(var(--sky-px, 1) * 4px); }
+.is-pixel-sky .oscm-ground-horizon { stroke-width: calc(var(--sky-px, 1) * 1.2px); }
+.is-pixel-sky .oscm-ground-ticks { stroke-width: calc(var(--sky-px, 1) * 1.2px); }
 .oscm-cluster-svg.is-daylight .oscm-ground-label.is-star:not(.is-chosen) { display: none; }
+/* Looking up, the help is one line, so it does not cover the bottom of the dome on a phone. */
+.oscm-shell.is-sky-mode .oscm-view-help > span:not([data-map-help]) { display: none; }
+.oscm-shell.is-sky-mode .oscm-view-help { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Panel: the "Look up" card shows on Eym's surface map; the sky card shows while looking up. */
 .oscm-look-up-card, .oscm-sky-card { display: none; }

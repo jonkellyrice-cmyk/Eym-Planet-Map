@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.6 (2026-11-17)
+
+- The night sky goes to tier 4–5, drawn at the screen's own sharpness (about three device pixels to a CSS pixel on an iPhone): stars as a sharp core in a small glow that follow their brightness, a fine cross on the brightest few and the faint ones as dim dust; the wandering stars as eight-pointed stars in a halo, brighter than any star; Desna's Path as a soft, uneven glow with dark lanes of dust; a smooth sky from zenith to horizon with a faint glow at the horizon; moons with a soft terminator, darker patches and earthshine; the Sun in a corona with rays; a soft veil of cloud.
+- Constellation figures are thin, continuous, muted gold lines that stop short of their stars (bright gold when tapped).
+- The dome fills the view (on a phone, about a third larger than before), with the four winds just outside it and clear of the help line, which is now one line: "Drag to turn · pinch to look closer · tap to name".
+- Names: set beside what they name, never over a star; figure names just outside their figures, in a paler parchment italic; star and body names off-white and upright; every name in a solid halo of the sky's colour. With "All names" only named stars, wanderers and moons are named; figures' names come with the figures. Only what is in view is named.
+- Smooth on a phone: stars are stamped from sprites, the background is worked out once for each time, place and zoom and turned with the sky, and while a finger moves the last sharp picture is turned, moved or scaled, then drawn sharp again once it rests.
+
 ## 0.16.5 (2026-11-17)
 
 - The night sky reads on a phone. Names are a fixed size on the screen however small the chart is drawn (about 12–13 px for stars, moons and wanderers, 11–12 px for constellations, 15 px for the one tapped); before, a phone drew them at 4–6 px. Where two names would overlap, the less important one gives way (the tapped name, then moons, the pole star, wanderers, named stars by brightness, constellations), and none is drawn over the four winds.
