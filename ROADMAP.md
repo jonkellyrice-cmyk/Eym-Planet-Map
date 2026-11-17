@@ -180,6 +180,24 @@ Already present (not redone): zonal rain bands with rain shadows and orographic 
 - Everything is drawn by rule, with named seeds: same inputs, same world. Generators run offline in `tools/`; the module ships their output data.
 - Lore: life on Eym was placed by the gods, not evolved. No biosphere or evolution simulation.
 
+### Addendum: Eym is nearly an aquaplanet (owner, 17 November 2026)
+
+Eym is about 98.6% ocean, close to an aquaplanet. This applies throughout the programme.
+
+- *Temperatures:* small seasonal and daily swings everywhere, including Caren's interior; continentality stays weak.
+  - Checked against the current model (`seasonalTemperature` in `scripts/eym-seasons.mjs`) on 17 November 2026.
+  - Seasonal swings are already small:
+    - Caren's interior: a range of about 1 °C;
+    - Garyk's interior: about 4 °C;
+    - the Northern and Southern continents: 13–14 °C;
+    - the sea at 50° N: about 9 °C.
+  - Daily ranges on land are Earth-like and too wide: 7–9 °C (sea 1 °C). They are to be narrowed, and continentality weighed down.
+  - `tools/calibrate-eym-weather.mjs` checks only rain against the climate; it is to check temperature ranges too.
+- *Wind belts:* near-continuous trade winds, strong mid-latitude westerlies and polar easterlies, broken only near Caren, Garyk and the Eastern Continent.
+- *Sea state:* wave height and swell from wind and fetch (the fetch is very large, so big swells in the westerly belts), exposed for sailing times, coastal battle maps and lore.
+- *Cloud and humidity:* more low cloud and drizzle over the sea and somewhat more rain than Earth, but rain stays energy-limited (not doubled). The weather's cloud and rain fields are recalibrated.
+- *Tropical cyclones:* about 50 a year stays plausible, kept tied to warm water from the current model.
+
 ### Stage 1: plate tectonics, geology and volcanoes (with the globe fixes)
 
 1. *Plates:* about 8–12 major plates plus microplates, with noise-warped boundaries. Each plate turns about its own pole at a believable speed. Each boundary is classed as convergent, divergent or transform.
@@ -204,7 +222,7 @@ Already present (not redone): zonal rain bands with rain shadows and orographic 
    - Upwelling where the wind pushes coastal water offshore.
    - Seasonal variation.
    - Output: a current field and a sea-temperature anomaly map, by season.
-2. *Wet and dry seasons:* the tropical rain belt follows the sun through the year, with monsoon reversals where the land is large enough. Caren and Garyk get clear wet and dry seasons.
+2. *Wet and dry seasons* (corrected by the aquaplanet addendum): the tropical rain belt follows the sun through the year but shifts less than on Earth, and monsoons are weak: at most a weak monsoon on the Eastern Continent. Caren and Garyk get real but milder wet and dry seasons.
 3. *Fed into what exists:*
    - Coastal and sea temperatures (`seasonalTemperature` takes the anomaly).
    - Rain and aridity for biomes: wet coasts with warm water offshore; dry, foggy coasts with cold water offshore.
@@ -236,9 +254,11 @@ This applies to all land, including Caren's and Garyk's interiors; their outline
 
 ### Stage 5: ice ages and old sea levels
 
-- A deterministic glacial history: a few cold periods with their dates, ice extent and sea-level drop.
-- Effects on today's map: glacier-carved valleys, lakes and moraines at high latitudes and in high mountains; drowned river valleys and old land bridges on the shelves.
-- Past coastlines and sea levels by era, for lore (sunken ruins, old routes).
+Corrected by the aquaplanet addendum: ice ages are mainly sea-ice expansion and mountain glaciers. There are no large land ice sheets, the sea-level drop is small, and there are few land bridges or drowned valleys.
+
+- A deterministic glacial history: a few cold periods with their dates, sea-ice extent, mountain glaciers and a small sea-level drop.
+- Effects on today's map: glacier-carved valleys, lakes and moraines in high mountains and at high latitudes; few drowned river valleys or land bridges.
+- Past coastlines, sea levels and sea-ice edges by era, for lore (sunken ruins, old routes).
 
 ### Stage 6: auroras
 
@@ -256,10 +276,10 @@ This applies to all land, including Caren's and Garyk's interiors; their outline
 ### Shown to the owner at each stage, before submitting
 
 - *Stage 1:* globe renders of the three continents before and after (the whole globe and each close up), a plate-boundary overlay, volcanoes and rock types; the globe fixes before and after.
-- *Stage 2:* current and sea-temperature overlays by season; before-and-after climate and biome maps for Caren and Garyk; the new cyclone birthplaces; the wet and dry seasons for a few Caren places.
+- *Stage 2:* current, sea-temperature and swell overlays by season; before-and-after climate and biome maps for Caren and Garyk; the new cyclone birthplaces; the wet and dry seasons for a few Caren places.
 - *Stage 3:* before-and-after Region tiles of Caren and Garyk.
 - *Stage 4:* one river's flow through the year.
-- *Stage 5:* the glacial maximum's coastlines.
+- *Stage 5:* the glacial maximum's coastlines and sea-ice edge.
 - *Stage 6:* a night sky with an aurora.
 
 ## The night sky's tier (owner's decision, 17 November 2026)
