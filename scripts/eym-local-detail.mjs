@@ -194,16 +194,20 @@ function latticePath(ctx, a, b) {
     for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
       const ni = ci + di, nj = cj + dj; if (ni < minI || nj < minJ || ni >= minI + rows || nj >= minJ + cols) continue;
       const there = node(ctx, ni, nj); if (!there.land) continue;
-      const step = Math.hypot(di, dj) * (1 + Math.abs(there.elevationM - here.elevationM) / 60 + (there.water ? 7 : 0) + (there.forest ? 0.4 : 0) + there.relief * 0.8);
+      // a little world-keyed unevenness in every node, so a road follows the lie of the land rather than the lattice's straight lines
+      const step = Math.hypot(di, dj) * (1 + Math.abs(there.elevationM - here.elevationM) / 60 + (there.water ? 7 : 0) + (there.forest ? 0.4 : 0) + there.relief * 0.8) * (1 + 0.6 * hashUnit(`road|${ni}|${nj}`));
       const k = idx(ni, nj); if (cost[c] + step < cost[k]) { cost[k] = cost[c] + step; prev[k] = c; heap.push(k); }
     }
   }
   if (!Number.isFinite(cost[goal])) return null;
   const out = []; for (let c = goal; c >= 0; c = prev[c]) out.push([(Math.floor(c / cols) + minI) * LATTICE_DEG, ((c % cols) + minJ) * LATTICE_DEG]);
   out.reverse(); out[0] = [a.lat, a.lon]; out[out.length - 1] = [b.lat, b.lon];
-  // Round the lattice corners and let the road wander a little, the same way wherever it is drawn.
-  let pts = out; for (let pass = 0; pass < 3; pass += 1) pts = [pts[0], ...pts.slice(0, -1).flatMap((p, i) => { const q = pts[i + 1]; return [[p[0] * 0.75 + q[0] * 0.25, p[1] * 0.75 + q[1] * 0.25], [p[0] * 0.25 + q[0] * 0.75, p[1] * 0.25 + q[1] * 0.75]]; }), pts.at(-1)];
-  return pts.map(([lat, lon]) => { const v = toKmVector(lat, lon), w = 0.004 * globeNoise(v, 3, 0.4, 41); return [lat + w, lon + w * 0.7]; });
+  // Ease the lattice's eight directions into curves (a moving average over about 11 km, ends held), round
+  // the corners and let the road wander a little, the same way wherever it is drawn.
+  let pts = out;
+  for (let pass = 0; pass < 2 && pts.length > 4; pass += 1) pts = pts.map((p, i) => { if (i === 0 || i === pts.length - 1) return p; const w = Math.min(2, i, pts.length - 1 - i); let la = 0, lo = 0; for (let k = -w; k <= w; k += 1) { la += pts[i + k][0]; lo += pts[i + k][1]; } return [la / (2 * w + 1), lo / (2 * w + 1)]; });
+  for (let pass = 0; pass < 3; pass += 1) pts = [pts[0], ...pts.slice(0, -1).flatMap((p, i) => { const q = pts[i + 1]; return [[p[0] * 0.75 + q[0] * 0.25, p[1] * 0.75 + q[1] * 0.25], [p[0] * 0.25 + q[0] * 0.75, p[1] * 0.25 + q[1] * 0.75]]; }), pts.at(-1)];
+  return pts.map(([lat, lon], i) => { const v = toKmVector(lat, lon), ends = Math.min(1, i / 6, (pts.length - 1 - i) / 6), w = ends * (0.006 * globeNoise(v, 6, 1.5, 41) + 0.002 * globeNoise(v, 2, 0.5, 43)); return [lat + w, lon + w * 0.7]; });
 }
 
 /** Even-odd scanline fill of [lat, lon] rings onto a tile grid (cells of `res` km, centred on `center`). */
@@ -461,7 +465,8 @@ export function buildBattleSite(asset, { center, spec }) {
     squares[i] = landCoverAt(...rasterAt(wl, wo));
     heights[i] = elevationAt(ctx, lat, lon, 0.002);
     const cx = col + 0.5, cy = row + 0.5, water = nearLine(cx, cy, streams, 0.35), road = !water && nearLine(cx, cy, roads, 0.5);
-    if (water) squares[i] = water.kind === "river" ? COVER.river : COVER.stream; else if (road) squares[i] = COVER.road;
+    // A road entering a town becomes one of its streets (the town's own street pattern), not a strip cut through its lots.
+    if (water) squares[i] = water.kind === "river" ? COVER.river : COVER.stream; else if (road && squares[i] !== COVER.built) squares[i] = COVER.road;
   }
   // Objects on a world-pinned grid of ~2-m cells: the same tree stands in the same place on every map.
   const stepDeg = 2 / 111200, objects = [];

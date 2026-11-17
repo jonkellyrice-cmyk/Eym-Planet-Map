@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.16.4 (2026-11-17)
+
+- Roads follow the land. They no longer run along the lattice's eight directions in long straight stretches: each road takes a slightly uneven route over the land, is eased into curves and wanders a little, the same way on the Region layer, the ground detail and battle maps. A road entering a town becomes one of its streets instead of cutting a strip through its lots.
+- Region layer (map server): hill country shows its hills (ridges and dells a few kilometres across, with stronger light and shade); lowland country is farmed well beyond the named towns, thinning out to about 40 km from them; the sea's bands follow the shore smoothly, measured exactly within 12 km of it, instead of in blocky octagons; and the edges of the climate's biomes wander instead of running along whole degrees of latitude.
+
 ## 0.16.3 (2026-11-17)
 
 - Rivers on Caren and Garyk are rivers again. The traced maps drew each one as a channel of open water 5 to 40 km wide; the ground detail, its battle maps and the map server's Region layer now draw the river that ran down that channel (`scripts/eym-river-courses.mjs`): a course down the middle of it through every fork, 114 m to 1.2 km wide (the main stem broadest, its branches narrower), meandering in bends and loops of its own, with uneven banks. A town that stood on the old channel's bank stays on the river. The rest of the old channel is land again: fields, woods and meadow by the usual rules, with roads no longer routed round it.

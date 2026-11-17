@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { COVER } from "../scripts/eym-local-detail.mjs";
+import { COVER, localContext, roadsNear } from "../scripts/eym-local-detail.mjs";
+import { toLocal } from "../scripts/eym-surface.mjs";
 import { REGION_CELL_KM, REGION_PALETTE, REGION_TILE_CELLS, REGION_TILE_KM, buildRegionTile, flatRegionTile, regionFrameHasTile, regionFrames, regionTileAt, renderRegionTile } from "../scripts/eym-region-layer.mjs";
 
 const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
@@ -67,4 +68,33 @@ test("pictures of a tile: a flat one for checking, and the pixel art from a fixe
   const used = new Set(); for (let i = 0; i < art.length; i += 4) used.add([art[i], art[i + 1], art[i + 2]].join());
   for (const colour of used) assert.ok(palette.has(colour), `${colour} is not in the palette`);
   assert.ok(used.size >= 8, "several kinds of ground in several tones");
+});
+
+test("the sea's bands follow the shore smoothly: no blocks of coarse squares, no octagons", () => {
+  const coast = buildRegionTile(asset, caren, home.tx, home.ty + 1); let sea = 0, step = 0;
+  for (let r = 0; r < N; r += 1) for (let c = 0; c + 1 < N; c += 1) { const i = at(coast, c, r), j = at(coast, c + 1, r); if (coast.cover[i] === COVER.sea && coast.cover[j] === COVER.sea) { sea += 1; step = Math.max(step, Math.abs(coast.coastKm[i] - coast.coastKm[j])); } }
+  assert.ok(sea > 5000, "the tile south of Dree reaches the sea"); assert.ok(step <= 1, `neighbouring sea squares differ by ${step} km off the shore`);
+});
+
+test("lowland country is farmed well beyond the named towns", () => {
+  for (const place of [[-1.202, -0.98], DREE]) {
+    const h = regionTileAt(caren, ...place), t = buildRegionTile(asset, caren, h.tx, h.ty); let land = 0, farm = 0;
+    for (let r = 0; r < N; r += 1) for (let c = 0; c < N; c += 1) { const k = t.cover[at(t, c, r)]; if (k !== COVER.sea) { land += 1; if (k === COVER.farmland) farm += 1; } }
+    assert.ok(farm / land > 0.08, `${place}: ${(100 * farm / land).toFixed(1)}% farmland`);
+  }
+});
+
+test("roads follow the land, not the lattice's eight directions", () => {
+  const roads = roadsNear(localContext(asset), [-1.2, -0.98], 60); let total = 0, aligned = 0;
+  for (const road of roads) {
+    const pts = road.points.map((p) => toLocal(road.points[0], p[0], p[1])), along = [0];
+    for (let k = 1; k < pts.length; k += 1) along.push(along[k - 1] + Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]));
+    for (let k = 0, j = 0; k < pts.length; k += 1) {
+      while (j < pts.length - 1 && along[j] - along[k] < 5) j += 1; if (along[j] - along[k] < 4.5) break;
+      const heading = Math.atan2(pts[j][1] - pts[k][1], pts[j][0] - pts[k][0]) * 180 / Math.PI, off = ((heading % 45) + 45) % 45;
+      total += 1; if (Math.min(off, 45 - off) < 3) aligned += 1;
+    }
+  }
+  // Before roads followed the land, three quarters of their length ran within 3° of a lattice direction; chance alone gives about 13%.
+  assert.ok(roads.length > 5 && aligned / total < 0.3, `${(100 * aligned / total).toFixed(0)}% of road length on lattice headings`);
 });
