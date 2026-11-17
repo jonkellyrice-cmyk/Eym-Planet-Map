@@ -10,6 +10,7 @@
 // outrank all of this.
 
 import { fromLocal, greatCircleKm, toLocal } from "./eym-surface.mjs";
+import { riverCourses } from "./eym-river-courses.mjs";
 import { annualMeanTemperatureC, environmentField, zonalPrecipitationMm } from "./eym-seasons.mjs";
 
 export const LOCAL_DETAIL_MODEL = "eym-local-detail-v1";
@@ -75,7 +76,8 @@ const insideAny = (index, lat, lon) => { let inside = false; for (const r of ind
 export function localContext(asset) {
   if (contextCache.has(asset)) return contextCache.get(asset);
   const coasts = ringIndex(asset.terrain.coastlines.map((c) => c.points));
-  const waters = ringIndex(asset.hydrology.lakes.flatMap((l) => [l.polygon, ...(l.islands ?? [])]));
+  // River channels (the traced maps' rivers, kilometres wide) are not water here: their rivers are (eym-river-courses.mjs).
+  const waters = ringIndex(asset.hydrology.lakes.filter((l) => l.waterKind !== "river-channel").flatMap((l) => [l.polygon, ...(l.islands ?? [])]));
   const detail = {}; for (const kind of ["forest", "upland", "mountains", "peaks"]) detail[kind] = ringIndex((asset.terrain.detail ?? []).filter((d) => d.kind === kind).flatMap((d) => d.rings));
   // Coast segments bucketed by 1° cell, for nearest-coast searches.
   const coastSegments = new Map();
@@ -83,7 +85,8 @@ export function localContext(asset) {
     const seg = [c.ring[i], c.ring[i + 1]], key = Math.floor(seg[0][0]) * 1000 + Math.floor(((seg[0][1] % 360) + 540) % 360 - 180);
     if (!coastSegments.has(key)) coastSegments.set(key, []); coastSegments.get(key).push(seg);
   }
-  const rivers = asset.hydrology.rivers.map((r) => ({ points: r.points, widthM: clamp(30 + 40 * Math.log10(1 + r.dischargeIndex), 30, 400) }));
+  const rivers = asset.hydrology.rivers.map((r) => ({ points: r.points, widthM: clamp(30 + 40 * Math.log10(1 + r.dischargeIndex), 30, 400) }))
+    .concat(riverCourses(asset).map((r) => ({ points: r.points, widthM: r.widthM })));
   const settlements = asset.settlements.filter((s) => s.lat != null);
   const peakM = (lat, lon) => { const c = asset.terrain.coastlines.find((line) => line.kind === "mainland" && line.continent && greatCircleKm(line.points[0], [lat, lon]) < 4000); return c?.continent === "Caren" ? 5200 : c?.continent === "Garyk" ? 3900 : 3500; };
   const ctx = { asset, coasts, waters, detail, coastSegments, rivers, settlements, field: environmentField(asset), lattice: new Map(), smoothed: new Map(), peakM };
@@ -275,7 +278,12 @@ export function buildLocalTile(asset, { center, sizeKm = 8, resolutionM = 25, ma
     const pts = river.points.map(localOf), w = river.widthM / 1000 / 2;
     for (let k = 0; k + 1 < pts.length; k += 1) {
       const [a, b] = [pts[k], pts[k + 1]], c0 = Math.floor((Math.min(a[0], b[0]) - w + half) / res), c1 = Math.ceil((Math.max(a[0], b[0]) + w + half) / res), r0 = Math.floor((half - Math.max(a[1], b[1]) - w) / res), r1 = Math.ceil((half - Math.min(a[1], b[1]) + w) / res);
-      for (let r = Math.max(0, r0); r <= Math.min(n - 1, r1); r += 1) for (let c = Math.max(0, c0); c <= Math.min(n - 1, c1); c += 1) { const x = -half + (c + 0.5) * res, y = half - (r + 0.5) * res; if (segmentDistanceM(x, y, a, b) <= w) riverMask[r * n + c] = 1; }
+      for (let r = Math.max(0, r0); r <= Math.min(n - 1, r1); r += 1) for (let c = Math.max(0, c0); c <= Math.min(n - 1, c1); c += 1) {
+        const x = -half + (c + 0.5) * res, y = half - (r + 0.5) * res, d = segmentDistanceM(x, y, a, b); if (d > w * 1.2 || riverMask[r * n + c]) continue;
+        // natural banks on a broad river: its width wanders by world-keyed noise, so neighbouring maps agree
+        const bank = w < 0.1 ? w : w * (1 + 0.32 * globeNoise(toKmVector(...fromLocal(center, x, y)), 1.6, 0.1, 41));
+        if (d <= bank) riverMask[r * n + c] = 1;
+      }
     }
   }
   // Water runs downhill over the refined land (priority flood from the sea, lakes, rivers and the tile's edge).

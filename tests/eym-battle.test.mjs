@@ -82,7 +82,7 @@ test("conditions change the ground: deep snow and mud are difficult; streets sta
   snowy.grid.ground.forEach((g, i) => { if (snowy.grid.street[i] && snowy.grid.feature[i] < 0) { streets += 1; if (snowy.grid.move[i] === MOVE.normal) clearStreets += 1; } if (snowy.grid.building[i] < 0 && !snowy.grid.street[i] && g === "snow") { yards += 1; if (snowy.grid.move[i] !== MOVE.normal) snowyYards += 1; } });
   assert.equal(clearStreets, streets); assert.ok(yards > 0 && snowyYards === yards);
   assert.ok(snowy.notes.some((n) => /Snow 30 cm/.test(n)));
-  const wet = buildBattleMap(asset, { center: fromLocal(town("Lyle"), 1.2, -0.9), spec, conditions: { ground: "waterlogged" } });
+  const wet = buildBattleMap(asset, { center: fromLocal(town("Lyle"), 1.2, 0.9), spec, conditions: { ground: "waterlogged" } });
   assert.ok(wet.grid.ground.some((g) => g === "field (mud)"));
   assert.ok(!wet.grid.ground.some((g) => g === "grass (mud)"), "grass holds up unless flooding");
 });

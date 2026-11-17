@@ -36,7 +36,7 @@ test("only Caren, Garyk and the sea between them are framed, each under the stor
 test("a region tile is its shapes: cover by the local layer's kinds, height, shade, and the town on it", () => {
   assert.equal(tile.cover.length, (N + 4) ** 2); assert.equal(tile.pad, 2); assert.equal(tile.sea, false);
   const kinds = new Set(tile.cover); for (const k of kinds) assert.ok(Object.values(COVER).includes(k), `cover ${k}`);
-  assert.ok(kinds.has(COVER.woods) || kinds.has(COVER.meadow) || kinds.has(COVER.scrub)); assert.ok(kinds.has(COVER.lake), "the water by Dree");
+  assert.ok(kinds.has(COVER.woods) || kinds.has(COVER.meadow) || kinds.has(COVER.scrub)); assert.ok(kinds.has(COVER.river) && !kinds.has(COVER.lake), "the river by Dree, not the old channel");
   const dree = tile.settlements.find((s) => s.name === "Dree"); assert.ok(dree, "Dree is on its tile");
   assert.ok(Math.abs(dree.px - home.px) < 1e-6 && Math.abs(dree.py - home.py) < 1e-6);
   assert.equal(tile.cover[at(tile, Math.floor(dree.px), Math.floor(dree.py))], COVER.built, "a town is at least a square of roofs");

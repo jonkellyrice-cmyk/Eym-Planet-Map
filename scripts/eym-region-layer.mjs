@@ -146,7 +146,14 @@ export function buildRegionTile(asset, frame, tx, ty) {
     if (!inTile(river)) continue; const line = []; let touched = false;
     for (let k = 0; k < river.xs.length; k += 1) {
       const [c, r] = toCell(river.xs[k], river.ys[k]); line.push([c - PAD, r - PAD]);
-      if (k) { const [pc, pr] = toCell(river.xs[k - 1], river.ys[k - 1]), steps = Math.max(1, Math.ceil(Math.max(Math.abs(c - pc), Math.abs(r - pr)) * 2)); for (let s = 0; s <= steps; s += 1) { const qc = Math.floor(pc + (c - pc) * s / steps), qr = Math.floor(pr + (r - pr) * s / steps); for (let w = 0; w < (river.widthM >= 250 ? 2 : 1); w += 1) if (qc + w >= 0 && qr >= 0 && qc + w < n && qr < n) { riverMask[qr * n + qc + w] = 1; touched = true; } } }
+      if (k) { const [pc, pr] = toCell(river.xs[k - 1], river.ys[k - 1]), steps = Math.max(1, Math.ceil(Math.max(Math.abs(c - pc), Math.abs(r - pr)) * 2)); for (let s = 0; s <= steps; s += 1) { const qc = Math.floor(pc + (c - pc) * s / steps), qr = Math.floor(pr + (r - pr) * s / steps); if (river.widthM < 450) { for (let w = 0; w < (river.widthM >= 250 ? 2 : 1); w += 1) if (qc + w >= 0 && qr >= 0 && qc + w < n && qr < n) { riverMask[qr * n + qc + w] = 1; touched = true; } continue; }
+        // a broad river: a round brush along the course, its banks a little uneven, keyed to the world square so tiles meet
+        const fc = pc + (c - pc) * s / steps, fr = pr + (r - pr) * s / steps, rad = river.widthM / (2000 * res);
+        for (let rr = Math.floor(fr - rad - 1); rr <= Math.ceil(fr + rad + 1); rr += 1) for (let cc = Math.floor(fc - rad - 1); cc <= Math.ceil(fc + rad + 1); cc += 1) {
+          if (cc < 0 || rr < 0 || cc >= n || rr >= n) continue;
+          const wx = tx * REGION_TILE_CELLS + cc - PAD, wy = ty * REGION_TILE_CELLS + rr - PAD, bank = (hashUnit(`${frame.id}|${wx}|${wy}|bank`) - 0.5) * 0.7;
+          if (Math.hypot(cc + 0.5 - fc, rr + 0.5 - fr) <= rad + bank) { riverMask[rr * n + cc] = 1; touched = true; }
+        } } }
     }
     if (touched) rivers.push({ widthM: river.widthM, line });
   }
