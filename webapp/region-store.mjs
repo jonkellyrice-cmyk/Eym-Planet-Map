@@ -34,11 +34,12 @@ export function regionStore(env = process.env, fetchImpl = globalThis.fetch) {
       const r = await call("/rest/v1/eym_tiles?on_conflict=layer,kind,z,x,y", { method: "POST", headers: { "content-type": "application/json", prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(row) });
       if (!r.ok) throw await fail("Recording the tile", r);
     },
-    /** The tiles of a layer, kind and frame already made, as a set of "x,y". */
-    async listed(layer, kind, z) {
+    /** The tiles of a layer, kind and frame already made (under these rules, when `rulesVersion` is given), as a set of "x,y". */
+    async listed(layer, kind, z, rulesVersion = null) {
       const made = new Set();
       for (let from = 0; ; from += 1000) {
-        const r = await call(`/rest/v1/eym_tiles?select=x,y&layer=eq.${layer}&kind=eq.${kind}&z=eq.${z}&order=x,y&offset=${from}&limit=1000`);
+        const rules = rulesVersion ? `&rules_version=eq.${encodeURIComponent(rulesVersion)}` : "";
+        const r = await call(`/rest/v1/eym_tiles?select=x,y&layer=eq.${layer}&kind=eq.${kind}&z=eq.${z}${rules}&order=x,y&offset=${from}&limit=1000`);
         if (!r.ok) throw await fail("Listing the tiles", r);
         const rows = await r.json(); for (const row of rows) made.add(`${row.x},${row.y}`);
         if (rows.length < 1000) return made;

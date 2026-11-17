@@ -25,7 +25,7 @@ function fakeSupabase() {
     const obj = /^\/storage\/v1\/object\/([^/]+)\/(.+)$/.exec(url.pathname);
     if (obj && method === "POST") { files.set(`${obj[1]}/${obj[2]}`, Buffer.from(init.body)); return answer(200, {}); }
     if (url.pathname === "/rest/v1/eym_tiles" && method === "POST") { const row = JSON.parse(init.body); rows.set([row.layer, row.kind, row.z, row.x, row.y].join("|"), row); return answer(201); }
-    if (url.pathname === "/rest/v1/eym_tiles") { const want = (k) => url.searchParams.get(k).slice(3), all = [...rows.values()].filter((r) => r.layer === want("layer") && r.kind === want("kind") && String(r.z) === want("z")), from = Number(url.searchParams.get("offset")); return answer(200, all.slice(from, from + 1000).map((r) => ({ x: r.x, y: r.y }))); }
+    if (url.pathname === "/rest/v1/eym_tiles") { const want = (k) => url.searchParams.get(k).slice(3), all = [...rows.values()].filter((r) => r.layer === want("layer") && r.kind === want("kind") && String(r.z) === want("z") && (!url.searchParams.has("rules_version") || r.rules_version === want("rules_version"))), from = Number(url.searchParams.get("offset")); return answer(200, all.slice(from, from + 1000).map((r) => ({ x: r.x, y: r.y }))); }
     return answer(404, "?");
   };
   return { files, rows, calls, fetchImpl };
@@ -48,6 +48,9 @@ test("a land tile is made once, kept with its shapes, and read back from the sto
   assert.ok(fake.rows.has(`region|shapes|${caren.store}|${home.tx}|${home.ty}`));
   const again = await regionTilePicture(asset, frames, store, "caren", home.tx, home.ty); assert.equal(again.source, "store"); assert.deepEqual(again.png, first.png);
   assert.deepEqual([...(await store.listed("region", "pixels", caren.store))], [`${home.tx},${home.ty}`]);
+  // A tile made under older rules does not count as made under these ones.
+  assert.deepEqual([...(await store.listed("region", "pixels", caren.store, REGION_MODEL))], [`${home.tx},${home.ty}`]);
+  assert.deepEqual([...(await store.listed("region", "pixels", caren.store, "eym-region-layer-v0"))], []);
   // The key travels only in the request headers to the store, never in an address.
   assert.ok(fake.calls.every((c) => !c.path.includes("service-key")));
 });

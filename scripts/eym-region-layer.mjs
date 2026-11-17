@@ -11,7 +11,8 @@ import { fromLocal, greatCircleKm, toLocal } from "./eym-surface.mjs";
 import { annualMeanTemperatureC } from "./eym-seasons.mjs";
 import { COVER, COVER_COLORS, coarseAt, globeNoise, hashUnit, localContext, roadsNear } from "./eym-local-detail.mjs";
 
-export const REGION_MODEL = "eym-region-layer-v1";
+// v2 (0.16.4): rivers from their channels, roads that follow the land, hills, hinterland farmland, smooth shore bands.
+export const REGION_MODEL = "eym-region-layer-v2";
 export const REGION_CELL_KM = 0.3, REGION_TILE_CELLS = 256, REGION_TILE_KM = REGION_CELL_KM * REGION_TILE_CELLS;
 const PAD = 2, DEG = Math.PI / 180, R_KM = 6371;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));

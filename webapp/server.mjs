@@ -206,7 +206,7 @@ export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (p
         const all = regionFramesOnce(), frame = all.find((f) => f.id === url.searchParams.get("frame")); if (!frame) return send(res, 404, { error: "no such frame" });
         const { tx0, tx1, ty0, ty1 } = frame.tiles, width = tx1 - tx0 + 1, total = width * (ty1 - ty0 + 1), start = Math.max(0, Number(url.searchParams.get("start") ?? 0) | 0), count = Math.min(400, Math.max(1, Number(url.searchParams.get("count") ?? 60) | 0)), budgetMs = Math.min(50000, Math.max(1000, Number(url.searchParams.get("ms") ?? 40000) | 0));
         const report = await (queue = queue.then(async () => {
-          const began = Date.now(), have = await store.listed("region", "pixels", frame.store), out = { frame: frame.id, total, start, next: start, kept: 0, already: 0, sea: 0, outside: 0, errors: [] };
+          const began = Date.now(), have = await store.listed("region", "pixels", frame.store, REGION_MODEL), out = { frame: frame.id, total, start, next: start, kept: 0, already: 0, sea: 0, outside: 0, errors: [] };
           for (let k = start; k < total && out.kept < count && Date.now() - began < budgetMs; k += 1) {
             const tx = tx0 + (k % width), ty = ty0 + Math.floor(k / width); out.next = k + 1;
             if (!regionFrameHasTile(frame, tx, ty)) { out.outside += 1; continue; }
