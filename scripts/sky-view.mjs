@@ -1,18 +1,21 @@
-// The night sky from the ground: a zenith-centred dome drawn from a groundSky() snapshot, as a pixel-art star
-// chart (scripts/eym-sky-pixels.mjs) on a canvas, with the compass ring and the names drawn over it.
+// The night sky from the ground: a zenith-centred dome drawn from a groundSky() snapshot at the screen's own
+// sharpness (scripts/eym-sky-pixels.mjs) on a canvas, with the compass ring and the names drawn over it. The dome
+// fills the view (its horizon about 91% of the view's smaller side, the four winds just outside it). The background is worked out once for each
+// view and the stars, wanderers, moons and Sun are laid on it as sprites; while a finger moves, that picture is
+// turned, moved or scaled as it is, and drawn sharp again once the finger rests.
 // North is at the top and east on the left, as on a star chart held overhead. Drag to turn the whole sky;
 // pinch or scroll to look closer, and then drag to move about; tap a star, moon or wanderer to name it;
 // double-tap to reset. Looking closer only enlarges the chart: no new stars appear. Object sizes are
 // exaggerated for legibility, but a moon's disc over the Sun is drawn in true proportion so eclipses read correctly.
-import { moonRadius, renderSkyPixels, skyPoint, SUN_PIXELS } from "./eym-sky-pixels.mjs";
+import { LINE_LOOK, SKY_PALETTE, moonRadius, moonSprite, renderSkyBackground, renderSkyVeil, skyMarks, skyPoint, starSprite, sunSprite, wandererSprite, SUN_PIXELS } from "./eym-sky-pixels.mjs";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const CX = 450, CY = 340, HORIZON_RADIUS = 315;
-const ART_PX = 2;               // one art pixel is this many CSS pixels on every screen
-const MAX_ART = 720;            // art pixels across, at most (a very large window gets larger pixels instead)
-/** Screen sizes of the names, in CSS pixels, by kind; and which kind of name gives way to which where two would overlap. */
+const DOME_FILL = 0.91;          // the horizon's diameter as a share of the view's smaller side (room left for the four winds)
+const SHARP_AFTER_MS = 150;      // how soon after a finger rests the sky is drawn sharp again
+/** Screen sizes of the names, in CSS pixels, and which kind gives way to which where two would overlap. */
 const LABEL_PX = { "is-chosen": 15, "is-moon": 13, "is-planet": 13, "is-pole-star": 13, "is-star": 12.5, "is-constellation": 11.5 };
-const LABEL_RANK = { "is-chosen": 0, "is-moon": 1, "is-pole-star": 2, "is-planet": 3, "is-star": 4, "is-constellation": 5 };
+const LABEL_RANK = { "is-chosen": 0, "is-moon": 1, "is-planet": 1, "is-pole-star": 2, "is-star": 3, "is-constellation": 4 };
 /** How much closer than the whole sky the view can go. */
 export const SKY_MAX_ZOOM = 6;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -66,7 +69,7 @@ export class SkyView {
   constructor(svg, { snapshot, sky, starfield, displayName = (name) => name, layers = {} }) {
     this.svg = svg; this.sky = sky; this.starfield = starfield; this.displayName = displayName;
     this.layers = { lines: false, names: false, ...layers };
-    this.state = { rotationDeg: 0, zoom: 1, panX: 0, panY: 0 }; this.artUnit = 2.5; this.fit = 1;
+    this.state = { rotationDeg: 0, zoom: 1, panX: 0, panY: 0 }; this.fit = 1; this.moving = false; this.sprites = new Map();
     this.snapshot = snapshot; this.cloud = 0; this.selection = null; this.stamp = 0;
     // Which figure each star belongs to, and which stars have names: what a tap can name.
     this.figureOf = new Map(); this.nameOf = new Map();
@@ -78,7 +81,8 @@ export class SkyView {
   destroy() {
     for (const [name, handler] of Object.entries(this._listeners ?? {})) this.svg.removeEventListener(name, handler);
     if (this.frame != null) (globalThis.cancelAnimationFrame ?? clearTimeout)(this.frame);
-    this.canvas?.remove(); this.svg.classList.remove("is-pixel-sky", "is-daylight"); this.svg.replaceChildren();
+    clearTimeout(this.idleTimer);
+    this.canvas?.remove(); this.svg.classList.remove("is-pixel-sky", "is-daylight"); this.svg.style?.removeProperty?.("--sky-px"); this.svg.replaceChildren();
   }
 
   update(snapshot) { this.snapshot = snapshot; this.stamp += 1; this.render(); }
@@ -106,10 +110,27 @@ export class SkyView {
     this.svg.append(this.horizon, this.ticks, this.labelLayer, ...this.cardinals);
   }
 
-  /** A pointer's place on the chart (the 900 × 680 frame, which the window may show more or less of). */
+  /**
+   * How the chart (the 900 × 680 frame the view state is kept in) lies in the view: the chart's centre at the
+   * view's centre, `s` CSS pixels to a chart unit, chosen so that the horizon fills DOME_FILL of the view's smaller side.
+   */
+  #fitNow() {
+    const box = this.svg.getBoundingClientRect?.(); if (!box?.width || !box?.height) return null;
+    // The help line laid over the bottom of the view is kept clear: the dome is centred in what is left above it.
+    const help = this.svg.closest?.(".oscm-shell")?.querySelector?.(".oscm-view-help")?.getBoundingClientRect?.(), cover = help?.height ? Math.max(0, Math.min(box.height / 4, box.bottom - help.top + 4)) : 0;
+    return { left: box.left, top: box.top, w: box.width, h: box.height, oy: -cover / 2, s: DOME_FILL * Math.min(box.width, box.height - cover) / 2 / HORIZON_RADIUS };
+  }
+
+  /** A pointer's place on the chart. */
   #chartPoint(event) {
-    const box = this.svg.getBoundingClientRect(), fit = Math.min(box.width / 900, box.height / 680) || 1;
-    return { x: 450 + (event.clientX - box.left - box.width / 2) / fit, y: 340 + (event.clientY - box.top - box.height / 2) / fit, fit };
+    const f = this.#fitNow() ?? { left: 0, top: 0, w: 900, h: 680, s: 1 };
+    return { x: CX + (event.clientX - f.left - f.w / 2) / f.s, y: CY + (event.clientY - f.top - f.h / 2 - (f.oy ?? 0)) / f.s, fit: f.s };
+  }
+
+  /** A finger (or the wheel) is moving the sky: draw quickly now, and sharply once it rests. */
+  #moving() {
+    this.moving = true; clearTimeout(this.idleTimer);
+    this.idleTimer = setTimeout(() => { this.moving = false; this.render(); }, SHARP_AFTER_MS);
   }
 
   #attach() {
@@ -130,39 +151,38 @@ export class SkyView {
       },
       pointermove: (e) => {
         if (!fingers.has(e.pointerId)) return; fingers.set(e.pointerId, e);
-        if (pinch && fingers.size >= 2) { const now = spread(); zoomSkyAbout(this.state, now.d / pinch.d, now.mid.x, now.mid.y); pinch = now; this.render(); return; }
+        if (pinch && fingers.size >= 2) { const now = spread(); zoomSkyAbout(this.state, now.d / pinch.d, now.mid.x, now.mid.y); pinch = now; this.#moving(); this.render(); return; }
         if (!drag || drag.id !== e.pointerId) return;
         const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (!drag.moved && Math.hypot(dx, dy) < 6) return; drag.moved = true;
         // At the whole sky, a drag turns it; looked at closer, a drag moves about it.
         if (this.state.zoom <= 1.02) this.state.rotationDeg = drag.rotation - dx * 0.35;
         else { const { fit } = this.#chartPoint(e); this.state.panX = drag.panX + dx / fit; this.state.panY = drag.panY + dy / fit; clampSkyView(this.state); }
-        this.render();
+        this.#moving(); this.render();
       },
       pointerup: end, pointercancel: end,
-      wheel: (e) => { e.preventDefault(); const p = this.#chartPoint(e); zoomSkyAbout(this.state, Math.exp(-e.deltaY * 0.0012), p.x, p.y); this.render(); },
+      wheel: (e) => { e.preventDefault(); const p = this.#chartPoint(e); zoomSkyAbout(this.state, Math.exp(-e.deltaY * 0.0012), p.x, p.y); this.#moving(); this.render(); },
     };
     for (const [name, handler] of Object.entries(this._listeners)) this.svg.addEventListener(name, handler, name === "wheel" ? { passive: false } : undefined);
   }
 
-  /** Everything a tap can name, with where it stands on the chart now. */
+  /** Everything a tap can name, with where it stands on the chart now (`reach` and `room`, how far its mark reaches, in CSS pixels). */
   #targets() {
     const s = this.snapshot, out = [], add = (p, entry) => { if (p) out.push({ ...entry, x: p.x, y: p.y }); };
-    const sun = this.place(s.sun.altDeg, s.sun.azDeg);
-    add(sun, { key: "sun", reach: 26, lift: SUN_PIXELS * this.artUnit + 8, text: s.sun.coverage > 0 ? `The Sun · ${Math.round(s.sun.coverage * 100)}% eclipsed` : "The Sun", cls: "is-moon" });
-    for (const moon of s.moons) if (moon.visible) add(this.place(moon.altDeg, moon.azDeg), { key: `moon:${moon.name}`, reach: 24, lift: moonRadius(moon, HORIZON_RADIUS * this.state.zoom / this.artUnit) * this.artUnit + 6, text: `${this.displayName(moon.name)} · ${Math.round(moon.illuminated * 100)}% lit${moon.umbralFraction > 0.01 ? " · eclipsed" : ""}`, short: this.displayName(moon.name), cls: "is-moon" });
-    for (const planet of s.planets) if (planet.visible) add(this.place(planet.altDeg, planet.azDeg), { key: `planet:${planet.name}`, reach: 22, lift: 14, text: this.displayName(planet.name), cls: "is-planet" });
+    add(this.place(s.sun.altDeg, s.sun.azDeg), { key: "sun", reach: 26, room: SUN_PIXELS * 1.3 + 6, text: s.sun.coverage > 0 ? `The Sun · ${Math.round(s.sun.coverage * 100)}% eclipsed` : "The Sun", short: "The Sun", cls: "is-moon" });
+    for (const moon of s.moons) if (moon.visible) add(this.place(moon.altDeg, moon.azDeg), { key: `moon:${moon.name}`, reach: 24, room: moonRadius(moon, HORIZON_RADIUS * this.state.zoom * this.fit) + 5, text: `${this.displayName(moon.name)} · ${Math.round(moon.illuminated * 100)}% lit${moon.umbralFraction > 0.01 ? " · eclipsed" : ""}`, short: this.displayName(moon.name), cls: "is-moon" });
+    for (const planet of s.planets) if (planet.visible) add(this.place(planet.altDeg, planet.azDeg), { key: `planet:${planet.name}`, reach: 22, room: 10, text: this.displayName(planet.name), short: this.displayName(planet.name), cls: "is-planet" });
     for (const star of s.stars) {
       if (!star.visible || star.altDeg < 0) continue;
       const id = `star-${String(star.index + 1).padStart(4, "0")}`, named = this.nameOf.get(id), figure = this.figureOf.get(id); if (!named && !figure) continue;
-      add(this.place(star.altDeg, star.azDeg), { key: id, reach: named ? 20 : 16, lift: 10, text: named ? (figure ? `${named.name} · ${figure.name}` : named.name) : figure.name, short: named?.name, magnitude: star.magnitude, figure: figure?.id ?? null, cls: named?.poleStar ? "is-pole-star" : named ? "is-star" : "is-constellation" });
+      add(this.place(star.altDeg, star.azDeg), { key: id, reach: named ? 20 : 16, room: 6, text: named ? (figure ? `${named.name} · ${figure.name}` : named.name) : figure.name, short: named?.name, magnitude: star.magnitude, figure: figure?.id ?? null, cls: named?.poleStar ? "is-pole-star" : named ? "is-star" : "is-constellation" });
     }
     return out;
   }
 
   /** Name what was tapped (the nearest thing within reach), or put the name away. */
   #select(point) {
-    let best = null, bestD = Infinity;
-    for (const t of this.#targets()) { const d = Math.hypot(t.x - point.x, t.y - point.y); if (d <= t.reach && d < bestD) { best = t; bestD = d; } }
+    let best = null, bestD = Infinity; const px = 1 / (this.fit || 1);
+    for (const t of this.#targets()) { const d = Math.hypot(t.x - point.x, t.y - point.y); if (d <= t.reach * px && d < bestD) { best = t; bestD = d; } }
     this.selection = best && best.key !== this.selection?.key ? { key: best.key, figure: best.figure ?? null } : null;
     this.stamp += 1; this.render();
   }
@@ -173,51 +193,142 @@ export class SkyView {
     if (this.frame == null) this.frame = (globalThis.requestAnimationFrame ?? ((run) => setTimeout(run, 16)))(() => { this.frame = null; this.#draw(); });
   }
 
-  #draw() {
-    const s = this.snapshot, { cx, cy, radius, rotationDeg } = this.#frameNow;
-    this.svg.classList.toggle("is-daylight", s.twilight === "day" && s.sun.coverage < 0.9);
+  /** A sprite (made once for its kind, colour and the screen's density) as a small canvas, ready to stamp with drawImage. */
+  #sprite(key, make) {
+    let c = this.sprites.get(key); if (c) return c;
+    const sp = make(); c = Object.assign(document.createElement("canvas"), { width: sp.width, height: sp.height }); c.half = sp.half;
+    c.getContext("2d").putImageData(new ImageData(sp.data, sp.width, sp.height), 0, 0);
+    if (this.sprites.size > 400) this.sprites.clear(); this.sprites.set(key, c); return c;
+  }
+  #stamp(ctx, sprite, x, y) { ctx.drawImage(sprite, Math.round(x - 0.5) - sprite.half, Math.round(y - 0.5) - sprite.half); }
+  /** An RGBA picture laid on a context, stretched smoothly to `w` × `h`. */
+  #lay(ctx, data, bw, bh, w, h, c = this.scratch ??= document.createElement("canvas")) {
+    c.width = bw; c.height = bh; c.getContext("2d").putImageData(new ImageData(data, bw, bh), 0, 0);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; ctx.drawImage(c, 0, 0, w, h);
+  }
+  /**
+   * The dome's background (the gradient and Desna's Path) as the sky stands unturned, made again only when the
+   * time, the place, the zoom or the view's size changes: turning the sky only turns this picture.
+   */
+  #background(W, H, dcx, dcy, R, colors, dpr) {
+    // What the background shows: where Desna's Path stands (to a quarter of a degree), the Sun's height and the sky's darkness.
+    const s = this.snapshot, g = s.galacticBandVisible && this.starfield?.galaxy ? s.project(this.starfield.galaxy.center) : null, q = (v, step) => Math.round(v / step);
+    const key = [g ? `${q(g.altDeg, 0.25)},${q(g.azDeg, 0.25)}` : "-", q(s.sun.altDeg, 0.25), q(s.limitingMagnitude, 0.05), W, H, dcx.toFixed(1), dcy.toFixed(1), R.toFixed(1)].join("|");
+    if (this.bg?.key === key) return this.bg.canvas;
+    // It is smooth, so one sample a CSS pixel is enough; it is stretched smoothly to the screen's density.
+    const step = Math.max(1, dpr), bw = Math.ceil(W / step), bh = Math.ceil(H / step), canvas = this.bg?.canvas ?? document.createElement("canvas"); canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext("2d"); ctx.clearRect(0, 0, W, H);
+    this.#lay(ctx, renderSkyBackground({ width: bw, height: bh, cx: dcx / step, cy: dcy / step, radius: R / step, rotationDeg: 0, snapshot: this.snapshot, starfield: this.starfield, colors }), bw, bh, W, H);
+    this.bg = { key, canvas }; return canvas;
+  }
 
-    // The chart itself, as pixels: it covers all of the view that shows, which may be more than the frame.
-    const box = this.svg.getBoundingClientRect?.(), fit = box?.width && box?.height ? Math.min(box.width / 900, box.height / 680) : 0;
-    if (fit) {
-      // One art pixel is ART_PX CSS pixels whatever the screen (a larger window gets more of them, up to MAX_ART across).
-      const unit = Math.max(ART_PX / fit, Math.max(box.width, box.height) / fit / MAX_ART), ART_UNIT = unit; this.artUnit = unit; this.fit = fit;
-      this.svg.style?.setProperty?.("--sky-px", (1 / fit).toFixed(4));
-      const W = Math.ceil(box.width / fit / ART_UNIT), H = Math.ceil(box.height / fit / ART_UNIT);
-      const key = [rotationDeg.toFixed(2), this.state.zoom.toFixed(3), this.state.panX.toFixed(1), this.state.panY.toFixed(1), this.stamp, W, H].join("|");
-      if (key !== this.paintKey) {
-        this.paintKey = key;
-        const data = renderSkyPixels({ width: W, height: H, cx: W / 2 + (cx - 450) / ART_UNIT, cy: H / 2 + (cy - 340) / ART_UNIT, radius: radius / ART_UNIT, rotationDeg, snapshot: s, sky: this.sky, starfield: this.starfield, colors: skyColors(s.sun.altDeg, s.sun.coverage), lines: this.layers.lines, highlight: this.selection?.figure ?? null, cloud: this.cloud, scale: this.state.zoom });
-        if (this.canvas.width !== W || this.canvas.height !== H) { this.canvas.width = W; this.canvas.height = H; }
-        const shown = [W * ART_UNIT * fit, H * ART_UNIT * fit];
-        Object.assign(this.canvas.style, { width: `${shown[0]}px`, height: `${shown[1]}px`, left: `${this.svg.offsetLeft + (box.width - shown[0]) / 2}px`, top: `${this.svg.offsetTop + (box.height - shown[1]) / 2}px` });
-        this.canvas.getContext("2d").putImageData(new ImageData(data, W, H), 0, 0);
-      }
+  /** The whole sky, sharp, for the view as it is now: a canvas of the view's size at the screen's density. */
+  #compose(W, H, k, dpr, oy) {
+    const s = this.snapshot, { cx, cy, radius, rotationDeg } = this.#frameNow, X = (x) => (x - CX) * k + W / 2, Y = (y) => (y - CY) * k + H / 2 + oy;
+    const dcx = X(cx), dcy = Y(cy), R = radius * k, colors = skyColors(s.sun.altDeg, s.sun.coverage), darkness = Math.min(1, Math.max(0, (s.limitingMagnitude + 1) / 6.6));
+    const out = this.composite ??= document.createElement("canvas"); out.width = W; out.height = H;
+    const ctx = out.getContext("2d"), step = Math.max(1, dpr), bw = Math.ceil(W / step), bh = Math.ceil(H / step);
+    ctx.save(); ctx.translate(dcx, dcy); ctx.rotate(-rotationDeg * Math.PI / 180); ctx.translate(-dcx, -dcy); ctx.drawImage(this.#background(W, H, dcx, dcy, R, colors, dpr), 0, 0); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.arc(dcx, dcy, R, 0, Math.PI * 2); ctx.clip();
+    const marks = skyMarks({ cx: dcx, cy: dcy, radius: R, rotationDeg, snapshot: s, sky: this.sky, lines: this.layers.lines, highlight: this.selection?.figure ?? null, density: dpr });
+    // Figures: thin, continuous, muted gilt lines that stop short of their stars; a chosen one in bright gilt.
+    ctx.lineCap = "round";
+    for (const l of marks.lines) {
+      const [r, g, b] = l.bright ? SKY_PALETTE.lineBright : SKY_PALETTE.line, a = l.bright ? LINE_LOOK.bright : LINE_LOOK.muted * (0.5 + 0.5 * darkness);
+      ctx.strokeStyle = `rgba(${r},${g},${b},${a})`; ctx.lineWidth = (l.bright ? LINE_LOOK.brightWidth : LINE_LOOK.width) * dpr;
+      ctx.beginPath(); ctx.moveTo(l.ax, l.ay); ctx.lineTo(l.bx, l.by); ctx.stroke();
+    }
+    for (const st of marks.stars) this.#stamp(ctx, this.#sprite(`s${st.level}|${st.tint}|${dpr}`, () => starSprite(st.level, st.tint, dpr)), st.x, st.y);
+    for (const w of marks.wanderers) this.#stamp(ctx, this.#sprite(`w${w.name}|${dpr}`, () => wandererSprite(w.color, dpr)), w.x, w.y);
+    for (const m of marks.moons) this.#stamp(ctx, this.#sprite(`m${m.moon.name}|${m.r.toFixed(1)}|${m.angle.toFixed(2)}|${m.moon.illuminated.toFixed(3)}|${m.moon.umbralFraction.toFixed(2)}|${darkness.toFixed(2)}`, () => moonSprite(m.moon, m.r, m.angle, darkness)), m.x, m.y);
+    if (marks.sun) {
+      const sun = marks.sun; this.#stamp(ctx, this.#sprite(`sun|${sun.R.toFixed(1)}|${sun.total}`, () => sunSprite(sun.R, sun.total)), sun.x, sun.y);
+      for (const c of sun.covers) { ctx.fillStyle = c.red ? "rgb(31,15,12)" : "rgb(13,15,20)"; ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2); ctx.fill(); }
+    }
+    const veil = renderSkyVeil({ width: bw, height: bh, cx: dcx / step, cy: dcy / step, radius: R / step, snapshot: s, cloud: this.cloud });
+    if (veil) this.#lay(ctx, veil, bw, bh, W, H);
+    ctx.restore();
+    return out;
+  }
+
+  #draw() {
+    const s = this.snapshot, f = this.#fitNow(); if (!f) return;
+    this.svg.classList.toggle("is-daylight", s.twilight === "day" && s.sun.coverage < 0.9);
+    // The chart is laid so that the dome fills the view, and the names keep one size on the screen.
+    if (this.fit !== f.s || this.viewW !== f.w || this.viewH !== f.h || this.viewOy !== f.oy) {
+      this.fit = f.s; this.viewW = f.w; this.viewH = f.h; this.viewOy = f.oy;
+      this.svg.setAttribute("viewBox", `${(CX - f.w / 2 / f.s).toFixed(2)} ${(CY - (f.h / 2 + f.oy) / f.s).toFixed(2)} ${(f.w / f.s).toFixed(2)} ${(f.h / f.s).toFixed(2)}`);
+      this.svg.style?.setProperty?.("--sky-px", (1 / f.s).toFixed(4));
+    }
+    const dpr = Math.min(3, Math.max(1, Math.round((globalThis.devicePixelRatio || 1) * 4) / 4)), W = Math.round(f.w * dpr), H = Math.round(f.h * dpr), k = f.s * W / f.w;
+    // While a finger moves, the picture is drawn at half the density (a quarter of the pixels); sharp again at rest.
+    const q = this.moving ? 0.5 : 1, CW = Math.round(W * q), CH = Math.round(H * q);
+    if (this.canvas.width !== CW || this.canvas.height !== CH) { this.canvas.width = CW; this.canvas.height = CH; }
+    Object.assign(this.canvas.style, { width: `${f.w}px`, height: `${f.h}px`, left: `${this.svg.offsetLeft}px`, top: `${this.svg.offsetTop}px` });
+
+    // The sharp picture is made again when anything but the view has changed, or when the view has changed and
+    // the finger has rested; while it moves, the last sharp picture is turned, moved and scaled to the new view.
+    const oy = f.oy * W / f.w, view = { ...this.state }, key = [this.stamp, W, H, dpr].join("|"), same = (a, b) => a.rotationDeg === b.rotationDeg && a.zoom === b.zoom && a.panX === b.panX && a.panY === b.panY;
+    // (While a finger moves, even a new moment from the clock waits for it to rest, unless the view's size has changed.)
+    const size = `${W}|${H}|${dpr}|${oy.toFixed(1)}`, sized = this.sharp && this.sharp.size === size;
+    if (!sized || (!this.moving && (this.sharp.key !== key || !same(this.sharp.view, view)))) this.sharp = { key, size, view, canvas: this.#compose(W, H, k, dpr, oy) };
+    const ctx = this.canvas.getContext("2d"), was = this.sharp.view;
+    ctx.setTransform(q, 0, 0, q, 0, 0); ctx.clearRect(0, 0, W, H);
+    if (same(was, view)) ctx.drawImage(this.sharp.canvas, 0, 0);
+    else {
+      ctx.translate(W / 2 + view.panX * k, H / 2 + oy + view.panY * k); ctx.rotate(-(view.rotationDeg - was.rotationDeg) * Math.PI / 180); ctx.scale(view.zoom / was.zoom, view.zoom / was.zoom); ctx.translate(-(W / 2 + was.panX * k), -(H / 2 + oy + was.panY * k));
+      ctx.imageSmoothingEnabled = true; ctx.drawImage(this.sharp.canvas, 0, 0); ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
-    // The compass ring: the horizon, a tick every fifteen degrees (longer at the quarters), and the four winds.
-    for (const [k, v] of [["cx", cx], ["cy", cy], ["r", radius + 3]]) this.horizon.setAttribute(k, v.toFixed(1));
+    // The compass ring: the horizon, a tick every fifteen degrees (longer at the quarters), and the four winds just outside it.
+    const { cx, cy, radius, rotationDeg } = this.#frameNow, px = 1 / f.s;
+    for (const [a, v] of [["cx", cx], ["cy", cy], ["r", radius + 1.5 * px]]) this.horizon.setAttribute(a, v.toFixed(1));
     let ticks = "";
-    for (let a = 0; a < 360; a += 15) { const rad = (a + rotationDeg) * Math.PI / 180, r1 = radius + 3, r2 = r1 + (a % 90 === 0 ? 11 : a % 45 === 0 ? 8 : 5); ticks += `M${(cx - r1 * Math.sin(rad)).toFixed(1)} ${(cy - r1 * Math.cos(rad)).toFixed(1)}L${(cx - r2 * Math.sin(rad)).toFixed(1)} ${(cy - r2 * Math.cos(rad)).toFixed(1)}`; }
+    for (let a = 0; a < 360; a += 15) { const rad = (a + rotationDeg) * Math.PI / 180, r1 = radius + 1.5 * px, r2 = r1 + (a % 90 === 0 ? 6 : a % 45 === 0 ? 4 : 2.5) * px; ticks += `M${(cx - r1 * Math.sin(rad)).toFixed(1)} ${(cy - r1 * Math.cos(rad)).toFixed(1)}L${(cx - r2 * Math.sin(rad)).toFixed(1)} ${(cy - r2 * Math.cos(rad)).toFixed(1)}`; }
     this.ticks.setAttribute("d", ticks);
-    ["N", "E", "S", "W"].forEach((_, i) => { const a = (i * 90 + rotationDeg) * Math.PI / 180, r = radius + 26; this.cardinals[i].setAttribute("x", (cx - r * Math.sin(a)).toFixed(1)); this.cardinals[i].setAttribute("y", (cy - r * Math.cos(a)).toFixed(1)); });
+    const winds = ["N", "E", "S", "W"].map((_, i) => { const a = (i * 90 + rotationDeg) * Math.PI / 180, r = radius + 11 * px, x = cx - r * Math.sin(a), y = cy - r * Math.cos(a); this.cardinals[i].setAttribute("x", x.toFixed(1)); this.cardinals[i].setAttribute("y", y.toFixed(1)); return { x0: x - 7 * px, x1: x + 7 * px, y0: y - 8 * px, y1: y + 8 * px }; });
+    // Names are set again once the finger rests (laying them out is the costly part of a frame); meanwhile they are put away.
+    if (this.moving) { if (this.labelLayer.firstChild) this.labelLayer.replaceChildren(); this.labelsStale = true; }
+    else this.#labels(f, winds);
+  }
 
-    // Names: only what was tapped, unless every name is asked for.
+  /**
+   * Names: only what was tapped, unless every name is asked for (named stars, wanderers and moons) or the figures
+   * are shown (their names). Each is set beside what it names, never over it or another bright mark; where two
+   * would overlap, the less important gives way; only what is in view is named.
+   */
+  #labels(f, placed) {
     this.labelLayer.replaceChildren();
-    const targets = this.#targets(), chosen = this.selection ? targets.find((t) => t.key === this.selection.key) : null;
-    // Each name is a fixed size on the screen; where two would overlap, the less important one is left out.
-    const wanted = [], px = 1 / (this.fit || 1);
-    const want = (t, text, kind) => { if (t.x < -20 || t.x > 920 || t.y < -20 || t.y > 700) return; const size = LABEL_PX[kind] * px, w = text.length * size * 0.52, x = clamp(t.x, w / 2 + 4, 900 - w / 2 - 4), y = Math.max(size + 2, t.y - Math.max(t.lift, 6 * px)); wanted.push({ t, text, kind, x, y, w, h: size * 1.15, rank: LABEL_RANK[kind] + (t.magnitude ?? 0) / 100 }); };
-    if (chosen) want(chosen, chosen.text, "is-chosen");
-    if (this.layers.names) for (const t of targets) if (t !== chosen && (t.short || t.cls === "is-planet")) want(t, t.short ?? t.text, t.cls);
-    if (this.layers.lines) for (const c of this.sky.constellations) { if (c.id === this.selection?.figure) continue; const p = this.#placeDir(c.center); if (p) want({ ...p, lift: 0 }, c.name, "is-constellation"); }
-    // The four winds are placed first: no name is drawn over them.
-    const placed = ["N", "E", "S", "W"].map((_, i) => { const a = (i * 90 + rotationDeg) * Math.PI / 180, r = radius + 26, x = cx - r * Math.sin(a), y = cy - r * Math.cos(a), h = 10 * px; return { x0: x - h, x1: x + h, y0: y - h, y1: y + h }; });
+    const px = 1 / f.s, view = { x0: CX - f.w / 2 * px, x1: CX + f.w / 2 * px, y0: CY - (f.h / 2 + f.oy) * px, y1: CY + (f.h / 2 + f.oy) * px }, { cx, cy, radius } = this.#frameNow;
+    const inView = (p) => p.x > view.x0 && p.x < view.x1 && p.y > view.y0 && p.y < view.y1 && (p.x - cx) ** 2 + (p.y - cy) ** 2 <= radius * radius;
+    const targets = this.#targets().filter(inView), chosen = this.selection ? targets.find((t) => t.key === this.selection.key) : null;
+    // Bright marks are obstacles too: no name is set over a star.
+    for (const t of targets) if (t.cls !== "is-constellation" || (t.magnitude ?? 9) < 3) placed.push({ x0: t.x - 3 * px, x1: t.x + 3 * px, y0: t.y - 3 * px, y1: t.y + 3 * px });
+    const hits = (b) => placed.some((o) => b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0) || b.x0 < view.x0 || b.x1 > view.x1 || b.y0 < view.y0 || b.y1 > view.y1;
+    const put = (text, kind, x, y, anchor) => { const node = el("text", { x: x.toFixed(1), y: y.toFixed(1), class: `oscm-ground-label ${kind}`, "text-anchor": anchor, "dominant-baseline": "middle" }); node.textContent = text; this.labelLayer.append(node); };
+    const box = (x, y, w, h, anchor) => ({ x0: anchor === "start" ? x : anchor === "end" ? x - w : x - w / 2, x1: anchor === "start" ? x + w : anchor === "end" ? x : x + w / 2, y0: y - h / 2, y1: y + h / 2 });
+    const wanted = [];
+    if (chosen) wanted.push({ t: chosen, text: chosen.text, kind: `${chosen.cls} is-chosen`, size: LABEL_PX["is-chosen"], rank: LABEL_RANK["is-chosen"] });
+    if (this.layers.names) for (const t of targets) if (t !== chosen && t.short) wanted.push({ t, text: t.short, kind: t.cls, size: LABEL_PX[t.cls], rank: LABEL_RANK[t.cls] + (t.magnitude ?? 0) / 100 });
+    if (this.layers.lines) for (const c of this.sky.constellations) {
+      if (c.id === this.selection?.figure && chosen) continue;
+      const pts = []; for (const id of new Set(c.lines.flat())) { const st = this.snapshot.stars[Number(id.slice(5)) - 1]; const p = this.place(st.altDeg, st.azDeg); if (p && inView(p)) pts.push(p); }
+      if (pts.length < 2) continue;
+      wanted.push({ figure: pts, text: c.name, kind: "is-constellation", size: LABEL_PX["is-constellation"], rank: LABEL_RANK["is-constellation"] });
+    }
     for (const l of wanted.sort((a, b) => a.rank - b.rank)) {
-      const box = { x0: l.x - l.w / 2 - 2 * px, x1: l.x + l.w / 2 + 2 * px, y0: l.y - l.h, y1: l.y + 2 * px };
-      if (placed.some((b) => box.x0 < b.x1 && box.x1 > b.x0 && box.y0 < b.y1 && box.y1 > b.y0)) continue;
-      placed.push(box);
-      const node = el("text", { x: l.x.toFixed(1), y: l.y.toFixed(1), class: `oscm-ground-label ${l.kind === "is-chosen" ? `${l.t.cls} is-chosen` : l.kind}`, "text-anchor": "middle" }); node.textContent = l.text; this.labelLayer.append(node);
+      const size = l.size * px, w = l.text.length * size * 0.5, h = size * 1.15, gap = 5 * px;
+      let tries;
+      if (l.figure) {
+        // A figure's name sits just outside it, on the side with the most room.
+        const xs = l.figure.map((p) => p.x), ys = l.figure.map((p) => p.y), b = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) }, mx = (b.x0 + b.x1) / 2, my = (b.y0 + b.y1) / 2;
+        tries = [{ room: cy + radius - b.y1, x: mx, y: b.y1 + gap + h / 2, anchor: "middle" }, { room: b.y0 - (cy - radius), x: mx, y: b.y0 - gap - h / 2, anchor: "middle" }, { room: cx + radius - b.x1, x: b.x1 + gap, y: my, anchor: "start" }, { room: b.x0 - (cx - radius), x: b.x0 - gap, y: my, anchor: "end" }].sort((a, c) => c.room - a.room);
+      } else {
+        // A name sits beside what it names, to the right if there is room, else to the left, else above or below.
+        const off = (l.t.room ?? 6) * px;
+        tries = [{ x: l.t.x + off, y: l.t.y, anchor: "start" }, { x: l.t.x - off, y: l.t.y, anchor: "end" }, { x: l.t.x, y: l.t.y - off - h / 2, anchor: "middle" }, { x: l.t.x, y: l.t.y + off + h / 2, anchor: "middle" }];
+      }
+      for (const t of tries) { const b = box(t.x, t.y, w, h, t.anchor); if (hits(b)) continue; placed.push(b); put(l.text, l.kind, t.x, t.y, t.anchor); break; }
     }
   }
 }
