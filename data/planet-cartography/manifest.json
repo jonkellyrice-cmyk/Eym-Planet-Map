@@ -8,37 +8,42 @@
       "system": "Abydos",
       "body": "Ramses",
       "path": "data/planet-cartography/abydos/ramses.json",
+      "sha256": "d3301ad7d4bc3a7a838db6741ad5ee7dda650dae29509cb5c53cc84dba010e21",
+      "bytes": 966646,
       "sourceSeed": "8dfaf7db71502f6e",
-      "sourceFingerprint": "98728c83432208985073",
-      "sha256": "dd5944b5833bb19624f65d6ed613682ecbf7474893b5f4972d31e9b3a3e6e0e9",
-      "bytes": 1004844
+      "sourceFingerprint": "98728c83432208985073"
     },
     {
       "system": "Abydos",
       "body": "Eventide",
       "path": "data/planet-cartography/abydos/eventide.json",
+      "sha256": "fee80fab7b42778400c18d8ea58379f5baaccbc961b98f012322bb315b3bc0e4",
+      "bytes": 1412717,
+      "geology": {
+        "path": "data/planet-cartography/abydos/eventide-geology.json",
+        "sha256": "045e2540919f677f01637d6b626950686770692a42793ae0f9d4b8b35f6b9c4d",
+        "bytes": 122918
+      },
       "sourceSeed": "741343188e552de0",
-      "sourceFingerprint": "ad78e2096ca27bf888c4",
-      "sha256": "78a23a3f3f8333d659536f4003008411da9debc6b9cdbb7ff3e2c0a577a10f27",
-      "bytes": 1749497
+      "sourceFingerprint": "ad78e2096ca27bf888c4"
     },
     {
       "system": "Abydos",
       "body": "Thraximundus",
       "path": "data/planet-cartography/abydos/thraximundus.json",
+      "sha256": "bc105b8a5698782f36ed88fa2aa01e0873cd45d9976a7a5693aa24ee7d3a92e8",
+      "bytes": 937288,
       "sourceSeed": "f54bfd702ebbc1db",
-      "sourceFingerprint": "bc3ccd2812370dfd00ba",
-      "sha256": "ba5c11660d884778099c3e9de4e0265fc377e3ebb02312cd4b2973ff92f4238e",
-      "bytes": 982965
+      "sourceFingerprint": "bc3ccd2812370dfd00ba"
     },
     {
       "system": "Abydos",
       "body": "Kandahar",
       "path": "data/planet-cartography/abydos/kandahar.json",
+      "sha256": "39558683a641f4d0b56c514607c2695d1877089448a960d974ddb2a5fc3dd328",
+      "bytes": 832992,
       "sourceSeed": "58705906c91fcc27",
-      "sourceFingerprint": "ee54e5961815f5811ff1",
-      "sha256": "21895f49c50abe547cf02ef74340f65502db0881d3eb43c21fd2514902e01eda",
-      "bytes": 873821
+      "sourceFingerprint": "ee54e5961815f5811ff1"
     }
   ]
 }
