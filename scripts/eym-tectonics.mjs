@@ -1,7 +1,7 @@
 // Eym's plate tectonics and deep history, drawn by rule (Stage 1 of the physical history and climate programme).
 //
 // Plates are a noise-warped Voronoi of seed points on the sphere, each turning about its own pole. The three
-// unnamed continents (Eastern, Northern, Southern) are pieces of an old supercontinent, the First Land: it is
+// seeded continents (Gaffa, Khohalis and Demani) are pieces of an old supercontinent, the First Land: it is
 // laid out around Garyk (which was part of it), cut along noise-warped rifts, and each piece is turned to where
 // its continent stands today, so the pieces' rifted edges still fit one another and Garyk's coast. Leading edges
 // gather accreted terranes, coastal ranges and island arcs; old sutures inside each piece are the inland ranges.
@@ -105,8 +105,8 @@ function ringContains(ringV, center) {
 }
 
 /**
- * Lay out the First Land for one seed: Garyk at its middle (turned back to where it stood), the three unnamed
- * continents' pieces around it, the rotations that carry each piece to today, and the plates.
+ * Lay out the First Land for one seed: Garyk at its middle (turned back to where it stood), the pieces of Gaffa,
+ * Khohalis and Demani around it, the rotations that carry each piece to today, and the plates.
  * `garyk` is { center, ring: [[lat, lon]], range: [[lat, lon]] (its high ground) }; `caren` is { center, ring };
  * `targets` are the seeded continents { id, center, areaKm2 }.
  */

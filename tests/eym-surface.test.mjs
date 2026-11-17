@@ -45,7 +45,8 @@ test("the seeded continents: the largest to the east, colder ones far north and 
   assert.ok(Math.min(...mainland("eastern").map(([, lon]) => lon)) > Math.max(...mainland("caren").map(([, lon]) => lon)));
   assert.ok(northern.center[0] > 40 && southern.center[0] < -40);
   assert.ok(northern.mainlandAreaKm2 < caren.mainlandAreaKm2 && southern.mainlandAreaKm2 < caren.mainlandAreaKm2);
-  assert.ok(surface.continents.filter((c) => c.origin === "seeded").every((c) => c.placeholderName));
+  // Named by the owner (17 November 2026): no longer placeholders.
+  assert.deepEqual([eastern, northern, southern].map((c) => [c.name, Boolean(c.placeholderName)]), [["Gaffa", false], ["Khohalis", false], ["Demani", false]]);
   assert.ok(surface.landFraction > 0.01 && surface.landFraction < 0.02);
 });
 
@@ -72,7 +73,7 @@ test("the colder continents are colder: taiga, tundra or ice, not rainforest", (
     return hit / total;
   };
   const cold = ["taiga", "tundra", "ice-cap", "temperate-forest", "steppe", "cold-desert"], tropical = ["tropical-rainforest", "seasonal-forest", "savanna"];
-  assert.ok(share("the Northern Continent", cold) > 0.8 && share("the Southern Continent", cold) > 0.8);
+  assert.ok(share("Khohalis", cold) > 0.8 && share("Demani", cold) > 0.8);
   assert.ok(share("Caren", tropical) > 0.7 && share("Caren", ["taiga"]) === 0);
 });
 

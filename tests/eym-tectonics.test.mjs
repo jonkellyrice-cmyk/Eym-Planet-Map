@@ -22,7 +22,7 @@ test("Caren, Garyk and the open-ocean archipelagos keep their coasts byte for by
   assert.equal(sha(asset.terrain.coastlines.filter((c) => !c.continent)), "ea906a056a7a584acea84c4660ff31ff54f2e182e189e0c90bbccb904fdedd4b");
 });
 
-test("the three unnamed continents meet their targets, each centred on its own land", () => {
+test("Gaffa, Khohalis and Demani meet their targets, each centred on its own land", () => {
   for (const spec of EYM_LAYOUT.seeded) {
     const c = tect.continents[spec.id];
     assert.ok(Math.abs(c.mainlandAreaKm2 / spec.areaKm2 - 1) <= TARGET_TOLERANCE.areaFraction, `${spec.id} area`);
