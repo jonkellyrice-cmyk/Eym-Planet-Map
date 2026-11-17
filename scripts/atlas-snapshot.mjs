@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import zlib from "node:zlib";
+import { elevationGrid } from "./cartography-asset.mjs";
 
 const xml = (value) => String(value ?? "")
   .replaceAll("&", "&amp;")
@@ -56,7 +57,7 @@ const BIOME_COLORS = {
 function planetRaster(world) {
   const { latCount, lonCount } = world.grid;
   const pixels = Buffer.alloc(latCount * lonCount * 4);
-  const elevations = world.raster.elevationM;
+  const elevations = elevationGrid(world);
   const biomeIndexes = Buffer.from(world.raster.biome.valuesBase64, "base64");
   // Atlas projection invariant: PNG row 0 is +90° north, matching mapY().
   // Materialized cartography is indexed south-to-north (latIndex 0 ~= -90°).

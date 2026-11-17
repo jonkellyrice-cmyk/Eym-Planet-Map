@@ -1,0 +1,51 @@
+// How a refined cartography asset is stored on disk and read back. Two things keep the asset that every view
+// loads within its mobile budget:
+//   - the height grid is stored as little-endian int16 in base64 (raster.elevationInt16Base64), not as a JSON
+//     list of numbers; elevationGrid() reads either form;
+//   - Eym's geology (the bedrock grid, plates, volcanoes, fault lines and history) is a separate file beside the
+//     asset (asset.geologyFile names it), loaded only when something asks about rock or earthquakes; attachGeology()
+//     puts it back where scripts/eym-geology.mjs and scripts/eym-quakes.mjs read it (asset.geology, raster.bedrock).
+// Pure functions; reading files is left to the caller.
+
+const decodeBase64 = (value) => (typeof Buffer !== "undefined" ? Uint8Array.from(Buffer.from(value, "base64")) : Uint8Array.from(atob(value), (c) => c.charCodeAt(0)));
+const encodeBase64 = (bytes) => { if (typeof Buffer !== "undefined") return Buffer.from(bytes).toString("base64"); let text = ""; for (let i = 0; i < bytes.length; i += 8192) text += String.fromCharCode(...bytes.subarray(i, i + 8192)); return btoa(text); };
+
+/** The geology file's name beside an asset's ("eventide.json" → "eventide-geology.json"). */
+export const geologyFileName = (assetPath) => assetPath.replace(/^.*\//, "").replace(/\.json$/, "-geology.json");
+
+/**
+ * Split a built asset into what is written: the main asset (height grid packed, geology taken out) and, when it
+ * has geology, the geology document. `fileName` is the asset's own file name.
+ */
+export function packCartography(asset, fileName) {
+  const { geology, ...rest } = asset, { elevationM, bedrock, ...raster } = asset.raster;
+  const grid = new DataView(new ArrayBuffer(elevationM.length * 2));
+  elevationM.forEach((value, i) => grid.setInt16(i * 2, Math.round(value), true));
+  const main = { ...rest, raster: { elevationInt16Base64: encodeBase64(new Uint8Array(grid.buffer)), ...raster } };
+  if (!geology) return { main, geology: null };
+  main.geologyFile = geologyFileName(fileName);
+  return { main, geology: { schemaVersion: 1, system: asset.system, body: asset.body, sourceFingerprint: asset.sourceFingerprint, geology, bedrock } };
+}
+
+const grids = new WeakMap();
+/** The height grid (m) of an asset, in either stored form (decoded once). */
+export function elevationGrid(asset) {
+  const raster = asset.raster;
+  if (raster.elevationM) return raster.elevationM;
+  if (grids.has(raster)) return grids.get(raster);
+  const bytes = decodeBase64(raster.elevationInt16Base64), view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), out = new Int16Array(bytes.length / 2);
+  for (let i = 0; i < out.length; i += 1) out[i] = view.getInt16(i * 2, true);
+  grids.set(raster, out);
+  return out;
+}
+
+/** Put a geology document back into its asset (returns the asset). */
+export function attachGeology(asset, document) {
+  if (!document) return asset;
+  asset.geology = document.geology;
+  asset.raster.bedrock = document.bedrock;
+  return asset;
+}
+
+/** Whether an asset has geology, loaded or not (the globe draws its sea floor from the plates when it has). */
+export const hasGeology = (asset) => Boolean(asset?.geology || asset?.geologyFile);

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { elevationGrid } from "../scripts/cartography-asset.mjs";
 
 const root = new URL("../", import.meta.url), args = new Set(process.argv.slice(2));
 const manifest = JSON.parse(readFileSync(new URL("data/planet-cartography/manifest.json", root), "utf8"));
@@ -20,7 +21,7 @@ for (const entry of manifest.worlds) {
   if (args.has("--strict") && entry.bytes > 1_750_000) fail(`${key}: exceeds 1.75 MB orbital-view budget`);
   if (asset.system !== entry.system || asset.body !== entry.body || asset.sourceSeed !== source.seed || asset.sourceFingerprint !== source.inputFingerprint) fail(`${key}: canonical provenance mismatch`);
   if (args.has("--accepted") && asset.status !== "accepted-working-canon") fail(`${key}: asset is not accepted working canon`);
-  if (asset.grid.latCount * asset.grid.lonCount !== asset.raster.elevationM.length) fail(`${key}: incomplete refined raster`);
+  if (asset.grid.latCount * asset.grid.lonCount !== elevationGrid(asset).length) fail(`${key}: incomplete refined raster`);
   if (!asset.terrain.coastlines.length || !asset.terrain.elevationMesh.vertices.length || !asset.hydrology.rivers.length || !asset.regions.ecoregions.length) fail(`${key}: missing physical geometry`);
   const eym = asset.modelVersion === "eym-surface-v1";
   if (eym) {

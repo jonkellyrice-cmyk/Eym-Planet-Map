@@ -6,6 +6,8 @@
 // and over it the weather — cloud in clumps with lit and shaded edges, rain under the heavy cloud,
 // highs clear, lows as commas, and tropical cyclones as spirals about an eye. Pure: no canvas here.
 
+import { elevationGrid, hasGeology } from "./cartography-asset.mjs";
+
 const DEG = Math.PI / 180;
 const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 const ramp = (...tones) => tones.map(hex);
@@ -192,8 +194,8 @@ export function buildSurfaceRaster(asset, { perDegree = 4 } = {}) {
   }
   // Where the world has a sea floor of its own (Eym's, from its plates), the bands follow its depth: wide
   // shallows on rifted coasts, deep water close in on active ones, ridges paler and trenches darker.
-  if (asset.geology && asset.raster.elevationM) {
-    const E = asset.raster.elevationM, at = (r, c) => E[clamp(r, 0, latCount - 1) * lonCount + ((c % lonCount) + lonCount) % lonCount];
+  if (hasGeology(asset)) {
+    const E = elevationGrid(asset), at = (r, c) => E[clamp(r, 0, latCount - 1) * lonCount + ((c % lonCount) + lonCount) % lonCount];
     const bandOf = (e) => (e >= -150 ? 2 + (-e) / 150 : e >= -1000 ? 3 + (-e - 150) / 850 * 4 : e >= -3200 ? 7 + (-e - 1000) / 2200 * 5 : 12 + Math.min(8, (-e - 3200) / 600));
     for (let i = 0; i < W * H; i += 1) {
       if (!shore[i] || shore[i] === 1) continue;

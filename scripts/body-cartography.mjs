@@ -1,3 +1,4 @@
+import { elevationGrid } from "./cartography-asset.mjs";
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 function decodeBase64(value) {
@@ -9,9 +10,10 @@ export function decodeCartographyRaster(asset) {
   if (asset.schemaVersion !== 2) throw new TypeError("A schema-v2 refined cartography asset is required");
   const count = asset.grid.latCount * asset.grid.lonCount, ocean = decodeBase64(asset.raster.oceanMaskBase64);
   const decodeCategory = (field) => { const indices = decodeBase64(asset.raster[field].valuesBase64), categories = asset.raster[field].categories; return { indices, categories, at: (index) => categories[indices[index]] }; };
-  if (ocean.length !== count || asset.raster.elevationM.length !== count) throw new Error("Refined cartography raster is incomplete");
+  const elevation = elevationGrid(asset);
+  if (ocean.length !== count || elevation.length !== count) throw new Error("Refined cartography raster is incomplete");
   const biome = decodeCategory("biome"), soil = decodeCategory("soil"), resource = decodeCategory("resource");
-  return { count, ocean, elevationM: Int32Array.from(asset.raster.elevationM), biome, soil, resource };
+  return { count, ocean, elevationM: Int32Array.from(elevation), biome, soil, resource };
 }
 
 export function cartographyLod(zoom, mobile = false) {

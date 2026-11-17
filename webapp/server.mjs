@@ -33,6 +33,7 @@ import { Framebuffer } from "./render/framebuffer.mjs";
 import { gzipSync } from "node:zlib";
 import { REGION_CELL_KM, REGION_MODEL, REGION_TILE_CELLS, buildRegionTile, flatRegionTile, regionFrameHasTile, regionFrames, renderRegionTile } from "../scripts/eym-region-layer.mjs";
 import { regionStore, sha256 } from "./region-store.mjs";
+import { attachGeology } from "../scripts/cartography-asset.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const hashText = (text) => { let a = 2166136261, b = 5381; for (let i = 0; i < text.length; i += 1) { const c = text.charCodeAt(i); a = Math.imul(a ^ c, 16777619); b = (Math.imul(b, 33) + c) | 0; } return (a >>> 0).toString(16).padStart(8, "0") + (b >>> 0).toString(16).padStart(8, "0"); };
@@ -153,7 +154,10 @@ export async function regionTilePicture(asset, frames, store, frameId, tx, ty, k
 
 /** The request handler: (req, res), for a Node server or a Vercel function. */
 export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (process.env.VERCEL ? "/tmp/eym-map-cache" : join(HERE, "cache")), corsOrigins = process.env.CORS_ORIGINS ?? "*", store = regionStore() } = {}) {
-  const data = asset ?? JSON.parse(readFileSync(join(HERE, "..", "data", "planet-cartography", "abydos", "eventide.json"), "utf8"));
+  const dataDir = join(HERE, "..", "data", "planet-cartography", "abydos");
+  const data = asset ?? JSON.parse(readFileSync(join(dataDir, "eventide.json"), "utf8"));
+  // Eym's geology lives in its own file beside the asset (scripts/cartography-asset.mjs): battle maps need its rock.
+  if (data.geologyFile && !data.geology && existsSync(join(dataDir, data.geologyFile))) attachGeology(data, JSON.parse(readFileSync(join(dataDir, data.geologyFile), "utf8")));
   mkdirSync(cacheDir, { recursive: true });
   const allowed = corsOrigins === "*" ? null : new Set(String(corsOrigins).split(",").map((s) => s.trim()).filter(Boolean));
   const inflight = new Map();
