@@ -1,0 +1,45 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { channelCourses, riverCourses } from "../scripts/eym-river-courses.mjs";
+import { coarseAt, localContext } from "../scripts/eym-local-detail.mjs";
+import { toLocal } from "../scripts/eym-surface.mjs";
+
+const read = () => JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
+const asset = read(), channels = asset.hydrology.lakes.filter((l) => l.waterKind === "river-channel"), courses = riverCourses(asset);
+const town = (name) => { const s = asset.settlements.find((x) => x.properName === name); return [s.lat, s.lon]; };
+const distanceKm = (place, course) => {
+  let best = Infinity; const pts = course.points.map((p) => toLocal(place, p[0], p[1]));
+  for (let k = 0; k + 1 < pts.length; k += 1) { const [[ax, ay], [bx, by]] = [pts[k], pts[k + 1]], dx = bx - ax, dy = by - ay, t = Math.min(1, Math.max(0, (-ax * dx - ay * dy) / (dx * dx + dy * dy || 1))); best = Math.min(best, Math.hypot(ax + t * dx, ay + t * dy)); }
+  return best;
+};
+
+test("every river channel of Caren and Garyk becomes rivers of believable width", () => {
+  assert.equal(channels.length, 16); assert.ok(channels.every((c) => c.continent === "Caren" || c.continent === "Garyk"));
+  for (const ch of channels) assert.ok(courses.some((c) => c.channel === ch.id), `${ch.id} has a river`);
+  for (const c of courses) {
+    assert.ok(c.widthM >= 60 && c.widthM <= 1200, `${c.id}: ${c.widthM} m`); assert.ok(c.points.length >= 2);
+    for (const [lat, lon] of c.points) assert.ok(Number.isFinite(lat) && Number.isFinite(lon));
+  }
+  // The broadest channels carry the broadest rivers; none is the kilometres-wide strait it was.
+  assert.ok(courses.some((c) => c.widthM === 1200) && courses.some((c) => c.widthM < 400));
+});
+
+test("a river stays in its old channel's country and keeps the towns on its banks", () => {
+  for (const c of courses) {
+    const ch = channels.find((x) => x.id === c.channel), lats = ch.polygon.map((p) => p[0]), lons = ch.polygon.map((p) => p[1]);
+    for (const [lat, lon] of c.points) assert.ok(lat > Math.min(...lats) - 0.3 && lat < Math.max(...lats) + 0.3 && lon > Math.min(...lons) - 0.3 && lon < Math.max(...lons) + 0.3, `${c.id} wanders out of its valley`);
+  }
+  // Brandol and Augusta stood a few kilometres off the old channel's east bank: the river now passes beside them.
+  for (const name of ["Brandol", "Augusta"]) assert.ok(Math.min(...courses.map((c) => distanceKm(town(name), c))) < 2, `${name} is on its river`);
+});
+
+test("rivers are the same every time, and the old channel is land again", () => {
+  assert.equal(riverCourses(asset), courses, "kept per asset");
+  assert.deepEqual(riverCourses(read()), courses, "the same data gives the same rivers");
+  assert.deepEqual(channelCourses(channels[0], [town("Augusta")]), channelCourses(channels[0], [town("Augusta")]));
+  const ctx = localContext(asset);
+  assert.ok(courses.every((c) => ctx.rivers.some((r) => r.points === c.points)), "the ground detail draws them");
+  const middle = channels.find((c) => c.id === "caren-water-34").polygon, [lat, lon] = middle[Math.floor(middle.length / 4)];
+  const f = coarseAt(ctx, lat, lon); assert.ok(f.land, "inside the old channel is land");
+});

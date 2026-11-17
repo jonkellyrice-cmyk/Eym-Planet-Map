@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.16.3 (2026-11-17)
+
+- Rivers on Caren and Garyk are rivers again. The traced maps drew each one as a channel of open water 5 to 40 km wide; the ground detail, its battle maps and the map server's Region layer now draw the river that ran down that channel (`scripts/eym-river-courses.mjs`): a course down the middle of it through every fork, 114 m to 1.2 km wide (the main stem broadest, its branches narrower), meandering in bends and loops of its own, with uneven banks. A town that stood on the old channel's bank stays on the river. The rest of the old channel is land again: fields, woods and meadow by the usual rules, with roads no longer routed round it.
+- The globe and the atlas reference maps still show the channels; they follow in a later release.
+
 ## 0.16.2 (2026-11-17)
 
 - The night sky is now a pixel-art star chart, in keeping with the globe: stars as single pixels or small sparkles by their brightness, the wandering stars as eight-pointed stars, the moons as discs with their phase, the Sun in its rays, Desna's Path as a dithered band, constellation figures as dotted gilt lines, and a gilt compass ring with the four winds in the panel's serif. It is drawn by rule: the same sky always gives the same picture.
