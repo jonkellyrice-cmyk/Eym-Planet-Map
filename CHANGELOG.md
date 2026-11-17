@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.5 (2026-11-17)
+
+- The night sky reads on a phone. Names are a fixed size on the screen however small the chart is drawn (about 12–13 px for stars, moons and wanderers, 11–12 px for constellations, 15 px for the one tapped); before, a phone drew them at 4–6 px. Where two names would overlap, the less important one gives way (the tapped name, then moons, the pole star, wanderers, named stars by brightness, constellations), and none is drawn over the four winds.
+- One art pixel is about 2 screen pixels on every device, instead of a fixed share of the chart; clearly visible stars are at least two pixels by two; the faintest stars are a little brighter.
+- A darker, calmer sky: solid overhead, shading toward the horizon only in its outer part; constellation figures in solid, brighter gold; Desna's Path a soft glow instead of a grid of dithered squares.
+
 ## 0.16.4 (2026-11-17)
 
 - Roads follow the land. They no longer run along the lattice's eight directions in long straight stretches: each road takes a slightly uneven route over the land, is eased into curves and wanders a little, the same way on the Region layer, the ground detail and battle maps. A road entering a town becomes one of its streets instead of cutting a strip through its lots.

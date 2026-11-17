@@ -82,3 +82,18 @@ test("the sky view is the pixel chart with names on request only", () => {
   assert.match(css, /\.oscm-ground-label \{ font: 13px var\(--oscm-serif/);
   assert.ok(template.includes('<input type="checkbox" data-sky-layer="names">'), "names are off until asked for");
 });
+
+test("names keep one size on the screen and give way where they would overlap; an art pixel is two screen pixels", () => {
+  const view = source("scripts/sky-view.mjs"), css = source("styles/sky-view.css");
+  assert.match(css, /\.is-pixel-sky \.oscm-ground-label \{ font-size: calc\(var\(--sky-px, 1\) \* 12\.5px\)/);
+  assert.match(css, /\.is-pixel-sky \.oscm-ground-label\.is-constellation \{ font-size: calc\(var\(--sky-px, 1\) \* 11\.5px\)/);
+  assert.match(view, /const ART_PX = 2;/); assert.match(view, /setProperty\?\.\("--sky-px"/);
+  assert.match(view, /LABEL_RANK/); assert.match(view, /placed\.some\(/);
+});
+
+test("a clearly visible star is at least two pixels by two, and the dimmest still shows", () => {
+  const px = paint(night), lit = (x, y) => { const o = (y * W + x) * 4; return px[o] + px[o + 1] + px[o + 2] > 450; };
+  const star = night.stars.find((s) => s.visible && s.magnitude >= 1 && s.magnitude < 2 && s.altDeg > 30), p = skyPoint(star.altDeg, star.azDeg, frame), x = Math.floor(p.x), y = Math.floor(p.y);
+  assert.ok(lit(x, y) && lit(x + 1, y) && lit(x, y + 1), "two by two");
+  const [r, g, b] = SKY_PALETTE.faint.at(-1); assert.ok(r + g + b > 300, "the dimmest star tone is no longer lost on a phone");
+});
