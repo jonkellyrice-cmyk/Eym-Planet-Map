@@ -58,9 +58,10 @@ test("canonical CSV is pinned to the five-continents canon edit", () => {
   // Re-pinned deliberately again when the owner named Gaffa, Khohalis and Demani (17 November 2026): the
   // names are part of EYM_LAYOUT, which Eventide's fingerprint covers. And again when the owner moved them
   // (17 November 2026): their centres and one archipelago's are in EYM_LAYOUT too.
+  // And again for Stage 2 (17 November 2026): the fingerprint covers the ocean climate (data/eym/climate.json).
   // Any further registry change must re-pin this on purpose.
   const csv = readFileSync(new URL("docs/system-orbital-distances.csv", root));
-  assert.equal(createHash("sha256").update(csv).digest("hex"), "ce01628f3b595bdfca7fa625ae0670b34b2bafae6a39c660f8c34f0658fa9831");
+  assert.equal(createHash("sha256").update(csv).digest("hex"), "2610d9cdc17781656dee2194d3eed96a5670b5cf97b68effda926a9a5e16622e");
 });
 
 test("Eym's accepted canon has five continents in a planet-wide ocean", () => {

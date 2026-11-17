@@ -62,13 +62,13 @@ const POPULATIONS = Object.freeze([
   { kind: "low", band: [27, 70], perDay: 1.9, life: [72, 150], amp: [-10, -30], radiusKm: [650, 1200], eastMs: [8, 15], polewardMs: [0.4, 1.6] },
   { kind: "high", band: [24, 52], perDay: 1.2, life: [96, 200], amp: [5, 14], radiusKm: [1100, 1800], eastMs: [2, 7], polewardMs: [-0.6, 0.2] },
   { kind: "wave", band: [3, 30], perDay: 1.3, life: [72, 150], amp: [-2, -5], radiusKm: [450, 850], eastMs: [-8, -4.5], polewardMs: [-0.1, 0.4] },
-  { kind: "tropical", band: [6, 18], perDay: 0.2, life: [130, 280], amp: [-14, -80], radiusKm: [280, 520], eastMs: [-6, -3.5], polewardMs: [1.0, 2.2] },
+  { kind: "tropical", band: [6, 18], perDay: 0.23, life: [130, 280], amp: [-14, -80], radiusKm: [280, 520], eastMs: [-6, -3.5], polewardMs: [1.0, 2.2] },
 ]);
 const MAX_LIFE_HOURS = Math.max(...POPULATIONS.map((p) => p.life[1]));
-const TROPICAL_GENESIS_SST_C = 24.5;
+const TROPICAL_GENESIS_SST_C = 25.5;
 
 /** Every system born in a six-hour slot, for one population and hemisphere. */
-function slotSystems(population, hemisphere, slot, isOcean) {
+function slotSystems(population, hemisphere, slot, isOcean, sstAt) {
   const r = rng(`${WEATHER_SEED}|${population.kind}|${hemisphere}|${slot}`);
   const expected = population.perDay * SLOT_HOURS / 24;
   let count = 0, p = Math.exp(-expected), cumulative = p; const u = r(); // Poisson draw
@@ -81,7 +81,8 @@ function slotSystems(population, hemisphere, slot, isOcean) {
     if (system.kind === "tropical") {
       // Tropical cyclones form only over warm sea, in their hemisphere's cyclone season: early summer
       // to late autumn (northern: about June to November; southern: December to May), peaking late.
-      const sst = seasonalTemperature({ annualMeanC: annualMeanTemperatureC(lat0), latDeg: lat0, ocean: true, timeMs: born * HOUR_MS }).dayMeanC;
+      // The sea's real warmth there and then (the currents and the oscillation, scripts/eym-climate.mjs), when known.
+      const sst = sstAt ? sstAt(lat0, lon0, born * HOUR_MS) : seasonalTemperature({ annualMeanC: annualMeanTemperatureC(lat0), latDeg: lat0, ocean: true, timeMs: born * HOUR_MS }).dayMeanC;
       const f = (yearFraction(born * HOUR_MS) + (hemisphere > 0 ? 0 : 0.5)) % 1, inSeason = f > 0.22 && f < 0.7 && r() < Math.sin(Math.PI * (f - 0.22) / 0.48) ** 0.5 * 1.15;
       if (sst < TROPICAL_GENESIS_SST_C || !isOcean(lat0, lon0) || !inSeason) continue;
     }
@@ -91,10 +92,10 @@ function slotSystems(population, hemisphere, slot, isOcean) {
 }
 
 /** All systems alive at some point in [fromHour, toHour] (hours since the timeline's zero). */
-export function systemsBetween(fromHour, toHour, isOcean = () => true) {
+export function systemsBetween(fromHour, toHour, isOcean = () => true, sstAt = null) {
   const systems = [];
   for (let slot = Math.floor((fromHour - MAX_LIFE_HOURS) / SLOT_HOURS); slot <= Math.floor(toHour / SLOT_HOURS); slot += 1) {
-    for (const population of POPULATIONS) for (const hemisphere of [1, -1]) for (const s of slotSystems(population, hemisphere, slot, isOcean)) if (s.born + s.life >= fromHour && s.born <= toHour) systems.push(s);
+    for (const population of POPULATIONS) for (const hemisphere of [1, -1]) for (const s of slotSystems(population, hemisphere, slot, isOcean, sstAt)) if (s.born + s.life >= fromHour && s.born <= toHour) systems.push(s);
   }
   return systems;
 }
@@ -134,10 +135,10 @@ export const tropicalMaxWindMs = (deficitHpa) => 3.45 * Math.abs(deficitHpa) ** 
 export const BIOME_RAIN = Object.freeze({ "hot-desert": 0.25, "cold-desert": 0.3, steppe: 0.65, savanna: 0.75, tundra: 0.6, "ice-cap": 0.35, taiga: 0.9, "temperate-forest": 1, "seasonal-forest": 1, "temperate-rainforest": 1.4, "tropical-rainforest": 1.35 });
 /** Normalization of the rain-producing lift by latitude (2.5° bands from 90°S), from calibrate-eym-weather. */
 export const RAIN_NORMALIZATION = Object.freeze([
-  62.74, 94.14, 40.29, 43.53, 19.79, 10.96, 7.27, 4.78, 4.04, 3.87, 3.87, 4.35, 4.88, 5.3, 6.16, 6.48, 7.1, 8.04,
-  8.16, 9.16, 9.84, 10.21, 12.27, 14, 17.78, 28.54, 30.31, 35.02, 23.31, 13.66, 9.09, 5.63, 4.71, 4.46, 4.34, 4.88,
-  5.25, 5.02, 5.33, 4.74, 4.44, 4.34, 4.38, 5.63, 8.33, 12.1, 18.1, 14.95, 12.66, 11.33, 9.61, 9.41, 8.7, 7.88,
-  7.63, 6.85, 6.32, 5.93, 5.09, 4.79, 4.25, 3.86, 3.95, 4.13, 4.92, 7.37, 10.55, 19.73, 37.69, 37.89, 91.4, 57.15,
+  62.19, 94.97, 39.37, 43.95, 19.54, 11.04, 7.25, 4.78, 4.04, 3.87, 3.87, 4.35, 4.88, 5.3, 6.16, 6.48, 7.1, 8.04,
+  8.15, 9.16, 9.85, 10.19, 12.29, 14.06, 17.74, 29.65, 33.81, 41.82, 34.03, 24.66, 21.66, 10.36, 6.92, 4.73, 3.57, 3.36,
+  3.37, 3.28, 3.42, 3.27, 3.47, 4.31, 5.77, 10.16, 19.39, 23.87, 26.1, 16.38, 13.21, 11.48, 9.64, 9.43, 8.7, 7.88,
+  7.64, 6.84, 6.32, 5.93, 5.09, 4.79, 4.25, 3.86, 3.95, 4.12, 4.92, 7.37, 10.56, 19.61, 37.97, 37.13, 92.22, 56.46,
 ]);
 /** The normalization at a latitude, interpolated between band centres (it changes steeply in the subtropics). */
 export function rainNormalization(lat) {
@@ -203,7 +204,7 @@ export function weatherAt(systems, lat, lon, ctx) {
   const precipMmH = Math.min(60, Math.max(0, lift - 0.3) ** 1.4 * rainNormalization(lat) * climateMmH);
 
   // Temperature: the season and the hour, warm or cold air carried in by the wind, damped by cloud and rain.
-  const seasonal = seasonalTemperature({ annualMeanC: cell?.annualMeanC ?? annualMeanTemperatureC(lat), latDeg: lat, continentality: cell?.continentality ?? 0, ocean: !land, timeMs: ctx.timeMs, solarHour: ctx.solarHour });
+  const seasonal = seasonalTemperature({ annualMeanC: cell?.annualMeanC ?? annualMeanTemperatureC(lat), latDeg: lat, continentality: cell?.continentality ?? 0, ocean: !land, timeMs: ctx.timeMs, solarHour: ctx.solarHour, anomalyC: ctx.anomalyC ?? 0 });
   const poleward = windN * (lat >= 0 ? 1 : -1) - back.north * (lat >= 0 ? 1 : -1);
   const advection = clamp(0.32 * poleward, -9, 9) * Math.min(1, Math.abs(sinLat) * 1.6);
   const diurnal = (seasonal.nowC - seasonal.dayMeanC) * (1 - 0.6 * cloud);
@@ -234,7 +235,7 @@ export function describeWeather(w) {
 export function buildWeatherState({ timeMs, subsolar, field }) {
   const nowHour = Math.round(timeMs / HOUR_MS / STEP_HOURS) * STEP_HOURS; // 3-hour steps
   const landFraction = (lat, lon) => (field ? (field.cellAt(lat, lon).ocean ? 0 : 1) : 0), isOcean = (lat, lon) => (field ? field.cellAt(lat, lon).ocean : true);
-  const systems = systemsBetween(nowHour - WINDOW_HOURS, nowHour + FORECAST_HOURS, isOcean);
+  const systems = systemsBetween(nowHour - WINDOW_HOURS, nowHour + FORECAST_HOURS, isOcean, field?.sstC ?? null);
   const steps = [];
   for (let hour = nowHour - WINDOW_HOURS; hour <= nowHour + FORECAST_HOURS; hour += STEP_HOURS) {
     const alive = []; for (const s of systems) { const at = systemAt(s, hour, landFraction); if (at) alive.push(at); }
@@ -251,9 +252,9 @@ export function placeWeatherNow(state, lat, lon, { subsolar, timeMs } = {}) {
   const landFraction = (a, b) => (state.field ? (state.field.cellAt(a, b).ocean ? 0 : 1) : 0);
   // Place the systems alive now at the exact hour, between the 3-hour steps.
   const exactHour = t / HOUR_MS, systems = [];
-  for (const s of systemsBetween(exactHour, exactHour, (a, b) => (state.field ? state.field.cellAt(a, b).ocean : true))) { const at = systemAt(s, exactHour, landFraction); if (at) systems.push(at); }
+  for (const s of systemsBetween(exactHour, exactHour, (a, b) => (state.field ? state.field.cellAt(a, b).ocean : true), state.field?.sstC ?? null)) { const at = systemAt(s, exactHour, landFraction); if (at) systems.push(at); }
   const sub = subsolar ?? { latDeg: state.steps[state.nowIndex].declinationDeg, lonDeg: state.steps[state.nowIndex].subsolarLonDeg };
-  return weatherAt(systems, lat, lon, { cell, declinationDeg: sub.latDeg, solarHour: solarHourAt(lon, sub.lonDeg), timeMs: t });
+  return weatherAt(systems, lat, lon, { cell, declinationDeg: sub.latDeg, solarHour: solarHourAt(lon, sub.lonDeg), timeMs: t, anomalyC: state.field?.anomalyAt?.(lat, lon, t) ?? 0 });
 }
 
 /**
@@ -263,14 +264,14 @@ export function placeWeatherNow(state, lat, lon, { subsolar, timeMs } = {}) {
 export function placeHistory(state, lat, lon) {
   const cell = state.field?.cellAt(lat, lon) ?? null, land = cell ? !cell.ocean : false;
   const climateWet = cell ? clamp(zonalPrecipitationMm(lat) * (cell.ocean ? 1 : BIOME_RAIN[cell.biome] ?? 0.8) / 2000, 0.15, 0.9) : 0.5;
-  const firstSeason = seasonalTemperature({ annualMeanC: cell?.annualMeanC ?? annualMeanTemperatureC(lat), latDeg: lat, continentality: cell?.continentality ?? 0, ocean: !land, timeMs: state.steps[0].timeMs });
+  const firstSeason = seasonalTemperature({ annualMeanC: cell?.annualMeanC ?? annualMeanTemperatureC(lat), latDeg: lat, continentality: cell?.continentality ?? 0, ocean: !land, timeMs: state.steps[0].timeMs, anomalyC: state.field?.anomalyAt?.(lat, lon, state.steps[0].timeMs) ?? 0 });
   let snowCm = land && firstSeason.dayMeanC < -1 ? clamp(-firstSeason.dayMeanC * 7, 4, 150) : 0;
   const capacity = 100; let water = capacity * climateWet;
   let rain7 = 0, snow7 = 0, rain24 = 0, maxWind7 = 0, flooding = false;
   const hours = [];
   for (let i = 0; i < state.steps.length; i += 1) {
     const step = state.steps[i];
-    const w = weatherAt(step.systems, lat, lon, { cell, declinationDeg: step.declinationDeg, solarHour: solarHourAt(lon, step.subsolarLonDeg), timeMs: step.timeMs });
+    const w = weatherAt(step.systems, lat, lon, { cell, declinationDeg: step.declinationDeg, solarHour: solarHourAt(lon, step.subsolarLonDeg), timeMs: step.timeMs, anomalyC: state.field?.anomalyAt?.(lat, lon, step.timeMs) ?? 0 });
     hours.push({ hour: step.hour, w });
     if (i > state.nowIndex) continue; // the forecast does not build up yet
     const mm = w.precipMmH * STEP_HOURS;
@@ -328,7 +329,7 @@ export function globeWeather(state, { landCells = 5000 } = {}) {
   const step = state.steps[state.nowIndex], cells = [];
   for (let lat = -87; lat < 90; lat += 6) for (let lon = -177; lon < 180; lon += 6) {
     const cell = state.field?.cellAt(lat, lon) ?? null;
-    const w = weatherAt(step.systems, lat, lon, { cell, declinationDeg: step.declinationDeg, solarHour: solarHourAt(lon, step.subsolarLonDeg), timeMs: step.timeMs });
+    const w = weatherAt(step.systems, lat, lon, { cell, declinationDeg: step.declinationDeg, solarHour: solarHourAt(lon, step.subsolarLonDeg), timeMs: step.timeMs, anomalyC: state.field?.anomalyAt?.(lat, lon, step.timeMs) ?? 0 });
     cells.push({ lat, lon, cloud: w.cloud, precipMmH: w.precipMmH, precipKind: w.precipKind, thunder: w.thunder, windMs: w.windMs, windE: w.windE, windN: w.windN });
   }
   const centres = step.systems.filter((s) => s.kind !== "tropical" && Math.abs(s.amp) >= 6).map((s) => ({ lat: s.lat, lon: s.lon, kind: s.amp < 0 ? "low" : "high", pressureHpa: Math.round(backgroundPressure(s.lat) + s.amp) }));

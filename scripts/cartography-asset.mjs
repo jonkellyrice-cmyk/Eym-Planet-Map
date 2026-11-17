@@ -18,14 +18,22 @@ export const geologyFileName = (assetPath) => assetPath.replace(/^.*\//, "").rep
  * has geology, the geology document. `fileName` is the asset's own file name.
  */
 export function packCartography(asset, fileName) {
-  const { geology, ...rest } = asset, { elevationM, bedrock, ...raster } = asset.raster;
+  const { geology, ocean, ...rest } = asset, { elevationM, bedrock, ...raster } = asset.raster;
   const grid = new DataView(new ArrayBuffer(elevationM.length * 2));
   elevationM.forEach((value, i) => grid.setInt16(i * 2, Math.round(value), true));
   const main = { ...rest, raster: { elevationInt16Base64: encodeBase64(new Uint8Array(grid.buffer)), ...raster } };
-  if (!geology) return { main, geology: null };
+  if (ocean) main.oceanFile = oceanFileName(fileName);
+  const oceanDoc = ocean ? { schemaVersion: 1, system: asset.system, body: asset.body, sourceFingerprint: asset.sourceFingerprint, ocean } : null;
+  if (!geology) return { main, geology: null, ocean: oceanDoc };
   main.geologyFile = geologyFileName(fileName);
-  return { main, geology: { schemaVersion: 1, system: asset.system, body: asset.body, sourceFingerprint: asset.sourceFingerprint, geology, bedrock } };
+  return { main, geology: { schemaVersion: 1, system: asset.system, body: asset.body, sourceFingerprint: asset.sourceFingerprint, geology, bedrock }, ocean: oceanDoc };
 }
+
+/** The ocean file's name beside an asset's ("eventide.json" → "eventide-ocean.json"): currents, loaded for the currents overlay. */
+export const oceanFileName = (assetPath) => assetPath.replace(/^.*\//, "").replace(/\.json$/, "-ocean.json");
+
+/** Put an ocean document back into its asset (returns the asset). */
+export function attachOcean(asset, document) { if (document) asset.ocean = document.ocean; return asset; }
 
 const grids = new WeakMap();
 /** The height grid (m) of an asset, in either stored form (decoded once). */

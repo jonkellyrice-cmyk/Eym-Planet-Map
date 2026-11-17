@@ -220,7 +220,7 @@ function terrainDetail(frames) {
  * Build Eym's coarse and refined geography from its surface.
  * @param {object} input { surface, sampler, frames, traced, labels: { caren, garyk }, row, fingerprint }
  */
-export function buildEymGeography({ surface, sampler, frames, traced, labels, row, fingerprint, tectonics = null }) {
+export function buildEymGeography({ surface, sampler, frames, traced, labels, row, fingerprint, tectonics = null, climate = null }) {
   const res = EYM_CARTOGRAPHY_RESOLUTION_DEG, latCount = 180 / res, lonCount = 360 / res, sub = 4;
   const rng = createRng(`${row.geography_seed}|eym-ocean`);
   const ridgeNoise = Array.from({ length: 6 }, () => ({ a: rng() * 2 - 1, b: rng() * 2 - 1, c: rng() * Math.PI * 2, k: 2 + rng() * 3 }));
@@ -289,11 +289,15 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
     } else cell.elevationM = Math.round(Math.max(1, cell.landElevationM));
   }
 
-  // Climate: temperature by latitude and height; rain by zone, with rain shadows and orographic lift.
+  // Climate: temperature by latitude and height; rain by zone, with rain shadows and orographic lift. With the ocean
+  // climate (data/eym/climate.json), the sea's yearly anomaly warms or cools the coasts and wets or dries them:
+  // warm water offshore, wetter; cold water offshore, drier and foggier. Its reach inland fades over ~600 km.
+  const annualAnomaly = climate ? climateAnnualAnomaly(climate) : null;
   for (const cell of cells) {
     const surfaceM = cell.landCovered ? Math.max(0, cell.landElevationM) : 0;
-    cell.temperatureC = Number((seaLevelTemperatureC(cell.lat) - surfaceM * 0.0065).toFixed(1));
-    let p = zonalPrecipitationMm(cell.lat);
+    const reach = annualAnomaly ? (cell.ocean ? 1 : Math.exp(-(cell.coastKm ?? 0) / 600)) : 0, anomalyC = annualAnomaly ? annualAnomaly(cell.lat, cell.lon) * reach : 0;
+    cell.temperatureC = Number((seaLevelTemperatureC(cell.lat) - surfaceM * 0.0065 + anomalyC).toFixed(1));
+    let p = zonalPrecipitationMm(cell.lat) * clamp(1 + 0.09 * anomalyC, 0.55, 1.45);
     if (cell.landCovered) {
       const step = upwindStep(cell.lat); let barrier = 0;
       for (let k = 1; k <= 6; k += 1) { const up = at(cell.latIndex, cell.lonIndex + step * k); if (up?.landCovered) barrier = Math.max(barrier, up.elevationMaxM - surfaceM); }
@@ -420,6 +424,7 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
       biome: encodeByteField("biome"), soil: encodeByteField("soil"), resource: encodeByteField("resource"),
       ...(tect ? { bedrock: encodeByteField("bedrock") } : {}),
     },
+    ...(climate ? climateSections(climate) : {}),
     ...(tectonics ? { geology: {
       model: tectonics.model, seed: tectonics.seed,
       plates: tectonics.plates.map(({ id, name, kind, micro, pole, rateDegPerMyr }) => ({ id, name, kind, micro, pole, rateDegPerMyr })),
@@ -459,6 +464,30 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
 }
 
 // ---------------------------------------------------------------- geology from the tectonic history
+
+// ---------------------------------------------------------------- the ocean climate
+
+/** The yearly mean sea-surface anomaly (°C) at a place, from the climate document's four seasons (4° cells, nearest). */
+function climateAnnualAnomaly(climate) {
+  const res = climate.resolutionDeg, cols = Math.round(360 / res), rows = Math.round(180 / res), n = climate.seasons.length;
+  const mean = climate.seasons[0].sstAnomaly.map((_, i) => climate.seasons.reduce((s, season) => s + season.sstAnomaly[i], 0) / n);
+  return (lat, lon) => mean[clamp(Math.floor((lat + 90) / res), 0, rows - 1) * cols + ((Math.floor((lon + 180) / res) % cols) + cols) % cols];
+}
+
+/**
+ * The asset's compact climate (read by scripts/eym-climate.mjs): the sea-surface anomaly for four seasons and
+ * the oscillation's pattern, as int8 tenths of a degree; and the currents, as int8 steps of 2 cm/s, in an ocean
+ * section that is written to its own file beside the asset (scripts/cartography-asset.mjs).
+ */
+function climateSections(climate) {
+  const int8 = (values, k) => Buffer.from(Int8Array.from(values, (v) => clamp(Math.round(v * k), -127, 127)).buffer).toString("base64");
+  return {
+    climate: { model: climate.model, resolutionDeg: climate.resolutionDeg, beltShift: climate.beltShift,
+      seasons: climate.seasons.map((s) => ({ yearFraction: s.yearFraction, declinationDeg: s.declinationDeg, sstAnomalyInt8Tenths: int8(s.sstAnomaly, 10) })),
+      enso: { basin: climate.enso.basin, periodsYears: climate.enso.periodsYears, weights: climate.enso.weights, phases: climate.enso.phases, patternInt8Tenths: int8(climate.enso.pattern, 10) } },
+    ocean: { resolutionDeg: climate.resolutionDeg, seasons: climate.seasons.map((s) => ({ yearFraction: s.yearFraction, uInt8Cm2: int8(s.u, 50), vInt8Cm2: int8(s.v, 50), upwellingInt8Hundredths: int8(s.upwelling, 100) })) },
+  };
+}
 
 /** The kinds of bedrock, by origin. */
 export const BEDROCK_KINDS = Object.freeze({

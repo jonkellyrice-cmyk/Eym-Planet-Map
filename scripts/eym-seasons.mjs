@@ -8,6 +8,7 @@ import { normalize } from "./sky-frame.mjs";
 import { polygonize } from "./cartography-regions.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "./universal-time.mjs";
 import { elevationGrid } from "./cartography-asset.mjs";
+import { hasClimate, sstAnomalyAt } from "./eym-climate.mjs";
 
 const DEG = Math.PI / 180;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -41,16 +42,18 @@ export function yearFraction(timeMs) { return ((((timeMs - NORTHWARD_EQUINOX_MS)
  * Temperature over the year and the day. The seasonal swing grows with latitude and with distance
  * from the sea; the warmest days lag the solstice by about a month (more at sea). The day is warmest
  * at 15:00 sun time.
+ * Eym is nearly an aquaplanet: inland swings stay small (continentality weighs less than on Earth) and the
+ * daily range on land is narrow. `anomalyC` is what the ocean currents add (scripts/eym-climate.mjs).
  * @param continentality 0 on the coast or at sea, 1 deep inland
  */
-export function seasonalTemperature({ annualMeanC, latDeg, continentality = 0, ocean = false, timeMs, solarHour = 15 }) {
+export function seasonalTemperature({ annualMeanC, latDeg, continentality = 0, ocean = false, timeMs, solarHour = 15, anomalyC = 0 }) {
   const lagYears = (ocean ? 45 : 40 - 15 * continentality) / DAYS_PER_YEAR;
   const peak = (latDeg >= 0 ? 0.25 : 0.75) + lagYears;
   // At sea the swing stays small except near the poles, where the ice comes and goes.
   const sinLat = Math.abs(Math.sin(latDeg * DEG));
-  const swing = sinLat * (ocean ? 2 + 7 * sinLat * sinLat : 4 + 14 * continentality);
-  const dayMeanC = annualMeanC + swing * Math.cos(2 * Math.PI * (yearFraction(timeMs) - peak));
-  const daily = ocean ? 0.5 : 3 + 3 * continentality;
+  const swing = sinLat * (ocean ? 2 + 7 * sinLat * sinLat : 4 + 10 * continentality);
+  const dayMeanC = annualMeanC + anomalyC + swing * Math.cos(2 * Math.PI * (yearFraction(timeMs) - peak));
+  const daily = ocean ? 0.5 : 2 + 2 * continentality;
   return { dayMeanC, highC: dayMeanC + daily, lowC: dayMeanC - daily, nowC: dayMeanC + daily * Math.cos(2 * Math.PI * (solarHour - 15) / 24), swingC: swing };
 }
 
@@ -98,8 +101,9 @@ export function sunTimes(latDeg, declinationDeg) {
 
 // ---------------------------------------------------------------- seasons
 
-/** Where the tropical rain belt lies: it follows the Sun, a few degrees north of the equator. */
-export const rainBeltLat = (declinationDeg) => 4 + 0.6 * declinationDeg;
+/** Where the tropical rain belt lies: it follows the Sun, a few degrees north of the equator, but on a world of
+ * so much sea it moves less than Earth's (0.4 of the Sun's declination, as the wind belts in the climate model). */
+export const rainBeltLat = (declinationDeg) => 4 + 0.4 * declinationDeg;
 /** The Sun's approximate declination from the date alone (for when no model snapshot is at hand). */
 export const approximateDeclinationDeg = (timeMs) => 23.44 * Math.sin(2 * Math.PI * yearFraction(timeMs));
 
@@ -148,7 +152,12 @@ export function environmentField(asset) {
     const latIndex = Math.floor(i / lonCount), lonIndex = i % lonCount, lat = -90 + res * (latIndex + 0.5);
     return { id: i, latIndex, lonIndex, lat, lon: -180 + res * (lonIndex + 0.5), ocean: Boolean(ocean[i]), elevationM: ocean[i] ? 0 : elevation[i], biome: biomes.categories[biomes.values[i]], annualMeanC: annualMeanTemperatureC(lat, ocean[i] ? 0 : elevation[i]), continentality: ocean[i] ? 0 : clamp(distKm[i] / 1200, 0, 1) };
   });
-  const field = { grid: { latCount, lonCount }, resolutionDeg: res, cells, cellAt: (lat, lon) => cells[clamp(Math.floor((lat + 90) / res), 0, latCount - 1) * lonCount + ((Math.floor((lon + 180) / res) % lonCount) + lonCount) % lonCount] };
+  const cellAt = (lat, lon) => cells[clamp(Math.floor((lat + 90) / res), 0, latCount - 1) * lonCount + ((Math.floor((lon + 180) / res) % lonCount) + lonCount) % lonCount];
+  // The ocean currents' share (scripts/eym-climate.mjs): full at sea, fading inland (about 400 km).
+  const climate = hasClimate(asset);
+  const anomalyAt = (lat, lon, timeMs) => { if (!climate) return 0; const cell = cellAt(lat, lon); return sstAnomalyAt(asset, lat, lon, timeMs) * (cell.ocean ? 1 : Math.exp(-3 * cell.continentality)); };
+  const sstC = (lat, lon, timeMs) => seasonalTemperature({ annualMeanC: annualMeanTemperatureC(lat), latDeg: lat, ocean: true, timeMs, anomalyC: climate ? sstAnomalyAt(asset, lat, lon, timeMs) : 0 }).dayMeanC;
+  const field = { grid: { latCount, lonCount }, resolutionDeg: res, cells, cellAt, anomalyAt, sstC };
   fieldCache.set(asset, field);
   return field;
 }
@@ -188,7 +197,7 @@ export function coverRings(field, cells) {
 export function seasonalCover(field, timeMs) {
   const snowCells = [], iceCells = [];
   for (const cell of field.cells) {
-    const t = seasonalTemperature({ annualMeanC: cell.annualMeanC, latDeg: cell.lat, continentality: cell.continentality, ocean: cell.ocean, timeMs }).dayMeanC;
+    const t = seasonalTemperature({ annualMeanC: cell.annualMeanC, latDeg: cell.lat, continentality: cell.continentality, ocean: cell.ocean, timeMs, anomalyC: field.anomalyAt?.(cell.lat, cell.lon, timeMs) ?? 0 }).dayMeanC;
     if (cell.ocean ? t < -1.8 : t < -1) (cell.ocean ? iceCells : snowCells).push({ ...cell, cover: "cover" });
   }
   const rings = (cells) => coverRings(field, cells);
@@ -205,7 +214,7 @@ const duration = (hours) => { const m = Math.round(hours * 60); return `${Math.f
 export function placeReport({ field, subsolar, latDeg, lonDeg, timeMs }) {
   const cell = field.cellAt(latDeg, lonDeg), hour = localSolarHour(lonDeg, subsolar.lonDeg), altitude = sunAltitudeDeg(latDeg, lonDeg, subsolar);
   const times = sunTimes(latDeg, subsolar.declinationDeg), season = seasonAt(latDeg, timeMs, subsolar.declinationDeg);
-  const temperature = seasonalTemperature({ annualMeanC: cell.annualMeanC, latDeg, continentality: cell.continentality, ocean: cell.ocean, timeMs, solarHour: hour });
+  const temperature = seasonalTemperature({ annualMeanC: cell.annualMeanC, latDeg, continentality: cell.continentality, ocean: cell.ocean, timeMs, solarHour: hour, anomalyC: field.anomalyAt?.(latDeg, lonDeg, timeMs) ?? 0 });
   const frozen = cell.ocean ? temperature.dayMeanC < -1.8 : temperature.dayMeanC < -1;
   return {
     localTime: `${clock(hour)} (sun time)`,
