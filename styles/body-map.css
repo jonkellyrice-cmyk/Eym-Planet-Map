@@ -93,7 +93,7 @@
 .oscm-cartography-wetland { fill: rgba(82,145,117,.7); stroke: #9ad1ad; stroke-width: .7; }
 .oscm-cartography-glacier { fill: #d8f2f4; stroke: #fff; stroke-width: .7; }
 .oscm-cartography-resource { fill: rgba(196,104,220,.16); stroke: rgba(225,154,244,.75); stroke-width: .8; cursor: pointer; }
-.oscm-cartography-label { fill: #e8fbf7; stroke: rgba(2,10,12,.9); stroke-width: 2.4; paint-order: stroke; font-size: 10px; font-family: var(--font-mono, monospace); text-anchor: middle; cursor: pointer; pointer-events: visiblePainted; }
+.oscm-cartography-label { fill: #e8fbf7; stroke: rgba(2,10,12,.9); stroke-width: 2.4; paint-order: stroke; font-size: 10px; font-family: var(--oscm-serif, Georgia, serif); text-anchor: middle; cursor: pointer; pointer-events: visiblePainted; }
 .oscm-cartography-label.is-capital { fill: #ffe9a3; font-size: 13px; font-weight: 700; }
 .oscm-cartography-label.is-continent,.oscm-cartography-label.is-ocean { font-size: 12px; letter-spacing: .08em; opacity: .78; }
 .oscm-cartography-label.is-region { fill: #f6dca0; font-size: 11px; letter-spacing: .06em; font-style: italic; }

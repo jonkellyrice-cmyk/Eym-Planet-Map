@@ -185,8 +185,9 @@ export class BodyView {
       this.weatherGroups = {};
       // Clouds and rain are drawn as merged, blurred fields rather than separate discs.
       const blur = svg("filter", { id: "oscm-weather-blur", filterUnits: "userSpaceOnUse", x: -200, y: -200, width: 1300, height: 1080 }); this.weatherBlur = svg("feGaussianBlur", { stdDeviation: 6 }); blur.append(this.weatherBlur); this.svg.querySelector("defs").append(blur);
-      for (const id of ["clouds", "storms", "wind"]) { const group = svg("g", { class: `oscm-body-layer oscm-weather-layer is-weather-${id}` }); this.surface.append(group); this.layerGroups.set(`weather-${id}`, group); this.weatherGroups[id] = group; }
-      this.weatherGroups.wind.classList.add("is-hidden");
+      for (const id of ["clouds", "storms", "centres", "wind"]) { const group = svg("g", { class: `oscm-body-layer oscm-weather-layer is-weather-${id}` }); this.surface.append(group); this.layerGroups.set(`weather-${id}`, group); this.weatherGroups[id] = group; }
+      // Wind and the highs and lows are off until asked for.
+      this.weatherGroups.wind.classList.add("is-hidden"); this.weatherGroups.centres.classList.add("is-hidden");
       // The globe as pixel art (scripts/eym-globe-pixels.mjs): it stands in for the ground, water, cloud and night
       // until the view is close enough for the surveyed map to take over.
       // It is painted on a canvas laid under the (see-through) map, which costs far less than an image in it.
@@ -263,7 +264,7 @@ export class BodyView {
     for (const centre of globe.centres) {
       const text = svg("text", { class: `oscm-weather-centre is-${centre.kind}`, "text-anchor": "middle", "dominant-baseline": "middle" }); text.textContent = centre.kind === "low" ? "L" : "H";
       const title = svg("title"); title.textContent = `${centre.kind === "low" ? "Low" : "High"} ${centre.pressureHpa} hPa`; text.append(title);
-      point(this.weatherGroups.storms, text, centre.lat, centre.lon);
+      point(this.weatherGroups.centres, text, centre.lat, centre.lon);
     }
     for (const cyclone of globe.cyclones) {
       const g = svg("g", { class: `oscm-weather-cyclone is-${cyclone.kind.replace(/ /g, "-")}` });
@@ -472,6 +473,24 @@ export class BodyView {
     p.canvas.getContext("2d").putImageData(new ImageData(data, W, H), 0, 0);
   }
 
+  /**
+   * Where two names would overlap, the less important gives way (continents and oceans first, then capitals,
+   * regions, cities and ports, seas and ranges, then the rest).
+   */
+  #hideOverlappingLabels() {
+    const rank = { continent: 0, ocean: 0, capital: 1, region: 2, city: 3, port: 3, sea: 4, range: 4 }, size = { capital: 13, continent: 12, ocean: 12, region: 11 }, placed = [];
+    const shown = this.featureNodes.filter((item) => item.label && !item.node.hidden).map((item) => {
+      const m = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(item.node.getAttribute("transform") ?? ""), cls = item.feature.featureClass, px = size[cls] ?? 10.5;
+      const w = (item.node.textContent?.length ?? 4) * px * 0.56 + 4, h = px * 1.25;
+      return { item, r: rank[cls] ?? 5, area: item.feature.scale ?? 0, x: m ? Number(m[1]) : 0, y: m ? Number(m[2]) : 0, w, h };
+    }).sort((a, b) => a.r - b.r || b.area - a.area);
+    for (const l of shown) {
+      const box = { x0: l.x - l.w / 2, x1: l.x + l.w / 2, y0: l.y - l.h, y1: l.y + l.h * 0.3 };
+      if (placed.some((o) => box.x0 < o.x1 && box.x1 > o.x0 && box.y0 < o.y1 && box.y1 > o.y0)) { l.item.node.hidden = true; l.item.node.style.opacity = "0"; continue; }
+      placed.push(box);
+    }
+  }
+
   render() {
     // With the pixel globe, many changes in one frame (a finger moving) are drawn once, at the next frame.
     if (this.pixel && !this.renderingNow) {
@@ -502,5 +521,6 @@ export class BodyView {
       if (item.steadyOpacity) item.node.style.opacity = "1"; item.node.style.opacity = item.node.hidden ? "0" : String(clamp(.35 + point.z * .65, .35, 1));
       if (item.lat2 != null) { const end = orthographicProject(item.lat2, item.lon2, this.state.yaw, this.state.pitch, radius); item.node.removeAttribute("transform"); item.node.setAttribute("x1", 450 + point.x); item.node.setAttribute("y1", 340 + point.y); item.node.setAttribute("x2", 450 + end.x); item.node.setAttribute("y2", 340 + end.y); item.node.hidden = !point.visible || !end.visible; }
     }
+    this.#hideOverlappingLabels();
   }
 }

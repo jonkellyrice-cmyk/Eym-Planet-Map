@@ -219,7 +219,7 @@ function terrainDetail(frames) {
  * Build Eym's coarse and refined geography from its surface.
  * @param {object} input { surface, sampler, frames, traced, labels: { caren, garyk }, row, fingerprint }
  */
-export function buildEymGeography({ surface, sampler, frames, traced, labels, row, fingerprint }) {
+export function buildEymGeography({ surface, sampler, frames, traced, labels, row, fingerprint, tectonics = null }) {
   const res = EYM_CARTOGRAPHY_RESOLUTION_DEG, latCount = 180 / res, lonCount = 360 / res, sub = 4;
   const rng = createRng(`${row.geography_seed}|eym-ocean`);
   const ridgeNoise = Array.from({ length: 6 }, () => ({ a: rng() * 2 - 1, b: rng() * 2 - 1, c: rng() * Math.PI * 2, k: 2 + rng() * 3 }));
@@ -258,8 +258,27 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
       if (dist[id] + step < dist[next.id]) { dist[next.id] = dist[id] + step; heap.push(next.id); }
     }
   }
+  // With the tectonic history (data/eym/tectonics.json) the sea floor follows the plates: ridges where they part,
+  // trenches where sea floor goes down, narrow shelves on active margins and wide ones on rifted margins.
+  const tect = tectonics ? tectonicFields(tectonics, latCount, lonCount) : null;
+  // The ranges each continent's bedrock follows: active coastal ranges (volcanic) and old sutures (metamorphic).
+  const rangeLines = tectonics ? Object.values(tectonics.continents).flatMap((c) => c.ridges.map((r) => ({ origin: r.origin, points: densify(r.points.map(([x, y]) => fromLocal(c.center, x, y)), 20) }))) : [];
+  const rangeKm = (cell, origin) => { let best = Infinity; for (const r of rangeLines) if (r.origin === origin) for (const p of r.points) { if (Math.abs(p[0] - cell.lat) > 6) continue; best = Math.min(best, greatCircleKm(p, [cell.lat, cell.lon])); } return best; };
   for (const cell of cells) {
     const d = dist[cell.id], v = [Math.cos(cell.lat * DEG) * Math.cos(cell.lon * DEG), Math.cos(cell.lat * DEG) * Math.sin(cell.lon * DEG), Math.sin(cell.lat * DEG)];
+    if (tect) {
+      const k = tect.index(cell.latIndex, cell.lonIndex), ridgeKm = tect.ridgeKm[k], trenchKm = tect.trenchKm[k], collideKm = tect.collideKm[k];
+      cell.ridgeKm = ridgeKm; cell.trenchKm = trenchKm; cell.collisionKm = collideKm;
+      cell.boundary = Number(Math.max(Math.exp(-((ridgeKm / 250) ** 2)), Math.exp(-((trenchKm / 250) ** 2)), Math.exp(-((collideKm / 250) ** 2))).toFixed(3));
+      cell.margin = trenchKm <= 500 || collideKm <= 400 ? "active" : "passive";
+      if (cell.ocean) {
+        const shelfKm = cell.margin === "active" ? 50 : 220;
+        const shelf = -40 - Math.min(d, shelfKm) / shelfKm * 110, slope = d > shelfKm ? -Math.min(1, (d - shelfKm) / 260) * 3050 : 0, abyss = d > shelfKm + 260 ? -Math.min(1, (d - shelfKm - 260) / 1500) * 1300 : 0;
+        const ridge = d > 400 ? 2300 * Math.exp(-((ridgeKm / 320) ** 2)) : 0, trench = -3200 * Math.exp(-((trenchKm / 110) ** 2));
+        cell.elevationM = Math.round(clamp(shelf + slope + abyss + ridge + trench, -9500, -20));
+      } else cell.elevationM = Math.round(Math.max(1, cell.landElevationM));
+      continue;
+    }
     const ridgeField = ridgeNoise.reduce((sum, w) => sum + Math.sin(w.k * (w.a * v[0] + w.b * v[1] + v[2] * (1 - Math.abs(w.a))) + w.c), 0) / ridgeNoise.length;
     cell.boundary = Number(Math.exp(-((ridgeField / 0.08) ** 2)).toFixed(3));
     if (cell.ocean) {
@@ -308,6 +327,8 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
     cell.biome = cell.landCovered
       ? landBiome({ lat: cell.lat, temperatureC: cell.temperatureC, precipitationMm: cell.precipitationMm, forestShare: cell.forestShare, relief: cell.relief, origin: cell.origin })
       : cell.temperatureC < -1 ? "sea-ice" : cell.temperatureC > 23 ? "tropical-ocean" : "open-ocean";
+    if (tect && cell.landCovered) { cell.arcKm = rangeKm(cell, "subduction"); cell.sutureKm = rangeKm(cell, "suture"); }
+    cell.bedrock = tect ? bedrockFor(cell) : null;
     cell.soil = soilFor(cell);
     cell.resource = resourceFor(cell);
     const comfort = clamp(1 - Math.abs(cell.temperatureC - 18) / 32, 0, 1), moisture = clamp(cell.precipitationMm / 1000, 0.1, 1.15), terrain = clamp(1 - Math.max(0, cell.elevationM - 1200) / 5000, 0.1, 1);
@@ -395,7 +416,14 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
       elevationM: cells.map((cell) => cell.elevationM),
       oceanMaskBase64: Buffer.from(cells.map((cell) => (cell.ocean ? 1 : 0))).toString("base64"),
       biome: encodeByteField("biome"), soil: encodeByteField("soil"), resource: encodeByteField("resource"),
+      ...(tect ? { bedrock: encodeByteField("bedrock") } : {}),
     },
+    ...(tectonics ? { geology: {
+      model: tectonics.model, seed: tectonics.seed,
+      plates: tectonics.plates.map(({ id, name, kind, micro, pole, rateDegPerMyr }) => ({ id, name, kind, micro, pole, rateDegPerMyr })),
+      volcanoes: tectonics.volcanoes, history: tectonics.history, caren: tectonics.caren, garyk: tectonics.garyk,
+      bedrockKinds: BEDROCK_KINDS,
+    } } : {}),
     resolutionDeg: res, grid,
   };
 
@@ -424,4 +452,51 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
     transportRoutes: coarseSites.slice(1).map((site) => ({ from: site.id, to: coarseSites[0].id, mode: "sea-or-air" })),
   };
   return { coarse, asset, cells };
+}
+
+// ---------------------------------------------------------------- geology from the tectonic history
+
+/** The kinds of bedrock, by origin. */
+export const BEDROCK_KINDS = Object.freeze({
+  "granite-gneiss": "old core: granite and gneiss",
+  "sandstone-shale": "basin: sandstone and shale",
+  limestone: "basin: limestone (warm shallow seas)",
+  volcanic: "active margin: basalt, andesite and tuff",
+  metamorphic: "collision belt: schist, slate and marble",
+  "godstone-granite": "Caren: white granite (the Godstone)",
+  marble: "Caren: banded marble",
+  "caren-limestone": "Caren: limestone over the Godstone",
+});
+
+/** Distances (km) from each 1° cell to the nearest ridge, trench and collision, from the tectonic rasters. */
+function tectonicFields(tectonics, latCount, lonCount) {
+  const decode = (b64) => Uint8Array.from(Buffer.from(b64, "base64"));
+  const R = tectonics.rasters, toKm = (bytes) => Float32Array.from(bytes, (v) => (v === 255 ? 5000 : v * 10));
+  return {
+    ridgeKm: toKm(decode(R.ridgeDistance10Km)), trenchKm: toKm(decode(R.trenchDistance10Km)), collideKm: toKm(decode(R.collisionDistance10Km)),
+    // The rasters run from the north; the cells from the south.
+    index: (latIndex, lonIndex) => (latCount - 1 - latIndex) * lonCount + lonIndex,
+  };
+}
+
+/** Bedrock by origin. Caren's is stated (the Godstone); elsewhere it follows the plates and the ranges they raised. */
+function bedrockFor(cell) {
+  if (!cell.landCovered) return "sea-floor";
+  const high = cell.elevationMaxM;
+  if (cell.continent === "Caren") return high > 1200 ? "godstone-granite" : high > 400 ? "marble" : "caren-limestone";
+  if (cell.arcKm <= 110) return "volcanic";
+  if (cell.sutureKm <= 130 || cell.collisionKm <= 140) return "metamorphic";
+  if (cell.trenchKm <= 250 && high > 300) return "volcanic";
+  // The old cores: under the interiors (Garyk's is narrow, so its core lies nearer its coasts).
+  if (cell.coastKm > (cell.continent === "Garyk" ? 100 : 280)) return "granite-gneiss";
+  if (cell.temperatureC > 18 && cell.landElevationM < 300 && cell.coastKm < 250) return "limestone";
+  return "sandstone-shale";
+}
+
+/** Points every `stepKm` along a [lat, lon] line. */
+function densify(line, stepKm) {
+  const out = [];
+  for (let i = 0; i + 1 < line.length; i += 1) { const n = Math.max(1, Math.ceil(greatCircleKm(line[i], line[i + 1]) / stepKm)); for (let k = 0; k < n; k += 1) out.push([line[i][0] + (line[i + 1][0] - line[i][0]) * k / n, line[i][1] + (line[i + 1][1] - line[i][1]) * k / n]); }
+  if (line.length) out.push(line.at(-1));
+  return out;
 }

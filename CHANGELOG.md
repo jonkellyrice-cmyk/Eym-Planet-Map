@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.17.0 (2026-11-17)
+
+Stage 1a of Eym's physical history: plates, the continents' formation, the sea floor, volcanoes and rock.
+
+- The Eastern, Northern and Southern continents are no longer seeded blobs. They are pieces of an old supercontinent, the First Land, which rifted apart around Garyk; each piece turned about its own pole to where its continent stands today (`scripts/eym-tectonics.mjs`, fitted by `tools/generate-eym-tectonics.mjs` to `data/eym/tectonics.json`). Rifted coasts are smooth with wide shelves; leading coasts carry coastal ranges, volcanoes and island arcs over a trench; cold coasts have fjords; each interior keeps an old collision belt. Their centres and areas are kept (within 10% and 3°), and Eym stays 98.6% ocean.
+- Sixteen plates (ten major, six micro), each turning about its own pole; every boundary is convergent, divergent or transform. Garyk's northern ranges stand on its collision with the Northern Garyk Sea Plate, over an old core of granite and gneiss. Caren takes no part: it was set down whole by the gods (the Godstone), and its stated geology is granite, marble and limestone.
+- The sea floor follows the plates: mid-ocean ridges, trenches below 7,000 m, wide shelves on rifted coasts and narrow ones on active coasts. The globe draws its shallows from it.
+- 152 volcanoes at subduction margins and hotspots, each with an age and an activity level; a bedrock layer (old cores, basins, volcanic margins, collision belts, Caren's Godstone); both in the cartography's new geology section.
+- Caren's and Garyk's coasts and the ten ocean archipelagos are unchanged, byte for byte. The three continents' rivers, biomes and the weather on a given date change with them.
+- The globe: no more dotted streaks in the sea at deep zoom; sea ice is a grey-cyan, not cloud white; highs and lows have their own layer, off by default; place names are set in the panel's serif and give way where they would overlap.
+- `npm run build` makes Eym's derived data again when what it is made from has changed.
+
 ## 0.16.6 (2026-11-17)
 
 - The night sky goes to tier 4–5, drawn at the screen's own sharpness (about three device pixels to a CSS pixel on an iPhone): stars as a sharp core in a small glow that follow their brightness, a fine cross on the brightest few and the faint ones as dim dust; the wandering stars as eight-pointed stars in a halo, brighter than any star; Desna's Path as a soft, uneven glow with dark lanes of dust; a smooth sky from zenith to horizon with a faint glow at the horizon; moons with a soft terminator, darker patches and earthshine; the Sun in a corona with rays; a soft veil of cloud.

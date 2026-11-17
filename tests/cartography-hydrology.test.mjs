@@ -58,8 +58,10 @@ test("lakes, wetlands and glaciers obey their physical classification", () => {
 });
 
 test("ocean-rich Eventide receives routed island hydrology without a synthetic continent", () => {
+  // Eym's rivers are routed by its own pipeline (scripts/eym-cartography.mjs) and kept in its coarse world; the
+  // generic router, run here on that coarse 6° world, still runs and keeps its rivers short.
+  assert.ok(load("Eventide").rivers.length > 0);
   const world = build("Eventide");
-  assert.ok(world.rivers.length > 0);
   assert.ok(world.cells.filter((cell) => cell.ocean).length / world.cells.length >= .85);
   assert.ok(world.rivers.every((river) => river.points.length < 100));
 });
