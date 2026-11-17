@@ -153,6 +153,115 @@ Weather must be physically plausible, coherent over time and deterministic. The 
 - **Climate:** the annual-mean climate in `scripts/eym-cartography.mjs` is a baseline that weather can deviate from.
 - **Continents:** Eym is 98.6% ocean, so maritime weather and tropical cyclones should dominate. Caren straddles the equator, and Garyk sits near 15°N.
 
+## Eym's physical history and climate (owner's decision, 17 November 2026)
+
+One programme, in the stages below. It comes after the queue above (the `eym_tiles` migration, the 829 Region land tiles, the night-sky release and the globe fixes, which now go into Stage 1) and before the globe's tier-3 work and the side-by-side judgement of the layers. Each stage is its own pull request, with a release where the module changes, and its renders are shown to the owner before it is submitted.
+
+### The problem
+
+Eym has no formation history.
+
+- The Eastern, Northern and Southern continents come from `seededRing` in `scripts/eym-surface.mjs`: a blob of the right area with sine-wave wobbles and random bumps. They look misshapen and unnatural.
+- The plate model in `scripts/planet-geography.mjs` (`generatePlateModel`) is used only for other planets and only shades height.
+- Sea temperature depends only on latitude and season (`seasonalTemperature` with `ocean: true` in `scripts/eym-seasons.mjs`). There are no currents, and tropical cyclones form evenly around the latitude band (`TROPICAL_GENESIS_SST_C` in `scripts/eym-weather.mjs`).
+- The tropical rain belt is fixed at about 4° N all year (`zonalPrecipitationMm`).
+- There is no erosion.
+- Soils are guessed from elevation.
+- Tides exist only as a strength number (`tidalStrength` in `scripts/moon-events.mjs`).
+
+Already present (not redone): zonal rain bands with rain shadows and orographic lift, prevailing winds, rivers routed by priority flood, biomes from temperature and rain, the tide-strength calculation.
+
+### Invariants
+
+- *Caren:* unchanged, exactly as traced. Lore: the gods and angels shaped it deliberately, so its form and composition do not follow plate tectonics. It is masked out of the tectonic simulation (the sea floor around it is still tectonic) and given its own stated geology in the lore.
+- *Garyk:* unchanged, exactly as traced. It formed naturally, so the simulation must explain it: a convergent plate edge along its existing mountains and an old core under its interior.
+- *Eastern, Northern, Southern:* keep their current centres and target areas from `EYM_LAYOUT.seeded`, within ±10% of area and 3° of centre. Their shapes come from the simulation.
+- Eym stays 98.6% ocean.
+- Everything is drawn by rule, with named seeds: same inputs, same world. Generators run offline in `tools/`; the module ships their output data.
+- Lore: life on Eym was placed by the gods, not evolved. No biosphere or evolution simulation.
+
+### Stage 1: plate tectonics, geology and volcanoes (with the globe fixes)
+
+1. *Plates:* about 8–12 major plates plus microplates, with noise-warped boundaries. Each plate turns about its own pole at a believable speed. Each boundary is classed as convergent, divergent or transform.
+2. *Deep history* in a few coarse stages, worked backwards from the fixed end positions: supercontinent break-up along rifts, then drift to the present positions, then accretion at subduction margins (coastal ranges, island arcs), then collision belts (inland ranges), then erosion and isostasy smoothing.
+3. *Fitting:* try a fixed, ordered list of seeds and keep the first that meets the targets. No hand-tuning.
+4. *Outputs*, in the shape the pipeline now takes from `seededRing` (rings, ridges, offshore islands), plus:
+   - Coast character from geology: smooth coasts and wide shelves on rifted margins; steep coasts with ranges and island chains on active margins; fjords at cold high latitudes.
+   - Mountains at collision and subduction zones.
+   - Bathymetry: mid-ocean ridges, trenches, shelves.
+   - Bedrock by origin: old cores (granite, gneiss), basins (sandstone, shale, limestone), active margins (volcanic rock), collision belts (metamorphic rock).
+   - Volcanoes at subduction margins and a few hotspots, each with an age and an activity level.
+   - Soils from bedrock and climate, replacing the elevation guess in `scripts/eym-cartography.mjs`.
+   - Rock type exposed to the Region, Local and battle maps: landform look (karst, granite domes, mesas, cones), building stone for the architecture dossiers, ore and mines.
+5. *Earthquakes and eruptions:* dated, deterministic events from the plate boundaries and volcanoes, queryable by place and date (for story hooks), with how strongly a place felt them.
+6. *The tool reports* the plates, boundary types, history stages, final areas and centres against the targets, and the seed used.
+7. *The globe fixes:* the vertical dotted streaks in the ocean around Caren at deep zoom; labels in the panel's serif, hidden where they would overlap; the H and L pressure letters in their own layer, off by default; sea ice and cloud in clearly different colours.
+
+### Stage 2: ocean currents, tides and climate
+
+1. *Currents:*
+   - Wind-driven surface currents from the wind belts and rotation (Coriolis), steered by the coastlines. With Eym 98.6% ocean, expect mostly circumpolar, east–west flow, with boundary currents and gyres where Caren, Garyk and the Eastern Continent block it.
+   - Upwelling where the wind pushes coastal water offshore.
+   - Seasonal variation.
+   - Output: a current field and a sea-temperature anomaly map, by season.
+2. *Wet and dry seasons:* the tropical rain belt follows the sun through the year, with monsoon reversals where the land is large enough. Caren and Garyk get clear wet and dry seasons.
+3. *Fed into what exists:*
+   - Coastal and sea temperatures (`seasonalTemperature` takes the anomaly).
+   - Rain and aridity for biomes: wet coasts with warm water offshore; dry, foggy coasts with cold water offshore.
+   - Tropical cyclone birthplaces (warm pools) and paths.
+   - The sea-ice edge.
+   - Weather by season.
+   - Battle-map conditions.
+   - Sailing times: the Caren–Garyk crossing (21 days at 9 knots now) becomes direction-dependent.
+   - A slow El Niño-like oscillation for year-to-year variation, deterministic from the clock (owner's yes, 17 November 2026).
+4. *Tides from the two moons and the Sun:*
+   - Tidal range on coasts, highest at spring tides when the moons line up.
+   - Tide height at a place and time.
+   - Coastal battle maps show tidal flats exposed or covered by the hour (owner's yes, 17 November 2026).
+
+### Stage 3: erosion and landforms
+
+This applies to all land, including Caren's and Garyk's interiors; their outlines stay fixed.
+
+- Rivers carve valleys and gorges; floodplains, terraces and deltas form where they slow and meet the sea.
+- Coastal forms by exposure and rock: beaches, cliffs, spits, estuaries.
+- The result feeds Region and Local terrain. If it changes Region tiles already stored, they are rendered again from the stored shapes, and the pull request says so.
+
+### Stage 4: rivers through the year
+
+- River flow by season from the seasonal rain and snowmelt: spring floods, low water, droughts.
+- Springs and wetlands from groundwater.
+- Fords crossable only in some seasons, wired into battle maps and travel times.
+- River widths follow discharge (consistent with the 0.16.3 river fix).
+
+### Stage 5: ice ages and old sea levels
+
+- A deterministic glacial history: a few cold periods with their dates, ice extent and sea-level drop.
+- Effects on today's map: glacier-carved valleys, lakes and moraines at high latitudes and in high mountains; drowned river valleys and old land bridges on the shelves.
+- Past coastlines and sea levels by era, for lore (sunken ruins, old routes).
+
+### Stage 6: auroras
+
+- A magnetic pole position (deterministic, stated in the lore) and an aurora oval.
+- Auroras in the night sky at high latitudes, varying by night and with a slow activity cycle, drawn in the sky's style.
+
+### Downstream and tests
+
+- Regenerate Eym's geography, cartography, rivers, biomes, the globe's surface data, weather inputs, snow and ice, and the Atlas maps.
+- Caren's and Garyk's coastlines must come out byte-identical. Their climate, rivers and interior terrain may change, and the pull request says so plainly.
+- The weather on a given date will change; the pull request says so.
+- Tests pinned to the old seeded shapes or the old climate are updated, and the pull request says so plainly as its own line. No test is weakened, skipped or deleted without the owner's yes.
+- New tests for: the invariants; the continent targets; determinism; mountains lying on convergent boundaries; volcanoes at subduction zones and hotspots; the 98.6% ocean fraction; a warm boundary current where the model should produce one; the rain belt moving with the seasons; seasonal river flow; tide range peaking when the moons align; the aurora appearing only at high latitudes.
+
+### Shown to the owner at each stage, before submitting
+
+- *Stage 1:* globe renders of the three continents before and after (the whole globe and each close up), a plate-boundary overlay, volcanoes and rock types; the globe fixes before and after.
+- *Stage 2:* current and sea-temperature overlays by season; before-and-after climate and biome maps for Caren and Garyk; the new cyclone birthplaces; the wet and dry seasons for a few Caren places.
+- *Stage 3:* before-and-after Region tiles of Caren and Garyk.
+- *Stage 4:* one river's flow through the year.
+- *Stage 5:* the glacial maximum's coastlines.
+- *Stage 6:* a night sky with an aurora.
+
 ## The night sky's tier (owner's decision, 17 November 2026)
 
 The night sky goes to tier 4–5: it is small and simple (a dome, about 2,000 stars, two moons, four wanderers and one band of light), so it can afford it. It is drawn at the screen's own density (canvas = shown size × devicePixelRatio, about 3 on an iPhone), sharp at rest, never a low-resolution canvas stretched with `image-rendering: pixelated`. The pixel-art identity is in the shapes and a small, deliberate palette, not in the size of the pixels. For the sky, tier 4–5 means:
