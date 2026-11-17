@@ -6,6 +6,16 @@ This roadmap was carried over from the Lancer GM Kit and Lancer cluster map, and
 
 This section is the current plan. The sections below it are the earlier agreements it builds on.
 
+### Scope of detail (owner's decision, 17 November 2026)
+
+This overrides anything below that plans for all five continents.
+
+- **Only Caren, Garyk and the sea directly between them** get more detail or deeper zoom: the Continent, Region and Local layers are made and stored for that area alone.
+- **The three unnamed continents** (eastern, northern and southern) stay exactly as they are now: no further detail, no deeper zoom, no stored tiles.
+- **The rest of the ocean** stays as it is now too, including the island groups that belong to no continent.
+- The point is to cut rendering a great deal. Nothing outside that area is rendered or stored. Outside it, zoom stops where it does today.
+- Caren's and Garyk's frames hold only their own mainland and their own islands. How the sea between them is framed (a frame of its own, or an extension of one continent's frame) is to be proposed to the owner.
+
 ### Done
 
 - **System view**: pixel sprites for the Sun, worlds, moons and wanderers; a label only for the body that was clicked; no ownership badges.
@@ -24,23 +34,24 @@ The tiers are provisional until the trial in step 2. Cheap layers (few pictures)
 | System | The model of the heavens | Module, live | No | 5 | Tier 2 sprites done |
 | Night sky | The dome from a place and time | Module, live | No | 4–5 | Tier 2 done |
 | Planet | Eym's globe | Module, live | No | 3 | Tier 2 done |
-| Continent | One picture per continent (five) | Map server, once | Yes | 5 | Not started |
-| Region | 76.8 km tiles at 0.3 km a cell, per continent | Map server, once | Yes | 3 | Generator and store done; layer not rendered |
-| Local | Ground detail at 10–50 m | Map server, once | Yes | 2 | Generator exists but is slow; not rendered |
+| Continent | One picture each for Caren and Garyk (two) | Map server, once | Yes | 5 | Not started |
+| Region | 76.8 km tiles at 0.3 km a cell: Caren, Garyk and the sea between | Map server, once | Yes | 3 | Generator and store done; layer not rendered |
+| Local | Ground detail at 10–50 m: Caren and Garyk | Map server, once | Yes | 2 | Generator exists but is slow; not rendered |
 | Battle map | 5-ft squares at one place and time | Map server, on request | Per map | 5 | Tier 2 done |
 
 ### Steps to completion, in order
 
-1. **Finish the Region layer.**
-   - Decide with the owner: mend the rivers first (recommended), or render now and again later.
+0. **Hold the code to the scope.** `regionFrames()` in `scripts/eym-region-layer.mjs` returns five frames (Caren, Garyk and the three unnamed continents), and Garyk's takes in far-off islands that belong to no continent. Limit it to Caren and Garyk with their own islands, add the sea between them, and keep each frame's number in the store (`z`) unchanged, since the one stored Caren tile is filed under it.
+1. **Finish the Region layer** (Caren, Garyk and the sea between them only).
+   - Decided by the owner, 17 November 2026: mend the rivers first, then render the layer once.
    - Rivers: the data's channels are 5–10 km wide angular polygons. Narrow them to believable widths with natural banks.
    - Roads run in long straight stretches; hills shade too faintly; farmland is sparse; sea shore bands are octagonal.
    - Give `eym_tiles` a column for the continent frame (it is held in `z` for now). This is a SQL migration: the owner must approve it.
-   - Render the whole layer into the store with `GET /api/region/fill?frame=&start=&count=&ms=`, continent by continent, recording each run in `eym_render_runs`. About 0.15 s a tile after a 7 s warm-up.
+   - Render the whole layer into the store with `GET /api/region/fill?frame=&start=&count=&ms=`, frame by frame, recording each run in `eym_render_runs`. About 0.15 s a tile after a 7 s warm-up.
 2. **Try the tiers.** Define tiers 3, 4 and 5 concretely (only tiers 1 and 2 exist), render the same place at each for the layers in question (a Dree side-by-side was offered), and let the owner fix a tier for each layer. Update the table above.
-3. **Continent layer.** Five pictures at the chosen tier, shapes first and pixel art after, kept in the store.
-4. **Local layer.** Speed up `scripts/eym-local-detail.mjs` (about 128,000 cells a second now, which is days on one core for the whole layer), then render and store it like the Region layer. Battle maps are already cut from this detail.
-5. **The module reads the stored layers.** Zooming past the globe shows Region and then Local tiles from the web app; a chosen view is exported into the Foundry world as a picture or a scene. Only what is exported is kept in Foundry; the web app holds the rest.
+3. **Continent layer.** Two pictures, Caren and Garyk, at the chosen tier, shapes first and pixel art after, kept in the store.
+4. **Local layer**, Caren and Garyk only. Speed up `scripts/eym-local-detail.mjs` (about 128,000 cells a second now), re-estimate the time for the reduced area before starting, then render and store it like the Region layer. Battle maps are already cut from this detail.
+5. **The module reads the stored layers.** Zooming past the globe shows Region and then Local tiles from the web app; a chosen view is exported into the Foundry world as a picture or a scene. Outside Caren, Garyk and the sea between them, zoom stops where it does today. Only what is exported is kept in Foundry; the web app holds the rest.
 6. **Battle maps to their tier.** Dedicated sprites for the remaining features, autotiled ground transitions, animated water and fire, more building styles, then tiers 3 to 5 as chosen in step 2.
 7. **Polish.**
    - Names collide on the globe when zoomed on Caren, and in the sky with every name shown.
@@ -52,7 +63,7 @@ The tiers are provisional until the trial in step 2. Cheap layers (few pictures)
 
 ### Complete means
 
-Every layer in the table is drawn in pixel art at its chosen tier. The Continent, Region and Local layers are fully rendered and stored. From Foundry a GM can go from the system down to any place on Eym, export that view, and make a battle map there. All of it has been checked in a live world.
+Every layer in the table is drawn in pixel art at its chosen tier. The Continent, Region and Local layers are fully rendered and stored for Caren, Garyk and the sea between them. From Foundry a GM can go from the system down to any place there, export that view, and make a battle map there. All of it has been checked in a live world.
 
 ### Working rules
 
