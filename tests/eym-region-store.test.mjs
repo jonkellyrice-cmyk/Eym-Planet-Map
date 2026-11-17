@@ -42,12 +42,12 @@ test("a land tile is made once, kept with its shapes, and read back from the sto
   assert.equal(path, `region/${REGION_MODEL}/caren/pixels/${home.tx}_${home.ty}.png`);
   const first = await regionTilePicture(asset, frames, store, "caren", home.tx, home.ty); assert.equal(first.source, "made and kept"); assert.equal(first.error, undefined);
   assert.deepEqual(fake.files.get(`eym-tiles/${path}`), first.png); assert.equal(decodePng(first.png).width, 256);
-  const row = fake.rows.get(`region|pixels|${frames.indexOf(caren)}|${home.tx}|${home.ty}`); assert.equal(row.sha256, sha256(first.png)); assert.equal(row.bytes, first.png.length); assert.equal(row.rules_version, REGION_MODEL);
+  const row = fake.rows.get(`region|pixels|${caren.store}|${home.tx}|${home.ty}`); assert.equal(row.sha256, sha256(first.png)); assert.equal(row.bytes, first.png.length); assert.equal(row.rules_version, REGION_MODEL);
   const shapes = JSON.parse(gunzipSync(fake.files.get(`eym-shapes/region/${REGION_MODEL}/caren/shapes/${home.tx}_${home.ty}.json.gz`)));
   assert.equal(shapes.cells, 256); assert.equal(Buffer.from(shapes.cover, "base64").length, 260 * 260); assert.ok(shapes.settlements.some((s) => s.name === "Dree"));
-  assert.ok(fake.rows.has(`region|shapes|${frames.indexOf(caren)}|${home.tx}|${home.ty}`));
+  assert.ok(fake.rows.has(`region|shapes|${caren.store}|${home.tx}|${home.ty}`));
   const again = await regionTilePicture(asset, frames, store, "caren", home.tx, home.ty); assert.equal(again.source, "store"); assert.deepEqual(again.png, first.png);
-  assert.deepEqual([...(await store.listed("region", "pixels", frames.indexOf(caren)))], [`${home.tx},${home.ty}`]);
+  assert.deepEqual([...(await store.listed("region", "pixels", caren.store))], [`${home.tx},${home.ty}`]);
   // The key travels only in the request headers to the store, never in an address.
   assert.ok(fake.calls.every((c) => !c.path.includes("service-key")));
 });
@@ -55,6 +55,8 @@ test("a land tile is made once, kept with its shapes, and read back from the sto
 test("open sea is made but never kept; without a store every tile is simply made; a store that fails still gives the picture", async () => {
   const fake = fakeSupabase(), store = regionStore(ENV, fake.fetchImpl);
   const sea = await regionTilePicture(asset, frames, store, "caren", caren.tiles.tx1 + 6, caren.tiles.ty0 - 6); assert.equal(sea.source, "made"); assert.equal(sea.sea, true); assert.equal(fake.files.size, 0);
+  // Land outside a frame (Garyk's, seen through the corridor's frame beyond the corridor) is drawn if asked for directly, but never kept.
+  const corridor = frames.find((f) => f.id === "caren-garyk-sea"), off = regionTileAt(corridor, 15, -75), far = await regionTilePicture(asset, frames, store, "caren-garyk-sea", off.tx, off.ty); assert.equal(far.sea, false); assert.equal(far.source, "made"); assert.equal(fake.files.size, 0); assert.equal(fake.rows.size, 0);
   const bare = await regionTilePicture(asset, frames, null, "caren", home.tx, home.ty, "flat"); assert.equal(bare.source, "made"); assert.equal(decodePng(bare.png).height, 256);
   const broken = regionStore({ ...ENV, SUPABASE_SERVICE_ROLE_KEY: "wrong" }, fake.fetchImpl), failed = await regionTilePicture(asset, frames, broken, "caren", home.tx, home.ty);
   assert.equal(failed.source, "made"); assert.match(failed.error, /Writing to the store failed \(401\)/); assert.ok(!failed.error.includes("wrong"));
@@ -64,10 +66,13 @@ test("the map server serves region tiles and fills a frame a few tiles at a time
   const fake = fakeSupabase(), cacheDir = mkdtempSync(join(tmpdir(), "eym-region-")), server = createMapServer({ asset, cacheDir, store: regionStore(ENV, fake.fetchImpl) });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve)); const base = `http://127.0.0.1:${server.address().port}`;
   try {
-    const info = await (await fetch(`${base}/api/region/frames`)).json(); assert.equal(info.stored, true); assert.equal(info.frames.length, 5); assert.equal(info.tileCells, 256);
+    const info = await (await fetch(`${base}/api/region/frames`)).json(); assert.equal(info.stored, true); assert.deepEqual(info.frames.map((f) => f.id), ["caren", "garyk", "caren-garyk-sea"]); assert.equal(info.tileCells, 256);
     const tile = await fetch(`${base}/api/region/tile/caren/${home.tx}/${home.ty}.png`); assert.equal(tile.status, 200); assert.equal(tile.headers.get("content-type"), "image/png"); assert.equal(tile.headers.get("x-eym-source"), "made and kept");
     assert.equal((await fetch(`${base}/api/region/tile/caren/${home.tx}/${home.ty}.png`)).headers.get("x-eym-source"), "store");
-    assert.equal((await fetch(`${base}/api/region/tile/nowhere/0/0.png`)).status, 404); assert.equal((await fetch(`${base}/api/region/tile/caren/0/0.png?kind=oil`)).status, 400);
+    assert.equal((await fetch(`${base}/api/region/tile/nowhere/0/0.png`)).status, 404);
+    // Nothing outside the frames is drawn or kept: a tile beyond Caren's range is refused, and a land tile there would not be stored.
+    assert.equal((await fetch(`${base}/api/region/tile/caren/${caren.tiles.tx1 + 6}/0.png`)).status, 404); assert.equal((await fetch(`${base}/api/region/tile/caren-garyk-sea/0/30.png`)).status, 404);
+    assert.equal((await fetch(`${base}/api/region/tile/caren-garyk-sea/0/0.png`)).headers.get("x-eym-source"), "made", "open sea in the corridor is made, not kept"); assert.equal((await fetch(`${base}/api/region/tile/caren/0/0.png?kind=oil`)).status, 400);
     // Fill from the tile before Dree's: the one already kept is passed over, the next is made.
     const width = caren.tiles.tx1 - caren.tiles.tx0 + 1, index = (home.ty - caren.tiles.ty0) * width + (home.tx - caren.tiles.tx0);
     const report = await (await fetch(`${base}/api/region/fill?frame=caren&start=${index}&count=1`)).json();
