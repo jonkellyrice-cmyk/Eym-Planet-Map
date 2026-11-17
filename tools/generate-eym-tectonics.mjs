@@ -1,5 +1,5 @@
 // Fits Eym's plates and deep history (scripts/eym-tectonics.mjs) to the fixed end state and writes
-// data/eym/tectonics.json: the plates and boundaries, the three unnamed continents' outlines, ranges and
+// data/eym/tectonics.json: the plates and boundaries, Gaffa's, Khohalis's and Demani's outlines, ranges and
 // islands (in the shape scripts/eym-surface.mjs took from seededRing), volcanoes, the history stages, coarse
 // rasters for the sea floor and bedrock, and a report. Seeds are tried in a fixed order; the first that meets
 // every target is kept. No hand-tuning.
@@ -303,7 +303,7 @@ export function buildTectonics({ seeds = TECTONIC_SEEDS, inputs = tectonicInputs
     }));
     const plates = state.plates.map((p) => ({ id: p.id, name: p.name, kind: p.kind, micro: Boolean(p.micro), seed: latLon(p.v).map(r3), weightKm: p.weightKm, pole: p.pole.map(r3), rateDegPerMyr: r3(p.rate), speedMmYrAtSeed: r1(Math.hypot(...plateVelocity(p, p.v))) }));
     const history = [
-      { stage: "assembly", myrAgo: [420, 320], text: "Old cores collide and weld into the First Land; their seams become the inland belts of the Eastern, Northern and Southern continents and the old core under Garyk." },
+      { stage: "assembly", myrAgo: [420, 320], text: "Old cores collide and weld into the First Land; their seams become the inland belts of Gaffa, Khohalis and Demani and the old core under Garyk." },
       { stage: "break-up", myrAgo: [MYR, MYR - 20], text: "The First Land rifts apart around Garyk; the rifts become passive, smooth coasts with wide shelves." },
       { stage: "drift", myrAgo: [MYR - 20, 0], text: "The pieces drift to where they stand today, each turning about its own pole." },
       { stage: "accretion", myrAgo: [120, 0], text: "Leading edges override sinking sea floor: coastal ranges, volcanoes and island arcs grow along them." },

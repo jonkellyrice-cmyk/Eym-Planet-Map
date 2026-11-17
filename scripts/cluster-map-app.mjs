@@ -373,7 +373,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     if (!level || !continent || !image) return;
     const option = (value, label) => Object.assign(document.createElement("option"), { value, textContent: label });
     level.replaceChildren(...ATLAS_LEVELS.map((l) => option(l.id, l.label))); level.value = "continent";
-    continent.replaceChildren(...[["caren", "Caren"], ["garyk", "Garyk"], ["eastern", "The Eastern Continent"], ["northern", "The Northern Continent"], ["southern", "The Southern Continent"]].map(([id, label]) => option(id, label)));
+    continent.replaceChildren(...[["caren", "Caren"], ["garyk", "Garyk"], ["eastern", "Gaffa"], ["northern", "Khohalis"], ["southern", "Demani"]].map(([id, label]) => option(id, label)));
     image.replaceChildren(...ATLAS_IMAGE_PRESETS.map((p) => option(p.id, p.label)), option("custom", "Custom size"));
     const defaults = savedMapDefaults(MODULE_ID).atlas;
     image.value = defaults.image;

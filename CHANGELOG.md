@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.18.2 (2026-11-17)
+
+The three seeded continents are named.
+
+- The large eastern continent is **Gaffa** (a hard G), the small northern one **Khohalis**, the small southern one **Demani**. The names replace "the Eastern, Northern and Southern Continent" everywhere: the map labels and gazetteer (no longer marked as placeholders), the coastlines, rivers and lakes, their plates (Gaffa Plate, Khohalis Plate, Demani Plate), the tectonic history, the atlas continent choice, the README and the roadmap.
+- Nothing else changes: the same fitted tectonic seed, the same shapes, ranges, rivers and weather. Their internal ids (eastern, northern, southern) stay, so everything drawn from them is the same.
+
 ## 0.18.1 (2026-11-17)
 
 Room for the climate stages: the map every view loads is a quarter smaller.

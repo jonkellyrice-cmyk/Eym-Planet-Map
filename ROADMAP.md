@@ -11,7 +11,7 @@ This section is the current plan. The sections below it are the earlier agreemen
 This overrides anything below that plans for all five continents.
 
 - **Only Caren, Garyk and the sea directly between them** get more detail or deeper zoom: the Continent, Region and Local layers are made and stored for that area alone.
-- **The three unnamed continents** (eastern, northern and southern) stay exactly as they are now: no further detail, no deeper zoom, no stored tiles.
+- **Gaffa, Khohalis and Demani** (named 17 November 2026; ids eastern, northern and southern) stay exactly as they are now: no further detail, no deeper zoom, no stored tiles.
 - **The rest of the ocean** stays as it is now too, including the island groups that belong to no continent.
 - The point is to cut rendering a great deal. Nothing outside that area is rendered or stored. Outside it, zoom stops where it does today.
 - Caren's and Garyk's frames hold only their own mainland and their own islands. The sea between them has a frame of its own: a corridor 600 km wide along the shortest line between their coasts (owner's choice, 17 November 2026: the narrow sea-route corridor, not the whole basin). It is all open sea; no ocean tile is stored until the sea gets detail of its own.
@@ -175,7 +175,7 @@ Already present (not redone): zonal rain bands with rain shadows and orographic 
 
 - *Caren:* unchanged, exactly as traced. Lore: the gods and angels shaped it deliberately, so its form and composition do not follow plate tectonics. It is masked out of the tectonic simulation (the sea floor around it is still tectonic) and given its own stated geology in the lore.
 - *Garyk:* unchanged, exactly as traced. It formed naturally, so the simulation must explain it: a convergent plate edge along its existing mountains and an old core under its interior.
-- *Eastern, Northern, Southern:* keep their current centres and target areas from `EYM_LAYOUT.seeded`, within ±10% of area and 3° of centre. Their shapes come from the simulation.
+- *Gaffa, Khohalis, Demani (eastern, northern, southern):* keep their current centres and target areas from `EYM_LAYOUT.seeded`, within ±10% of area and 3° of centre. Their shapes come from the simulation.
 - Eym stays 98.6% ocean.
 - Everything is drawn by rule, with named seeds: same inputs, same world. Generators run offline in `tools/`; the module ships their output data.
 - Lore: life on Eym was placed by the gods, not evolved. No biosphere or evolution simulation.
@@ -189,11 +189,11 @@ Eym is about 98.6% ocean, close to an aquaplanet. This applies throughout the pr
   - Seasonal swings are already small:
     - Caren's interior: a range of about 1 °C;
     - Garyk's interior: about 4 °C;
-    - the Northern and Southern continents: 13–14 °C;
+    - Khohalis and Demani: 13–14 °C;
     - the sea at 50° N: about 9 °C.
   - Daily ranges on land are Earth-like and too wide: 7–9 °C (sea 1 °C). They are to be narrowed, and continentality weighed down.
   - `tools/calibrate-eym-weather.mjs` checks only rain against the climate; it is to check temperature ranges too.
-- *Wind belts:* near-continuous trade winds, strong mid-latitude westerlies and polar easterlies, broken only near Caren, Garyk and the Eastern Continent.
+- *Wind belts:* near-continuous trade winds, strong mid-latitude westerlies and polar easterlies, broken only near Caren, Garyk and Gaffa.
 - *Sea state:* wave height and swell from wind and fetch (the fetch is very large, so big swells in the westerly belts), exposed for sailing times, coastal battle maps and lore.
 - *Cloud and humidity:* more low cloud and drizzle over the sea and somewhat more rain than Earth, but rain stays energy-limited (not doubled). The weather's cloud and rain fields are recalibrated.
 - *Tropical cyclones:* about 50 a year stays plausible, kept tied to warm water from the current model.
@@ -222,7 +222,7 @@ Eym is about 98.6% ocean, close to an aquaplanet. This applies throughout the pr
    - Upwelling where the wind pushes coastal water offshore.
    - Seasonal variation.
    - Output: a current field and a sea-temperature anomaly map, by season.
-2. *Wet and dry seasons* (corrected by the aquaplanet addendum): the tropical rain belt follows the sun through the year but shifts less than on Earth, and monsoons are weak: at most a weak monsoon on the Eastern Continent. Caren and Garyk get real but milder wet and dry seasons.
+2. *Wet and dry seasons* (corrected by the aquaplanet addendum): the tropical rain belt follows the sun through the year but shifts less than on Earth, and monsoons are weak: at most a weak monsoon on Gaffa. Caren and Garyk get real but milder wet and dry seasons.
 3. *Fed into what exists:*
    - Coastal and sea temperatures (`seasonalTemperature` takes the anomaly).
    - Rain and aridity for biomes: wet coasts with warm water offshore; dry, foggy coasts with cold water offshore.

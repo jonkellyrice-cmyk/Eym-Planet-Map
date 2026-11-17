@@ -24,9 +24,9 @@ export const EYM_LAYOUT = Object.freeze({
   // 21 days at an average 9 knots, sailing 8% further than the great circle.
   garyk: { centerLat: 15, steamer: { days: 21, knots: 9, routeFactor: 1.08 }, carenPortPx: [85, 421], garykPortPx: [1318, 828] },
   seeded: [
-    { id: "eastern", name: "the Eastern Continent", areaKm2: 1.6 * CAREN_AREA_KM2, center: [5, 36], elongation: 1.5, orientationDeg: 20, ridges: [4300, 3100], offshoreIslands: 12 },
-    { id: "northern", name: "the Northern Continent", areaKm2: 0.65 * CAREN_AREA_KM2, center: [52, 18], elongation: 1.8, orientationDeg: 70, ridges: [2900], offshoreIslands: 9 },
-    { id: "southern", name: "the Southern Continent", areaKm2: 0.55 * CAREN_AREA_KM2, center: [-50, -14], elongation: 1.6, orientationDeg: 115, ridges: [3300], offshoreIslands: 8 },
+    { id: "eastern", name: "Gaffa", areaKm2: 1.6 * CAREN_AREA_KM2, center: [5, 36], elongation: 1.5, orientationDeg: 20, ridges: [4300, 3100], offshoreIslands: 12 },
+    { id: "northern", name: "Khohalis", areaKm2: 0.65 * CAREN_AREA_KM2, center: [52, 18], elongation: 1.8, orientationDeg: 70, ridges: [2900], offshoreIslands: 9 },
+    { id: "southern", name: "Demani", areaKm2: 0.55 * CAREN_AREA_KM2, center: [-50, -14], elongation: 1.6, orientationDeg: 115, ridges: [3300], offshoreIslands: 8 },
   ],
   // The archipelagos' centres are fixed (they were placed in eym-surface-v1 by 18 draws against the old seeded
   // coasts); the draws are still taken so each archipelago's islands come out exactly as before.
@@ -308,7 +308,7 @@ export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null) {
     continents.push({ id: key, name: source.name, origin: "authored", center: center.map(round3), mainlandAreaKm2: Math.round(ringAreaKm2(mainland(source))), islands: source.coasts.length - 1, sourceSha256: source.sourceImage.sha256 });
   }
 
-  // The three unnamed continents: from the tectonic history (data/eym/tectonics.json) when it is given, else
+  // Gaffa, Khohalis and Demani: from the tectonic history (data/eym/tectonics.json) when it is given, else
   // the old seeded shapes.
   for (const spec of layout.seeded) {
     const fitted = tectonics?.continents?.[spec.id];
@@ -338,7 +338,7 @@ export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null) {
     }
     const frame = buildFrame({ id: spec.id, continent: spec.name, origin: "seeded", center: spec.center, rings, ridges, cellKm: 10, noise });
     frames.push(frame); addCoasts(frame, rings, kinds, areas);
-    continents.push({ id: spec.id, name: spec.name, origin: "seeded", placeholderName: true, center: spec.center, mainlandAreaKm2: Math.round(areas[0]), islands: rings.length - 1 });
+    continents.push({ id: spec.id, name: spec.name, origin: "seeded", center: spec.center, mainlandAreaKm2: Math.round(areas[0]), islands: rings.length - 1 });
   }
 
   // Seeded archipelagos in the open ocean.
