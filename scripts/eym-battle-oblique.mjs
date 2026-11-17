@@ -53,9 +53,10 @@ export function obliqueBush(o) {
   const s = o.size;
   return `<g><ellipse cx="${f2(o.x)}" cy="${f2(o.y)}" rx="${f2(s)}" ry="${f2(s * 0.45)}" fill="#3f5e2a"/><ellipse cx="${f2(o.x)}" cy="${f2(o.y - s * 0.35)}" rx="${f2(s * 0.85)}" ry="${f2(s * 0.6)}" fill="#5d7d3e"/></g>`;
 }
-export function obliqueBoulder(o) {
-  const s = o.size;
-  return `<g><ellipse cx="${f2(o.x)}" cy="${f2(o.y)}" rx="${f2(s)}" ry="${f2(s * 0.5)}" fill="#5f5850"/><ellipse cx="${f2(o.x)}" cy="${f2(o.y - s * 0.45)}" rx="${f2(s * 0.9)}" ry="${f2(s * 0.65)}" fill="#8f877c"/></g>`;
+export function obliqueBoulder(o, rockColour = null) {
+  // With the local rock's colour (scripts/eym-geology.mjs) the top takes it and the side a darker shade of it.
+  const s = o.size, top = rockColour ? shade(rockColour, 0.05) : "#8f877c", side = rockColour ? shade(rockColour, -0.35) : "#5f5850";
+  return `<g><ellipse cx="${f2(o.x)}" cy="${f2(o.y)}" rx="${f2(s)}" ry="${f2(s * 0.5)}" fill="${side}"/><ellipse cx="${f2(o.x)}" cy="${f2(o.y - s * 0.45)}" rx="${f2(s * 0.9)}" ry="${f2(s * 0.65)}" fill="${top}"/></g>`;
 }
 
 const BUILDING_LOOK = Object.freeze({

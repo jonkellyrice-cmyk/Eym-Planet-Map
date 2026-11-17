@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.18.0 (2026-11-17)
+
+Stage 1b of Eym's physical history: soils, rock in the maps and dossiers, earthquakes and eruptions.
+
+- Soils grow from the bedrock and the climate (`scripts/eym-geology.mjs`), not from height alone: terra rossa and rendzina on limestone and Caren's marble, dark fertile ash soils on volcanic ground, sandy acid soils on granite, stony loam on schist, black earth on dry grassland basins, laterite in the wet tropics, podzol and tundra peat in the cold. River valleys stay alluvial.
+- Every rock kind says how it shapes the land, what building stone it gives and what ores it holds. Region and local map packets get a "Rock, stone and ores" section and tell the painter how the rock shapes the land; battle maps paint bare rock, boulders, outcrops, ledges and scree in the local rock's colour and name it in the brief; an architecture dossier that says nothing of materials takes the local stone.
+- Earthquakes and eruptions drawn by rule (`scripts/eym-quakes.mjs`): each stretch of plate boundary has a yearly rate of quakes (Gutenberg–Richter, from magnitude 3.5; slab quakes under the arcs), each volcano erupts at a rate set by its activity, with an explosivity. Ask by place and dates and each event comes with how strongly it was felt there (Mercalli). Caren's Godstone feels at most faint tremors.
+- The "Here and now" card shows the rock and soil, the stone and ores, and the quakes and eruptions of the last 30 days.
+- The cartography asset carries the plate boundaries (packed small) for the quakes; the asset stays within its mobile budget.
+
 ## 0.17.0 (2026-11-17)
 
 Stage 1a of Eym's physical history: plates, the continents' formation, the sea floor, volcanoes and rock.

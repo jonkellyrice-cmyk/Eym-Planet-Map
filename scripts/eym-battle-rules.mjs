@@ -18,6 +18,7 @@
 
 import { COVER, COVER_NAMES, battleAnchor, buildBattleSite, hashUnit } from "./eym-local-detail.mjs";
 import { environmentField } from "./eym-seasons.mjs";
+import { geologyAt } from "./eym-geology.mjs";
 import { fromLocal, toLocal } from "./eym-surface.mjs";
 import { FEATURES, MOVE, MOVE_COST, SETTINGS } from "./eym-battle-settings.mjs";
 import { placeExtras } from "./eym-battle-features.mjs";
@@ -457,6 +458,8 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
   notes.push(...extraResult.notes);
   return {
     version: BATTLE_RULES_VERSION, key, center: snap.center, anchor: snap.anchor, origin: snap.origin, spec, setting: chosen, biome: cell.biome, conditions,
+    // The local rock (scripts/eym-geology.mjs): the colour and look of bare rock, cliffs and boulders.
+    geology: geologyAt(asset, ...snap.center),
     style: style.id, skybridges, site, grid, buildings, objects, features: mapFeatures, cliffs, flattened: Boolean(sculpt.flatten), underground: Boolean(sculpt.underground), ceilingFt: sculpt.ceilingFt ?? null, dimLight: Boolean(sculpt.dim), traps: extraResult.traps, extras: extraResult.placed, zones, axis,
     routes: finalRoutes.map((r) => r.squares), chokepoints, analysis, notes,
   };
