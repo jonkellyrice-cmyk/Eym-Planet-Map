@@ -28,7 +28,7 @@ These override anything below where they differ.
   2. The `eym_tiles` frame-column migration: the SQL file shown at a named commit; nothing runs before the owner's yes.
   3. Render the 829 land tiles into the store and report what was kept.
   4. Night-sky legibility (a release), before any higher tier: text sized in screen pixels (about 12–13 px for star and body names, 11–12 px for constellations; on a phone the 900-unit chart is scaled to about 0.4×, so names now come out at 4–6 px); the lower-priority label hidden where two overlap; a darker, calmer sky with little or no dither in its middle, a higher minimum brightness for faint stars, solid brighter gold constellation lines and a softer Desna's Path; one art pixel at a constant on-screen size (about 2 CSS px) on every device, and clearly visible stars at least 2×2. Phone-sized renders shown before submitting.
-  5. Globe fixes (a release, not a tier change): the vertical dotted streaks in the ocean around Caren at deep zoom; labels in the panel's serif, hidden where they would overlap (Gowain, Caren and Lyle pile up); the H and L pressure letters off by default, behind the weather toggle; sea ice and cloud in clearly different colours.
+  5. Globe fixes (on hold, owner 2026-11-17: to be rolled into bigger projects; do not start alone) (a release, not a tier change): the vertical dotted streaks in the ocean around Caren at deep zoom; labels in the panel's serif, hidden where they would overlap (Gowain, Caren and Lyle pile up); the H and L pressure letters off by default, behind the weather toggle; sea ice and cloud in clearly different colours.
   6. The Continent layer at tier 2 (Caren and Garyk, two pictures; no tier-2 renderer for it exists yet), then the Local layer at tier 2 for sample places only (Dree, a coast, mountains, farmland, forest), then the side-by-side for the owner's judgement.
 
 ### Done
@@ -49,7 +49,7 @@ Every layer is made at tier 2 first; the intended tiers below are provisional un
 | Layer | What it is | Where it is made | Stored | Intended tier | State |
 |---|---|---|---|---|---|
 | System | The model of the heavens | Module, live | No | — | Done at tier 2; no further work |
-| Night sky | The dome from a place and time | Module, live | No | 4–5 | Tier 2 done |
+| Night sky | The dome from a place and time | Module, live | No | 4–5 | Tier 4–5 (0.16.6): see the sky's tier below |
 | Planet | Eym's globe | Module, live | No | 3 at most | Tier 2 done |
 | Continent | One picture each for Caren and Garyk (two) | Map server, once | Yes | 5 | Not started |
 | Region | 76.8 km tiles at 0.3 km a cell: Caren, Garyk and the sea between | Map server, once | Yes | 3 | Generator, store and step 1 done; layer not rendered |
@@ -151,6 +151,23 @@ Weather must be physically plausible, coherent over time and deterministic. The 
 - **Grid:** Eym's coarse geography already uses a 6° grid of 1,800 cells (`data/planet-geography/abydos/eventide.json`). Its 1° cartography raster can supply terrain and ocean proximity.
 - **Climate:** the annual-mean climate in `scripts/eym-cartography.mjs` is a baseline that weather can deviate from.
 - **Continents:** Eym is 98.6% ocean, so maritime weather and tropical cyclones should dominate. Caren straddles the equator, and Garyk sits near 15°N.
+
+## The night sky's tier (owner's decision, 17 November 2026)
+
+The night sky goes to tier 4–5: it is small and simple (a dome, about 2,000 stars, two moons, four wanderers and one band of light), so it can afford it. It is drawn at the screen's own density (canvas = shown size × devicePixelRatio, about 3 on an iPhone), sharp at rest, never a low-resolution canvas stretched with `image-rendering: pixelated`. The pixel-art identity is in the shapes and a small, deliberate palette, not in the size of the pixels. For the sky, tier 4–5 means:
+
+- **Stars:** a sharp bright core and a small soft glow, whose size and strength follow brightness; a fine cross only on the brightest few; faint stars tiny and dim, read as background dust; a restrained warm, white or cool tint.
+- **Desna's Path:** a smooth, soft glow of uneven brightness, with dark lanes of dust and a brighter core region; no dither grid.
+- **The sky:** a smooth gradient from zenith to horizon with a faint glow at the horizon (the twilight's colours at dusk and dawn); no banding, no checkerboard.
+- **Moons:** discs at the screen's density with a soft terminator, darker patches on the lit side and earthshine on the dark side.
+- **Wanderers:** a sharp eight-pointed star in a soft halo, brighter than any star.
+- **The Sun:** a bright disc in a soft corona with rays; eclipses in true proportion.
+- **Constellation figures:** thin, antialiased, continuous lines in muted gold that stop short of their stars; a tapped figure's lines in bright gold.
+- **Cloud:** a soft, uneven veil, not dithered pixels.
+- **Legibility:** the dome fills the view; names are a fixed size on the screen, set beside what they name in a solid halo of the sky's colour, and the less important gives way where two would overlap; with "All names", only named stars, wanderers and moons are named, and figures' names only with the figures.
+- **Speed:** stars are stamped from sprites made once; the background is worked out once for each time, place and zoom and turned with the sky; while a finger moves the last sharp picture is turned, moved or scaled at half density, and drawn sharp again about 150 ms after it rests. Target: under 30 ms a frame while dragging on a phone.
+
+The globe will probably go to tier 3 at most (it is redrawn live on the phone: softer layered clouds, relief shading, graded shallows); that waits for the owner's side-by-side.
 
 ## Pixel-art tiers (agreed 16 November 2026)
 
