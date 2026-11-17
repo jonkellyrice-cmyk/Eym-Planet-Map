@@ -56,7 +56,7 @@ test("temperature swings more inland and far from the equator, peaks after midsu
 test("snow and sea ice come and go with the seasons", () => {
   const north = seasonalCover(field, NORTHWARD_EQUINOX_MS + 3 * QUARTER + 30 * DAY_MS), south = seasonalCover(field, NORTHWARD_EQUINOX_MS + QUARTER + 30 * DAY_MS);
   const northernSnow = (cover) => cover.snow.flat().filter(([lat]) => lat > 40).length;
-  assert.ok(northernSnow(north) > northernSnow(south), "more snow on the northern continent in its winter");
+  assert.ok(northernSnow(north) > northernSnow(south), "more snow in the north (Khohalis) in its winter");
   assert.ok(north.snowShare > 0 && north.ice.length > 0);
   for (const ring of [...north.snow, ...north.ice]) assert.deepEqual(ring[0], ring.at(-1));
   const lowestIce = (cover) => Math.min(...cover.ice.flat().filter(([lat]) => lat > 0).map(([lat]) => lat));

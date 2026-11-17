@@ -56,10 +56,11 @@ test("canonical CSV is pinned to the five-continents canon edit", () => {
   // Re-pinned deliberately again for Stage 1 of the physical history (17 November 2026): Eventide's
   // geography_input_fingerprint now covers data/eym/tectonics.json and the fixed archipelago centres.
   // Re-pinned deliberately again when the owner named Gaffa, Khohalis and Demani (17 November 2026): the
-  // names are part of EYM_LAYOUT, which Eventide's fingerprint covers.
+  // names are part of EYM_LAYOUT, which Eventide's fingerprint covers. And again when the owner moved them
+  // (17 November 2026): their centres and one archipelago's are in EYM_LAYOUT too.
   // Any further registry change must re-pin this on purpose.
   const csv = readFileSync(new URL("docs/system-orbital-distances.csv", root));
-  assert.equal(createHash("sha256").update(csv).digest("hex"), "c0ac760d0d3daeb298efc9293bfe6eea8aa8bac2276315d1c546dda7f29648da");
+  assert.equal(createHash("sha256").update(csv).digest("hex"), "ce01628f3b595bdfca7fa625ae0670b34b2bafae6a39c660f8c34f0658fa9831");
 });
 
 test("Eym's accepted canon has five continents in a planet-wide ocean", () => {

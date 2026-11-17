@@ -171,6 +171,9 @@ export function presentCrust(first, k, back, plate, p) {
   // Rough coasts where the plate leads and where it is cold; smooth where it rifted.
   const lat = Math.abs(latLon(p)[0]), cold = smooth(44, 58, lat), near = Math.exp(-((base / 80) ** 2));
   f += near * noise(p, 22, 3, 31.7) * 30 * (0.3 + lead);
+  // Rifted coasts are smooth at the scale of the shelf, not of the map: bays, estuaries and headlands
+  // 100-200 km across, so no long stretch of coast reads as one clean curve.
+  f += near * noise(p, 12, 3, 61.9) * 85 * (1 - 0.5 * lead);
   // Fjords: where ice once reached the sea, narrow drowned valleys cut far into the coast.
   if (cold > 0) { const ridge = 1 - Math.abs(noise(p, 70, 3, 44.2)) * 2.2; f -= cold * Math.exp(-((Math.max(0, base) / 140) ** 2)) * Math.max(0, ridge) ** 3 * 220; }
   return f;

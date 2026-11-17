@@ -262,8 +262,12 @@ function rangesFor(state, cont) {
   flush();
   // The suture: where the piece's two old cores were joined when the First Land was assembled (~320 Myr ago).
   const srng = createRng(`${state.seed}|suture|${t.id}`), bearing = srng() * 180, pts = [];
+  // An old seam is not a straight line: it wanders to either side as it runs (two seeded bends along it).
+  const bend = [srng() * 2 - 1, srng() * 2 - 1].map((a) => a * 0.22 * pc.r), phase = srng() * Math.PI;
   for (let s = -0.85; s <= 0.851; s += 0.17) {
-    const then = destinationKm(vec(pc.centroidThen), bearing, s * pc.r * 1.1), now = pc.forward(then), [lat, lon] = latLon(now), [x, y] = toLocal(t.center, lat, lon);
+    const side = bend[0] * Math.sin(Math.PI * (s + 0.85) / 1.7 + phase) + bend[1] * Math.sin(2.3 * Math.PI * (s + 0.85) / 1.7);
+    const along = destinationKm(vec(pc.centroidThen), bearing, s * pc.r * 1.1), then = destinationKm(along, bearing + 90, side);
+    const now = pc.forward(then), [lat, lon] = latLon(now), [x, y] = toLocal(t.center, lat, lon);
     if (insideRing(ring, [x, y])) pts.push([r1(x), r1(y)]);
   }
   if (pts.length >= 3) ridges.push({ kind: "old collision belt", origin: "suture", heightM: Math.round(1700 + srng() * 900), widthKm: 110, points: pts });
@@ -301,11 +305,25 @@ export function buildTectonics({ seeds = TECTONIC_SEEDS, inputs = tectonicInputs
         driftDeg: r1(cont.piece.angleDeg), driftMmYr: r1(cont.piece.angleDeg * 111.2 / MYR), firstLandCentre: cont.piece.centroidThen.map(r3),
       }];
     }));
+    // Mountains stand where plates meet: every coastal range must lie within 330 km of a convergent edge
+    // (trench or collision), as the boundaries come out at 0.1°. A seed whose ranges miss them is refused.
+    const convergent = [...world.lines.trenches, ...world.lines.collisions].map((p) => latLon(p).map((v) => r1(v)));
+    const offEdge = Object.values(continents).flatMap((c) => c.ridges.filter((r) => r.origin === "subduction").map((r) => ({ id: c.id, km: Math.max(...r.points.map(([x, y]) => Math.min(...convergent.map((q) => greatCircleKm(fromLocal(c.center, x, y), q))))) }))).filter((x) => x.km >= 330);
+    // Garyk keeps an old core under its interior: at least ten 1° cells whose centres are 170 km inland (the
+    // cartography measures 100 km from the nearest point of each cell) and clear of the collision belt (140 km)
+    // and of any trench (250 km), as its bedrock rule reads them.
+    const coreCells = garykCoreCells(inputs.garyk.ring, world.lines);
+    const failures = [...offEdge.map((x) => `${x.id}: a coastal range ${Math.round(x.km)} km from a convergent edge`), ...(coreCells < 10 ? [`Garyk's old core is too small (${coreCells} cells)`] : [])];
+    if (failures.length) {
+      tried[tried.length - 1] = { seed, ok: false, failures };
+      log(`${seed}: ${failures.join("; ")}`);
+      continue;
+    }
     const plates = state.plates.map((p) => ({ id: p.id, name: p.name, kind: p.kind, micro: Boolean(p.micro), seed: latLon(p.v).map(r3), weightKm: p.weightKm, pole: p.pole.map(r3), rateDegPerMyr: r3(p.rate), speedMmYrAtSeed: r1(Math.hypot(...plateVelocity(p, p.v))) }));
     const history = [
       { stage: "assembly", myrAgo: [420, 320], text: "Old cores collide and weld into the First Land; their seams become the inland belts of Gaffa, Khohalis and Demani and the old core under Garyk." },
       { stage: "break-up", myrAgo: [MYR, MYR - 20], text: "The First Land rifts apart around Garyk; the rifts become passive, smooth coasts with wide shelves." },
-      { stage: "drift", myrAgo: [MYR - 20, 0], text: "The pieces drift to where they stand today, each turning about its own pole." },
+      { stage: "drift", myrAgo: [MYR - 20, 0], text: "Gaffa, Khohalis and Demani break away from Garyk's side and drift together to the far side of the world, some twelve thousand kilometres, each turning about its own pole; Garyk stays behind." },
       { stage: "accretion", myrAgo: [120, 0], text: "Leading edges override sinking sea floor: coastal ranges, volcanoes and island arcs grow along them." },
       { stage: "collision", myrAgo: [60, 0], text: "The Northern Garyk Sea Plate closes on Garyk; its northern ranges rise along the seam." },
       { stage: "erosion", myrAgo: [320, 0], text: "Wear and the slow rebound of the crust soften the old belts to rounded hills and lower the young ranges." },
@@ -327,6 +345,20 @@ export function buildTectonics({ seeds = TECTONIC_SEEDS, inputs = tectonicInputs
 }
 
 // ---------------------------------------------------------------- small helpers
+
+/** How many 1° cells of Garyk's interior are old core: centres over 170 km inland, 140 km from a collision, 250 km from a trench. */
+function garykCoreCells(ring, lines) {
+  const lats = ring.map((p) => p[0]), lons = ring.map((p) => p[1]), coast = ring.filter((_, i) => i % 4 === 0);
+  const collisions = lines.collisions.map((p) => latLon(p)), trenches = lines.trenches.map((p) => latLon(p));
+  const inside = (lat, lon) => { let k = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [ya, xa] = ring[i], [yb, xb] = ring[j]; if ((ya > lat) !== (yb > lat) && lon < (xb - xa) * (lat - ya) / (yb - ya) + xa) k = !k; } return k; };
+  const near = (p, list, km) => list.some((q) => greatCircleKm(p, q) <= km);
+  let n = 0;
+  for (let lat = Math.floor(Math.min(...lats)) + 0.5; lat < Math.max(...lats); lat += 1) for (let lon = Math.floor(Math.min(...lons)) + 0.5; lon < Math.max(...lons); lon += 1) {
+    if (!inside(lat, lon) || near([lat, lon], coast, 170) || near([lat, lon], collisions, 140) || near([lat, lon], trenches, 250)) continue;
+    n += 1;
+  }
+  return n;
+}
 
 function eulerPole(a, a2, b, b2) {
   // The rotation taking a→a2 and b→b2: its axis is perpendicular to both displacements.

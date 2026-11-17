@@ -82,9 +82,9 @@ test("tropical cyclones keep to their seasons and hurricanes have hurricane wind
   assert.ok(tropicalMaxWindMs(50) > 33 && tropicalMaxWindMs(10) < 33);
 });
 
-test("snow builds on the northern continent in winter; Caren's lowlands never see it", () => {
+test("snow builds on Khohalis in winter; Caren's lowlands never see it", () => {
   const winter = stateAt(NORTHWARD_EQUINOX_MS + 300 * DAY_MS);
-  const northernLand = field.cells.filter((c) => !c.ocean && c.lat > 46 && c.lat < 60 && c.lon > 10 && c.lon < 28 && c.elevationM < 600);
+  const northernLand = field.cells.filter((c) => !c.ocean && c.lat > 46 && c.lat < 60 && c.lon > 130 && c.lon < 148 && c.elevationM < 600);
   assert.ok(northernLand.length > 3);
   assert.ok(northernLand.some((c) => placeHistory(winter, c.lat, c.lon).snowDepthCm > 5));
   for (const days of [0, 100, 200, 300]) assert.equal(placeHistory(stateAt(NORTHWARD_EQUINOX_MS + days * DAY_MS), 6.5, -3.5).snowDepthCm, 0);

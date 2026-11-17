@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.19.0 (2026-11-17)
+
+Gaffa, Khohalis and Demani move to the far side of Eym (the owner's decision); the plates are fitted again.
+
+- Gaffa is centred at 5°N 161°E, twice as far from Caren as Garyk is (about 17,800 km). Khohalis moves 120° east to 52°N 138°E, Demani 180° west to 50°S 166°E. Their latitudes and sizes are kept.
+- The tectonic history is fitted again (seed 24): new plates and boundaries, sea floor, 134 volcanoes and bedrock; new coastlines, ranges, rivers, lakes and biomes for the three continents. The First Land story now has the three breaking from Garyk's side and drifting together to the far side of the world, 56–66 mm a year.
+- The fit takes two more rules, so the seed it keeps is physically sound: every coastal range stands within 330 km of a convergent edge, and Garyk keeps an old core under its interior. Its coasts get more natural texture (bays and headlands 100–200 km across on rifted coasts) and its old collision belts wander instead of running straight.
+- One ocean archipelago, which stood where Gaffa now is (8.8°N 152.4°E), moves whole to 8.8°N 39°E, the open ocean Gaffa left; the other nine are unchanged, byte for byte, as are Caren's and Garyk's coasts.
+- Soils, rock, earthquakes and eruptions, and the weather near the three continents follow from the new map.
+
 ## 0.18.2 (2026-11-17)
 
 The three seeded continents are named.

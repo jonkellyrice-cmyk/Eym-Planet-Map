@@ -28,10 +28,10 @@ test("only Caren, Garyk and the sea between them are framed, each under the stor
   // The sea between: a corridor some 600 km wide along the shortest line between the two coasts.
   assert.ok(sea.corridor.halfWidthKm === 300 && count(sea) > 700 && count(sea) < 1000, `${count(sea)} tiles in the corridor`);
   for (const f of frames) assert.ok(regionFrameHasTile(f, 0, 0), `${f.id} holds its own centre`);
-  const nearCaren = regionTileAt(sea, 8.6, -6), nearGaryk = regionTileAt(sea, 12.8, -64.5), offLine = regionTileAt(sea, 25, -35), eastern = regionTileAt(caren, 5, 20);
+  const nearCaren = regionTileAt(sea, 8.6, -6), nearGaryk = regionTileAt(sea, 12.8, -64.5), offLine = regionTileAt(sea, 25, -35), gaffa = regionTileAt(caren, 5, 161);
   assert.ok(regionFrameHasTile(sea, nearCaren.tx, nearCaren.ty) && regionFrameHasTile(sea, nearGaryk.tx, nearGaryk.ty), "the corridor reaches both coasts");
   assert.ok(!regionFrameHasTile(sea, offLine.tx, offLine.ty), "open ocean away from the line is not in it");
-  assert.ok(!regionFrameHasTile(caren, eastern.tx, eastern.ty), "the eastern continent is in no frame");
+  assert.ok(!regionFrameHasTile(caren, gaffa.tx, gaffa.ty), "Gaffa is in no frame");
 });
 
 test("a region tile is its shapes: cover by the local layer's kinds, height, shade, and the town on it", () => {
