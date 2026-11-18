@@ -79,7 +79,7 @@ test("a local map on Caren's marble coast has its cliff, and the Region layer's 
   const tile = buildLocalTile(asset, { center: [-6.93, -3.73], sizeKm: 4, resolutionM: 25 });
   assert.ok(tile.cover.includes(COVER.rock) && !tile.cover.includes(COVER.beach), "rock at the water, no beach");
   assert.ok(Math.max(...tile.elevation) > 30);
-  assert.equal(REGION_MODEL, "eym-region-layer-v3");
+  assert.equal(REGION_MODEL, "eym-region-layer-v4");
   const frame = regionFrames(asset).find((f) => f.id === "garyk"), { tx, ty } = regionTileAt(frame, 14.25, -86.16), region = buildRegionTile(asset, frame, tx, ty);
   assert.ok(region.cover.filter((c) => c === COVER.marsh).length > 300, "the delta's marshes");
   assert.deepEqual(buildRegionTile(asset, frame, tx, ty).cover, region.cover, "the same tile every time");

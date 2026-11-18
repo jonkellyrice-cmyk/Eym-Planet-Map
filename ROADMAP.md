@@ -249,6 +249,8 @@ Done in 0.23.0: valleys, gorges and floodplains from the named rivers and a trac
 - Coastal forms by exposure and rock: beaches, cliffs, spits, estuaries.
 - The result feeds Region and Local terrain. If it changes Region tiles already stored, they are rendered again from the stored shapes, and the pull request says so.
 
+*Addendum: wind (owner's note, 18 November 2026; done in 0.24.0).* Wind erosion and deposition from the wind and climate of Stages 2a–2b, strongest where ground is dry and bare: deflation and desert pavement; yardangs where rock is soft; dune fields in dry regions and coastal dunes behind exposed beaches under strong onshore winds; loess blankets downwind of dust sources, fed into soil fertility. Coastal forms take their wave energy from Stage 2b's swell, not a fixed value. Outlines stay fixed. As expected on Eym: little inland; dunes on the coasts facing the trade winds and big seas; grassed dunes and a little loess in Garyk's dry-season north.
+
 ### Stage 4: rivers through the year
 
 - River flow by season from the seasonal rain and snowmelt: spring floods, low water, droughts.

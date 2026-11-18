@@ -4,6 +4,8 @@
 // this module reads it back at any place, for the Region, Local and battle maps, the architecture dossiers and
 // the "Here and now" card. Pure functions; nothing here is random.
 
+import { loessAt, windClimate } from "./eym-aeolian.mjs";
+
 const DEG = Math.PI / 180;
 
 /**
@@ -87,6 +89,7 @@ export const SOILS = Object.freeze({
   "stony-loam": "stony loam over schist and slate",
   "leached-humid": "leached, wet soil",
   "temperate-loam": "brown loam (good farmland)",
+  loess: "deep, wind-laid loess (very fertile, easily worked)",
 });
 
 /**
@@ -162,8 +165,11 @@ export function geologyAt(asset, lat, lon) {
   // A volcanic island too small for the 1° raster is still volcanic rock.
   let soil = L.soil.categories[L.soil.values[index]];
   if (!ROCKS[kind] && volcanoes[0]?.distanceKm <= 30) { kind = "volcanic"; soil = "volcanic-fertile"; }
+  // A blanket of wind-laid loess (scripts/eym-aeolian.mjs) a couple of metres or more deep is the soil, whatever lies beneath.
+  const climate = windClimate(asset), loessM = climate ? loessAt(climate, lat, lon) : 0;
+  if (loessM >= 2) soil = "loess";
   const rock = ROCKS[kind] ?? null;
-  return { bedrock: kind, rock, soil, soilWords: SOILS[soil] ?? soil, onGodstone: ["godstone-granite", "marble", "caren-limestone"].includes(kind), volcanoes };
+  return { bedrock: kind, rock, soil, loessM: Math.round(loessM * 10) / 10, soilWords: SOILS[soil] ?? soil, onGodstone: ["godstone-granite", "marble", "caren-limestone"].includes(kind), volcanoes };
 }
 
 /** The rock and ground at a place in one line, for the "Here and now" card. */

@@ -33,7 +33,7 @@ import { Framebuffer } from "./render/framebuffer.mjs";
 import { gzipSync } from "node:zlib";
 import { REGION_CELL_KM, REGION_MODEL, REGION_TILE_CELLS, buildRegionTile, flatRegionTile, regionFrameHasTile, regionFrames, renderRegionTile } from "../scripts/eym-region-layer.mjs";
 import { regionStore, sha256 } from "./region-store.mjs";
-import { attachDrainage, attachGeology, drainageFileName } from "../scripts/cartography-asset.mjs";
+import { attachDrainage, attachGeology, attachWind, drainageFileName, windFileName } from "../scripts/cartography-asset.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const hashText = (text) => { let a = 2166136261, b = 5381; for (let i = 0; i < text.length; i += 1) { const c = text.charCodeAt(i); a = Math.imul(a ^ c, 16777619); b = (Math.imul(b, 33) + c) | 0; } return (a >>> 0).toString(16).padStart(8, "0") + (b >>> 0).toString(16).padStart(8, "0"); };
@@ -167,6 +167,9 @@ export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (p
   // And its drainage (tools/generate-eym-drainage.mjs): the valleys of the Region layer, the local detail and battle maps.
   const drainageFile = join(dataDir, drainageFileName("eventide.json"));
   if (!data.drainage && existsSync(drainageFile)) attachDrainage(data, JSON.parse(readFileSync(drainageFile, "utf8")));
+  // And its wind climate (tools/generate-eym-wind.mjs): the waves on its coasts, its dunes and loess.
+  const windFile = join(dataDir, windFileName("eventide.json"));
+  if (!data.wind && existsSync(windFile)) attachWind(data, JSON.parse(readFileSync(windFile, "utf8")));
   mkdirSync(cacheDir, { recursive: true });
   const allowed = corsOrigins === "*" ? null : new Set(String(corsOrigins).split(",").map((s) => s.trim()).filter(Boolean));
   const inflight = new Map();

@@ -45,4 +45,9 @@ if (row.geography_input_fingerprint !== fingerprint) {
 const { drainageSourcesSha256 } = await import("./generate-eym-drainage.mjs");
 const readDrainage = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/abydos/eventide-drainage.json", root), "utf8")); } catch { return null; } };
 if (readDrainage()?.sourcesSha256 !== drainageSourcesSha256()) { run("tools/generate-eym-drainage.mjs"); changed = true; }
+// Eym's wind and wave climate (tools/generate-eym-wind.mjs) follows the weather, the sea and the land: made again
+// (about a minute and a half) when any of them changed.
+const { windSourcesSha256 } = await import("./generate-eym-wind.mjs");
+const readWind = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/abydos/eventide-wind.json", root), "utf8")); } catch { return null; } };
+if (readWind()?.sourcesSha256 !== windSourcesSha256()) { run("tools/generate-eym-wind.mjs"); changed = true; }
 console.log(changed ? "Eym's derived data was made again." : "Eym's derived data is up to date.");

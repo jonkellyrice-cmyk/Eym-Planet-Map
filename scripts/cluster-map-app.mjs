@@ -51,7 +51,7 @@ import { crossingPassage, placeSea } from "./eym-sea.mjs";
 import { battleTide, coastalResponse, createTideClock, tideReport } from "./eym-tides.mjs";
 import { describeGround, describeStone, geologyAt, localStonePrompt } from "./eym-geology.mjs";
 import { describeTremors, tremorsAt } from "./eym-quakes.mjs";
-import { attachDrainage, attachGeology, attachOcean, drainageFileName } from "./cartography-asset.mjs";
+import { attachDrainage, attachGeology, attachOcean, attachWind, drainageFileName, windFileName } from "./cartography-asset.mjs";
 import { sunAltitudeDeg, yearFraction } from "./eym-seasons.mjs";
 import { foliageSeason } from "./eym-battle-season.mjs";
 import { guardPageZoom } from "./zoom-guard.mjs";
@@ -349,9 +349,10 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   /**
-   * Eym's geology (rock, volcanoes, fault lines) and its drainage (the valleys its water has cut) are separate
-   * files, fetched the first time something asks about rock or earthquakes or draws the local detail
-   * (scripts/cartography-asset.mjs). Resolves once they are attached (or absent).
+   * Eym's geology (rock, volcanoes, fault lines), its drainage (the valleys its water has cut) and its wind
+   * climate (dunes, loess and the waves on its coasts) are separate files, fetched the first time something
+   * asks about rock or earthquakes or draws the local detail (scripts/cartography-asset.mjs). Resolves once
+   * they are attached (or absent).
    */
   #ensureEymGeology() {
     const asset = this._eymGeography;
@@ -363,7 +364,8 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       .catch((error) => { console.warn(`${MODULE_ID} | Eym's ${what} is unavailable`, error); });
     if (asset.geologyFile && !asset.geology) this._geologyLoading ??= load(asset.geologyFile, "geology", attachGeology).then(() => { if (!asset.geology) this._geologyLoading = null; });
     if (!asset.drainage) this._drainageLoading ??= load(drainageFileName(`${asset.body.toLowerCase()}.json`), "drainage", attachDrainage).then(() => { if (!asset.drainage) this._drainageLoading = null; });
-    return Promise.all([this._geologyLoading, this._drainageLoading]);
+    if (!asset.wind) this._windLoading ??= load(windFileName(`${asset.body.toLowerCase()}.json`), "wind climate", attachWind).then(() => { if (!asset.wind) this._windLoading = null; });
+    return Promise.all([this._geologyLoading, this._drainageLoading, this._windLoading]);
   }
 
   /**
@@ -1043,7 +1045,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       // Eym: real day and night and the seasons on the globe, kept current with the clock.
       window.clearInterval(this._bodyTicker); this._bodyTicker = null;
       if (object.name === "Eventide" && geography?.terrain?.coastlineSource === "vector") {
-        this._eymGeography = geography; this._geologyLoading = null; this._drainageLoading = null;
+        this._eymGeography = geography; this._geologyLoading = null; this._drainageLoading = null; this._windLoading = null;
         this._eymField = environmentField(geography); this._coverDay = null; this._weatherStep = null; this._weatherSnow = null;
         void this.#refreshBodyEnvironment().catch((error) => console.warn(`${MODULE_ID} | Unable to show day and night`, error));
         this._bodyTicker = window.setInterval(() => void this.#refreshBodyEnvironment().catch(() => {}), 10000);
