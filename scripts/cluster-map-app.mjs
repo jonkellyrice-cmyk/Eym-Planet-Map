@@ -48,6 +48,7 @@ import { battleArtDirection, battleGridSvg, battlePacket, battleReferenceSvg, ba
 import { BATTLE_SIZE_PRESETS, GRID_DENSITY_PRESETS, battleMapSpec } from "./eym-map-presets.mjs";
 import { placeHistory, describeWeather } from "./eym-weather.mjs";
 import { crossingPassage, placeSea } from "./eym-sea.mjs";
+import { battleTide, coastalResponse, createTideClock, tideReport } from "./eym-tides.mjs";
 import { describeGround, describeStone, geologyAt, localStonePrompt } from "./eym-geology.mjs";
 import { describeTremors, tremorsAt } from "./eym-quakes.mjs";
 import { attachGeology, attachOcean } from "./cartography-asset.mjs";
@@ -314,6 +315,8 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this._skyDocumentPromise ??= fetch(`modules/${MODULE_ID}/data/stellar/constellations.json`).then((r) => { if (!r.ok) throw new Error(`Sky data fetch failed (${r.status})`); return r.json(); });
     const [rows, orientationDocument, sky] = await Promise.all([this._registryPromise, this._astronomyOrientationsPromise, this._skyDocumentPromise]);
     const model = buildSystemModel(rows, HOME_SYSTEM.name, { referenceTimestampMs: t, orientations: orientationDocument.orientations });
+    // The tides need the Sun's and moons' places at any moment (scripts/eym-tides.mjs): the same registry and sky.
+    this._tideClock ??= createTideClock({ rows, orientations: orientationDocument.orientations, sky, system: HOME_SYSTEM.name });
     return { t, subsolar: subsolarPoint(model, sky) };
   }
 
@@ -374,6 +377,14 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       const element = this.element?.querySelector?.('[data-place-field="passage"]'); if (element) element.textContent = this._passageText;
     }, 0));
     return "…";
+  }
+
+  /** The tide on the coast nearest a place now (null inland or before the tide clock is ready); the coast's response is kept per place. */
+  #tideHere(latDeg, lonDeg) {
+    if (!this._tideClock || !this._eymGeography || !this._eymField || !this._sun) return null;
+    const key = `${latDeg.toFixed(3)},${lonDeg.toFixed(3)}`;
+    if (this._tideResponseKey !== key) { this._tideResponseKey = key; this._tideResponse = coastalResponse(this._eymGeography, this._eymField, latDeg, lonDeg); }
+    return this._tideResponse ? tideReport(this._tideClock, this._tideResponse, this._sun.t) : null;
   }
 
   /** Eym's ocean currents (a separate file, scripts/cartography-asset.mjs), fetched the first time a voyage needs them. */
@@ -757,13 +768,14 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const now = this._weather ? placeWeatherNow(this._weather, lat, lon, { subsolar: this._sun.subsolar, timeMs: this._sun.t }) : null;
     const history = this._weather ? placeHistory(this._weather, lat, lon) : null;
     const sea = this._weather && now ? placeSea(this._weather, lat, lon, { ...now, timeMs: this._sun.t }) : null;
+    const tide = this.#tideHere(lat, lon);
     const said = now ? describeWeather(now) : null;
     const report = placeReport({ field: this._eymField, subsolar: this._sun.subsolar, latDeg: lat, lonDeg: lon, timeMs: this._sun.t });
     const altitude = sunAltitudeDeg(lat, lon, this._sun.subsolar);
     // The season the trees and grass are in (light and shadow are Foundry's, live).
     const season = foliageSeason(lat, yearFraction(this._sun.t));
     return {
-      conditions: { snowDepthCm: history?.snowDepthCm ?? 0, ground: history?.ground ?? "dry", tempC: now?.tempC ?? report.values.temperature.nowC, precipKind: now?.precipMmH > 0.1 ? now.precipKind : null, precipMmH: now?.precipMmH ?? 0, windMs: now?.windMs ?? 0, thunder: Boolean(now?.thunder), fog: Boolean(now?.fog) || ((now?.humidity ?? 0) > 0.97 && (now?.windMs ?? 0) < 3), sunAltitudeDeg: altitude, season: report.season, sea: sea ? { words: sea.words, hsM: Math.round(sea.hsM * 10) / 10, swim: sea.swim } : null },
+      conditions: { snowDepthCm: history?.snowDepthCm ?? 0, ground: history?.ground ?? "dry", tempC: now?.tempC ?? report.values.temperature.nowC, precipKind: now?.precipMmH > 0.1 ? now.precipKind : null, precipMmH: now?.precipMmH ?? 0, windMs: now?.windMs ?? 0, thunder: Boolean(now?.thunder), fog: Boolean(now?.fog) || ((now?.humidity ?? 0) > 0.97 && (now?.windMs ?? 0) < 3), sunAltitudeDeg: altitude, season: report.season, sea: sea ? { words: sea.words, hsM: Math.round(sea.hsM * 10) / 10, swim: sea.swim } : null, tide: battleTide(tide) },
       season,
       words: { time: `${report.localTime}, ${report.season}; the sun ${report.sun}`, weather: said ? `${said.sky}${said.precip ? `, ${said.precip}` : ""}; wind ${said.wind}${sea ? `; the sea ${sea.words}` : ""}` : "", light: altitude >= 0 ? "daylight" : altitude > -6 ? "civil twilight (dim)" : altitude > -12 ? "dusk or dawn (dim to dark)" : "night (darkness, moonlight aside)" },
     };
@@ -935,6 +947,8 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       values.sea = sea ? `${sea.words[0].toUpperCase()}${sea.words.slice(1)}` : "Inland";
       values.passage = sea ? this.#passageHere(latDeg, lonDeg) : "—";
     }
+    const tide = this.#tideHere(latDeg, lonDeg);
+    values.tide = tide ? `${tide.words[0].toUpperCase()}${tide.words.slice(1)}` : "Inland";
     // The rock and soil here, and the earthquakes and eruptions of the last 30 days (worked out once a day per place).
     if (this._eymGeography.geologyFile && !this._eymGeography.geology) {
       // Not here yet: say so, and fill these in when it arrives.

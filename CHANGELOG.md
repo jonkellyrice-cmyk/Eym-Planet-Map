@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.22.0 (2026-11-18)
+
+Stage 2c of Eym's physical history: tides from the two moons and the Sun, and tidal flats on battle maps.
+
+- The tide-raising pull of Mitkear, the White Moon and the Red Moon (`scripts/eym-tides.mjs`), each from where it stands over Eym at the moment, from the same orbits as the night sky: the equilibrium tide in its twice-daily, daily and slow parts, reduced by the planet's elastic yielding. The White Moon pulls about 0.88 as hard as Earth's moon, the Red Moon and the Sun about half as hard. The White Moon's tide comes round every 12.4 hours and the Red Moon's every 13.4, so springs and neaps are uneven: some springs much bigger than others, some neaps almost still.
+- The tide on each coast: the ocean answers about 2.2 times the equilibrium tide, and a wide, shallow continental shelf (measured from Eym's sea floor) amplifies and delays it. Pouk, behind a 180 km shelf, has a mean range of about 2.2 m (0.5 m at neaps, up to 3.9 m at the greatest springs); Garyk's south-east port and open-ocean islands about 1 m; a few coasts off Caren and Gaffa 5–6 m at springs.
+- The "Here and now" card shows the tide on the nearest coast: the height now, rising or falling, the next high and low water (universal time), springs or neaps, and the day's range.
+- Coastal battle maps follow the tide by the hour: at low water the sea draws back over the shore, uncovering wet sand flats, tidal mud or weedy rock (difficult terrain; mud greater difficult); at high water the lower beach is shallow surf (difficult terrain); at half tide the map is as before. The waterline moves at a typical slope for the shore (sand 1 in 20, mud 1 in 250, rock 1 in 8). The brief gives the tide and when it turns, the painting prompt names the flats and surf, and the web app's map server passes the tide through.
+- Tests: a new `tests/eym-tides.test.mjs` (6 tests); `tests/release-package.test.mjs` updated for 0.22.0.
+
 ## 0.21.1 (2026-11-18)
 
 The rest of Stage 2b: low cloud, drizzle and sea fog over the oceans (the aquaplanet addendum).
