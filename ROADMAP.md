@@ -75,6 +75,7 @@ The order of work above comes first; the steps below are the fuller list it is d
 5. **The module reads the stored layers.** Zooming past the globe shows Region and then Local tiles from the web app; a chosen view is exported into the Foundry world as a picture or a scene. Outside Caren, Garyk and the sea between them, zoom stops where it does today. Only what is exported is kept in Foundry; the web app holds the rest.
 6. **Battle maps to their tier.** Dedicated sprites for the remaining features, autotiled ground transitions, animated water and fire, more building styles, then tiers 3 to 5 as chosen in step 2.
 7. **Polish.**
+   - Remove the temporary `GET /api/region/purge` endpoint (0.25.2; see `webapp/README.md`, "Purging old Region tiles") once the Region and Local layers' models have settled (after steps 4 and 5), or before the map server is opened to anyone else, whichever comes first. Until then keep `EYM_REGION_PURGE` unset except during a clean-up.
    - Names collide on the globe when zoomed on Caren, and in the sky with every name shown.
    - Dialogs (dossier manager, settings) and the window title bar are not parchment-styled.
    - About 3 MB of other bodies' cartography data is unused.

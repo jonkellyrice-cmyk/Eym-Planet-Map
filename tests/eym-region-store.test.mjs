@@ -22,6 +22,17 @@ function fakeSupabase() {
     const pub = /^\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/.exec(url.pathname);
     if (pub) return files.has(`${pub[1]}/${pub[2]}`) ? answer(200, files.get(`${pub[1]}/${pub[2]}`)) : answer(400, { error: "not_found" });
     if (headers.authorization !== "Bearer service-key-for-tests" || headers.apikey !== "service-key-for-tests") return answer(401, "no key");
+    const listing = /^\/storage\/v1\/object\/list\/([^/]+)$/.exec(url.pathname);
+    if (listing && method === "POST") {
+      // One level under the prefix, as Supabase lists it: files with an id, folders without.
+      const { prefix, limit, offset } = JSON.parse(init.body), under = `${listing[1]}/${prefix}/`, names = new Map();
+      for (const key of files.keys()) if (key.startsWith(under)) { const rest = key.slice(under.length), cut = rest.indexOf("/"); names.set(cut < 0 ? rest : rest.slice(0, cut), cut < 0 ? `id-${rest}` : null); }
+      return answer(200, [...names].sort(([a], [b]) => a.localeCompare(b)).slice(offset, offset + limit).map(([name, id]) => ({ name, id })));
+    }
+    if (method === "DELETE" && /^\/storage\/v1\/object\/[^/]+$/.test(url.pathname)) {
+      const bucket = url.pathname.split("/").pop(), gone = JSON.parse(init.body).prefixes.filter((path) => files.delete(`${bucket}/${path}`));
+      return answer(200, gone.map((name) => ({ name })));
+    }
     const obj = /^\/storage\/v1\/object\/([^/]+)\/(.+)$/.exec(url.pathname);
     if (obj && method === "POST") { files.set(`${obj[1]}/${obj[2]}`, Buffer.from(init.body)); return answer(200, {}); }
     if (url.pathname === "/rest/v1/eym_tiles" && method === "POST") { const row = JSON.parse(init.body); rows.set([row.layer, row.kind, row.z, row.x, row.y].join("|"), row); return answer(201); }
@@ -90,6 +101,32 @@ test("the map server serves region tiles and fills a frame a few tiles at a time
   const bare = createMapServer({ asset, cacheDir: mkdtempSync(join(tmpdir(), "eym-region-")), store: null }); await new Promise((resolve) => bare.listen(0, "127.0.0.1", resolve));
   try { const base = `http://127.0.0.1:${bare.address().port}`; assert.equal((await (await fetch(`${base}/api/region/frames`)).json()).stored, false); assert.equal((await fetch(`${base}/api/region/fill?frame=caren`)).status, 503); assert.equal((await fetch(`${base}/api/region/tile/caren/${home.tx}/${home.ty}.png?kind=flat`)).headers.get("x-eym-source"), "made"); }
   finally { await new Promise((resolve) => bare.close(resolve)); }
+});
+
+test("old Region models' files can be purged, only when switched on, only older models, and only when confirmed", async () => {
+  const fake = fakeSupabase(), cacheDir = mkdtempSync(join(tmpdir(), "eym-region-")), store = regionStore(ENV, fake.fetchImpl);
+  const old = ["caren/pixels/1_2.png", "caren/pixels/1_3.png", "garyk/pixels/-7_-7.png"];
+  for (const p of old) { fake.files.set(`eym-tiles/region/eym-region-layer-v2/${p}`, Buffer.from("old")); fake.files.set(`eym-shapes/region/eym-region-layer-v2/${p.replace("pixels", "shapes").replace(".png", ".json.gz")}`, Buffer.from("old")); }
+  fake.files.set(`eym-tiles/region/${REGION_MODEL}/caren/pixels/1_2.png`, Buffer.from("now")); fake.files.set("eym-tiles/region/eym-region-layer-v3/caren/pixels/1_2.png", Buffer.from("other"));
+  const kept = fake.files.size, off = createMapServer({ asset, cacheDir, store }), on = createMapServer({ asset, cacheDir, store, purge: true });
+  await Promise.all([off, on].map((s) => new Promise((resolve) => s.listen(0, "127.0.0.1", resolve))));
+  const at = (s, query) => fetch(`http://127.0.0.1:${s.address().port}/api/region/purge?${query}`);
+  try {
+    // Off unless the deployment switches it on.
+    assert.equal((await at(off, "model=eym-region-layer-v2&confirm=eym-region-layer-v2")).status, 403); assert.equal(fake.files.size, kept);
+    // Never the current model, a newer one, or anything that is not a model's name.
+    for (const model of [REGION_MODEL, "eym-region-layer-v99", "eym-region-layer-v2/..", "", "region"]) assert.equal((await at(on, `model=${encodeURIComponent(model)}&confirm=${encodeURIComponent(model)}`)).status, 400, model);
+    // Without confirm it only counts; with the wrong confirm too.
+    for (const query of ["model=eym-region-layer-v2", "model=eym-region-layer-v2&confirm=eym-region-layer-v3"]) {
+      const dry = await (await at(on, query)).json(); assert.equal(dry.dryRun, true); assert.deepEqual(dry.files, { "eym-tiles": 3, "eym-shapes": 3 }); assert.deepEqual(dry.deleted, { "eym-tiles": 0, "eym-shapes": 0 });
+    }
+    assert.equal(fake.files.size, kept);
+    // Confirmed: the old model's files go, from both buckets; the current model's and other old models' stay.
+    const done = await (await at(on, "model=eym-region-layer-v2&confirm=eym-region-layer-v2")).json();
+    assert.equal(done.dryRun, false); assert.deepEqual(done.deleted, { "eym-tiles": 3, "eym-shapes": 3 });
+    assert.deepEqual([...fake.files.keys()].sort(), ["eym-tiles/region/eym-region-layer-v3/caren/pixels/1_2.png", `eym-tiles/region/${REGION_MODEL}/caren/pixels/1_2.png`].sort());
+    assert.deepEqual((await (await at(on, "model=eym-region-layer-v2")).json()).files, { "eym-tiles": 0, "eym-shapes": 0 });
+  } finally { await Promise.all([off, on].map((s) => new Promise((resolve) => s.close(resolve)))); rmSync(cacheDir, { recursive: true, force: true }); }
 });
 
 test("a tile's shapes file holds everything needed to draw it again", () => {

@@ -45,6 +45,28 @@ export function regionStore(env = process.env, fetchImpl = globalThis.fetch) {
         if (rows.length < 1000) return made;
       }
     },
+    /** Every file under a folder of a bucket, at any depth, as full paths (Supabase lists one level at a time; folders have no id). */
+    async files(bucket, folder) {
+      const out = [], walk = async (prefix) => {
+        for (let offset = 0; ; offset += 1000) {
+          const r = await call(`/storage/v1/object/list/${bucket}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prefix, limit: 1000, offset, sortBy: { column: "name", order: "asc" } }) });
+          if (!r.ok) throw await fail("Listing the store", r);
+          const entries = await r.json();
+          for (const e of entries) { if (e.id) out.push(`${prefix}/${e.name}`); else await walk(`${prefix}/${e.name}`); }
+          if (entries.length < 1000) return;
+        }
+      };
+      await walk(folder.replace(/\/+$/, ""));
+      return out;
+    },
+    /** Delete files from a bucket by their full paths (at most 1000 a call). Returns how many the store says it removed. */
+    async remove(bucket, paths) {
+      if (!paths.length) return 0;
+      if (paths.length > 1000) throw new Error("At most 1000 files are removed at a time");
+      const r = await call(`/storage/v1/object/${bucket}`, { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ prefixes: paths }) });
+      if (!r.ok) throw await fail("Removing from the store", r);
+      return (await r.json()).length;
+    },
   };
 }
 
