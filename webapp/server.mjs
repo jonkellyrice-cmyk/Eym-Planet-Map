@@ -63,6 +63,9 @@ export function parseRequest(body) {
   // The sea (scripts/eym-sea.mjs): words, height and swimming, checked field by field.
   const sea = c.sea, swim = sea?.swim;
   if (sea && typeof sea.words === "string" && sea.words.length <= 200 && Number.isFinite(sea.hsM) && ["calm", "rough", "stormy"].includes(swim?.kind) && [10, 15, 20].includes(swim?.dc) && Number.isFinite(swim?.surfM)) conditions.sea = { words: sea.words, hsM: sea.hsM, swim: { kind: swim.kind, dc: swim.dc, surfM: swim.surfM } };
+  // The tide (scripts/eym-tides.mjs): its height and range, and when it turns, checked field by field.
+  const tide = c.tide;
+  if (tide && Number.isFinite(tide.heightM) && Math.abs(tide.heightM) <= 20 && Number.isFinite(tide.rangeM) && tide.rangeM >= 0 && tide.rangeM <= 40 && typeof tide.rising === "boolean" && typeof tide.turn === "string" && tide.turn.length <= 60) conditions.tide = { heightM: tide.heightM, rangeM: tide.rangeM, rising: tide.rising, turn: tide.turn };
   const spec = battleMapSpec({ size: "custom", columns, rows, density: "custom", gridPx });
   // Only the season: light, shadows, darkness and lamps are Foundry's, live.
   const season = normalizeSeason(body.season ?? body.light?.season, center[0]);

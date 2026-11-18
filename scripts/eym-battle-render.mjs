@@ -17,6 +17,8 @@ const GROUND_COLORS = Object.freeze({
   "deep water": "#2f6f96", river: "#4d8fbb", "shallow stream": "#6aa8cf", "frozen stream": "#cfe6f2", sand: "#e2cf98", marsh: "#6e8456", "wet meadow": "#869a5c",
   grass: "#93a862", field: "#c2b26c", scrub: "#7e9150", "forest floor": "#55703f", "bare rock": "#9a9184", snow: "#eef2f4", "deep snow": "#f7fafb", "glacier ice": "#cfe3ee",
   yard: "#a99a7a",
+  // The tide (scripts/eym-tides.mjs): flats the sea has left, and surf over the beach.
+  "wet sand (tidal flat)": "#b9a46e", "tidal mud": "#6f6248", "wet rock and weed": "#5f6b55", "shallow surf": "#7fb8cf",
   "canyon floor": "#c29a6a", "carved stone terrace": "#c8ab84", "monastery terrace": "#b9ad96", "lower terrace": "#a99d86", "stone stairs": "#d6c7a8", "marble quay": "#e2ddd2", canal: "#3f7f9a", "stone bridge": "#cfc6b4",
   "floating rock": "#8fa36a", "open sky (a fall)": "#bcd8f0", "open air (a fall)": "#1c1f26", "rope bridge": "#a07a4a", "stone arch": "#b0a690", "planar rift": "#5a2a8a", "cave floor": "#5e5a55", "cave wall": "#2b2826",
   "flagstone floor": "#8f877a", "carved wall": "#3a3632", "molten-metal channel": "#f0702a", "raised dais": "#a89c86", "tree platform": "#9a7448", ladder: "#7a5a36", "grave earth": "#6f6a52",

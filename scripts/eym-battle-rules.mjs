@@ -95,6 +95,55 @@ function groundFor(cover, setting, conditions) {
   return [ground, move];
 }
 
+// ---------------------------------------------------------------- the tide on the shore
+
+/** How far the shore runs out for each metre of tide (metres of ground): gentle sand, very flat mud, steep rock. */
+const SHORE_RUN = Object.freeze({ sand: 20, mud: 250, rock: 8 });
+const SHORE_GROUND = Object.freeze({ sand: ["wet sand (tidal flat)", COVER.beach, MOVE.difficult], mud: ["tidal mud", COVER.marsh, MOVE.greater], rock: ["wet rock and weed", COVER.rock, MOVE.difficult] });
+
+/**
+ * The tide on a map's shore. The sea floor falls away from the waterline, and the land rises from it, at the
+ * slope of the shore (sand, mud or rock: what lines most of the waterline). At low water (`tide.heightM` below
+ * mean sea level) the sea squares whose floor stands above the water become flats; at high water the beach and
+ * marsh squares below the water are covered (shallow surf). Changes the grid; returns what it did, or null.
+ */
+function applyTide(grid, columns, rows, tide) {
+  const h = tide?.heightM, n = columns * rows;
+  if (!Number.isFinite(h) || !grid.cover.some((c) => c === COVER.sea)) return null;
+  if (Math.abs(h) < 0.05) return { kind: null, low: false, squares: 0, reachFt: 0, mean: true };
+  const isSea = (i) => grid.cover[i] === COVER.sea, dist = new Int16Array(n).fill(-1), queue = [], shore = { sand: 0, mud: 0, rock: 0 };
+  const near = (i) => { const x = i % columns, y = Math.floor(i / columns), out = []; if (x > 0) out.push(i - 1); if (x < columns - 1) out.push(i + 1); if (y > 0) out.push(i - columns); if (y < rows - 1) out.push(i + columns); return out; };
+  // Squares on either side of the waterline are 1; distance grows away from it on each side.
+  for (let i = 0; i < n; i += 1) if (near(i).some((j) => isSea(j) !== isSea(i))) {
+    dist[i] = 1; queue.push(i);
+    if (!isSea(i) && !WATER.has(grid.cover[i])) shore[grid.cover[i] === COVER.beach ? "sand" : grid.cover[i] === COVER.marsh ? "mud" : "rock"] += 1;
+  }
+  for (let head = 0; head < queue.length; head += 1) { const i = queue[head]; for (const j of near(i)) if (dist[j] < 0 && isSea(j) === isSea(i)) { dist[j] = dist[i] + 1; queue.push(j); } }
+  const kind = Object.entries(shore).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0][0], drop = 1.524 / SHORE_RUN[kind];
+  let changed = 0, reach = 0;
+  for (let i = 0; i < n; i += 1) {
+    if (dist[i] < 0) continue;
+    const depth = (dist[i] - 0.5) * drop; // metres below (sea) or above (land) mean sea level
+    if (h < 0 && isSea(i) && depth < -h) {
+      const [ground, cover, move] = SHORE_GROUND[kind]; grid.cover[i] = cover; grid.ground[i] = ground; grid.move[i] = move; changed += 1; reach = Math.max(reach, dist[i]);
+    } else if (h > 0 && !isSea(i) && (grid.cover[i] === COVER.beach || grid.cover[i] === COVER.marsh) && depth < h) {
+      grid.cover[i] = COVER.sea; grid.ground[i] = "shallow surf"; grid.move[i] = MOVE.difficult; changed += 1; reach = Math.max(reach, dist[i]);
+    }
+  }
+  return { kind, low: h < 0, squares: changed, reachFt: reach * 5 };
+}
+
+/** The tide in a GM's note. */
+function tideNote(t, tide) {
+  const height = `${tide.heightM >= 0 ? "+" : "−"}${Math.abs(tide.heightM).toFixed(1)} m, ${tide.rising ? "rising" : "falling"}${tide.turn ? `; ${tide.turn}` : ""}`;
+  const flats = { sand: "wet sand flats", mud: "soft tidal mud (greater difficult terrain)", rock: "wet, weedy rock" }[t.kind];
+  if (t.mean) return `Half tide (${height}): the waterline is where the map shows it.`;
+  if (!t.squares) return `The tide is ${height}; the shore here is steep enough that the waterline hardly moves.`;
+  return t.low
+    ? `Low tide (${height}): the sea has drawn back up to ${t.reachFt} ft, uncovering ${t.squares} squares of ${flats}${t.kind === "mud" ? "" : " (difficult terrain)"}.`
+    : `High tide (${height}): the sea covers ${t.squares} squares of the shore, up to ${t.reachFt} ft in, as shallow surf (difficult terrain).`;
+}
+
 /** A blank grid of squares. */
 function makeGrid(columns, rows) {
   const n = columns * rows;
@@ -305,6 +354,9 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
     const [ground, move] = groundFor(site.squares[i], chosen, conditions); grid.cover[i] = site.squares[i]; grid.ground[i] = ground; grid.move[i] = move;
     grid.elevationFt[i] = clamp(Math.round((site.heights[i] - median) / 1.524) * 5, -30, 30);
   }
+  // The tide (scripts/eym-tides.mjs): at low water the sea draws back over the shore, uncovering flats; at high
+  // water it covers the lower beach. Shaped settings keep their own water.
+  const tided = rules.sculpt ? null : applyTide(grid, columns, rows, conditions.tide);
   // Shaped settings (canyon terraces, canals, sky islands, chasms, caverns, halls, treetops…) reshape the ground.
   const placed = [], fixedFeatures = [], sculptFeatures = [];
   let sculpt = {};
@@ -452,6 +504,7 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
   analysis.sight = sight; analysis.cliffEdges = cliffs.length; analysis.inclinedSquares = inclined;
   notes.push(...battleNotes(analysis, axis, placed, conditions, grid.ground.filter((g) => g.endsWith("(mud)")).length, grid.cover.filter((c) => c === COVER.sea).length));
   notes.push(...(sculpt.notes ?? []));
+  if (tided) notes.push(tideNote(tided, conditions.tide));
   if (inclineNote) notes.push(inclineNote);
   if (cliffs.length) notes.push(`${cliffs.length} cliff edges (10 ft or more): only stairs, ramps, ladders, a climb (up to 15 ft) or flight cross them.`);
   notes.push(`Line of sight: a standing creature sees about ${Math.round(sight.groundView * 100)}% of the field clearly; from the highest ground (${sight.highFt >= 0 ? "+" : ""}${sight.highFt} ft) ${Math.round(sight.highView * 100)}%; a flyer ${flyFt} ft over the centre ${Math.round(sight.flyView * 100)}%${sculpt.ceilingFt ? ` (the ceiling is ${sculpt.ceilingFt} ft)` : ""}.`);
