@@ -15,7 +15,8 @@ import { blendedShoreAt, cliffLiftM, nearestRiver, valleyAt, windWorkAt } from "
 // v2 (0.16.4): rivers from their channels, roads that follow the land, hills, hinterland farmland, smooth shore bands.
 // v3 (Stage 3): river valleys (floodplains, gorges) and coasts by exposure, rock and tide (scripts/eym-landforms.mjs).
 // v4 (Stage 3, wind): coasts by the swell and wind climate, coastal and inland dunes, loess (scripts/eym-aeolian.mjs).
-export const REGION_MODEL = "eym-region-layer-v4";
+// v5 (Stage 4): rivers as wide as the water they carry (scripts/eym-river-flow.mjs).
+export const REGION_MODEL = "eym-region-layer-v5";
 export const REGION_CELL_KM = 0.3, REGION_TILE_CELLS = 256, REGION_TILE_KM = REGION_CELL_KM * REGION_TILE_CELLS;
 const PAD = 2, DEG = Math.PI / 180, R_KM = 6371;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.25.1 (2026-11-18)
+
+- The Region layer moves to model v5 (`scripts/eym-region-layer.mjs`): 0.25.0 changed its rivers' widths but kept the model at v4, so the tiles already stored at v4 were never made again and the layer still showed the old widths. Under the new name every Region tile is made again with the rivers as wide as the water they carry, and pictures cached under the old name are no longer used.
+- Tests: `tests/eym-landforms.test.mjs` expects model v5 (updated, nothing loosened); `tests/release-package.test.mjs` updated for 0.25.1.
+
 ## 0.25.0 (2026-11-18)
 
 Stage 4 of Eym's physical history: rivers through the year. With it, the loose ends of Stage 3.
@@ -20,7 +25,7 @@ Stage 4 of Eym's physical history: rivers through the year. With it, the loose e
   - The tile store now dates a tile when it is made again, not when it was first made.
   - A battle map made again at the same place (under other weather, tide or river) reuses the land around it, so it comes some 80 times faster; the test suite takes half the time.
   - The 40 Region tiles of the strait between Caren and Garyk were rendered again at v4 (they had stayed at v2).
-- The Region layer stays at model v4, but its tiles change with the new river widths and are rendered again after this release.
+- The Region layer stays at model v4, but its tiles change with the new river widths and are rendered again after this release (0.25.1 moves it to v5 so that they are).
 - Tests: a new `tests/eym-river-flow.test.mjs` (6 tests); `tests/eym-region-store.test.mjs` checks that a tile is dated when it is made; `tests/release-package.test.mjs` updated for 0.25.0.
 
 ## 0.24.0 (2026-11-18)
