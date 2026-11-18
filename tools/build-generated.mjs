@@ -40,4 +40,9 @@ if (row.geography_input_fingerprint !== fingerprint) {
   run("tools/export-atlas-snapshots.mjs");
   changed = true;
 }
+// Eym's drainage (tools/generate-eym-drainage.mjs) follows the cartography: made again (about a minute) when the
+// cartography or the local detail's surface changed.
+const { drainageSourcesSha256 } = await import("./generate-eym-drainage.mjs");
+const readDrainage = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/abydos/eventide-drainage.json", root), "utf8")); } catch { return null; } };
+if (readDrainage()?.sourcesSha256 !== drainageSourcesSha256()) { run("tools/generate-eym-drainage.mjs"); changed = true; }
 console.log(changed ? "Eym's derived data was made again." : "Eym's derived data is up to date.");

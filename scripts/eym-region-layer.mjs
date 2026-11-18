@@ -9,10 +9,12 @@
 
 import { fromLocal, greatCircleKm, toLocal } from "./eym-surface.mjs";
 import { annualMeanTemperatureC } from "./eym-seasons.mjs";
-import { COVER, COVER_COLORS, coarseAt, globeNoise, hashUnit, localContext, roadsNear } from "./eym-local-detail.mjs";
+import { COVER, COVER_COLORS, coarseAt, coastDistanceKm, globeNoise, hashUnit, landformsOf, localContext, roadsNear } from "./eym-local-detail.mjs";
+import { blendedShoreAt, cliffLiftM, nearestRiver, valleyAt } from "./eym-landforms.mjs";
 
 // v2 (0.16.4): rivers from their channels, roads that follow the land, hills, hinterland farmland, smooth shore bands.
-export const REGION_MODEL = "eym-region-layer-v2";
+// v3 (Stage 3): river valleys (floodplains, gorges) and coasts by exposure, rock and tide (scripts/eym-landforms.mjs).
+export const REGION_MODEL = "eym-region-layer-v3";
 export const REGION_CELL_KM = 0.3, REGION_TILE_CELLS = 256, REGION_TILE_KM = REGION_CELL_KM * REGION_TILE_CELLS;
 const PAD = 2, DEG = Math.PI / 180, R_KM = 6371;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -23,6 +25,8 @@ const HINTERLAND_KM = 40; // how far from the nearest town fields still reach, t
 const BIOME_WOODS = { "tropical-rainforest": 0.85, "temperate-rainforest": 0.85, "temperate-forest": 0.7, taiga: 0.7, "seasonal-forest": 0.45, savanna: 0.15, steppe: 0.06, tundra: 0.03, "cold-desert": 0.02, "hot-desert": 0.01, "ice-cap": 0 };
 const SETTLEMENT_RADIUS_KM = { capital: 1.2, city: 0.75, port: 0.42, town: 0.38, fort: 0.16, village: 0.18 };
 const FARMLAND_KM = { capital: 14, city: 10, port: 6, town: 6, fort: 2, village: 4 };
+/** The ground each kind of shore gives (scripts/eym-landforms.mjs). */
+const SHORE_COVER = Object.freeze({ beach: COVER.beach, dunes: COVER.scrub, cliff: COVER.rock, marsh: COVER.marsh, mudflat: COVER.marsh, "delta-meadow": COVER.meadow });
 const SEA_NEAR_CELLS = 40; // 12 km: sea bands nearer the shore than this are measured exactly, with this margin round the tile
 
 // ---------------------------------------------------------------- frames and tiles
@@ -213,11 +217,26 @@ export function buildRegionTile(asset, frame, tx, ty) {
     const rough = 15 + 70 * f.relief + 120 * Math.max(0, f.relief - 1.5) ** 2;
     // Hill country: ridges and dells a few kilometres across, so uplands read as hills and not as a raised plain.
     const hills = 140 * Math.min(1, f.relief) * (1 - 2 * Math.abs(globeNoise(v, 9, 1.2, 17)));
-    height[i] = f.land ? Math.max(f.water ? 2 : 1, f.elevationM + rough * globeNoise(v, 6, 0.6, 11) + hills) : Math.min(-2, f.elevationM);
+    // The river's valley (scripts/eym-landforms.mjs): cut down, and smoothed on the floodplain.
+    f.valley = f.land ? valleyAt(nearestRiver(landformsOf(ctx), lat, lon), f, globeNoise(v, 2.5, 0.4, 29)) : null; const keep = f.valley ? f.valley.roughness : 1;
+    height[i] = f.land ? Math.max(f.water ? 2 : 1, f.elevationM - (f.valley ? f.valley.carveM : 0) + keep * (rough * globeNoise(v, 6, 0.6, 11) + hills)) : Math.min(-2, f.elevationM);
     facts[i] = f; elevation[i] = clamp(Math.round(height[i]), -32000, 32000);
   }
   const offshore = seaDistance(ctx, p, frame, tx, ty, x0, yTop, n, res); for (let i = 0; i < n * n; i += 1) coastKm[i] = facts[i].land ? Math.min(255, Math.round(facts[i].coastKm)) : Math.round(offshore[i]);
-  const seaAt = (r, c) => r >= 0 && c >= 0 && r < n && c < n && !facts[r * n + c].land;
+  // The shore (scripts/eym-landforms.mjs): within a few kilometres of the sea, measured exactly to the coastline
+  // (so neighbouring tiles agree), the coast's character sets the ground and its height.
+  const lf = landformsOf(ctx);
+  for (let i = 0; i < n * n; i += 1) {
+    const f = facts[i]; if (!f.land || f.water || f.coastKm > 27) continue;
+    const [lat, lon] = fromLocal(frame.center, ...cellXY(i % n, Math.floor(i / n)));
+    const seaKm = coastDistanceKm(ctx, lat, lon); if (seaKm > 25) continue;
+    // Only a cliff coast's lift reaches far inland.
+    const lift = cliffLiftM(lf, lat, lon, f.relief, seaKm, res); if (lift > 0) { height[i] += lift; elevation[i] = clamp(Math.round(height[i]), -32000, 32000); }
+    if (seaKm > 12) continue;
+    const s = blendedShoreAt(lf, lat, lon, f.relief, seaKm, globeNoise(f.v, 2.5, 0.15, 7), height[i], res, globeNoise(f.v, 0.4, 0.05, 9));
+    if (!s) continue;
+    f.shore = s.ground; if (s.elevationM != null) { height[i] = Math.max(1, s.elevationM); elevation[i] = clamp(Math.round(height[i]), -32000, 32000); }
+  }
   for (let r = 0; r < n; r += 1) for (let c = 0; c < n; c += 1) {
     const i = r * n + c, f = facts[i];
     if (!f.land) { cover[i] = COVER.sea; continue; }
@@ -235,12 +254,14 @@ export function buildRegionTile(asset, frame, tx, ty) {
     let townKm = Infinity; for (const s of towns) townKm = Math.min(townKm, Math.hypot(x - s.x, y - s.y));
     const arable = (BIOME_FARMS[f.biome] ?? 0) * clamp(1 - e / 1400, 0, 1) * clamp(1 - Math.max(0, f.relief - 0.4), 0, 1) * clamp((f.precipMm - 350) / 400, 0, 1);
     farming = Math.max(farming, 0.42 * arable * clamp(1 - townKm / HINTERLAND_KM, 0, 1));
-    const rugged = Math.max(f.relief, f.reliefClass), shoreline = seaAt(r - 1, c) || seaAt(r + 1, c) || seaAt(r, c - 1) || seaAt(r, c + 1);
+    const rugged = Math.max(f.relief, f.reliefClass);
     if (temp < -3 || (f.relief > 2.4 && temp < 1)) cover[i] = COVER.snow;
     else if (slope > 0.45 || (rugged > 1.8 && n1 > 0.25)) cover[i] = COVER.rock;
     else if (settled < 1 + 0.35 * n1) cover[i] = COVER.built;
-    else if (shoreline && e < 8 && n2 > -0.15) cover[i] = COVER.beach;
+    else if (f.shore && SHORE_COVER[f.shore] !== undefined) cover[i] = SHORE_COVER[f.shore];
     else if (slope < 0.01 && e < 14 && f.precipMm > 900 && n1 > 0.28) cover[i] = COVER.marsh;
+    // Floodplains: backswamps beside the river in wet country.
+    else if (f.valley?.inner && f.valley.widthM >= 200 && slope < 0.02 && f.precipMm > 900 && n1 > 0.25 && farming < 0.2) cover[i] = COVER.marsh;
     else {
       const woods = clamp((BIOME_WOODS[f.biome] ?? 0.4) * 0.6 + (0.6 * f.forestShare + 0.4 * (f.forestMask ? 1 : 0)) * 0.55 - (temp < 2 ? 0.4 : 0), 0, 1);
       if (slope < 0.14 && farming > 0 && n1 * 0.6 + n2 * 0.25 + farming > 0.3 + 0.3 * f.forestShare) cover[i] = COVER.farmland;

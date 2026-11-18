@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.23.0 (2026-11-18)
+
+Stage 3 of Eym's physical history: erosion and landforms. Coastlines are unchanged; the land behind them is reshaped.
+
+- Valleys (`scripts/eym-landforms.mjs`): every river cuts a valley sized to its width and the land it drains. In the lowlands it lies in a broad, flat floodplain a few metres to some tens of metres below the land around it, with backswamp marsh beside rivers 200 m wide or more; in high, rough country it cuts a narrow gorge, up to about 430 m deep in Garyk's mountains.
+- Drainage: besides the named rivers, the water of every mainland is traced downhill on the 2.2 km lattice (`tools/generate-eym-drainage.mjs`) to 2,443 channels draining at least 800 km² each, which meander and cut their own valleys. They are kept in a file of their own, `data/planet-cartography/abydos/eventide-drainage.json` (313 KB, loaded with the geology); `npm run build` makes it again whenever what it is made from changes.
+- Coasts by exposure, rock and tide: each stretch of coast is a beach (dunes behind the most exposed), cliffs (hard rock or rough country; the land behind stands 12–150 m higher), a salt marsh with mudflats (sheltered coasts with big tides), an estuary or a delta (the mouths of big rivers). Caren's coast is mostly beach, with marble cliffs in the south-west, salt marsh in its western bay and two estuaries; Garyk's has metamorphic cliffs in the west and deltas. Neighbouring stretches blend into each other rather than meeting at a line.
+- Battle maps and local maps everywhere near a river or the sea change: valleys, floodplain marsh, cliffs, dunes, marsh and mudflat, and streams that wind across flat ground instead of running in straight lines.
+- The Region layer moves to model v3 (`eym-region-layer-v3`), so its tiles have new paths in the tile store and are rendered again from the stored shapes after this release.
+- Not in this stage: river terraces (tried, and removed because they drew step lines across the map) and spits.
+- Tests: a new `tests/eym-landforms.test.mjs` (6 tests); `tests/release-package.test.mjs` updated for 0.23.0.
+
 ## 0.22.0 (2026-11-18)
 
 Stage 2c of Eym's physical history: tides from the two moons and the Sun, and tidal flats on battle maps.

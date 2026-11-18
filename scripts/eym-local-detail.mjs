@@ -12,6 +12,7 @@
 import { fromLocal, greatCircleKm, toLocal } from "./eym-surface.mjs";
 import { riverCourses } from "./eym-river-courses.mjs";
 import { annualMeanTemperatureC, environmentField, zonalPrecipitationMm } from "./eym-seasons.mjs";
+import { blendedShoreAt, cliffLiftM, landformContext, nearestRiver, valleyAt } from "./eym-landforms.mjs";
 
 export const LOCAL_DETAIL_MODEL = "eym-local-detail-v1";
 const DEG = Math.PI / 180;
@@ -123,6 +124,10 @@ function node(ctx, i, j) {
   return v;
 }
 
+/** The coarse facts at a node of the pinned 0.02° lattice (row i = lat / 0.02°, column j = lon / 0.02°). */
+export const latticeNode = (ctx, i, j) => node(ctx, i, j);
+export { LATTICE_DEG };
+
 const bspline = (t) => [(1 - t) ** 3 / 6, (3 * t ** 3 - 6 * t ** 2 + 4) / 6, (-3 * t ** 3 + 3 * t ** 2 + 3 * t + 1) / 6, t ** 3 / 6];
 
 /**
@@ -147,12 +152,25 @@ export function coarseAt(ctx, lat, lon) {
 
 const BIOME_WOODS = { "tropical-rainforest": 0.85, "temperate-rainforest": 0.85, "temperate-forest": 0.7, taiga: 0.7, "seasonal-forest": 0.45, savanna: 0.15, steppe: 0.06, tundra: 0.03, "cold-desert": 0.02, "hot-desert": 0.01, "ice-cap": 0 };
 
-/** Fine elevation (m) at a point: the coarse surface plus relief-scaled detail down to `shortKm`. */
-export function elevationAt(ctx, lat, lon, shortKm = 0.02) {
+/** Distance (km) from a point to the nearest coastline, searched out to 160 km. */
+export const coastDistanceKm = (ctx, lat, lon) => coastKm(ctx, lat, lon);
+/** The landforms (scripts/eym-landforms.mjs) for a context: its river valleys and the character of its coasts. */
+export const landformsOf = (ctx) => landformContext(ctx, (lat, lon) => coastKm(ctx, lat, lon));
+
+/**
+ * The terrain at a point: the coarse surface plus relief-scaled detail down to `shortKm`, cut by the valley of
+ * the nearest river (Stage 3: a floodplain is flat and low, a gorge deep). Returns { elevationM, valley, coarse }.
+ */
+export function terrainAt(ctx, lat, lon, shortKm = 0.02) {
   const c = coarseAt(ctx, lat, lon), p = toKmVector(lat, lon);
   const rough = 15 + 70 * c.relief + 120 * Math.max(0, c.relief - 1.5) ** 2;
-  return c.elevationM + rough * globeNoise(p, 6, Math.max(shortKm, 0.01), 11) + 4 * globeNoise(p, 0.4, Math.max(shortKm, 0.005), 23);
+  const valley = c.land ? valleyAt(nearestRiver(landformsOf(ctx), lat, lon), c, globeNoise(p, 2.5, 0.4, 29)) : null, keep = valley ? valley.roughness : 1;
+  const elevationM = c.elevationM - (valley ? valley.carveM : 0) + keep * rough * globeNoise(p, 6, Math.max(shortKm, 0.01), 11) + (0.4 + 0.6 * keep) * 4 * globeNoise(p, 0.4, Math.max(shortKm, 0.005), 23);
+  return { elevationM, valley, coarse: c };
 }
+
+/** Fine elevation (m) at a point (see terrainAt). */
+export function elevationAt(ctx, lat, lon, shortKm = 0.02) { return terrainAt(ctx, lat, lon, shortKm).elevationM; }
 
 // ---------------------------------------------------------------- tiles
 
@@ -162,6 +180,9 @@ class MinHeap {
   pop() { const a = this.a, top = a[0], last = a.pop(); if (a.length) { a[0] = last; let n = 0; for (;;) { const l = 2 * n + 1, r = l + 1; let m = n; if (l < a.length && this.keys[a[l]] < this.keys[a[m]]) m = l; if (r < a.length && this.keys[a[r]] < this.keys[a[m]]) m = r; if (m === n) break; [a[m], a[n]] = [a[n], a[m]]; n = m; } } return top; }
   get size() { return this.a.length; }
 }
+
+/** The ground each kind of shore gives (scripts/eym-landforms.mjs); a cliff is rock, dunes are scrub and grass. */
+const SHORE_COVER = Object.freeze({ beach: COVER.beach, dunes: COVER.scrub, cliff: COVER.rock, marsh: COVER.marsh, mudflat: COVER.marsh, "delta-meadow": COVER.meadow });
 
 /** Built-up radius and the farmland around it (km), by settlement kind; pre-modern towns are compact. */
 const SETTLEMENT_RADIUS_M = { capital: 1200, city: 750, port: 420, town: 380, fort: 160, village: 180 };
@@ -261,10 +282,10 @@ export function buildLocalTile(asset, { center, sizeKm = 8, resolutionM = 25, ma
   const shore = roughen(landMask), lakeShore = roughen(waterMask);
   const facts = new Array(n * n);
   for (let r = 0; r < n; r += 1) for (let c = 0; c < n; c += 1) {
-    const i = r * n + c, [lat, lon] = latlon(c, r), f = coarseAt(ctx, lat, lon);
+    const i = r * n + c, [lat, lon] = latlon(c, r), t = terrainAt(ctx, lat, lon, res * 2), f = { ...t.coarse, valley: t.valley };
     f.land = Boolean(shore[i]); f.water = f.land && Boolean(lakeShore[i]); f.forestMask = Boolean(forestMask[i]);
     f.reliefClass = reliefMasks[2][i] ? 3 : reliefMasks[1][i] ? 2 : reliefMasks[0][i] ? 1 : 0;
-    facts[i] = f; elevation[i] = f.land ? Math.max(f.water ? 2 : 1, elevationAt(ctx, lat, lon, res * 2)) : Math.min(-2, f.elevationM);
+    facts[i] = f; elevation[i] = f.land ? Math.max(f.water ? 2 : 1, t.elevationM) : Math.min(-2, f.elevationM);
     land[i] = f.land && !f.water ? 1 : 0;
   }
   // Distance to the sea within the tile, for beaches.
@@ -273,6 +294,19 @@ export function buildLocalTile(asset, { center, sizeKm = 8, resolutionM = 25, ma
   for (const pass of [0, 1]) for (let k = 0; k < n * n; k += 1) {
     const i = pass ? n * n - 1 - k : k, r = Math.floor(i / n), c = i % n; if (!seaKm[i]) continue;
     for (const [dr, dc, w] of pass ? [[0, 1, 1], [1, 0, 1], [1, 1, 1.414], [1, -1, 1.414]] : [[0, -1, 1], [-1, 0, 1], [-1, -1, 1.414], [-1, 1, 1.414]]) { const rr = r + dr, cc = c + dc; if (rr >= 0 && cc >= 0 && rr < n && cc < n) seaKm[i] = Math.min(seaKm[i], seaKm[rr * n + cc] + w * res); }
+  }
+  // The shore (scripts/eym-landforms.mjs): cliffs, beaches and dunes, salt marsh and mudflats, estuaries and deltas,
+  // by the coast's exposure, rock and tide; the ground near the sea takes the shore's height.
+  const lf = landformsOf(ctx);
+  for (let i = 0; i < n * n; i += 1) {
+    const f = facts[i]; if (!f.land || f.water || seaKm[i] > 25) continue;
+    const r = Math.floor(i / n), c = i % n, [lat, lon] = latlon(c, r);
+    // Only a cliff coast's lift reaches far inland.
+    elevation[i] += cliffLiftM(lf, lat, lon, f.relief, seaKm[i]);
+    if (seaKm[i] > 10) continue;
+    const v = toKmVector(lat, lon), s = blendedShoreAt(lf, lat, lon, f.relief, seaKm[i], globeNoise(v, 2.5, 0.15, 7), elevation[i], 0, globeNoise(v, 0.4, 0.05, 9));
+    if (!s) continue;
+    f.shore = s.ground; if (s.elevationM != null) elevation[i] = Math.max(1, s.elevationM);
   }
   // Known rivers burned in as water.
   const localOf = (p) => toLocal(center, p[0], p[1]);
@@ -291,12 +325,17 @@ export function buildLocalTile(asset, { center, sizeKm = 8, resolutionM = 25, ma
     }
   }
   // Water runs downhill over the refined land (priority flood from the sea, lakes, rivers and the tile's edge).
-  const filled = new Float32Array(n * n), done = new Uint8Array(n * n), receiver = new Int32Array(n * n).fill(-1), order = [], heap = new MinHeap(filled);
+  const filled = new Float32Array(n * n), done = new Uint8Array(n * n), receiver = new Int32Array(n * n).fill(-1), order = [], visit = new Float32Array(n * n), heap = new MinHeap(visit);
   const outlet = (i) => !land[i] || riverMask[i];
-  for (let i = 0; i < n * n; i += 1) { const r = Math.floor(i / n), c = i % n; if (outlet(i) || r === 0 || c === 0 || r === n - 1 || c === n - 1) { filled[i] = outlet(i) ? Math.min(elevation[i], 0) : elevation[i]; done[i] = 1; heap.push(i); } }
+  // A flat (a filled hollow, a floodplain floor, a salt marsh) taken in even steps sends the water in ruler-straight lines
+  // along the grid. The flood visits squares by their fill plus a small fixed jitter (up to 2 cm a step, keyed to the
+  // place), so a flat drains in branches; the fill itself, which makes ponds, is left as it was.
+  const jitter = new Float32Array(n * n);
+  for (let i = 0; i < n * n; i += 1) { const [lat, lon] = latlon(i % n, Math.floor(i / n)); let h = Math.imul(Math.round(lat * 20000) ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(Math.round(lon * 20000) ^ 0xc2b2ae35, 0x27d4eb2f); h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d); h ^= h >>> 13; jitter[i] = 0.02 * (h >>> 0) / 4294967296; }
+  for (let i = 0; i < n * n; i += 1) { const r = Math.floor(i / n), c = i % n; if (outlet(i) || r === 0 || c === 0 || r === n - 1 || c === n - 1) { filled[i] = outlet(i) ? Math.min(elevation[i], 0) : elevation[i]; visit[i] = filled[i]; done[i] = 1; heap.push(i); } }
   while (heap.size) {
     const i = heap.pop(); order.push(i); const r = Math.floor(i / n), c = i % n;
-    for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) { const rr = r + dr, cc = c + dc; if (rr < 0 || cc < 0 || rr >= n || cc >= n) continue; const j = rr * n + cc; if (done[j]) continue; done[j] = 1; filled[j] = Math.max(elevation[j], filled[i] + 0.001); receiver[j] = i; heap.push(j); }
+    for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) { const rr = r + dr, cc = c + dc; if (rr < 0 || cc < 0 || rr >= n || cc >= n) continue; const j = rr * n + cc; if (done[j]) continue; done[j] = 1; filled[j] = Math.max(elevation[j], filled[i] + 0.001); visit[j] = Math.max(elevation[j], visit[i] + 0.001 + jitter[j]); receiver[j] = i; heap.push(j); }
   }
   const area = new Float32Array(n * n), cellKm2 = res * res;
   for (let k = order.length - 1; k >= 0; k -= 1) { const i = order[k]; area[i] += cellKm2; if (receiver[i] >= 0) area[receiver[i]] += area[i]; }
@@ -336,8 +375,10 @@ export function buildLocalTile(asset, { center, sizeKm = 8, resolutionM = 25, ma
     if (temp < -3 || (f.relief > 2.4 && temp < 1)) cover[i] = COVER.snow;
     else if (slope > 0.75 || (Math.max(f.relief, f.reliefClass) > 1.8 && n1 > 0.25)) cover[i] = COVER.rock;
     else if (settled < 1 + 0.35 * n1) cover[i] = COVER.built;
-    else if (seaKm[i] < 0.12 + 0.08 * n2 && e < 8) cover[i] = COVER.beach;
+    else if (f.shore && SHORE_COVER[f.shore] !== undefined) cover[i] = SHORE_COVER[f.shore];
     else if (slope < 0.02 && wet > 0.8 && f.precipMm > 900 && n1 > -0.1) cover[i] = COVER.marsh;
+    // Floodplains: wet, flat ground beside the river; backswamps in wet country.
+    else if (f.valley?.inner && f.valley.widthM >= 200 && slope < 0.04 && f.precipMm > 900 && n1 > 0.25 && farming < 0.2) cover[i] = COVER.marsh;
     else {
       const woods = clamp((BIOME_WOODS[f.biome] ?? 0.4) * 0.6 + (0.6 * f.forestShare + 0.4 * (f.forestMask ? 1 : 0)) * 0.55 + 0.25 * wet - (temp < 2 ? 0.4 : 0), 0, 1);
       // Towns clear the land around them, forest or not; fields thin out with distance and on slopes.

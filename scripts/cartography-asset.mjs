@@ -55,5 +55,11 @@ export function attachGeology(asset, document) {
   return asset;
 }
 
+/** The drainage file's name beside an asset's ("eventide.json" → "eventide-drainage.json"): the valleys the land's water has cut (tools/generate-eym-drainage.mjs), loaded for the local detail, the Region layer and battle maps. */
+export const drainageFileName = (assetPath) => assetPath.replace(/^.*\//, "").replace(/\.json$/, "-drainage.json");
+
+/** Put a drainage document into its asset (returns the asset). */
+export function attachDrainage(asset, document) { if (document) asset.drainage = document; return asset; }
+
 /** Whether an asset has geology, loaded or not (the globe draws its sea floor from the plates when it has). */
 export const hasGeology = (asset) => Boolean(asset?.geology || asset?.geologyFile);
