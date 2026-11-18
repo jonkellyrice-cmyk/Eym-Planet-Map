@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.25.2 (2026-11-18)
+
+- A temporary, guarded endpoint to delete the stored files of old Region models (`GET /api/region/purge` in `webapp/server.mjs`, with `files` and `remove` in `webapp/region-store.mjs`). Each model keeps its tiles in its own folder, and v1 to v4 hold some 230 MB nothing reads. It is off unless the deployment sets `EYM_REGION_PURGE=on`, only takes a model older than the server's own, only counts unless `confirm` repeats the model's name, and touches only that model's folder in the two Region buckets. It is to be removed once the layers' models settle; `webapp/README.md` ("Purging old Region tiles") and step 7 of `ROADMAP.md` say when.
+- Tests: `tests/eym-region-store.test.mjs` gains a test of the endpoint and its guards (its stand-in for Supabase learns to list and delete files); `tests/release-package.test.mjs` updated for 0.25.2.
+
 ## 0.25.1 (2026-11-18)
 
 - The Region layer moves to model v5 (`scripts/eym-region-layer.mjs`): 0.25.0 changed its rivers' widths but kept the model at v4, so the tiles already stored at v4 were never made again and the layer still showed the old widths. Under the new name every Region tile is made again with the rivers as wide as the water they carry, and pictures cached under the old name are no longer used.

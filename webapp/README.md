@@ -39,6 +39,10 @@ cache in milliseconds.
 | POST | `/api/battle-maps` | `{ center: [lat, lon], columns, rows, gridPx, setting, extras, conditions, tier }` → manifest |
 | GET | `/api/battle-maps/:id` | manifest |
 | GET | `/api/battle-maps/:id/files/:name` | a layer (PNG) |
+| GET | `/api/region/frames` | the Region layer's model, frames and whether a store is set up |
+| GET | `/api/region/tile/:frame/:tx/:ty.png` | one Region tile (`?kind=pixels` or `flat`), from the store or made |
+| GET | `/api/region/fill?frame=&start=&count=&ms=` | make and keep a frame's tiles not yet in the store, a batch at a time |
+| GET | `/api/region/purge?model=&confirm=` | **temporary**, off by default: delete an old Region model's stored files (see below) |
 
 The manifest lists the layers: `exterior` (outside with roofs), `ground` (outside with every building
 opened), `roofs[floor]` (roofs alone, for Foundry's roof layer), `floors[floor]` (upper floors over
@@ -103,6 +107,32 @@ only where it stands taller than a light that reaches it on its floor:
 
 Not yet verified in a running Foundry v14: these walls follow the v14 data types; the behaviour has not
 been tried live.
+
+## Purging old Region tiles (temporary: remove this endpoint)
+
+Each Region model keeps its tiles in its own folder (`region/<model>/…` in the `eym-tiles` and `eym-shapes`
+buckets), so a new model leaves the old one's files behind: by 0.25.1, v1 to v4 held some 230 MB nobody reads.
+`GET /api/region/purge` deletes them. It exists only while the layers' models keep changing during development,
+and it is guarded:
+
+- **Off unless switched on.** It answers 403 unless the deployment sets `EYM_REGION_PURGE=on` (Vercel project
+  settings, then a redeploy). Set it only for a clean-up, and unset it again afterwards.
+- **Old models only.** `model` must name a Region model older than the server's own (`eym-region-layer-v1` while
+  v5 is current); the current model, a newer one or anything else is refused.
+- **A dry run unless confirmed.** Without `confirm` repeating the model's name, it only counts the files.
+- **Nothing else.** It touches only `region/<model>/` in the two Region buckets. The `eym_tiles` table needs no
+  change: it holds one row per tile, already naming the current model.
+
+```
+/api/region/purge?model=eym-region-layer-v2                              → { dryRun: true, files: {…} }
+/api/region/purge?model=eym-region-layer-v2&confirm=eym-region-layer-v2  → { dryRun: false, deleted: {…} }
+```
+
+**Remove this endpoint** (the route in `server.mjs`, `files` and `remove` in `region-store.mjs` if nothing else
+uses them, its test in `tests/eym-region-store.test.mjs`, and this section) once the Region and Local layers'
+models have settled: when the Local layer is rendered and stored (roadmap step 4) and the module reads the stored
+layers (step 5), or before the map server is opened to anyone else, whichever comes first. It is listed under
+step 7 of `ROADMAP.md` so that it is not forgotten.
 
 ## On Vercel
 

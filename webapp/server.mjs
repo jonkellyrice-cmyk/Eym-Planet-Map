@@ -133,6 +133,8 @@ export function createMapServer(options = {}) { return createServer(createMapHan
 const REGION_KINDS = Object.freeze({ pixels: renderRegionTile, flat: flatRegionTile });
 /** Where a region tile's picture is kept (the rules' version is in the path: new rules, new tiles). */
 export const regionTilePath = (frame, kind, tx, ty) => `region/${REGION_MODEL}/${frame}/${kind}/${tx}_${ty}.png`;
+/** Whether a Region model name is an older one than the server's own (only those may be purged). */
+export const olderRegionModel = (model) => { const m = /^eym-region-layer-v(\d{1,4})$/.exec(String(model)), now = Number(/v(\d+)$/.exec(REGION_MODEL)[1]); return Boolean(m) && Number(m[1]) < now; };
 const b64 = (array) => Buffer.from(array.buffer, array.byteOffset, array.byteLength).toString("base64");
 /** A tile's shapes as a file: JSON (the arrays in base64), gzipped. */
 export function regionShapesFile(tile) {
@@ -162,7 +164,7 @@ export async function regionTilePicture(asset, frames, store, frameId, tx, ty, k
 }
 
 /** The request handler: (req, res), for a Node server or a Vercel function. */
-export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (process.env.VERCEL ? "/tmp/eym-map-cache" : join(HERE, "cache")), corsOrigins = process.env.CORS_ORIGINS ?? "*", store = regionStore() } = {}) {
+export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (process.env.VERCEL ? "/tmp/eym-map-cache" : join(HERE, "cache")), corsOrigins = process.env.CORS_ORIGINS ?? "*", store = regionStore(), purge = process.env.EYM_REGION_PURGE === "on" } = {}) {
   const dataDir = join(HERE, "..", "data", "planet-cartography", "abydos");
   const data = asset ?? JSON.parse(readFileSync(join(dataDir, "eventide.json"), "utf8"));
   // Eym's geology lives in its own file beside the asset (scripts/cartography-asset.mjs): battle maps need its rock.
@@ -237,6 +239,28 @@ export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (p
             if (made.sea) out.sea += 1; else if (made.source === "made and kept" || made.source === "store") out.kept += 1; else { out.errors.push(`${tx},${ty}: ${made.error ?? "not kept"}`); if (out.errors.length >= 3) break; }
           }
           return { ...out, done: out.next >= total, ms: Date.now() - began };
+        }));
+        return send(res, 200, report);
+      }
+      // TEMPORARY (0.25.2), to be removed once the layers' models settle: see webapp/README.md, "Purging old Region
+      // tiles". Deletes the stored files of a Region model older than this server's, from the two Region buckets
+      // only. Off unless the deployment sets EYM_REGION_PURGE=on; a dry run (counts only) unless confirm repeats the
+      // model's name; never the current model or a newer one. The table needs nothing: its rows are one per tile
+      // and already name the current model.
+      if (req.method === "GET" && path === "/api/region/purge") {
+        if (!purge) return send(res, 403, { error: "purging is off (set EYM_REGION_PURGE=on for the deployment to turn it on)" });
+        if (!store) return send(res, 503, { error: "no store is set up (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)" });
+        const model = url.searchParams.get("model") ?? "";
+        if (!olderRegionModel(model)) return send(res, 400, { error: `model must be an older Region model than ${REGION_MODEL}, such as eym-region-layer-v1` });
+        const confirmed = url.searchParams.get("confirm") === model, folder = `region/${model}`;
+        const report = await (queue = queue.then(async () => {
+          const out = { model, current: REGION_MODEL, dryRun: !confirmed, files: {}, deleted: {} };
+          for (const bucket of [store.buckets.tiles, store.buckets.shapes]) {
+            const paths = (await store.files(bucket, folder)).filter((p) => p.startsWith(`${folder}/`));
+            out.files[bucket] = paths.length; out.deleted[bucket] = 0;
+            if (confirmed) for (let k = 0; k < paths.length; k += 1000) out.deleted[bucket] += await store.remove(bucket, paths.slice(k, k + 1000));
+          }
+          return out;
         }));
         return send(res, 200, report);
       }
