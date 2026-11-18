@@ -21,7 +21,7 @@ for (let k = 0; k < 6 * 350 * 4; k += 1) { // six years, every 6 hours
     const lat = -90 + band * WIDTH + ((k * 7 + j * 3) % 25) / 25 * WIDTH, lon = -180 + ((j * 30 + k * 13) % 360);
     const cell = field.cellAt(lat, lon);
     const solarHour = (j * 5 + k * 6) % 24;
-    const w = weatherAt(systems, lat, lon, { cell, declinationDeg, solarHour, timeMs: t });
+    const w = weatherAt(systems, lat, lon, { cell, declinationDeg, solarHour, timeMs: t, anomalyC: field.anomalyAt(lat, lon, t) });
     const wet = cell.ocean ? 1 : BIOME_RAIN[cell.biome] ?? 0.8;
     const climateMmH = zonalPrecipitationMm(lat) * wet / (350 * 24);
     sums[band] += w.precipMmH / climateMmH; counts[band] += 1;

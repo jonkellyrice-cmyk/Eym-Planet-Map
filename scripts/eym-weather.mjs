@@ -135,10 +135,10 @@ export const tropicalMaxWindMs = (deficitHpa) => 3.45 * Math.abs(deficitHpa) ** 
 export const BIOME_RAIN = Object.freeze({ "hot-desert": 0.25, "cold-desert": 0.3, steppe: 0.65, savanna: 0.75, tundra: 0.6, "ice-cap": 0.35, taiga: 0.9, "temperate-forest": 1, "seasonal-forest": 1, "temperate-rainforest": 1.4, "tropical-rainforest": 1.35 });
 /** Normalization of the rain-producing lift by latitude (2.5° bands from 90°S), from calibrate-eym-weather. */
 export const RAIN_NORMALIZATION = Object.freeze([
-  62.19, 94.97, 39.37, 43.95, 19.54, 11.04, 7.25, 4.78, 4.04, 3.87, 3.87, 4.35, 4.88, 5.3, 6.16, 6.48, 7.1, 8.04,
-  8.15, 9.16, 9.85, 10.19, 12.29, 14.06, 17.74, 29.65, 33.81, 41.82, 34.03, 24.66, 21.66, 10.36, 6.92, 4.73, 3.57, 3.36,
-  3.37, 3.28, 3.42, 3.27, 3.47, 4.31, 5.77, 10.16, 19.39, 23.87, 26.1, 16.38, 13.21, 11.48, 9.64, 9.43, 8.7, 7.88,
-  7.64, 6.84, 6.32, 5.93, 5.09, 4.79, 4.25, 3.86, 3.95, 4.12, 4.92, 7.37, 10.56, 19.61, 37.97, 37.13, 92.22, 56.46,
+  62.19, 94.97, 39.37, 43.95, 19.54, 11.04, 7.25, 4.78, 4.04, 3.87, 3.87, 4.35, 4.77, 5.03, 5.7, 6, 6.69, 7.73,
+  7.95, 9.04, 9.74, 10.06, 12.01, 13.48, 16.63, 28.07, 33.15, 41.66, 34.05, 24.65, 21.67, 10.36, 6.92, 4.7, 3.53, 3.33,
+  3.35, 3.27, 3.42, 3.27, 3.47, 4.31, 5.77, 10.16, 19.32, 23.32, 24.4, 15.06, 12.58, 11.18, 9.5, 9.32, 8.56, 7.67,
+  7.38, 6.54, 6.06, 5.66, 4.81, 4.62, 4.2, 3.85, 3.95, 4.12, 4.92, 7.37, 10.56, 19.61, 37.97, 37.13, 92.22, 56.46,
 ]);
 /** The normalization at a latitude, interpolated between band centres (it changes steeply in the subtropics). */
 export function rainNormalization(lat) {
@@ -199,9 +199,20 @@ export function weatherAt(systems, lat, lon, ctx) {
   const lift = 0.12 - Math.min(anomaly, 30) / 11 + 0.85 * itcz + 0.4 * afternoon * (0.4 + itcz) + 0.6 * showers + tcRain;
   const wetness = cell ? (cell.ocean ? 1 : BIOME_RAIN[cell.biome] ?? 0.8) : 1;
   const baseCloud = cell?.ocean === false ? 0.15 + 0.3 * Math.min(1.2, wetness) : 0.42;
-  const cloud = clamp(baseCloud + 0.55 * (lift - 0.1), 0, 1);
+  // Low cloud over the sea (the aquaplanet addendum): a marine layer under sinking air (high pressure, the
+  // subtropical belts) and over cool water (upwelling, cold currents: the ocean climate's anomaly), thickest at
+  // night, reaching a little way inland, and broken up where the air is rising into storms.
+  const marine = cell ? (cell.ocean ? 1 : Math.max(0, 1 - 6 * cell.continentality)) : 1;
+  const sinking = 0.5 * clamp(anomaly / 12, 0, 1) + 0.5 * Math.exp(-(((Math.abs(lat) - 27) / 10) ** 2));
+  const coolSea = clamp(-(ctx.anomalyC ?? 0) / 2, 0, 1), night = Math.max(0, Math.cos(2 * Math.PI * (ctx.solarHour - 3) / 24));
+  const stratus = 0.2 * Math.exp(-(((Math.abs(lat) - 55) / 15) ** 2)); // the grey skies of the stormy mid-latitude seas
+  const lowCloud = marine * clamp(0.3 + 0.3 * sinking + 0.45 * coolSea + stratus + 0.12 * night - 0.5 * Math.max(0, lift - 0.7), 0, 0.95);
+  const cloud = Math.max(clamp(baseCloud + 0.55 * (lift - 0.1), 0, 1), lowCloud);
   const climateMmH = zonalPrecipitationMm(lat) * wetness / YEAR_HOURS;
-  const precipMmH = Math.min(60, Math.max(0, lift - 0.3) ** 1.4 * rainNormalization(lat) * climateMmH);
+  let precipMmH = Math.min(60, Math.max(0, lift - 0.3) ** 1.4 * rainNormalization(lat) * climateMmH);
+  // A thick marine layer drizzles when nothing heavier is falling; on cool water with light winds it lies as fog.
+  const drizzle = precipMmH < 0.05 && lowCloud > 0.62;
+  if (drizzle) precipMmH = 0.05 + 0.3 * (lowCloud - 0.62);
 
   // Temperature: the season and the hour, warm or cold air carried in by the wind, damped by cloud and rain.
   const seasonal = seasonalTemperature({ annualMeanC: cell?.annualMeanC ?? annualMeanTemperatureC(lat), latDeg: lat, continentality: cell?.continentality ?? 0, ocean: !land, timeMs: ctx.timeMs, solarHour: ctx.solarHour, anomalyC: ctx.anomalyC ?? 0 });
@@ -211,15 +222,16 @@ export function weatherAt(systems, lat, lon, ctx) {
   const tempC = seasonal.dayMeanC + diurnal + advection - (precipMmH > 0.3 ? 1.5 : 0);
   const kind = precipMmH < 0.05 ? null : tempC < 0.5 ? "snow" : tempC < 2 ? "sleet" : "rain";
   const thunder = kind === "rain" && precipMmH > 3 && tempC > 16 && cloud > 0.8;
-  const humidity = Math.round(clamp((cell?.ocean === false ? 35 + 35 * Math.min(1.2, wetness) : 78) + 22 * (cloud - 0.45) + (precipMmH > 0.1 ? 12 : 0), 12, 100));
-  return { pressureHpa, windMs, windFromDeg, windE, windN, gustMs: windMs * (land ? 1.5 : 1.3), cloud, precipMmH, precipKind: kind, thunder, tempC, humidity, nearestStorm };
+  const fog = lowCloud > 0.62 && coolSea > 0.25 && windMs < 7 && Math.abs(lat) > 12; // warm air over cold water, away from the doldrums
+  const humidity = fog ? 100 : Math.round(clamp((cell?.ocean === false ? 35 + 35 * Math.min(1.2, wetness) : 78) + 22 * (cloud - 0.45) + (precipMmH > 0.1 ? 12 : 0), 12, 100));
+  return { pressureHpa, windMs, windFromDeg, windE, windN, gustMs: windMs * (land ? 1.5 : 1.3), cloud, lowCloud, precipMmH, precipKind: kind, drizzle: drizzle && kind === "rain", fog, thunder, tempC, humidity, nearestStorm };
 }
 
 /** Words for one moment's weather. */
 export function describeWeather(w) {
   const sky = w.cloud < 0.15 ? "clear" : w.cloud < 0.4 ? "a few clouds" : w.cloud < 0.7 ? "partly cloudy" : w.cloud < 0.9 ? "mostly cloudy" : "overcast";
   const amount = w.precipMmH < 0.5 ? "light" : w.precipMmH < 4 ? "moderate" : "heavy";
-  const precip = w.precipKind ? `${amount} ${w.precipKind}${w.thunder ? " and thunderstorms" : ""}` : null;
+  const precip = w.drizzle ? `drizzle${w.fog ? " and sea fog" : ""}` : w.precipKind ? `${amount} ${w.precipKind}${w.thunder ? " and thunderstorms" : ""}` : w.fog ? "sea fog" : null;
   const force = BEAUFORT.find(([limit]) => w.windMs < limit)[1];
   const from = COMPASS[Math.round(w.windFromDeg / 22.5) % 16];
   return { sky, precip, wind: `${force}, ${Math.round(w.windMs * 3.6)} km/h from the ${from}`, force, from };

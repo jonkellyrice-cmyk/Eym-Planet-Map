@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.21.1 (2026-11-18)
+
+The rest of Stage 2b: low cloud, drizzle and sea fog over the oceans (the aquaplanet addendum).
+
+- A marine cloud layer over the sea and up to about 200 km inland (`weatherAt` in `scripts/eym-weather.mjs`): thickest under sinking air (high pressure, the subtropical belts), over cool water (upwelling and cold currents, from the ocean climate) and at night, and broken up where the air rises into storms. Over a year the sea is 55–73% clouded (it was 45–73%), nearer Earth's ocean cloud cover.
+- Drizzle falls from a thick marine layer when nothing heavier is falling: at most 0.2 mm an hour, 3–9% of the time over the sea, most in the stormy mid-latitudes and over cool water. It is rain to everything that reads the weather; the weather report says "drizzle".
+- Sea fog where warm air lies over cold water in light winds, away from the doldrums; it is rare, mostly over the cool northern seas, and it sets the fog effect on battle maps.
+- The rain was recalibrated with `tools/calibrate-eym-weather.mjs`, which now takes the ocean climate's warm and cool patches into account, so drizzle replaces some shower rain and totals stay as before.
+- Tests: a new weather test (cloud over the sea, how often it drizzles and how lightly, no sea fog in the doldrums or deep inland); `tests/release-package.test.mjs` updated for 0.21.1.
+
 ## 0.21.0 (2026-11-18)
 
 Stage 2b of Eym's physical history: waves, swell and sailing times.

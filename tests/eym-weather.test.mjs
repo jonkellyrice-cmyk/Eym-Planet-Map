@@ -110,3 +110,25 @@ test("the globe, the place card and the sky view all show the weather", () => {
   assert.match(app, /cloud = weather\.values\.weather\.cloud;\s+this\._clusterView\?\.setCloud\?\.\(cloud\)/);
   for (const token of ['data-body-layer="weather-clouds"', 'data-body-layer="weather-storms"', 'data-body-layer="weather-wind"', 'data-place-field="conditions"', 'data-place-field="outlook"', 'data-sky-field="weather"']) assert.ok(template.includes(token), token);
 });
+
+test("the sea is cloudy, as on a world of oceans: a marine layer that drizzles, and sea fog over cold water", () => {
+  let n = 0, cloud = 0, drizzle = 0, drizzleMax = 0, fogLow = 0, landFog = 0;
+  for (let k = 0; k < 120; k += 1) {
+    const hour = Math.round(NORTHWARD_EQUINOX_MS / HOUR_MS) + 2 * 8400 + k * 29, timeMs = hour * HOUR_MS;
+    const systems = systemsBetween(hour, hour, isOcean).map((s) => systemAt(s, hour, (a, b) => (isOcean(a, b) ? 0 : 1))).filter(Boolean);
+    const declinationDeg = 23.44 * Math.sin(2 * Math.PI * yearFraction(timeMs));
+    for (let lat = -55; lat <= 55; lat += 10) for (let lon = -175; lon < 180; lon += 20) {
+      const cell = field.cellAt(lat, lon), w = weatherAt(systems, lat, lon, { cell, declinationDeg, solarHour: (k * 7 + 12) % 24, timeMs, anomalyC: field.anomalyAt(lat, lon, timeMs) });
+      if (!cell.ocean) { if (w.fog && cell.continentality > 0.3) landFog += 1; continue; }
+      n += 1; cloud += w.cloud;
+      if (w.drizzle) { drizzle += 1; drizzleMax = Math.max(drizzleMax, w.precipMmH); assert.equal(w.precipKind, "rain"); }
+      if (w.fog && Math.abs(lat) <= 12) fogLow += 1;
+    }
+  }
+  assert.ok(cloud / n > 0.5 && cloud / n < 0.8, `mean cloud over the sea ${(cloud / n).toFixed(2)}`);
+  assert.ok(drizzle / n > 0.02 && drizzle / n < 0.15, `drizzle ${(100 * drizzle / n).toFixed(1)}% of the time`);
+  assert.ok(drizzleMax <= 0.2, "drizzle stays light");
+  assert.equal(fogLow, 0, "no sea fog in the doldrums"); assert.equal(landFog, 0, "no sea fog deep inland");
+  const words = describeWeather({ cloud: 0.8, precipMmH: 0.08, precipKind: "rain", drizzle: true, fog: true, thunder: false, windMs: 4, windFromDeg: 200 });
+  assert.equal(words.precip, "drizzle and sea fog");
+});
