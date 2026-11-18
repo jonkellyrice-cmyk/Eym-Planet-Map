@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.21.0 (2026-11-18)
+
+Stage 2b of Eym's physical history: waves, swell and sailing times.
+
+- Waves at any place and moment (`scripts/eym-sea.mjs`): the wind sea from the local wind, the open water upwind of it (the fetch, to the nearest coast) and how long it has blown, by the standard wave-growth curves, with storm seas saturating near 16 m; and swell from every low and tropical cyclone of the last five days, travelling at its group speed, weakening with distance, sent mostly east and toward the equator by the westerly storms, and stopped by land in between. Over a year the median sea is about 3.3 m in the westerly belts and 1.8 m near the equator.
+- Voyages: an all-water route between two places, sailed in 3-hour steps through the weather, waves and currents the ship meets. A steamer makes 9 knots in still water and is slowed by head seas; a sailing ship goes with the wind's strength and angle and tacks to windward, and may take the long way round through the westerlies when that is quicker. The Caren–Garyk crossing by steamer, Pouk to Garyk's south-east port, takes 18–23 days westward (with the trades and the current) and 21–27 days eastward, about the three weeks the layout was set from; by sailing ship 24–33 and 41–58 days.
+- The "Here and now" card shows the sea (or "Inland") and the passage across to Garyk or Caren leaving now. Eym's currents file is now fetched the first time a voyage needs it (the 0.20.0 entry said a currents overlay loads it; there is no such overlay yet).
+- Coastal battle maps note the sea, the surf on the shore and the Swim DC (Athletics: 10 calm, 15 rough, 20 stormy); the brief and the painting prompt mention the sea, and the web app's map server passes it through.
+- Fixed: the battle-map brief and painting prompt read "Weather: [object Object]"; they now give the weather in words.
+- Low cloud and drizzle over the sea are left for a step of their own (they change the rain totals and need the weather recalibrated).
+- Tests: a new `tests/eym-sea.test.mjs` (8 tests); `tests/release-package.test.mjs` updated for 0.21.0.
+
 ## 0.20.0 (2026-11-17)
 
 Stage 2a of Eym's physical history: ocean currents, sea temperature and climate.

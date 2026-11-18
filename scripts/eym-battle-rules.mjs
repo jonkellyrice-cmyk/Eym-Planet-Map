@@ -450,7 +450,7 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
   const centre = Math.floor(rows / 2) * columns + Math.floor(columns / 2), flyFt = sculpt.ceilingFt ? Math.max(10, sculpt.ceilingFt - 10) : 40;
   const sight = { groundView: Math.round(100 * groundView) / 100, highFt: highest >= 0 ? grid.elevationFt[highest] : 0, highView: highest >= 0 ? Math.round(100 * viewShare(grid, highest, 5, walkSq)) / 100 : 0, flyFt, flyView: Math.round(100 * viewShare(grid, centre, flyFt - grid.elevationFt[centre], walkSq)) / 100 };
   analysis.sight = sight; analysis.cliffEdges = cliffs.length; analysis.inclinedSquares = inclined;
-  notes.push(...battleNotes(analysis, axis, placed, conditions, grid.ground.filter((g) => g.endsWith("(mud)")).length));
+  notes.push(...battleNotes(analysis, axis, placed, conditions, grid.ground.filter((g) => g.endsWith("(mud)")).length, grid.cover.filter((c) => c === COVER.sea).length));
   notes.push(...(sculpt.notes ?? []));
   if (inclineNote) notes.push(inclineNote);
   if (cliffs.length) notes.push(`${cliffs.length} cliff edges (10 ft or more): only stairs, ramps, ladders, a climb (up to 15 ft) or flight cross them.`);
@@ -466,7 +466,7 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
 }
 
 /** Plain notes for the GM. */
-function battleNotes(a, axis, placed, conditions, mudSquares = 0) {
+function battleNotes(a, axis, placed, conditions, mudSquares = 0, seaSquares = 0) {
   const sides = axis[0] === "n" ? "north and south edges" : "west and east edges", out = [];
   out.push(`${a.settingLabel}. The sides start along the ${sides}; ${a.routes >= 3 ? "three distinct routes" : a.routes === 2 ? "two distinct routes" : "one route"} join them${a.chokepoints ? `, with ${a.chokepoints} narrow squares on the main one` : ""}.`);
   out.push(`Cover within a square's reach of ${Math.round(a.coverShare * 100)}% of the ground (target ${Math.round(a.coverTarget * 100)}%); the widest open stretch is ${a.largestOpenSquares * 5} ft.`);
@@ -477,6 +477,9 @@ function battleNotes(a, axis, placed, conditions, mudSquares = 0) {
   const [f0, f1] = a.balance.forwardCover; out.push(`Balance: ${f0} and ${f1} sheltered squares in each side's first 30 ft; ${a.balance.toCentre[0]} and ${a.balance.toCentre[1]} ft of movement to the centre.`);
   if ((conditions.snowDepthCm ?? 0) >= 15) out.push(`Snow ${Math.round(conditions.snowDepthCm)} cm deep: open ground is difficult terrain${conditions.snowDepthCm >= 60 ? " (greater)" : ""}.`);
   if (mudSquares) out.push(`The ground is ${conditions.ground}: ${mudSquares} squares of soft ground are mud (difficult terrain).`);
+  // The sea on the map (scripts/eym-sea.mjs): its waves, the surf on the shore and how hard it is to swim.
+  const sea = conditions.sea;
+  if (seaSquares && sea?.swim) out.push(`The sea is ${sea.words}: surf about ${sea.swim.surfM} m on the shore; the water is ${sea.swim.kind} (Athletics to Swim, DC ${sea.swim.dc}).`);
   return out;
 }
 

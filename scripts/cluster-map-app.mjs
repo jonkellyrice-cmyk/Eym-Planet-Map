@@ -47,9 +47,10 @@ import { SETTINGS as BATTLE_SETTINGS } from "./eym-battle-settings.mjs";
 import { battleArtDirection, battleGridSvg, battlePacket, battleReferenceSvg, battleSceneData, battleTacticalSvg, darknessFor, weatherEffectFor } from "./eym-battle-render.mjs";
 import { BATTLE_SIZE_PRESETS, GRID_DENSITY_PRESETS, battleMapSpec } from "./eym-map-presets.mjs";
 import { placeHistory, describeWeather } from "./eym-weather.mjs";
+import { crossingPassage, placeSea } from "./eym-sea.mjs";
 import { describeGround, describeStone, geologyAt, localStonePrompt } from "./eym-geology.mjs";
 import { describeTremors, tremorsAt } from "./eym-quakes.mjs";
-import { attachGeology } from "./cartography-asset.mjs";
+import { attachGeology, attachOcean } from "./cartography-asset.mjs";
 import { sunAltitudeDeg, yearFraction } from "./eym-seasons.mjs";
 import { foliageSeason } from "./eym-battle-season.mjs";
 import { guardPageZoom } from "./zoom-guard.mjs";
@@ -356,6 +357,34 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       .then((document) => { attachGeology(asset, document); })
       .catch((error) => { console.warn(`${MODULE_ID} | Eym's geology is unavailable`, error); this._geologyLoading = null; });
     return this._geologyLoading;
+  }
+
+  /**
+   * The Caren–Garyk passage from a place, leaving at the clock's day (worked out once a day per place, a moment
+   * after the card is drawn: a voyage steps through some three weeks of weather).
+   */
+  #passageHere(latDeg, lonDeg) {
+    const key = `${latDeg.toFixed(2)},${lonDeg.toFixed(2)},${Math.floor(this._sun.t / DAY_MS)}`;
+    if (this._passageKey === key) return this._passageText ?? "…";
+    this._passageKey = key; this._passageText = null;
+    void this.#ensureEymOcean().then(() => setTimeout(() => {
+      if (this._passageKey !== key) return;
+      const passage = crossingPassage({ asset: this._eymGeography, field: this._eymField, lat: latDeg, lon: lonDeg, departMs: this._sun.t });
+      this._passageText = passage ? `${passage.words[0].toUpperCase()}${passage.words.slice(1)}` : "No sea route";
+      const element = this.element?.querySelector?.('[data-place-field="passage"]'); if (element) element.textContent = this._passageText;
+    }, 0));
+    return "…";
+  }
+
+  /** Eym's ocean currents (a separate file, scripts/cartography-asset.mjs), fetched the first time a voyage needs them. */
+  #ensureEymOcean() {
+    const asset = this._eymGeography;
+    if (!asset?.oceanFile || asset.ocean) return Promise.resolve();
+    this._oceanLoading ??= fetch(`modules/${MODULE_ID}/data/planet-cartography/${asset.system.toLowerCase()}/${asset.oceanFile}`)
+      .then((response) => { if (!response.ok) throw new Error(`ocean fetch failed (${response.status})`); return response.json(); })
+      .then((document) => { attachOcean(asset, document); })
+      .catch((error) => { console.warn(`${MODULE_ID} | Eym's currents are unavailable`, error); this._oceanLoading = null; });
+    return this._oceanLoading;
   }
 
   /** The weather at a place now, in words (null before the weather is ready). */
@@ -727,14 +756,16 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this.#ensureWeather();
     const now = this._weather ? placeWeatherNow(this._weather, lat, lon, { subsolar: this._sun.subsolar, timeMs: this._sun.t }) : null;
     const history = this._weather ? placeHistory(this._weather, lat, lon) : null;
+    const sea = this._weather && now ? placeSea(this._weather, lat, lon, { ...now, timeMs: this._sun.t }) : null;
+    const said = now ? describeWeather(now) : null;
     const report = placeReport({ field: this._eymField, subsolar: this._sun.subsolar, latDeg: lat, lonDeg: lon, timeMs: this._sun.t });
     const altitude = sunAltitudeDeg(lat, lon, this._sun.subsolar);
     // The season the trees and grass are in (light and shadow are Foundry's, live).
     const season = foliageSeason(lat, yearFraction(this._sun.t));
     return {
-      conditions: { snowDepthCm: history?.snowDepthCm ?? 0, ground: history?.ground ?? "dry", tempC: now?.tempC ?? report.values.temperature.nowC, precipKind: now?.precipMmH > 0.1 ? now.precipKind : null, precipMmH: now?.precipMmH ?? 0, windMs: now?.windMs ?? 0, thunder: Boolean(now?.thunder), fog: (now?.humidity ?? 0) > 0.97 && (now?.windMs ?? 0) < 3, sunAltitudeDeg: altitude, season: report.season },
+      conditions: { snowDepthCm: history?.snowDepthCm ?? 0, ground: history?.ground ?? "dry", tempC: now?.tempC ?? report.values.temperature.nowC, precipKind: now?.precipMmH > 0.1 ? now.precipKind : null, precipMmH: now?.precipMmH ?? 0, windMs: now?.windMs ?? 0, thunder: Boolean(now?.thunder), fog: (now?.humidity ?? 0) > 0.97 && (now?.windMs ?? 0) < 3, sunAltitudeDeg: altitude, season: report.season, sea: sea ? { words: sea.words, hsM: Math.round(sea.hsM * 10) / 10, swim: sea.swim } : null },
       season,
-      words: { time: `${report.localTime}, ${report.season}; the sun ${report.sun}`, weather: now ? describeWeather(now) : "", light: altitude >= 0 ? "daylight" : altitude > -6 ? "civil twilight (dim)" : altitude > -12 ? "dusk or dawn (dim to dark)" : "night (darkness, moonlight aside)" },
+      words: { time: `${report.localTime}, ${report.season}; the sun ${report.sun}`, weather: said ? `${said.sky}${said.precip ? `, ${said.precip}` : ""}; wind ${said.wind}${sea ? `; the sea ${sea.words}` : ""}` : "", light: altitude >= 0 ? "daylight" : altitude > -6 ? "civil twilight (dim)" : altitude > -12 ? "dusk or dawn (dim to dark)" : "night (darkness, moonlight aside)" },
     };
   }
 
@@ -899,6 +930,10 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     if (weather) {
       const { values: ignored, ...words } = weather; void ignored;
       Object.assign(values, words, { temperature: `${weather.weatherTemperature} (seasonal high ${Math.round(report.values.temperature.highC)}, low ${Math.round(report.values.temperature.lowC)})`, ground: weather.groundNow });
+      // The sea here (or off the nearest coast), and the passage across to Garyk or Caren leaving now.
+      const sea = placeSea(this._weather, latDeg, lonDeg, { ...weather.values.weather, timeMs: this._sun.t });
+      values.sea = sea ? `${sea.words[0].toUpperCase()}${sea.words.slice(1)}` : "Inland";
+      values.passage = sea ? this.#passageHere(latDeg, lonDeg) : "—";
     }
     // The rock and soil here, and the earthquakes and eruptions of the last 30 days (worked out once a day per place).
     if (this._eymGeography.geologyFile && !this._eymGeography.geology) {

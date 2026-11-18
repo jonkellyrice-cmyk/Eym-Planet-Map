@@ -60,6 +60,9 @@ export function parseRequest(body) {
   if (["dry", "damp", "wet", "waterlogged", "flooding"].includes(c.ground)) conditions.ground = c.ground;
   if (["rain", "sleet", "snow"].includes(c.precipKind)) conditions.precipKind = c.precipKind;
   if (typeof c.thunder === "boolean") conditions.thunder = c.thunder;
+  // The sea (scripts/eym-sea.mjs): words, height and swimming, checked field by field.
+  const sea = c.sea, swim = sea?.swim;
+  if (sea && typeof sea.words === "string" && sea.words.length <= 200 && Number.isFinite(sea.hsM) && ["calm", "rough", "stormy"].includes(swim?.kind) && [10, 15, 20].includes(swim?.dc) && Number.isFinite(swim?.surfM)) conditions.sea = { words: sea.words, hsM: sea.hsM, swim: { kind: swim.kind, dc: swim.dc, surfM: swim.surfM } };
   const spec = battleMapSpec({ size: "custom", columns, rows, density: "custom", gridPx });
   // Only the season: light, shadows, darkness and lamps are Foundry's, live.
   const season = normalizeSeason(body.season ?? body.light?.season, center[0]);
