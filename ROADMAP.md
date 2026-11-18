@@ -6,6 +6,36 @@ This roadmap was carried over from the Lancer GM Kit and Lancer cluster map, and
 
 This section is the current plan. The sections below it are the earlier agreements it builds on.
 
+### Consolidated addenda (owner, 18 November 2026)
+
+Part 1 retrofits work already done and comes next, before Stage 5. Part 2 is recorded in the sections below and is not started. The usual rules hold: every change through Twig; renders shown first; no test weakened, skipped or deleted without the owner's yes; Caren's and Garyk's outlines are invariants. Stage 4 (rivers through the year) was already done when these were written (0.25.0); Stage 5 follows Part 1.
+
+**Part 1, in the order it is done** (the order follows what feeds what: the store first, so that every later change refreshes the tiles it makes stale; the mantle before the sea floor, whose seamount chains it makes):
+
+1. *Eym's magnetic field: canon* (done, recorded in `docs/eym-canon.md`). Confirmed by the world's author, Dave: an Earth-like dipole tilted about 10° from the spin axis; north magnetic pole over open ocean toward about 100° E (owner's choice, option A); Caren's and Garyk's coasts within ±12° magnetic latitude for every century; slow deterministic drift of 10–50 km a year inside 79°–80° N, 80°–100° E; never an aurora over Caren or Garyk. Compass declination is Earth-normal (up to about 11°; under 7° at Garyk): the ±12° and 7° figures were the owner's proxies, and no pole direction meets both, so the latitude was kept. Stage 6 implements it.
+2. *Stored-tile staleness* (item 6). Reason: the Region store is keyed by a hand-bumped label (`eym-region-layer-v5`), so upstream changes (tectonics, erosion, items 3–5 below) can leave stale tiles that keep being served; 0.25.0 did exactly that.
+   - Key stored tiles by a fingerprint of the generator code and every input data file, as the tectonics tool already does. The same for the Continent and Local stores when they exist.
+   - Detect stale tiles and make them again, from the stored shapes where only the painting changed, reporting what was refreshed.
+   - Render again the Region tiles that items 3–5 change.
+3. *Mantle plausibility rules* (Stage 1, item 3). Reason: the plates are kinematic (rigid caps on Euler poles fitted backwards). That stays, but their motions should agree with what drives plates. No mantle or core simulation; the core needs none (its field is decided above).
+   - Plate speeds consistent with their drivers: plates attached to subducting slabs faster (about 5–10 cm a year); plates without slabs slower (about 1–3 cm a year). Check the fitted rates; report and fix outliers within the targets.
+   - Plumes fixed in the deep mantle, rising from the margins of two broad antipodal upwellings. Each hotspot leaves an age-ordered chain of volcanoes and seamounts along its plate's motion (the Hawaii–Emperor pattern). These are the seamount chains for the sea floor below.
+   - Explain the fitted history by that pattern: the old supercontinent assembled over a downwelling and rifted above upwelling. Added to the history text.
+   - Optional, ask the owner first: dynamic topography (a few hundred metres of broad uplift and subsidence).
+   - Caren stays exempt (shaped by the gods).
+4. *The sea floor in the ocean model* (Stage 2, item 2). Reason: Stage 1a built shelves, slopes, ridges, trenches and hotspots, but the current model does not use them, and on an ocean world with little land undersea ridges and plateaus are the main obstacles that steer the circumpolar flow.
+   - Check Stage 2a's currents again with the bathymetry: steering by ridges, plateaus and continental slopes. Report how the currents, sea temperatures and cyclone birthplaces change.
+   - Upwelling at shelf breaks and over seamounts (cold water, fog, rich fisheries).
+   - Storm surge from cyclones, scaled by shelf width and depth (for coastal battle maps and the history engine's hazards).
+   - Tides already use shelf width (kept). Add amplification in funnel-shaped bays (the Bay of Fundy pattern) where the coast's shape and depth support it.
+   - Finer bathymetry (about 0.1°) only on Caren's and Garyk's shelves and in the strait corridor.
+5. *Volcanic climate effects* (item 4). Reason: Stage 1b makes dated eruptions with sizes, but the weather ignores them (a Tambora-sized eruption followed by a normal year is a contradiction).
+   - After large eruptions, cool the climate globally and regionally for 1–3 years, scaled by size (Tambora-scale about 0.5–1 °C, failed seasons).
+   - Feed the weather, the seasons and seasonal snow and ice. Record the event for the history engine's timeline of shocks.
+6. *Moonlight in battle scenes* (item 5). Reason: Pathfinder's light levels (bright, dim, darkness) change concealment and vision, and Eym has two moons with tracked phases, but night scenes do not use them.
+   - Night scenes take their light from Austarm's and Chatarm's phase and altitude and the cloud cover at the scene's place and time, and set Foundry's darkness and global light to match (full moons give dim light outdoors; double-dark nights or overcast give darkness).
+   - Tested on a full-moon night against a double-dark night.
+
 ### Scope of detail (owner's decision, 17 November 2026)
 
 This overrides anything below that plans for all five continents.
@@ -71,6 +101,7 @@ The order of work above comes first; the steps below are the fuller list it is d
    - Render the whole layer into the store with `GET /api/region/fill?frame=&start=&count=&ms=`, frame by frame, recording each run in `eym_render_runs`. About 0.15 s a tile after a 7 s warm-up.
 2. **Try the tiers.** Define tiers 3, 4 and 5 concretely (only tiers 1 and 2 exist), render the same place at each for the layers in question (a Dree side-by-side was offered), and let the owner fix a tier for each layer. Update the table above.
 3. **Continent layer.** Two pictures, Caren and Garyk, at the chosen tier, shapes first and pixel art after, kept in the store.
+   - *Smooth transitions between layers* (owner, 18 November 2026), built with the Continent layer. One mechanism for every boundary (Planet → Continent → Region → Local). In a narrow band of zoom, morph the projection (the globe's sphere to the layer's flat frame) and blend, tied to the zoom gesture. If the gesture stops inside the band, finish to the nearer side within about 200–300 ms; never rest mid-blend. Compatible palette and detail at each boundary; prefetch the incoming layer's tiles; check the frame rate on a phone.
 4. **Local layer**, Caren and Garyk only. Speed up `scripts/eym-local-detail.mjs` (about 128,000 cells a second now), re-estimate the time for the reduced area before starting, then render and store it like the Region layer. Battle maps are already cut from this detail.
 5. **The module reads the stored layers.** Zooming past the globe shows Region and then Local tiles from the web app; a chosen view is exported into the Foundry world as a picture or a scene. Outside Caren, Garyk and the sea between them, zoom stops where it does today. Only what is exported is kept in Foundry; the web app holds the rest.
 6. **Battle maps to their tier.** Dedicated sprites for the remaining features, autotiled ground transitions, animated water and fire, more building styles, then tiers 3 to 5 as chosen in step 2.
@@ -216,6 +247,8 @@ Eym is about 98.6% ocean, close to an aquaplanet. This applies throughout the pr
 6. *The tool reports* the plates, boundary types, history stages, final areas and centres against the targets, and the seed used.
 7. *The globe fixes:* the vertical dotted streaks in the ocean around Caren at deep zoom; labels in the panel's serif, hidden where they would overlap; the H and L pressure letters in their own layer, off by default; sea ice and cloud in clearly different colours.
 
+*Retrofits (owner, 18 November 2026):* mantle plausibility rules (plate speeds by their drivers, fixed plumes and hotspot chains, the supercontinent's history), and the climate effects of large eruptions. See the consolidated addenda, Part 1, items 3 and 5, at the top of this roadmap.
+
 ### Stage 2: ocean currents, tides and climate
 
 Split in three: *2a* currents, sea temperature, wet and dry seasons, El Niño and cyclones (done, 0.20.0); *2b* sea state and swell and direction-dependent sailing times (done, 0.21.0), low cloud and drizzle (done, 0.21.1); *2c* tides from the two moons and the Sun, with tidal flats on coastal battle maps (done, 0.22.0).
@@ -240,6 +273,8 @@ Split in three: *2a* currents, sea temperature, wet and dry seasons, El Niño an
    - Tide height at a place and time.
    - Coastal battle maps show tidal flats exposed or covered by the hour (owner's yes, 17 November 2026).
 
+*Retrofit (owner, 18 November 2026):* the sea floor in the ocean model (steering by ridges, plateaus and slopes; upwelling at shelf breaks and seamounts; storm surge; tides amplified in funnel-shaped bays; finer bathymetry on Caren's and Garyk's shelves and in the strait). See the consolidated addenda, Part 1, item 4, at the top of this roadmap.
+
 ### Stage 3: erosion and landforms
 
 This applies to all land, including Caren's and Garyk's interiors; their outlines stay fixed.
@@ -263,16 +298,24 @@ Done in 0.23.0: valleys, gorges and floodplains from the named rivers and a trac
 
 ### Stage 5: ice ages and old sea levels
 
+Next after Part 1 of the consolidated addenda.
+
 Corrected by the aquaplanet addendum: ice ages are mainly sea-ice expansion and mountain glaciers. There are no large land ice sheets, the sea-level drop is small, and there are few land bridges or drowned valleys.
+
+*Owner, 18 November 2026:* the cold periods are timed by Eym's own orbital cycles already in its data (obliquity 22.1°–24.5° over about 41,000 years, precession about every 25,772 years), Milankovitch-style, not chosen dates. Small on Eym (mostly sea ice and mountain glaciers, little drop in sea level), per the aquaplanet addendum. Land exposed at low sea level comes from the shelf depths.
 
 - A deterministic glacial history: a few cold periods with their dates, sea-ice extent, mountain glaciers and a small sea-level drop.
 - Effects on today's map: glacier-carved valleys, lakes and moraines in high mountains and at high latitudes; few drowned river valleys or land bridges.
 - Past coastlines, sea levels and sea-ice edges by era, for lore (sunken ruins, old routes).
 
-### Stage 6: auroras
+### Stage 6: the magnetic field and auroras
 
-- A magnetic pole position (deterministic, stated in the lore) and an aurora oval.
-- Auroras in the night sky at high latitudes, varying by night and with a slow activity cycle, drawn in the sky's style.
+Implements the canon in `docs/eym-canon.md` (owner and the world's author, 18 November 2026).
+
+- The field: a dipole tilted about 10°, the north magnetic pole near 80° N, 100° E over open ocean, drifting deterministically 10–50 km a year and always inside 79°–80° N, 80°–100° E, so that Caren's and Garyk's coasts stay within ±12° magnetic latitude in every century.
+- Auroras only around the magnetic poles: an oval at about 65°–75° magnetic latitude, lower in strong storms; great storms reach about 20°–25°, rarely. Varying by night and with a slow activity cycle, drawn in the sky's style.
+- Tests: Caren and Garyk never see an aurora; the pole stays in its box; the coasts' magnetic latitudes stay within the canon's figures.
+- A compass-declination readout by place and date. Ask the owner before putting it in the panel.
 
 ### Downstream and tests
 
@@ -290,6 +333,85 @@ Corrected by the aquaplanet addendum: ice ages are mainly sea-ice expansion and 
 - *Stage 4:* one river's flow through the year.
 - *Stage 5:* the glacial maximum's coastlines and sea-ice edge.
 - *Stage 6:* a night sky with an aurora.
+
+## Ecology programme: additions (owner, 18 November 2026)
+
+Ecology shapes geography. Recorded, not started. (The earlier record of this programme that these add to is not in this repository; these items stand on their own until it is found.)
+
+- *Fire regimes.* Dry-season fuel plus lightning from the weather, later people, and monsters if the world's author says so. Fire keeps savanna and grassland from becoming forest. Reason: without fire, the wet-dry tropics where both campaigns are set come out wrongly over-forested. Test that Caren's and Garyk's tropics are not uniformly forest.
+- *Vegetation coupled with erosion:* plant cover holds soil and banks; bare or overgrazed ground erodes faster (the Dust Bowl pattern, with the wind model).
+- *Biological landforms*, offshore and inland only, never changing Caren's or Garyk's outlines:
+  - coral reefs, atolls, reef islands and lagoons on shallow warm platforms (from sea temperature and bathymetry);
+  - mangroves and salt marshes;
+  - peat bogs;
+  - beaver-style wetlands where suitable species live.
+- *Trophic cascades* in the history engine: removing predators (including monsters cleared by people) can cause overgrazing, bank erosion and the loss of wetlands (the Yellowstone pattern); some damage persists after recovery.
+- *Iterate* landforms → climate → vegetation and animals → erosion → landforms, deterministically.
+- *Life* is Earth's species plus Pathfinder's monsters, placed by the gods. The placement rule (by habitat, or by choice) is for the world's author; default by habitat, flagged provisional.
+
+## Human geography and hazards: additions (owner, 18 November 2026)
+
+Recorded, not started.
+
+- Tsunamis from Stage 1b's trench earthquakes, with coastal run-up from the sea floor.
+- Storm-surge risk by coast.
+- Shipwrecks clustering on shoals and reefs along routes and storm tracks (feeds the treasure map).
+- Fisheries at upwelling zones and shelf edges.
+- Aquatic peoples on shelves and reefs: for the world's author.
+
+## History engine: design notes (owner, 18 November 2026)
+
+From the owner's discussions. Recorded, not started. Every setting about peoples, gods and magic is for the world's author; Pathfinder defaults until he answers.
+
+- *Non-physical drivers:*
+  - social structures (institutions, cohesion and legitimacy, elite dynamics, path dependence) as per-realm state;
+  - chance;
+  - exceptional people and groups, appearing at a rate set by population, access to education and wealth, open ladders (armies, temples, academies, guilds, adventuring), clusters, frontiers and crises, access to magic and divine favour. Chance decides who. Their influence is greatest at critical junctures.
+  - Player characters and the world's author's NPCs are fixed inputs, not simulated.
+- *The adventurer pyramid:* characters per level from population (the D&D 3.5 / PF1 settlement tables as a start), with power rising steeply by level. High-level individuals act as strategic deterrents.
+- *State cultivation systems* per realm: breadth of recruitment, training through graded danger (including managed monster preserves), licensing and ranks, loyalty controls. These shape the pyramid and the risk of rogue champions and coups.
+- *Monsters:*
+  - a pressure map from habitat (wilderness, depth, altitude, distance from settlement) and a monster pyramid with slow breeding at the top;
+  - monsters caused by events (wars and plagues raise undead; rifts and the Exilarchs bring outsiders);
+  - frontier push-back over time;
+  - tribute arrangements with intelligent monsters;
+  - a monster relations table (prey, rival, sworn enemy, ally, indifferent) with territories, monster wars and waves of displacement;
+  - monster statecraft by realms (tribute, alliances, luring threats onto rivals), with a chance of blowback;
+  - cohesion that rises with monster pressure and drops when a threat is cleared;
+  - a per-realm setting of who counts as people.
+- *Treasure:*
+  - from ruins (collapses and wars), monster hoards and tribute, tombs (burial customs), wrecks, adventurers' losses and monster parts;
+  - less extracted overall, most where it is easy, least where it is guarded;
+  - loot taxes and local inflation.
+- *Gods:*
+  - influence by region (worshippers, holy sites);
+  - an escalation ladder of intervention (spells, omens, champions, miracles, servants, avatars, open divine war), each rung with a chance of a response from opposed powers;
+  - proxy conflicts between churches;
+  - rare top-rung events with large collateral damage;
+  - pantheon-wide responses to existential threats.
+  The accord itself is the world's author's.
+- *Magic and technology:*
+  - a technology's motive = need × the cost and availability of the magical alternative (casters per head, from the pyramid) × political resistance from those it threatens;
+  - magic wins low-volume, high-value work; technology wins bulk and scale;
+  - firearms are political (they threaten the heroic class);
+  - places where magic is scarce or unreliable become hotspots of invention.
+- *Spell availability:* a magical effect's social impact scales with how many can cast it (spell rank → the pyramid), its cost and who controls it. Effects to switch on per the world's author: resurrection, healing, a certain afterlife, undead labour, divination and scrying, instant communication, truth magic in courts, mind-control law, shapechangers, conjured food, durable magic capital, monetary instability, ancestries' lifespans and growth rates, planar lineages, supernatural geography (dead or wild magic, ley lines, rifts), defences against flight and teleportation in architecture, visible divine legitimacy, adventurers' side effects, rediscovered ancient knowledge.
+- *Calibration and spoilers:* canon calibrates the rules; Garyk canon is GM-only and kept outside the repository. (The owner refers to an earlier record of these; it is not in this repository.)
+
+## Planar lenses (final phase): additions (owner, 18 November 2026)
+
+Recorded, not started. (The existing record these add to is not in this repository; these stand on their own until it is found.)
+
+- *Scale:* each lens shows only the portion of a plane linked to Eym. Open edges fade into the rest of the plane; nothing beyond is generated. Two levels: a schematic overview (not to scale, not explorable) and the local view.
+- *The Inner Sphere:* six elemental planes. Air is a full plane and also the neutral membrane between the others. Each plane resembles Eym in proportion to how much that element dominates Eym (default: dominance at the surface), so Water is strong and recognisable. Anchors come from each element's real expression: currents, trenches and ridges; wind belts and storms; mountains and cores; volcanoes and hotspots; ore provinces; forests.
+- *The First World:* Eym transformed. A smooth, reversible warp (regions swell or shrink); caricature that exaggerates each place's distinctive features; its own field of travel times.
+- *The Netherworld:* the same machinery with the opposite settings:
+  - ground down (deep-time erosion, features pulled toward the average);
+  - hollowed out (dry channels, empty basins, bare trunks, karst caves and hollow mountains, settlements as empty shells);
+  - a muted look (a small dim palette, flat directionless light, a dim starless sky);
+  - stretched distances.
+- *Creation's Forge and the Void:* abstract spaces with no geography, routes or distances. Anchor points are correspondences, not bridges, arranged by nature if at all. Optional suggestion for the world's author: tectonic anchors (the Forge: ridges, hotspots, springs, deltas; the Void: trenches, craters, drowned places).
+- Strengths and specific places are for the world's author; seeded defaults until he decides.
 
 ## The night sky's tier (owner's decision, 17 November 2026)
 
