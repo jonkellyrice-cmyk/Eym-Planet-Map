@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.24.0 (2026-11-18)
+
+The wind addendum to Stage 3 (owner's note): the wind as a maker of landforms, and the coasts driven by the real wave climate.
+
+- A wind and wave climate (`tools/generate-eym-wind.mjs`, written to `data/planet-cartography/abydos/eventide-wind.json`, 37 KB): four years of the weather and the swell of Stages 2a–2b, sampled every 7 hours over Caren, Garyk and their islands. Off every coast it gives the wave energy and the sand-moving power of the wind arriving from each of 16 directions; over the land, the wind's sand-moving power by direction, the year's rain and how dry the driest season is; and a loess map. `npm run build` makes it again whenever its sources change.
+- Coasts now take their wave energy from that climate, not from a fixed measure of how open they are (`scripts/eym-landforms.mjs`). Garyk's coasts facing the trade winds take the biggest seas (about 3.4 m, mostly from the north-east): their hard-rock headlands are cliffs, their beaches wide. Its west coast, in the lee, is calmer: more of it is beach and less is cliff. Caren's western bay stays calm salt marsh.
+- Coastal dunes: behind a well-fed beach under strong onshore winds, a belt of dunes up to a couple of kilometres deep, bare sand at the front and grassed behind, with crests up to some 18 m. They are common on Garyk's trade-wind coasts and rare on Caren, whose equatorial winds are light.
+- Inland (`scripts/eym-aeolian.mjs`): where the ground is dry, bare and windy, the wind heaps sand into dunes, scours stony desert pavement, and carves yardangs from soft rock. Eym is maritime and humid, so this is limited: nothing on Caren, and in Garyk's dry-season north a few fields of low, grassed dunes with sinuous crests. Nowhere on Caren or Garyk is arid enough for pavement or yardangs (the rules are there for drier places).
+- Loess: dust lifted from dry, bare, windy ground with fine sediment is carried with the year's net wind and laid where grass and woods trap it, on lowland and gentle upland. Garyk's dry-season north has a blanket up to about 5 m deep. Two metres or more is the soil (`geologyAt` reports "deep, wind-laid loess (very fertile, easily worked)"), it smooths the land, and it raises how much is farmed on the Region layer and on local maps.
+- The Region layer moves to model v4 (`eym-region-layer-v4`): its tiles have new paths in the tile store and are rendered again after this release.
+- Caren's and Garyk's outlines are unchanged; the wind works inside them.
+- Tests: a new `tests/eym-aeolian.test.mjs` (6 tests). Updated: `tests/eym-landforms.test.mjs` now expects the Region model `eym-region-layer-v4` (was v3), and `tests/release-package.test.mjs` expects 0.24.0.
+
 ## 0.23.0 (2026-11-18)
 
 Stage 3 of Eym's physical history: erosion and landforms. Coastlines are unchanged; the land behind them is reshaped.

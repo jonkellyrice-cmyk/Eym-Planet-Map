@@ -12,7 +12,7 @@
 import { fromLocal, greatCircleKm, toLocal } from "./eym-surface.mjs";
 import { riverCourses } from "./eym-river-courses.mjs";
 import { annualMeanTemperatureC, environmentField, zonalPrecipitationMm } from "./eym-seasons.mjs";
-import { blendedShoreAt, cliffLiftM, landformContext, nearestRiver, valleyAt } from "./eym-landforms.mjs";
+import { blendedShoreAt, cliffLiftM, landformContext, nearestRiver, valleyAt, windWorkAt } from "./eym-landforms.mjs";
 
 export const LOCAL_DETAIL_MODEL = "eym-local-detail-v1";
 const DEG = Math.PI / 180;
@@ -155,18 +155,21 @@ const BIOME_WOODS = { "tropical-rainforest": 0.85, "temperate-rainforest": 0.85,
 /** Distance (km) from a point to the nearest coastline, searched out to 160 km. */
 export const coastDistanceKm = (ctx, lat, lon) => coastKm(ctx, lat, lon);
 /** The landforms (scripts/eym-landforms.mjs) for a context: its river valleys and the character of its coasts. */
-export const landformsOf = (ctx) => landformContext(ctx, (lat, lon) => coastKm(ctx, lat, lon));
+export const landformsOf = (ctx) => landformContext(ctx, (lat, lon) => coastKm(ctx, lat, lon), (lat, lon) => coarseAt(ctx, lat, lon).land);
 
 /**
  * The terrain at a point: the coarse surface plus relief-scaled detail down to `shortKm`, cut by the valley of
- * the nearest river (Stage 3: a floodplain is flat and low, a gorge deep). Returns { elevationM, valley, coarse }.
+ * the nearest river (Stage 3: a floodplain is flat and low, a gorge deep) and worked by the wind (dunes and
+ * yardangs; a loess blanket smooths the land). Returns { elevationM, valley, wind, coarse }.
  */
 export function terrainAt(ctx, lat, lon, shortKm = 0.02) {
-  const c = coarseAt(ctx, lat, lon), p = toKmVector(lat, lon);
+  const c = coarseAt(ctx, lat, lon), p = toKmVector(lat, lon), lf = landformsOf(ctx);
   const rough = 15 + 70 * c.relief + 120 * Math.max(0, c.relief - 1.5) ** 2;
-  const valley = c.land ? valleyAt(nearestRiver(landformsOf(ctx), lat, lon), c, globeNoise(p, 2.5, 0.4, 29)) : null, keep = valley ? valley.roughness : 1;
-  const elevationM = c.elevationM - (valley ? valley.carveM : 0) + keep * rough * globeNoise(p, 6, Math.max(shortKm, 0.01), 11) + (0.4 + 0.6 * keep) * 4 * globeNoise(p, 0.4, Math.max(shortKm, 0.005), 23);
-  return { elevationM, valley, coarse: c };
+  const valley = c.land ? valleyAt(nearestRiver(lf, lat, lon), c, globeNoise(p, 2.5, 0.4, 29)) : null;
+  const wind = c.land ? windWorkAt(lf, lat, lon, globeNoise(p, 3, 0.5, 31), globeNoise(p, 1.5, 0.3, 37)) : null;
+  const keep = (valley ? valley.roughness : 1) * (wind ? (wind.aeolian?.roughness ?? 1) * (1 - 0.5 * clamp(wind.loessM / 10, 0, 1)) : 1);
+  const elevationM = c.elevationM - (valley ? valley.carveM : 0) + (wind?.aeolian?.liftM ?? 0) + keep * rough * globeNoise(p, 6, Math.max(shortKm, 0.01), 11) + (0.4 + 0.6 * keep) * 4 * globeNoise(p, 0.4, Math.max(shortKm, 0.005), 23);
+  return { elevationM, valley, wind, coarse: c };
 }
 
 /** Fine elevation (m) at a point (see terrainAt). */
@@ -182,7 +185,9 @@ class MinHeap {
 }
 
 /** The ground each kind of shore gives (scripts/eym-landforms.mjs); a cliff is rock, dunes are scrub and grass. */
-const SHORE_COVER = Object.freeze({ beach: COVER.beach, dunes: COVER.scrub, cliff: COVER.rock, marsh: COVER.marsh, mudflat: COVER.marsh, "delta-meadow": COVER.meadow });
+const SHORE_COVER = Object.freeze({ beach: COVER.beach, dunes: COVER.scrub, "dune-sand": COVER.beach, cliff: COVER.rock, marsh: COVER.marsh, mudflat: COVER.marsh, "delta-meadow": COVER.meadow });
+/** The ground the wind leaves inland (scripts/eym-aeolian.mjs): grassed dunes, and bare rock where it scours. */
+const AEOLIAN_COVER = Object.freeze({ dunes: COVER.scrub, pavement: COVER.rock, yardangs: COVER.rock });
 
 /** Built-up radius and the farmland around it (km), by settlement kind; pre-modern towns are compact. */
 const SETTLEMENT_RADIUS_M = { capital: 1200, city: 750, port: 420, town: 380, fort: 160, village: 180 };
@@ -282,7 +287,7 @@ export function buildLocalTile(asset, { center, sizeKm = 8, resolutionM = 25, ma
   const shore = roughen(landMask), lakeShore = roughen(waterMask);
   const facts = new Array(n * n);
   for (let r = 0; r < n; r += 1) for (let c = 0; c < n; c += 1) {
-    const i = r * n + c, [lat, lon] = latlon(c, r), t = terrainAt(ctx, lat, lon, res * 2), f = { ...t.coarse, valley: t.valley };
+    const i = r * n + c, [lat, lon] = latlon(c, r), t = terrainAt(ctx, lat, lon, res * 2), f = { ...t.coarse, valley: t.valley, wind: t.wind };
     f.land = Boolean(shore[i]); f.water = f.land && Boolean(lakeShore[i]); f.forestMask = Boolean(forestMask[i]);
     f.reliefClass = reliefMasks[2][i] ? 3 : reliefMasks[1][i] ? 2 : reliefMasks[0][i] ? 1 : 0;
     facts[i] = f; elevation[i] = f.land ? Math.max(f.water ? 2 : 1, t.elevationM) : Math.min(-2, f.elevationM);
@@ -367,6 +372,7 @@ export function buildLocalTile(asset, { center, sizeKm = 8, resolutionM = 25, ma
     let settled = Infinity, farming = 0;
     for (const s of near) { const d = Math.hypot(x - s.x, y - s.y); settled = Math.min(settled, d / s.radiusKm); farming = Math.max(farming, 1 - d / s.farmKm); }
     farming = Math.max(farming, roadSide[i]); // fields along the roads, too
+    if (f.wind?.fertility) farming = Math.min(1, farming * (1 + 0.6 * f.wind.fertility)); // loess: deep, easily worked, very fertile
     const n1 = globeNoise(p, 2.5, 0.15, 3), n2 = globeNoise(p, 0.8, 0.06, 5);
     // Rugged ground has deep hollows that drain through rock; only the deepest hold water there.
     const rugged = Math.max(f.relief, f.reliefClass);
@@ -376,6 +382,7 @@ export function buildLocalTile(asset, { center, sizeKm = 8, resolutionM = 25, ma
     else if (slope > 0.75 || (Math.max(f.relief, f.reliefClass) > 1.8 && n1 > 0.25)) cover[i] = COVER.rock;
     else if (settled < 1 + 0.35 * n1) cover[i] = COVER.built;
     else if (f.shore && SHORE_COVER[f.shore] !== undefined) cover[i] = SHORE_COVER[f.shore];
+    else if (f.wind?.aeolian?.ground && farming < 0.3) cover[i] = AEOLIAN_COVER[f.wind.aeolian.ground];
     else if (slope < 0.02 && wet > 0.8 && f.precipMm > 900 && n1 > -0.1) cover[i] = COVER.marsh;
     // Floodplains: wet, flat ground beside the river; backswamps in wet country.
     else if (f.valley?.inner && f.valley.widthM >= 200 && slope < 0.04 && f.precipMm > 900 && n1 > 0.25 && farming < 0.2) cover[i] = COVER.marsh;

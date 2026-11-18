@@ -10,11 +10,12 @@
 import { fromLocal, greatCircleKm, toLocal } from "./eym-surface.mjs";
 import { annualMeanTemperatureC } from "./eym-seasons.mjs";
 import { COVER, COVER_COLORS, coarseAt, coastDistanceKm, globeNoise, hashUnit, landformsOf, localContext, roadsNear } from "./eym-local-detail.mjs";
-import { blendedShoreAt, cliffLiftM, nearestRiver, valleyAt } from "./eym-landforms.mjs";
+import { blendedShoreAt, cliffLiftM, nearestRiver, valleyAt, windWorkAt } from "./eym-landforms.mjs";
 
 // v2 (0.16.4): rivers from their channels, roads that follow the land, hills, hinterland farmland, smooth shore bands.
 // v3 (Stage 3): river valleys (floodplains, gorges) and coasts by exposure, rock and tide (scripts/eym-landforms.mjs).
-export const REGION_MODEL = "eym-region-layer-v3";
+// v4 (Stage 3, wind): coasts by the swell and wind climate, coastal and inland dunes, loess (scripts/eym-aeolian.mjs).
+export const REGION_MODEL = "eym-region-layer-v4";
 export const REGION_CELL_KM = 0.3, REGION_TILE_CELLS = 256, REGION_TILE_KM = REGION_CELL_KM * REGION_TILE_CELLS;
 const PAD = 2, DEG = Math.PI / 180, R_KM = 6371;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -26,7 +27,9 @@ const BIOME_WOODS = { "tropical-rainforest": 0.85, "temperate-rainforest": 0.85,
 const SETTLEMENT_RADIUS_KM = { capital: 1.2, city: 0.75, port: 0.42, town: 0.38, fort: 0.16, village: 0.18 };
 const FARMLAND_KM = { capital: 14, city: 10, port: 6, town: 6, fort: 2, village: 4 };
 /** The ground each kind of shore gives (scripts/eym-landforms.mjs). */
-const SHORE_COVER = Object.freeze({ beach: COVER.beach, dunes: COVER.scrub, cliff: COVER.rock, marsh: COVER.marsh, mudflat: COVER.marsh, "delta-meadow": COVER.meadow });
+const SHORE_COVER = Object.freeze({ beach: COVER.beach, dunes: COVER.scrub, "dune-sand": COVER.beach, cliff: COVER.rock, marsh: COVER.marsh, mudflat: COVER.marsh, "delta-meadow": COVER.meadow });
+/** The ground the wind leaves inland (scripts/eym-aeolian.mjs): grassed dunes, and bare rock where it scours. */
+const AEOLIAN_COVER = Object.freeze({ dunes: COVER.scrub, pavement: COVER.rock, yardangs: COVER.rock });
 const SEA_NEAR_CELLS = 40; // 12 km: sea bands nearer the shore than this are measured exactly, with this margin round the tile
 
 // ---------------------------------------------------------------- frames and tiles
@@ -218,8 +221,11 @@ export function buildRegionTile(asset, frame, tx, ty) {
     // Hill country: ridges and dells a few kilometres across, so uplands read as hills and not as a raised plain.
     const hills = 140 * Math.min(1, f.relief) * (1 - 2 * Math.abs(globeNoise(v, 9, 1.2, 17)));
     // The river's valley (scripts/eym-landforms.mjs): cut down, and smoothed on the floodplain.
-    f.valley = f.land ? valleyAt(nearestRiver(landformsOf(ctx), lat, lon), f, globeNoise(v, 2.5, 0.4, 29)) : null; const keep = f.valley ? f.valley.roughness : 1;
-    height[i] = f.land ? Math.max(f.water ? 2 : 1, f.elevationM - (f.valley ? f.valley.carveM : 0) + keep * (rough * globeNoise(v, 6, 0.6, 11) + hills)) : Math.min(-2, f.elevationM);
+    f.valley = f.land ? valleyAt(nearestRiver(landformsOf(ctx), lat, lon), f, globeNoise(v, 2.5, 0.4, 29)) : null;
+    // The wind's work (scripts/eym-aeolian.mjs): dunes and yardangs, and a loess blanket that smooths the hills.
+    f.wind = f.land ? windWorkAt(landformsOf(ctx), lat, lon, globeNoise(v, 3, 0.5, 31), globeNoise(v, 1.5, 0.3, 37)) : null;
+    const keep = (f.valley ? f.valley.roughness : 1) * (f.wind ? (f.wind.aeolian?.roughness ?? 1) * (1 - 0.5 * clamp(f.wind.loessM / 10, 0, 1)) : 1);
+    height[i] = f.land ? Math.max(f.water ? 2 : 1, f.elevationM - (f.valley ? f.valley.carveM : 0) + (f.wind?.aeolian?.liftM ?? 0) + keep * (rough * globeNoise(v, 6, 0.6, 11) + hills)) : Math.min(-2, f.elevationM);
     facts[i] = f; elevation[i] = clamp(Math.round(height[i]), -32000, 32000);
   }
   const offshore = seaDistance(ctx, p, frame, tx, ty, x0, yTop, n, res); for (let i = 0; i < n * n; i += 1) coastKm[i] = facts[i].land ? Math.min(255, Math.round(facts[i].coastKm)) : Math.round(offshore[i]);
@@ -252,13 +258,15 @@ export function buildRegionTile(asset, frame, tx, ty) {
     farming = Math.max(farming, roadSide[i]);
     // The hinterland: good, level, low ground is farmed well beyond the named towns (the villages are not in the data), thinning out with distance from them.
     let townKm = Infinity; for (const s of towns) townKm = Math.min(townKm, Math.hypot(x - s.x, y - s.y));
-    const arable = (BIOME_FARMS[f.biome] ?? 0) * clamp(1 - e / 1400, 0, 1) * clamp(1 - Math.max(0, f.relief - 0.4), 0, 1) * clamp((f.precipMm - 350) / 400, 0, 1);
+    // Loess (scripts/eym-aeolian.mjs) makes deep, easily worked, very fertile ground.
+    const arable = (BIOME_FARMS[f.biome] ?? 0) * (1 + 0.8 * (f.wind?.fertility ?? 0)) * clamp(1 - e / 1400, 0, 1) * clamp(1 - Math.max(0, f.relief - 0.4), 0, 1) * clamp((f.precipMm - 350) / 400, 0, 1);
     farming = Math.max(farming, 0.42 * arable * clamp(1 - townKm / HINTERLAND_KM, 0, 1));
     const rugged = Math.max(f.relief, f.reliefClass);
     if (temp < -3 || (f.relief > 2.4 && temp < 1)) cover[i] = COVER.snow;
     else if (slope > 0.45 || (rugged > 1.8 && n1 > 0.25)) cover[i] = COVER.rock;
     else if (settled < 1 + 0.35 * n1) cover[i] = COVER.built;
     else if (f.shore && SHORE_COVER[f.shore] !== undefined) cover[i] = SHORE_COVER[f.shore];
+    else if (f.wind?.aeolian?.ground && farming < 0.3) cover[i] = AEOLIAN_COVER[f.wind.aeolian.ground];
     else if (slope < 0.01 && e < 14 && f.precipMm > 900 && n1 > 0.28) cover[i] = COVER.marsh;
     // Floodplains: backswamps beside the river in wet country.
     else if (f.valley?.inner && f.valley.widthM >= 200 && slope < 0.02 && f.precipMm > 900 && n1 > 0.25 && farming < 0.2) cover[i] = COVER.marsh;

@@ -2,7 +2,7 @@
   "id": "eym-planet-map",
   "title": "Eym Planet Map",
   "description": "An interactive 3D map of the Sun and its worlds, with orbital, surface and night-sky views.",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "authors": [
     {
       "name": "Jon Rice"
@@ -49,5 +49,5 @@
   ],
   "url": "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map",
   "manifest": "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map/releases/latest/download/module.json",
-  "download": "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map/releases/download/v0.23.0/eym-planet-map-v0.23.0.zip"
+  "download": "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map/releases/download/v0.24.0/eym-planet-map-v0.24.0.zip"
 }

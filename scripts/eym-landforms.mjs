@@ -13,6 +13,7 @@
 import { geologyAt } from "./eym-geology.mjs";
 import { coastalResponse } from "./eym-tides.mjs";
 import { destination, nearestSea } from "./eym-sea.mjs";
+import { aeolianAt, bareOf, coastSea, landWindAt, loessAt, loessFertility, sandyOf, seaClimateNear, softOf, windClimate } from "./eym-aeolian.mjs";
 
 export const LANDFORMS_MODEL = "eym-landforms-v1";
 const DEG = Math.PI / 180, KM_PER_DEG = 111.2, BUCKET_DEG = 0.05;
@@ -68,10 +69,11 @@ export const channelWidthM = (areaKm2) => 3 * Math.sqrt(areaKm2);
 /**
  * The landforms context for a local-detail context (`ctx` from localContext: its asset, field and rivers),
  * built once (again if the drainage is attached later): the known rivers' and the drainage channels' segments
- * bucketed by 0.05° cells, and the river mouths. `coastKmAt(lat, lon)` gives the distance to the coast (km).
+ * bucketed by 0.05° cells, and the river mouths. `coastKmAt(lat, lon)` gives the distance to the coast (km) and
+ * `landAt(lat, lon)` whether a place is land (at the local detail's 2 km lattice).
  */
-export function landformContext(ctx, coastKmAt) {
-  const hit = cache.get(ctx); if (hit && hit.drainage === (ctx.asset.drainage ?? null)) return hit;
+export function landformContext(ctx, coastKmAt, landAt = () => true) {
+  const hit = cache.get(ctx); if (hit && hit.drainage === (ctx.asset.drainage ?? null) && hit.wind === (ctx.asset.wind ?? null)) return hit;
   const segments = [], buckets = new Map(), mouths = [];
   for (const channel of drainageChannels(ctx.asset)) for (let k = 0; k + 1 < channel.points.length; k += 1) segments.push({ a: channel.points[k], b: channel.points[k + 1], widthM: channelWidthM(channel.areasKm2[k]), channel: true });
   for (const river of ctx.rivers) {
@@ -89,7 +91,7 @@ export function landformContext(ctx, coastKmAt) {
       const key = i * 100000 + j; let list = buckets.get(key); if (!list) buckets.set(key, (list = [])); list.push(index);
     }
   });
-  const lf = { ctx, segments, buckets, mouths, coastCache: new Map(), coastKmAt, drainage: ctx.asset.drainage ?? null };
+  const lf = { ctx, segments, buckets, mouths, coastCache: new Map(), geologyCache: new Map(), coastKmAt, landAt, drainage: ctx.asset.drainage ?? null, wind: ctx.asset.wind ?? null };
   cache.set(ctx, lf);
   return lf;
 }
@@ -139,11 +141,35 @@ export function valleyAt(river, coarse, wobble = 0) {
   return { carveM: depthM * (1 - rise), roughness: 0.6 + 0.4 * t, floodplain: false, terrace: false, gorge: relief > 1.5 && t < 0.6, depthM, widthM: w };
 }
 
+// ---------------------------------------------------------------- the wind's work inland
+
+/**
+ * The wind's work at a land place (scripts/eym-aeolian.mjs), from the wind climate when it is attached: the dunes,
+ * yardangs or pavement there ({ deflation, ground, liftM, roughness } or null) and the loess blanket (m) and how
+ * fertile it makes the ground (0–1). The biome, soil and rock come from 1° rasters, so how bare, sandy and soft the
+ * ground is gets blended between the four nearest cells. Null without a wind climate.
+ */
+export function windWorkAt(lf, lat, lon, n = 0, m = 0) {
+  const climate = windClimate(lf.ctx.asset); if (!climate) return null;
+  const fy = lat - 0.5, fx = lon - 0.5, y0 = Math.floor(fy), x0 = Math.floor(fx), ty = fy - y0, tx = fx - x0;
+  let sand = 0, soft = 0, bare = 0;
+  for (const [dy, dx, w] of [[0, 0, (1 - ty) * (1 - tx)], [0, 1, (1 - ty) * tx], [1, 0, ty * (1 - tx)], [1, 1, ty * tx]]) {
+    const key = (y0 + dy) * 1000 + (x0 + dx);
+    let geo = lf.geologyCache.get(key); if (!geo) { geo = geologyAt(lf.ctx.asset, y0 + dy + 0.5, x0 + dx + 0.5) ?? {}; lf.geologyCache.set(key, geo); }
+    const cell = lf.ctx.field.cellAt(y0 + dy + 0.5, x0 + dx + 0.5);
+    sand += w * sandyOf(geo.soil); soft += w * softOf(geo.bedrock); bare += w * (cell.ocean ? 0 : bareOf(cell.biome));
+  }
+  const wind = landWindAt(climate, lf.ctx.field, lat, lon), loessM = loessAt(climate, lat, lon);
+  return { aeolian: aeolianAt(wind, bare, sand, soft, lat, lon, n, m), loessM, fertility: loessFertility(loessM) };
+}
+
 // ---------------------------------------------------------------- coasts
 
 /**
  * The character of the coast near a place (cached per 0.05° cell): { kind: "cliffs" | "beach" | "saltmarsh" |
- * "estuary" | "delta", exposure (0–1: the share of directions open to at least 400 km of sea), tideGain (the
+ * "estuary" | "delta", exposure (0–1: the share of directions open to at least 400 km of sea), waveEnergy (0–1:
+ * the waves reaching it, from the swell and wind-sea climate of Stage 2b, scripts/eym-aeolian.mjs; the exposure
+ * stands in where there is no climate), onshoreDrift (0–1: the sand-moving power of onshore winds), tideGain (the
  * coast's tide amplification), rock (the bedrock or null), mouth ({ at, widthM, distKm } or null), cliffM }.
  * `relief` is the coarse relief there.
  */
@@ -152,19 +178,27 @@ export function coastCharacter(lf, lat, lon, relief = 0) {
   const hit = lf.coastCache.get(key); if (hit) return hit;
   const { asset, field } = lf.ctx, clat = (Math.floor(lat / BUCKET_DEG) + 0.5) * BUCKET_DEG, clon = (Math.floor(lon / BUCKET_DEG) + 0.5) * BUCKET_DEG;
   const sea = nearestSea(field, clat, clon) ?? [clat, clon];
-  let open = 0;
-  for (let k = 0; k < 16; k += 1) { let clear = true; for (let km = 50; km <= 400; km += 50) { const [a, b] = destination(sea[0], sea[1], k * 22.5, km); if (!field.cellAt(a, b).ocean) { clear = false; break; } } if (clear) open += 1; }
-  const exposure = open / 16, tideGain = coastalResponse(asset, field, clat, clon)?.gain ?? 2.2;
+  // Which directions lie open: to some hundreds of km of sea from offshore (for swell), and to the sea close by (for onshore wind).
+  const openFar = [], openNear = [];
+  for (let k = 0; k < 16; k += 1) {
+    let clear = true; for (let km = 50; km <= 400; km += 50) { const [a, b] = destination(sea[0], sea[1], k * 22.5, km); if (!field.cellAt(a, b).ocean) { clear = false; break; } }
+    openFar.push(clear);
+    let near = false; for (let km = 3; km <= 12 && !near; km += 3) { const [a, b] = destination(clat, clon, k * 22.5, km); near = !lf.landAt(a, b); }
+    openNear.push(near);
+  }
+  const exposure = openFar.filter(Boolean).length / 16, tideGain = coastalResponse(asset, field, clat, clon)?.gain ?? 2.2;
+  const climate = windClimate(asset), seaClimate = climate ? seaClimateNear(climate, field, sea) : null, waves = seaClimate ? coastSea(seaClimate, openFar, openNear) : null;
+  const energy = waves ? waves.waveEnergy : exposure, onshoreDrift = waves ? waves.onshoreDrift : 0;
   const rock = geologyAt(asset, clat, clon)?.bedrock ?? null, hard = HARD_ROCK.has(rock);
   let mouth = null;
   for (const m of lf.mouths) { const d = Math.hypot((m.at[0] - clat) * KM_PER_DEG, (m.at[1] - clon) * KM_PER_DEG * Math.cos(clat * DEG)); if (d < 12 && (!mouth || m.widthM > mouth.widthM)) mouth = { ...m, distKm: d }; }
   let kind;
   if (mouth && mouth.widthM >= 300 && relief < 0.6) kind = tideGain >= 4.5 ? "estuary" : "delta";
   else if (mouth && mouth.widthM >= 100 && relief < 0.6 && tideGain >= 4.5) kind = "estuary";
-  else if ((hard && (relief >= 0.4 || exposure >= 0.5)) || relief >= 1.2) kind = "cliffs";
-  else if (exposure < 0.3 && tideGain >= 4 && relief < 0.4) kind = "saltmarsh";
+  else if ((hard && (relief >= 0.4 || energy >= 0.5)) || relief >= 1.2) kind = "cliffs";
+  else if (energy < 0.3 && tideGain >= 4 && relief < 0.4) kind = "saltmarsh";
   else kind = "beach";
-  const out = { kind, exposure, tideGain, rock, mouth, cliffM: Math.round(12 + 60 * exposure + 40 * Math.min(relief, 2)) };
+  const out = { kind, exposure, waveEnergy: energy, onshoreDrift, wavesFromDeg: waves?.fromDeg ?? null, tideGain, rock, mouth, cliffM: Math.round(12 + 60 * energy + 40 * Math.min(relief, 2)) };
   lf.coastCache.set(key, out);
   return out;
 }
@@ -226,9 +260,17 @@ export function shoreAt(coast, seaKm, n, elevationM, cellKm = 0, fine = 0) {
       return seaKm < edge ? { ground: "cliff", elevationM: null } : null;
     }
     case "beach": {
-      const band = Math.max(least, (0.08 + 0.35 * coast.exposure) * (1 + 0.35 * n));
+      // The waves build the beach (wider on a high-energy coast); onshore winds blow its sand inland into a dune belt,
+      // up to a couple of kilometres deep where strong onshore winds meet a well-fed beach. Its front is bare sand, its
+      // back grassed and scrubby, its crests a few metres to tens of metres high.
+      const energy = coast.waveEnergy ?? coast.exposure, drift = coast.onshoreDrift ?? (coast.exposure > 0.6 ? 0.3 : 0);
+      const band = Math.max(least, (0.08 + 0.35 * energy) * (1 + 0.35 * n));
       if (seaKm < band) return { ground: "beach", elevationM: Math.min(elevationM, 1 + 6 * seaKm / Math.max(band, 0.05)) };
-      if (coast.exposure > 0.6 && seaKm < band + 0.3 + 0.1 * n) return { ground: "dunes", elevationM: null };
+      const supply = smoothstep((drift - 0.2) / 0.4) * smoothstep((energy - 0.25) / 0.3), belt = (0.15 + 2.3 * supply) * (1 + 0.3 * n);
+      if (supply > 0 && seaKm < band + belt) {
+        const into = (seaKm - band) / belt, crest = (3 + 15 * supply) * (0.5 + 0.5 * fine) * Math.sin(Math.PI * Math.min(1, into * 1.2 + 0.1)) ** 0.5;
+        return { ground: into < 0.3 && supply > 0.4 ? "dune-sand" : "dunes", elevationM: Math.max(elevationM, 2) + crest };
+      }
       return null;
     }
     case "saltmarsh": {
