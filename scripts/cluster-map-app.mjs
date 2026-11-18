@@ -51,7 +51,7 @@ import { crossingPassage, placeSea } from "./eym-sea.mjs";
 import { battleTide, coastalResponse, createTideClock, tideReport } from "./eym-tides.mjs";
 import { describeGround, describeStone, geologyAt, localStonePrompt } from "./eym-geology.mjs";
 import { describeTremors, tremorsAt } from "./eym-quakes.mjs";
-import { attachGeology, attachOcean } from "./cartography-asset.mjs";
+import { attachDrainage, attachGeology, attachOcean, drainageFileName } from "./cartography-asset.mjs";
 import { sunAltitudeDeg, yearFraction } from "./eym-seasons.mjs";
 import { foliageSeason } from "./eym-battle-season.mjs";
 import { guardPageZoom } from "./zoom-guard.mjs";
@@ -349,17 +349,21 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   /**
-   * Eym's geology (rock, volcanoes, fault lines) is a separate file, fetched the first time something asks
-   * about rock or earthquakes (scripts/cartography-asset.mjs). Resolves once it is attached (or it is absent).
+   * Eym's geology (rock, volcanoes, fault lines) and its drainage (the valleys its water has cut) are separate
+   * files, fetched the first time something asks about rock or earthquakes or draws the local detail
+   * (scripts/cartography-asset.mjs). Resolves once they are attached (or absent).
    */
   #ensureEymGeology() {
     const asset = this._eymGeography;
-    if (!asset?.geologyFile || asset.geology) return Promise.resolve();
-    this._geologyLoading ??= fetch(`modules/${MODULE_ID}/data/planet-cartography/${asset.system.toLowerCase()}/${asset.geologyFile}`)
-      .then((response) => { if (!response.ok) throw new Error(`geology fetch failed (${response.status})`); return response.json(); })
-      .then((document) => { attachGeology(asset, document); })
-      .catch((error) => { console.warn(`${MODULE_ID} | Eym's geology is unavailable`, error); this._geologyLoading = null; });
-    return this._geologyLoading;
+    if (!asset) return Promise.resolve();
+    const folder = `modules/${MODULE_ID}/data/planet-cartography/${asset.system.toLowerCase()}`;
+    const load = (file, what, attach) => fetch(`${folder}/${file}`)
+      .then((response) => { if (!response.ok) throw new Error(`${what} fetch failed (${response.status})`); return response.json(); })
+      .then((document) => { attach(asset, document); })
+      .catch((error) => { console.warn(`${MODULE_ID} | Eym's ${what} is unavailable`, error); });
+    if (asset.geologyFile && !asset.geology) this._geologyLoading ??= load(asset.geologyFile, "geology", attachGeology).then(() => { if (!asset.geology) this._geologyLoading = null; });
+    if (!asset.drainage) this._drainageLoading ??= load(drainageFileName(`${asset.body.toLowerCase()}.json`), "drainage", attachDrainage).then(() => { if (!asset.drainage) this._drainageLoading = null; });
+    return Promise.all([this._geologyLoading, this._drainageLoading]);
   }
 
   /**
@@ -1039,7 +1043,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       // Eym: real day and night and the seasons on the globe, kept current with the clock.
       window.clearInterval(this._bodyTicker); this._bodyTicker = null;
       if (object.name === "Eventide" && geography?.terrain?.coastlineSource === "vector") {
-        this._eymGeography = geography; this._geologyLoading = null;
+        this._eymGeography = geography; this._geologyLoading = null; this._drainageLoading = null;
         this._eymField = environmentField(geography); this._coverDay = null; this._weatherStep = null; this._weatherSnow = null;
         void this.#refreshBodyEnvironment().catch((error) => console.warn(`${MODULE_ID} | Unable to show day and night`, error));
         this._bodyTicker = window.setInterval(() => void this.#refreshBodyEnvironment().catch(() => {}), 10000);

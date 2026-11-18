@@ -243,6 +243,8 @@ Split in three: *2a* currents, sea temperature, wet and dry seasons, El Niño an
 
 This applies to all land, including Caren's and Garyk's interiors; their outlines stay fixed.
 
+Done in 0.23.0: valleys, gorges and floodplains from the named rivers and a traced drainage network; beaches, dunes, cliffs, salt marsh, estuaries and deltas by exposure, rock and tide; the Region layer moved to v3 and its stored tiles rendered again. Left for later: river terraces (they drew step lines across the map and were taken out) and spits.
+
 - Rivers carve valleys and gorges; floodplains, terraces and deltas form where they slow and meet the sea.
 - Coastal forms by exposure and rock: beaches, cliffs, spits, estuaries.
 - The result feeds Region and Local terrain. If it changes Region tiles already stored, they are rendered again from the stored shapes, and the pull request says so.
