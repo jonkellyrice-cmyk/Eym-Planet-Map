@@ -33,7 +33,8 @@ import { groundSky, localSolarHours } from "./ground-sky.mjs";
 import { SkyView } from "./sky-view.mjs";
 import { mansionForDirection, sunPathLongitudeDeg } from "./lunar-mansions.mjs";
 import { phaseName } from "./moon-events.mjs";
-import { buildLocalTile, localDetailLayout, localDetailOverlaySvg, tileRgba } from "./eym-local-detail.mjs";
+import { buildLocalTile, localDetailLayout, localDetailOverlaySvg, riverHere, tileRgba } from "./eym-local-detail.mjs";
+import { battleRiver, describeRiver } from "./eym-river-flow.mjs";
 import { DEFAULT_IMAGE_BASE_URL, checkBaseUrl, paintMap } from "./eym-image-provider.mjs";
 import { CANON_SETTING, activeCanon, canonAbove, canonEntry, canonFolder, canonFor, frameRecord, mergeCanon, parentDirection, textHash } from "./eym-canon.mjs";
 import { architectureLibrary, canonList, mapServerUrl, paintingSettings } from "./eym-paint-settings.mjs";
@@ -51,7 +52,7 @@ import { crossingPassage, placeSea } from "./eym-sea.mjs";
 import { battleTide, coastalResponse, createTideClock, tideReport } from "./eym-tides.mjs";
 import { describeGround, describeStone, geologyAt, localStonePrompt } from "./eym-geology.mjs";
 import { describeTremors, tremorsAt } from "./eym-quakes.mjs";
-import { attachDrainage, attachGeology, attachOcean, attachWind, drainageFileName, windFileName } from "./cartography-asset.mjs";
+import { attachDrainage, attachFlow, attachGeology, attachOcean, attachWind, drainageFileName, flowFileName, windFileName } from "./cartography-asset.mjs";
 import { sunAltitudeDeg, yearFraction } from "./eym-seasons.mjs";
 import { foliageSeason } from "./eym-battle-season.mjs";
 import { guardPageZoom } from "./zoom-guard.mjs";
@@ -349,10 +350,10 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
   }
 
   /**
-   * Eym's geology (rock, volcanoes, fault lines), its drainage (the valleys its water has cut) and its wind
-   * climate (dunes, loess and the waves on its coasts) are separate files, fetched the first time something
-   * asks about rock or earthquakes or draws the local detail (scripts/cartography-asset.mjs). Resolves once
-   * they are attached (or absent).
+   * Eym's geology (rock, volcanoes, fault lines), its drainage (the valleys its water has cut), its wind
+   * climate (dunes, loess and the waves on its coasts) and its rivers' monthly climate (their flow through the
+   * year) are separate files, fetched the first time something asks about rock, earthquakes or rivers or draws
+   * the local detail (scripts/cartography-asset.mjs). Resolves once they are attached (or absent).
    */
   #ensureEymGeology() {
     const asset = this._eymGeography;
@@ -365,7 +366,8 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     if (asset.geologyFile && !asset.geology) this._geologyLoading ??= load(asset.geologyFile, "geology", attachGeology).then(() => { if (!asset.geology) this._geologyLoading = null; });
     if (!asset.drainage) this._drainageLoading ??= load(drainageFileName(`${asset.body.toLowerCase()}.json`), "drainage", attachDrainage).then(() => { if (!asset.drainage) this._drainageLoading = null; });
     if (!asset.wind) this._windLoading ??= load(windFileName(`${asset.body.toLowerCase()}.json`), "wind climate", attachWind).then(() => { if (!asset.wind) this._windLoading = null; });
-    return Promise.all([this._geologyLoading, this._drainageLoading, this._windLoading]);
+    if (!asset.flow) this._flowLoading ??= load(flowFileName(`${asset.body.toLowerCase()}.json`), "rivers' monthly climate", attachFlow).then(() => { if (!asset.flow) this._flowLoading = null; });
+    return Promise.all([this._geologyLoading, this._drainageLoading, this._windLoading, this._flowLoading]);
   }
 
   /**
@@ -775,13 +777,14 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const history = this._weather ? placeHistory(this._weather, lat, lon) : null;
     const sea = this._weather && now ? placeSea(this._weather, lat, lon, { ...now, timeMs: this._sun.t }) : null;
     const tide = this.#tideHere(lat, lon);
+    const asset = this._eymGeography, river = asset?.flow && asset?.drainage ? battleRiver(riverHere(asset, lat, lon, this._sun.t)) : null;
     const said = now ? describeWeather(now) : null;
     const report = placeReport({ field: this._eymField, subsolar: this._sun.subsolar, latDeg: lat, lonDeg: lon, timeMs: this._sun.t });
     const altitude = sunAltitudeDeg(lat, lon, this._sun.subsolar);
     // The season the trees and grass are in (light and shadow are Foundry's, live).
     const season = foliageSeason(lat, yearFraction(this._sun.t));
     return {
-      conditions: { snowDepthCm: history?.snowDepthCm ?? 0, ground: history?.ground ?? "dry", tempC: now?.tempC ?? report.values.temperature.nowC, precipKind: now?.precipMmH > 0.1 ? now.precipKind : null, precipMmH: now?.precipMmH ?? 0, windMs: now?.windMs ?? 0, thunder: Boolean(now?.thunder), fog: Boolean(now?.fog) || ((now?.humidity ?? 0) > 0.97 && (now?.windMs ?? 0) < 3), sunAltitudeDeg: altitude, season: report.season, sea: sea ? { words: sea.words, hsM: Math.round(sea.hsM * 10) / 10, swim: sea.swim } : null, tide: battleTide(tide) },
+      conditions: { snowDepthCm: history?.snowDepthCm ?? 0, ground: history?.ground ?? "dry", tempC: now?.tempC ?? report.values.temperature.nowC, precipKind: now?.precipMmH > 0.1 ? now.precipKind : null, precipMmH: now?.precipMmH ?? 0, windMs: now?.windMs ?? 0, thunder: Boolean(now?.thunder), fog: Boolean(now?.fog) || ((now?.humidity ?? 0) > 0.97 && (now?.windMs ?? 0) < 3), sunAltitudeDeg: altitude, season: report.season, sea: sea ? { words: sea.words, hsM: Math.round(sea.hsM * 10) / 10, swim: sea.swim } : null, tide: battleTide(tide), river },
       season,
       words: { time: `${report.localTime}, ${report.season}; the sun ${report.sun}`, weather: said ? `${said.sky}${said.precip ? `, ${said.precip}` : ""}; wind ${said.wind}${sea ? `; the sea ${sea.words}` : ""}` : "", light: altitude >= 0 ? "daylight" : altitude > -6 ? "civil twilight (dim)" : altitude > -12 ? "dusk or dawn (dim to dark)" : "night (darkness, moonlight aside)" },
     };
@@ -955,6 +958,9 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     }
     const tide = this.#tideHere(latDeg, lonDeg);
     values.tide = tide ? `${tide.words[0].toUpperCase()}${tide.words.slice(1)}` : "Inland";
+    // The river nearby through the year (scripts/eym-river-flow.mjs): its stage, and whether it can be waded.
+    if (this._eymGeography.flow && this._eymGeography.drainage) values.river = describeRiver(riverHere(this._eymGeography, latDeg, lonDeg, this._sun.t));
+    else { values.river = "…"; void this.#ensureEymGeology().then(() => { if (this._eymGeography?.flow && this._eymGeography?.drainage) this.#updatePlaceReadout(); }); }
     // The rock and soil here, and the earthquakes and eruptions of the last 30 days (worked out once a day per place).
     if (this._eymGeography.geologyFile && !this._eymGeography.geology) {
       // Not here yet: say so, and fill these in when it arrives.
@@ -1045,7 +1051,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       // Eym: real day and night and the seasons on the globe, kept current with the clock.
       window.clearInterval(this._bodyTicker); this._bodyTicker = null;
       if (object.name === "Eventide" && geography?.terrain?.coastlineSource === "vector") {
-        this._eymGeography = geography; this._geologyLoading = null; this._drainageLoading = null; this._windLoading = null;
+        this._eymGeography = geography; this._geologyLoading = null; this._drainageLoading = null; this._windLoading = null; this._flowLoading = null;
         this._eymField = environmentField(geography); this._coverDay = null; this._weatherStep = null; this._weatherSnow = null;
         void this.#refreshBodyEnvironment().catch((error) => console.warn(`${MODULE_ID} | Unable to show day and night`, error));
         this._bodyTicker = window.setInterval(() => void this.#refreshBodyEnvironment().catch(() => {}), 10000);

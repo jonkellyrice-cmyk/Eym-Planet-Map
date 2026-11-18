@@ -50,4 +50,9 @@ if (readDrainage()?.sourcesSha256 !== drainageSourcesSha256()) { run("tools/gene
 const { windSourcesSha256 } = await import("./generate-eym-wind.mjs");
 const readWind = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/abydos/eventide-wind.json", root), "utf8")); } catch { return null; } };
 if (readWind()?.sourcesSha256 !== windSourcesSha256()) { run("tools/generate-eym-wind.mjs"); changed = true; }
+// The rivers' monthly climate (tools/generate-eym-flow.mjs) follows the weather and the land: made again (a few
+// seconds) when either changed.
+const { flowSourcesSha256 } = await import("./generate-eym-flow.mjs");
+const readFlow = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/abydos/eventide-flow.json", root), "utf8")); } catch { return null; } };
+if (readFlow()?.sourcesSha256 !== flowSourcesSha256()) { run("tools/generate-eym-flow.mjs"); changed = true; }
 console.log(changed ? "Eym's derived data was made again." : "Eym's derived data is up to date.");

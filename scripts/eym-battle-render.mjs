@@ -8,6 +8,7 @@
 
 import { FEATURES, MOVE, SETTINGS } from "./eym-battle-settings.mjs";
 import { footprintPolygon } from "./eym-battle-buildings.mjs";
+import { waterLineScale } from "./eym-battle-rules.mjs";
 import { NEUTRAL_LIGHT, seasonWords } from "./eym-battle-season.mjs";
 import { battleLights } from "./eym-battle-scene.mjs";
 import { battleOccluders, occluderRecord, occluderWalls } from "./eym-battle-occluders.mjs";
@@ -19,6 +20,8 @@ const GROUND_COLORS = Object.freeze({
   yard: "#a99a7a",
   // The tide (scripts/eym-tides.mjs): flats the sea has left, and surf over the beach.
   "wet sand (tidal flat)": "#b9a46e", "tidal mud": "#6f6248", "wet rock and weed": "#5f6b55", "shallow surf": "#7fb8cf",
+  // The river through the year (scripts/eym-river-flow.mjs).
+  "gravel bar": "#b7a98c", "dry stream bed": "#a99c80", "shallow river (knee-deep)": "#7fb4d4", "river (waist-deep)": "#6aa3c8", "swollen stream": "#5f9cc4", "stream in spate (torrent)": "#4f8db7", "river in flood": "#4a7f9f", "floodwater (knee-deep)": "#7aa9b8",
   "canyon floor": "#c29a6a", "carved stone terrace": "#c8ab84", "monastery terrace": "#b9ad96", "lower terrace": "#a99d86", "stone stairs": "#d6c7a8", "marble quay": "#e2ddd2", canal: "#3f7f9a", "stone bridge": "#cfc6b4",
   "floating rock": "#8fa36a", "open sky (a fall)": "#bcd8f0", "open air (a fall)": "#1c1f26", "rope bridge": "#a07a4a", "stone arch": "#b0a690", "planar rift": "#5a2a8a", "cave floor": "#5e5a55", "cave wall": "#2b2826",
   "flagstone floor": "#8f877a", "carved wall": "#3a3632", "molten-metal channel": "#f0702a", "raised dais": "#a89c86", "tree platform": "#9a7448", ladder: "#7a5a36", "grave earth": "#6f6a52",
@@ -108,7 +111,8 @@ export function battleReferenceSvg(map, gridPx = map.spec.gridPx) {
   // Side edges of levels as dark lines; south-facing steps get faces below (drawn with the standing things).
   for (const c of map.cliffs ?? []) if (c.dir === "e") out.push(`<line x1="${c.x + 1}" y1="${c.y}" x2="${c.x + 1}" y2="${c.y + 1}" stroke="#1e1a16" stroke-width="${f2(Math.min(0.3, 0.08 + (c.high - c.low) / 100))}" stroke-linecap="round"/>`);
   const line = (pts) => `M${pts.map(([a, b]) => `${f2(a)} ${f2(b)}`).join(" L")}`;
-  if (!map.flattened) for (const s of map.site.streams) out.push(`<path d="${line(s.line)}" fill="none" stroke="${s.kind === "river" ? "#4d8fbb" : "#6aa8cf"}" stroke-width="${f2(Math.max(0.6, s.widthSquares))}" stroke-linecap="round" stroke-linejoin="round"/>`);
+  // Water lines at the river's stage (scripts/eym-river-flow.mjs): none on a dry bed, narrower at low water, wider in flood.
+  if (!map.flattened) for (const s of map.site.streams) { const scale = waterLineScale(map, s.kind); if (scale) out.push(`<path d="${line(s.line)}" fill="none" stroke="${s.kind === "river" ? "#4d8fbb" : "#6aa8cf"}" stroke-width="${f2(Math.max(0.6, s.widthSquares * scale))}" stroke-linecap="round" stroke-linejoin="round"/>`); }
   // Flat things lie on the ground; everything that stands is drawn in three-quarter view, north to south.
   const standing = [];
   for (const f of map.features) { const def = featureDefOn(map, f.kind); if (def.shape === "tree") { standing.push({ y: f.y + f.h, x: f.x, svg: (f.kind === "planter-tree" ? `<rect x="${f2(f.x + 0.2)}" y="${f2(f.y + 0.55)}" width="0.6" height="0.35" fill="#8f877a"/>` : "") + obliqueTree({ x: f.x + f.w / 2, y: f.y + f.h - 0.2, size: f.kind === "planter-tree" ? 0.62 : 0.95 }) }); continue; } if (standHeightFt(f.kind, def) > 0) standing.push({ y: f.y + f.h, x: f.x, svg: obliqueFeature(f, def, featureShape(f, def)) }); else out.push(featureShape(f, def)); }

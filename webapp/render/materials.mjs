@@ -105,6 +105,11 @@ export const MATERIALS = Object.freeze({
   "canyon floor": strata("#c29a6a", 43), "carved stone terrace": strata("#c8ab84", 44), "monastery terrace": flags("#b9ad96", 45, 9), "lower terrace": flags("#a99d86", 46, 9),
   "floating rock": grass("#8fa36a", 47), "open sky (a fall)": sky(48), "open air (a fall)": abyss(), "planar rift": glow("#5a2a8a", 49), "molten-metal channel": glow("#e0602a", 50),
   "grave earth": speckle("#6f6a52", 51, 0.1), sandbar: ripples("#efe2b8", 52),
+  // The tide (scripts/eym-tides.mjs): flats the sea has left, and surf over the beach.
+  "wet sand (tidal flat)": ripples("#b9a46e", 56), "tidal mud": speckle("#6f6248", 57, 0.08), "wet rock and weed": cracks("#5f6b55", 58), "shallow surf": water("#7fb8cf", 59, 0.03),
+  // The river through the year (scripts/eym-river-flow.mjs): bare gravel and dry beds at low water, wading depths, spate and flood.
+  "gravel bar": speckle("#b7a98c", 60, 0.14), "dry stream bed": speckle("#a99c80", 61, 0.14), "shallow river (knee-deep)": water("#7fb4d4", 62, 0.03), "river (waist-deep)": water("#6aa3c8", 63, 0.02),
+  "swollen stream": water("#5f9cc4", 64), "stream in spate (torrent)": water("#4f8db7", 65, 0.03), "river in flood": water("#4a7f9f", 66, 0.03), "floodwater (knee-deep)": water("#7aa9b8", 67, 0.02),
   // Style pavings (a building style maps the plain street grounds to these; see eym-building-styles.mjs).
   "granite setts": stones("#8a8680", "#4c4946", 54, 5, 4), "dressed granite": flags("#8e8a84", 55, 9),
 });

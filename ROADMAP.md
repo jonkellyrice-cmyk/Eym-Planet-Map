@@ -253,6 +253,8 @@ Done in 0.23.0: valleys, gorges and floodplains from the named rivers and a trac
 
 ### Stage 4: rivers through the year
 
+*Done in 0.25.0:* monthly flow from a water balance (snow, soil, groundwater) over the weather's monthly rain and warmth; floods, low water and droughts, with wet and dry years from the equatorial oscillation and a year-to-year swing; beds as wide as the water they carry; river stages on battle maps (gravel bars, wading depths, swollen streams, floodwater) and on the "Here and now" card with the days until a ford can be crossed; springs and spring-fed fens in porous rock. There is still no land travel-time system: the crossing delay is given on the card, and a journey planner would add it.
+
 - River flow by season from the seasonal rain and snowmelt: spring floods, low water, droughts.
 - Springs and wetlands from groundwater.
 - Fords crossable only in some seasons, wired into battle maps and travel times.

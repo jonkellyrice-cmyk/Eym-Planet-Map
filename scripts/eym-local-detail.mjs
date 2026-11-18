@@ -13,6 +13,8 @@ import { fromLocal, greatCircleKm, toLocal } from "./eym-surface.mjs";
 import { riverCourses } from "./eym-river-courses.mjs";
 import { annualMeanTemperatureC, environmentField, zonalPrecipitationMm } from "./eym-seasons.mjs";
 import { blendedShoreAt, cliffLiftM, landformContext, nearestRiver, valleyAt, windWorkAt } from "./eym-landforms.mjs";
+import { daysUntilFordable, groundwaterMm, riverStage, riverYear, widthFactor, yearWetness } from "./eym-river-flow.mjs";
+import { geologyAt } from "./eym-geology.mjs";
 
 export const LOCAL_DETAIL_MODEL = "eym-local-detail-v1";
 const DEG = Math.PI / 180;
@@ -75,7 +77,8 @@ const insideAny = (index, lat, lon) => { let inside = false; for (const r of ind
 
 /** Everything the generator reads from the accepted cartography, indexed once per asset. */
 export function localContext(asset) {
-  if (contextCache.has(asset)) return contextCache.get(asset);
+  // (Built again if the rivers' monthly climate is attached later: it sets their widths.)
+  const hit = contextCache.get(asset); if (hit && hit.flow === (asset.flow ?? null)) return hit;
   const coasts = ringIndex(asset.terrain.coastlines.map((c) => c.points));
   // River channels (the traced maps' rivers, kilometres wide) are not water here: their rivers are (eym-river-courses.mjs).
   const waters = ringIndex(asset.hydrology.lakes.filter((l) => l.waterKind !== "river-channel").flatMap((l) => [l.polygon, ...(l.islands ?? [])]));
@@ -86,11 +89,14 @@ export function localContext(asset) {
     const seg = [c.ring[i], c.ring[i + 1]], key = Math.floor(seg[0][0]) * 1000 + Math.floor(((seg[0][1] % 360) + 540) % 360 - 180);
     if (!coastSegments.has(key)) coastSegments.set(key, []); coastSegments.get(key).push(seg);
   }
+  const field = environmentField(asset);
   const rivers = asset.hydrology.rivers.map((r) => ({ points: r.points, widthM: clamp(30 + 40 * Math.log10(1 + r.dischargeIndex), 30, 400) }))
-    .concat(riverCourses(asset).map((r) => ({ points: r.points, widthM: r.widthM })));
+    // Caren's and Garyk's rivers: the land each drains follows from its old channel's measure of it, and its bed is
+    // as wide as the water it carries (scripts/eym-river-flow.mjs: wider where more of the rain runs off).
+    .concat(riverCourses(asset).map((r) => ({ id: r.id, points: r.points, baseWidthM: r.widthM, areaKm2: (r.widthM / 3) ** 2, widthM: Math.round(r.widthM * widthFactor(asset, field, r.points)) })));
   const settlements = asset.settlements.filter((s) => s.lat != null);
   const peakM = (lat, lon) => { const c = asset.terrain.coastlines.find((line) => line.kind === "mainland" && line.continent && greatCircleKm(line.points[0], [lat, lon]) < 4000); return c?.continent === "Caren" ? 5200 : c?.continent === "Garyk" ? 3900 : 3500; };
-  const ctx = { asset, coasts, waters, detail, coastSegments, rivers, settlements, field: environmentField(asset), lattice: new Map(), smoothed: new Map(), peakM };
+  const ctx = { asset, coasts, waters, detail, coastSegments, rivers, settlements, field, lattice: new Map(), smoothed: new Map(), peakM, flow: asset.flow ?? null };
   contextCache.set(asset, ctx);
   return ctx;
 }
@@ -172,6 +178,19 @@ export function terrainAt(ctx, lat, lon, shortKm = 0.02) {
   return { elevationM, valley, wind, coarse: c };
 }
 
+/**
+ * The river by a place at a moment (Stage 4: rivers through the year), from the rivers' monthly climate when it is
+ * attached: the nearest river or drainage channel within `maxKm`, its stage, flow, depth and how much of its bed
+ * the water fills (scripts/eym-river-flow.mjs riverStage), its bed's width, whether it can be waded and, if not,
+ * in how many days it can (null if not within the year), and its year (the monthly flows). Null if none.
+ */
+export function riverHere(asset, lat, lon, timeMs, maxKm = 3) {
+  const ctx = localContext(asset), near = nearestRiver(landformsOf(ctx), lat, lon); if (!near || near.distKm > maxKm || !near.ref) return null;
+  const year = riverYear(asset, ctx.field, near.ref, near.k, near.areaKm2, (a, b) => coarseAt(ctx, a, b).elevationM); if (!year) return null;
+  const wet = yearWetness(asset, near.ref.points.at(-1), timeMs), stage = riverStage(year, near.widthM, timeMs, wet);
+  return { ...stage, distKm: near.distKm, bedWidthM: near.widthM, channel: near.channel, areaKm2: near.areaKm2, wet, year, untilFordableDays: stage.fordable ? 0 : daysUntilFordable(year, near.widthM, timeMs, wet) };
+}
+
 /** Fine elevation (m) at a point (see terrainAt). */
 export function elevationAt(ctx, lat, lon, shortKm = 0.02) { return terrainAt(ctx, lat, lon, shortKm).elevationM; }
 
@@ -184,6 +203,8 @@ class MinHeap {
   get size() { return this.a.length; }
 }
 
+/** Rock that holds and passes groundwater, so that streams rise from springs in it. */
+const POROUS_ROCK = new Set(["limestone", "caren-limestone", "marble", "sandstone-shale", "volcanic"]);
 /** The ground each kind of shore gives (scripts/eym-landforms.mjs); a cliff is rock, dunes are scrub and grass. */
 const SHORE_COVER = Object.freeze({ beach: COVER.beach, dunes: COVER.scrub, "dune-sand": COVER.beach, cliff: COVER.rock, marsh: COVER.marsh, mudflat: COVER.marsh, "delta-meadow": COVER.meadow });
 /** The ground the wind leaves inland (scripts/eym-aeolian.mjs): grassed dunes, and bare rock where it scours. */
@@ -337,10 +358,31 @@ export function buildLocalTile(asset, { center, sizeKm = 8, resolutionM = 25, ma
   // place), so a flat drains in branches; the fill itself, which makes ponds, is left as it was.
   const jitter = new Float32Array(n * n);
   for (let i = 0; i < n * n; i += 1) { const [lat, lon] = latlon(i % n, Math.floor(i / n)); let h = Math.imul(Math.round(lat * 20000) ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(Math.round(lon * 20000) ^ 0xc2b2ae35, 0x27d4eb2f); h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d); h ^= h >>> 13; jitter[i] = 0.02 * (h >>> 0) / 4294967296; }
-  for (let i = 0; i < n * n; i += 1) { const r = Math.floor(i / n), c = i % n; if (outlet(i) || r === 0 || c === 0 || r === n - 1 || c === n - 1) { filled[i] = outlet(i) ? Math.min(elevation[i], 0) : elevation[i]; visit[i] = filled[i]; done[i] = 1; heap.push(i); } }
+  // On a long, even slope the land's small bumps are too weak to turn the water, which would run ruler-straight
+  // downhill for kilometres. The flood is steered over the land plus a gentle wander keyed to the world (some
+  // 500 m across), scaled to the slope (and at least about a metre on flat ground, where the water would
+  // otherwise head straight back to wherever the flat spills) so it bends the water's path on steep ground and flat
+  // ground alike; it changes only which way the water goes, not the land's height or where it ponds.
+  // Across a filled hollow (between dunes, behind a levee) the flood spreads evenly from where it spills, so it also
+  // spreads faster along the same wander's low corridors there, and the water winds along them.
+  const routeZ = new Float32Array(n * n), across = new Float32Array(n * n);
+  for (let i = 0; i < n * n; i += 1) {
+    const r = Math.floor(i / n), c = i % n, [lat, lon] = latlon(c, r), wander = globeNoise(toKmVector(lat, lon), 0.5, Math.max(0.05, res), 83);
+    const gx = (elevation[r * n + Math.min(n - 1, c + 1)] - elevation[r * n + Math.max(0, c - 1)]) / (2 * resolutionM), gy = (elevation[Math.min(n - 1, r + 1) * n + c] - elevation[Math.max(0, r - 1) * n + c]) / (2 * resolutionM);
+    routeZ[i] = elevation[i] + 400 * clamp(Math.hypot(gx, gy), 0.003, 0.5) * wander;
+    across[i] = 0.001 + jitter[i] + 0.05 * (1 + wander);
+  }
+  const edge = (i) => { const r = Math.floor(i / n), c = i % n; return outlet(i) || r === 0 || c === 0 || r === n - 1 || c === n - 1; };
+  const NEIGHBOURS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+  // First the true fill (how deep each hollow holds water: ponds and marsh), taken lowest first.
+  { const fillDone = new Uint8Array(n * n), fillHeap = new MinHeap(filled);
+    for (let i = 0; i < n * n; i += 1) if (edge(i)) { filled[i] = outlet(i) ? Math.min(elevation[i], 0) : elevation[i]; fillDone[i] = 1; fillHeap.push(i); }
+    while (fillHeap.size) { const i = fillHeap.pop(), r = Math.floor(i / n), c = i % n; for (const [dr, dc] of NEIGHBOURS) { const rr = r + dr, cc = c + dc; if (rr < 0 || cc < 0 || rr >= n || cc >= n) continue; const j = rr * n + cc; if (fillDone[j]) continue; fillDone[j] = 1; filled[j] = Math.max(elevation[j], filled[i] + 0.001); fillHeap.push(j); } } }
+  // Then which way the water goes (and so how much land each square drains), over the steered surface.
+  for (let i = 0; i < n * n; i += 1) if (edge(i)) { visit[i] = outlet(i) ? Math.min(elevation[i], 0) : elevation[i]; done[i] = 1; heap.push(i); }
   while (heap.size) {
     const i = heap.pop(); order.push(i); const r = Math.floor(i / n), c = i % n;
-    for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) { const rr = r + dr, cc = c + dc; if (rr < 0 || cc < 0 || rr >= n || cc >= n) continue; const j = rr * n + cc; if (done[j]) continue; done[j] = 1; filled[j] = Math.max(elevation[j], filled[i] + 0.001); visit[j] = Math.max(elevation[j], visit[i] + 0.001 + jitter[j]); receiver[j] = i; heap.push(j); }
+    for (const [dr, dc] of NEIGHBOURS) { const rr = r + dr, cc = c + dc; if (rr < 0 || cc < 0 || rr >= n || cc >= n) continue; const j = rr * n + cc; if (done[j]) continue; done[j] = 1; visit[j] = Math.max(routeZ[j], visit[i] + across[j]); receiver[j] = i; heap.push(j); }
   }
   const area = new Float32Array(n * n), cellKm2 = res * res;
   for (let k = order.length - 1; k >= 0; k -= 1) { const i = order[k]; area[i] += cellKm2; if (receiver[i] >= 0) area[receiver[i]] += area[i]; }
@@ -413,6 +455,31 @@ export function buildLocalTile(asset, { center, sizeKm = 8, resolutionM = 25, ma
   for (let i = 0; i < n * n; i += 1) if (isStream[i] && cover[i] !== COVER.built) cover[i] = COVER.stream;
   // Structures: farmsteads among the fields, mills on streams near towns, fords and bridges where roads meet water.
   const structures = [];
+  // Springs (Stage 4): where porous rock (limestone, marble, sandstone, volcanic rock) holds groundwater, streams rise
+  // from springs and water seeps out at the foot of slopes, more of both the more rain soaks down; on gentle ground
+  // each spring wets a small spring-fed fen around it.
+  const recharge = groundwaterMm(asset, ctx.field, center[0], center[1], elevation[Math.floor(n / 2) * n + Math.floor(n / 2)]) ?? 0;
+  if (POROUS_ROCK.has(geologyAt(asset, center[0], center[1])?.bedrock) && recharge > 60) {
+    const slopeAt = (i) => Math.hypot(elevation[i + 1] - elevation[i - 1], elevation[i + n] - elevation[i - n]) / (2 * resolutionM);
+    const sites = streams.map((s) => s.local[0]).filter(([x, y]) => hashUnit(`${LOCAL_DETAIL_MODEL}|spring|${Math.round(fromLocal(center, x, y)[0] * 500)}|${Math.round(fromLocal(center, x, y)[1] * 500)}`) <= clamp(recharge / 500, 0.2, 0.8));
+    // Away from the streams, water also comes out at the foot of slopes: one chance per world-pinned 0.01° cell (~1.1 km).
+    const sStep = 0.01, sLat = half / 111.2 + sStep, sLon = half / (111.2 * Math.max(0.2, Math.cos(center[0] * DEG))) + sStep;
+    for (let a = Math.floor((center[0] - sLat) / sStep); a <= Math.ceil((center[0] + sLat) / sStep); a += 1) for (let b = Math.floor((center[1] - sLon) / sStep); b <= Math.ceil((center[1] + sLon) / sStep); b += 1) {
+      const key = `${LOCAL_DETAIL_MODEL}|seep|${a}|${b}`; if (hashUnit(key) > clamp(recharge / 1500, 0.1, 0.4)) continue;
+      const [x, y] = localOf([(a + hashUnit(`${key}|y`)) * sStep, (b + hashUnit(`${key}|x`)) * sStep]), c = Math.floor((x + half) / res), r = Math.floor((half - y) / res);
+      if (r < 1 || c < 1 || r >= n - 1 || c >= n - 1) continue;
+      const i = r * n + c, sl = slopeAt(i); if (sl >= 0.004 && sl <= 0.2 && [COVER.meadow, COVER.scrub, COVER.woods, COVER.farmland].includes(cover[i])) sites.push([x, y]);
+    }
+    for (const [hx, hy] of sites) {
+      structures.push({ kind: "spring", local: [hx, hy] });
+      const c0 = Math.floor((hx + half) / res), r0 = Math.floor((half - hy) / res), reach = Math.max(1, Math.round(0.05 / res));
+      for (let r = r0 - reach; r <= r0 + reach; r += 1) for (let c = c0 - reach; c <= c0 + reach; c += 1) {
+        if (r < 1 || c < 1 || r >= n - 1 || c >= n - 1 || Math.hypot(r - r0, c - c0) > reach) continue;
+        const i = r * n + c;
+        if (slopeAt(i) < 0.08 && [COVER.meadow, COVER.scrub, COVER.woods].includes(cover[i])) cover[i] = COVER.marsh;
+      }
+    }
+  }
   // Farmsteads: one chance per world-pinned 0.003° cell (~330 m), at a hashed spot inside it.
   const step = 0.003, [cLat, cLon] = center, spanLat = half / 111.2 + step, spanLon = half / (111.2 * Math.max(0.2, Math.cos(cLat * DEG))) + step;
   for (let a = Math.floor((cLat - spanLat) / step); a <= Math.ceil((cLat + spanLat) / step); a += 1) for (let b = Math.floor((cLon - spanLon) / step); b <= Math.ceil((cLon + spanLon) / step); b += 1) {
@@ -461,7 +528,7 @@ export function tileOverlaySvg(tile, scale = 1) {
   const pxPerM = scale / tile.resolutionM;
   for (const s of tile.streams) parts.push(`<path d="M${s.local.map(px).join(" L")}" fill="none" stroke="#5f9fcc" stroke-width="${Math.max(1, s.widthM * pxPerM).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round"/>`);
   for (const road of tile.roads) parts.push(`<path d="M${road.local.map(px).join(" L")}" fill="none" stroke="#8a6a44" stroke-width="${Math.max(1.4, (road.kind === "highway" ? 9 : 6) * pxPerM).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round"/>`);
-  const mark = { farmstead: ["#6b4b32", 2.2], mill: ["#3b5a75", 3], bridge: ["#5b4630", 3], ford: ["#7aa6c8", 2.6] };
+  const mark = { farmstead: ["#6b4b32", 2.2], mill: ["#3b5a75", 3], bridge: ["#5b4630", 3], ford: ["#7aa6c8", 2.6], spring: ["#3f8fbf", 2.4] };
   for (const s of tile.structures) { const [x, y] = px(s.local).split(" "); const [fill, r] = mark[s.kind] ?? ["#333", 2]; parts.push(`<rect x="${(x - r).toFixed(1)}" y="${(y - r).toFixed(1)}" width="${2 * r}" height="${2 * r}" fill="${fill}"/>`); }
   return parts.join("");
 }
@@ -479,12 +546,30 @@ const OBJECT_DENSITY = { [COVER.woods]: { tree: 0.55, bush: 0.15, boulder: 0.02 
 /** The world-pinned anchor (0.02° lattice) whose canonical tile a battle site reads. */
 export const battleAnchor = (center) => [Math.round(center[0] / BATTLE_ANCHOR_DEG) * BATTLE_ANCHOR_DEG, Math.round(center[1] / BATTLE_ANCHOR_DEG) * BATTLE_ANCHOR_DEG];
 
+/**
+ * The canonical context tile around a battle anchor. It depends only on the asset and the anchor, and battle maps
+ * at one place are often made again under other weather, tide or river, so the last few are kept per asset (only
+ * read, never changed; dropped when the asset's geology, drainage, wind or rivers' climate is attached or replaced).
+ */
+const battleContexts = new WeakMap();
+function battleContextTile(asset, anchor) {
+  const refs = [asset.geology ?? null, asset.drainage ?? null, asset.wind ?? null, asset.flow ?? null];
+  let hit = battleContexts.get(asset);
+  if (!hit || hit.refs.some((r, k) => r !== refs[k])) { hit = { refs, tiles: new Map() }; battleContexts.set(asset, hit); }
+  const key = anchor.join(","); let tile = hit.tiles.get(key);
+  if (!tile) {
+    tile = buildLocalTile(asset, { center: anchor, sizeKm: BATTLE_CONTEXT_KM, resolutionM: BATTLE_CONTEXT_M, marginFraction: 0.4 });
+    hit.tiles.set(key, tile); if (hit.tiles.size > 4) hit.tiles.delete(hit.tiles.keys().next().value);
+  }
+  return tile;
+}
+
 export function buildBattleSite(asset, { center, spec }) {
   const ctx = localContext(asset), squareM = (spec.feetPerSquare ?? 5) * FEET, widthM = spec.columns * squareM, heightM = spec.rows * squareM;
   // The context is a canonical local tile around a world-pinned anchor (0.02° lattice), so a stream or a
   // field edge is in the same place whichever battle map it falls on.
   const anchor = battleAnchor(center);
-  const context = buildLocalTile(asset, { center: anchor, sizeKm: BATTLE_CONTEXT_KM, resolutionM: BATTLE_CONTEXT_M, marginFraction: 0.4 });
+  const context = battleContextTile(asset, anchor);
   const res = context.resolutionM / 1000, halfCtx = context.sizeKm / 2, n = context.cols;
   const rasterAt = (lat, lon) => { const [x, y] = toLocal(anchor, lat, lon), c = clamp(Math.floor((x + halfCtx) / res), 0, n - 1), r = clamp(Math.floor((halfCtx - y) / res), 0, n - 1); return [r, c]; };
   // Raster water cells give way to the land around them: water comes back below as exact vector lines.

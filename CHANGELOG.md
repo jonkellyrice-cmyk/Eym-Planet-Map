@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.25.0 (2026-11-18)
+
+Stage 4 of Eym's physical history: rivers through the year. With it, the loose ends of Stage 3.
+
+- The rivers' monthly climate (`tools/generate-eym-flow.mjs`, written to `data/planet-cartography/abydos/eventide-flow.json`, 18 KB): four years of the weather sampled every 5 hours over Caren, Garyk and their islands, kept month by month (rain, the share that fell as snow, and warmth). `npm run build` makes it again whenever its sources change.
+- River flow (`scripts/eym-river-flow.mjs`): a water balance turns each month's rain and warmth into runoff. Snow lies while it freezes and melts as it warms (headwaters are cooled for their height, so high mountains feed a spring flood). The soil holds some 150 mm. What it cannot hold runs off at once or soaks down to groundwater, which keeps rivers running through the dry season. A big river smooths and delays its flood. Every river and drainage channel gets a flow for every day of the year, with a stage: dry, low, normal, high or in flood.
+- Wet and dry years: as on Earth, the oscillation of the great equatorial ocean brings more rain to the eastern side of its basin in a warm year and less to the western side. On top of that is a smooth year-to-year swing of some ±15%. So some years flood and some are droughts. A Garyk river near its delta floods for about five weeks in an ordinary year and not at all in a dry one, and runs low for nearly half of every year.
+- Rivers' beds follow the water they carry: Caren's and Garyk's rivers are now 0.7–1.35 times as wide as before, wider where more of the rain runs off (most of Caren) and narrower where less does (much of Garyk). The Region layer, local maps and battle maps show the new widths.
+- Battle maps follow the river's stage (`scripts/eym-battle-rules.mjs`):
+  - At low water a river's bed is partly bare gravel bars, and it can be waded: knee-deep at the edge of the water (difficult terrain), waist-deep further in (greater difficult), deeper in the middle (swimming).
+  - Streams run dry (ordinary ground) or swell (greater difficult terrain).
+  - In flood the river and its streams cannot be forded (Athletics DC 20), streams are torrents, and the low ground near them lies under knee-deep floodwater (greater difficult terrain).
+  - The GM's note says which. The pictures draw the water at the stage, and the tier-2 pictures now have their own colours for the new ground and for the tide's flats and surf, which had fallen back to grass.
+- The "Here and now" card has a River line: the nearest river or stream within 3 km, its stage and flow, its bed, and whether it can be waded at a ford. If it can't, it gives how many days until it can (the delay a crossing adds to a journey); a bed over 400 m wide needs a bridge or a ferry. The map server passes the river's stage through to battle maps, checked field by field.
+- Springs: where porous rock (limestone, marble, sandstone, volcanic rock) holds groundwater, streams rise from springs and water seeps out at the foot of slopes, more of both the more rain soaks down. Each wets a small spring-fed fen on gentle ground. Springs are marked on the local map.
+- Clean-up of Stage 3:
+  - Streams on local and battle maps no longer run ruler-straight down long even slopes or across flat hollows: the water's path is steered by a gentle, world-keyed wander, while the ponds and marsh the land holds are unchanged.
+  - The tile store now dates a tile when it is made again, not when it was first made.
+  - A battle map made again at the same place (under other weather, tide or river) reuses the land around it, so it comes some 80 times faster; the test suite takes half the time.
+  - The 40 Region tiles of the strait between Caren and Garyk were rendered again at v4 (they had stayed at v2).
+- The Region layer stays at model v4, but its tiles change with the new river widths and are rendered again after this release.
+- Tests: a new `tests/eym-river-flow.test.mjs` (6 tests); `tests/eym-region-store.test.mjs` checks that a tile is dated when it is made; `tests/release-package.test.mjs` updated for 0.25.0.
+
 ## 0.24.0 (2026-11-18)
 
 The wind addendum to Stage 3 (owner's note): the wind as a maker of landforms, and the coasts driven by the real wave climate.

@@ -33,7 +33,7 @@ import { Framebuffer } from "./render/framebuffer.mjs";
 import { gzipSync } from "node:zlib";
 import { REGION_CELL_KM, REGION_MODEL, REGION_TILE_CELLS, buildRegionTile, flatRegionTile, regionFrameHasTile, regionFrames, renderRegionTile } from "../scripts/eym-region-layer.mjs";
 import { regionStore, sha256 } from "./region-store.mjs";
-import { attachDrainage, attachGeology, attachWind, drainageFileName, windFileName } from "../scripts/cartography-asset.mjs";
+import { attachDrainage, attachFlow, attachGeology, attachWind, drainageFileName, flowFileName, windFileName } from "../scripts/cartography-asset.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const hashText = (text) => { let a = 2166136261, b = 5381; for (let i = 0; i < text.length; i += 1) { const c = text.charCodeAt(i); a = Math.imul(a ^ c, 16777619); b = (Math.imul(b, 33) + c) | 0; } return (a >>> 0).toString(16).padStart(8, "0") + (b >>> 0).toString(16).padStart(8, "0"); };
@@ -66,6 +66,9 @@ export function parseRequest(body) {
   // The tide (scripts/eym-tides.mjs): its height and range, and when it turns, checked field by field.
   const tide = c.tide;
   if (tide && Number.isFinite(tide.heightM) && Math.abs(tide.heightM) <= 20 && Number.isFinite(tide.rangeM) && tide.rangeM >= 0 && tide.rangeM <= 40 && typeof tide.rising === "boolean" && typeof tide.turn === "string" && tide.turn.length <= 60) conditions.tide = { heightM: tide.heightM, rangeM: tide.rangeM, rising: tide.rising, turn: tide.turn };
+  // The river (scripts/eym-river-flow.mjs): its stage, depth, how full its bed is and whether it can be waded, checked field by field.
+  const river = c.river;
+  if (river && ["dry", "low", "normal", "high", "flood"].includes(river.stage) && Number.isFinite(river.depthM) && river.depthM >= 0 && river.depthM <= 30 && Number.isFinite(river.fillShare) && river.fillShare >= 0 && river.fillShare <= 1 && typeof river.fordable === "boolean" && Number.isFinite(river.bedWidthM) && river.bedWidthM > 0 && river.bedWidthM <= 5000 && typeof river.words === "string" && river.words.length <= 120) conditions.river = { stage: river.stage, depthM: river.depthM, fillShare: river.fillShare, fordable: river.fordable, bedWidthM: river.bedWidthM, words: river.words };
   const spec = battleMapSpec({ size: "custom", columns, rows, density: "custom", gridPx });
   // Only the season: light, shadows, darkness and lamps are Foundry's, live.
   const season = normalizeSeason(body.season ?? body.light?.season, center[0]);
@@ -170,6 +173,9 @@ export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (p
   // And its wind climate (tools/generate-eym-wind.mjs): the waves on its coasts, its dunes and loess.
   const windFile = join(dataDir, windFileName("eventide.json"));
   if (!data.wind && existsSync(windFile)) attachWind(data, JSON.parse(readFileSync(windFile, "utf8")));
+  // And its rivers' monthly climate (tools/generate-eym-flow.mjs): the widths of their beds.
+  const flowFile = join(dataDir, flowFileName("eventide.json"));
+  if (!data.flow && existsSync(flowFile)) attachFlow(data, JSON.parse(readFileSync(flowFile, "utf8")));
   mkdirSync(cacheDir, { recursive: true });
   const allowed = corsOrigins === "*" ? null : new Set(String(corsOrigins).split(",").map((s) => s.trim()).filter(Boolean));
   const inflight = new Map();
