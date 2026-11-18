@@ -51,6 +51,8 @@ test("a land tile is made once, kept with its shapes, and read back from the sto
   // A tile made under older rules does not count as made under these ones.
   assert.deepEqual([...(await store.listed("region", "pixels", caren.store, REGION_MODEL))], [`${home.tx},${home.ty}`]);
   assert.deepEqual([...(await store.listed("region", "pixels", caren.store, "eym-region-layer-v0"))], []);
+  // Each row is dated when it was made (a tile made again gets a new date, not its first one).
+  const dated = Date.parse(fake.rows.get(`region|pixels|${caren.store}|${home.tx}|${home.ty}`).made_at); assert.ok(Math.abs(Date.now() - dated) < 600_000);
   // Each row names its frame.
   assert.equal(fake.rows.get(`region|shapes|${caren.store}|${home.tx}|${home.ty}`).frame, "caren");
   assert.equal(fake.rows.get(`region|pixels|${caren.store}|${home.tx}|${home.ty}`).frame, "caren");

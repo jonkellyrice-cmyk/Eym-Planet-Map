@@ -29,9 +29,9 @@ export function regionStore(env = process.env, fetchImpl = globalThis.fetch) {
       const r = await call(`/storage/v1/object/${bucket}/${path}`, { method: "POST", headers: { "content-type": type, "x-upsert": "true", "cache-control": "max-age=31536000" }, body: bytes });
       if (!r.ok) throw await fail("Writing to the store", r);
     },
-    /** Note a tile in the table (replacing its earlier note). */
+    /** Note a tile in the table (replacing its earlier note, and its date: a tile made again is dated when it was made again). */
     async record(row) {
-      const r = await call("/rest/v1/eym_tiles?on_conflict=layer,kind,z,x,y", { method: "POST", headers: { "content-type": "application/json", prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(row) });
+      const r = await call("/rest/v1/eym_tiles?on_conflict=layer,kind,z,x,y", { method: "POST", headers: { "content-type": "application/json", prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ ...row, made_at: new Date().toISOString() }) });
       if (!r.ok) throw await fail("Recording the tile", r);
     },
     /** The tiles of a layer, kind and frame already made (under these rules, when `rulesVersion` is given), as a set of "x,y". */

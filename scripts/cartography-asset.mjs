@@ -67,5 +67,11 @@ export const windFileName = (assetPath) => assetPath.replace(/^.*\//, "").replac
 /** Put a wind document into its asset (returns the asset). */
 export function attachWind(asset, document) { if (document) asset.wind = document; return asset; }
 
+/** The rivers' monthly-climate file beside an asset's ("eventide.json" → "eventide-flow.json"): rain, snow and warmth by month (tools/generate-eym-flow.mjs). */
+export const flowFileName = (assetPath) => assetPath.replace(/^.*\//, "").replace(/\.json$/, "-flow.json");
+
+/** Put a monthly-climate document into its asset (returns the asset). */
+export function attachFlow(asset, document) { if (document) asset.flow = document; return asset; }
+
 /** Whether an asset has geology, loaded or not (the globe draws its sea floor from the plates when it has). */
 export const hasGeology = (asset) => Boolean(asset?.geology || asset?.geologyFile);

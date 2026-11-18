@@ -75,9 +75,9 @@ export const channelWidthM = (areaKm2) => 3 * Math.sqrt(areaKm2);
 export function landformContext(ctx, coastKmAt, landAt = () => true) {
   const hit = cache.get(ctx); if (hit && hit.drainage === (ctx.asset.drainage ?? null) && hit.wind === (ctx.asset.wind ?? null)) return hit;
   const segments = [], buckets = new Map(), mouths = [];
-  for (const channel of drainageChannels(ctx.asset)) for (let k = 0; k + 1 < channel.points.length; k += 1) segments.push({ a: channel.points[k], b: channel.points[k + 1], widthM: channelWidthM(channel.areasKm2[k]), channel: true });
+  for (const channel of drainageChannels(ctx.asset)) for (let k = 0; k + 1 < channel.points.length; k += 1) segments.push({ a: channel.points[k], b: channel.points[k + 1], widthM: channelWidthM(channel.areasKm2[k]), channel: true, ref: channel, k, areaKm2: channel.areasKm2[k] });
   for (const river of ctx.rivers) {
-    for (let k = 0; k + 1 < river.points.length; k += 1) segments.push({ a: river.points[k], b: river.points[k + 1], widthM: river.widthM });
+    for (let k = 0; k + 1 < river.points.length; k += 1) segments.push({ a: river.points[k], b: river.points[k + 1], widthM: river.widthM, ref: river, k, areaKm2: river.areaKm2 ?? (river.widthM / 3) ** 2 });
     // The mouth: whichever end lies at the coast.
     const ends = [river.points[0], river.points.at(-1)].map((p) => ({ p, d: coastKmAt(p[0], p[1]) })).sort((x, y) => x.d - y.d);
     if (ends[0].d < 4) mouths.push({ at: ends[0].p, widthM: river.widthM });
@@ -96,7 +96,11 @@ export function landformContext(ctx, coastKmAt, landAt = () => true) {
   return lf;
 }
 
-/** The nearest river within valley reach of a place: { distKm, widthM }, or null. */
+/**
+ * The nearest river within valley reach of a place: { distKm, widthM, ref (the river or drainage channel), k (the
+ * index of its point just upstream), areaKm2 (the land it drains there), channel (a drainage channel, not a named
+ * river) }, or null.
+ */
 export function nearestRiver(lf, lat, lon) {
   const list = lf.buckets.get(Math.floor(lat / BUCKET_DEG) * 100000 + Math.floor(lon / BUCKET_DEG)); if (!list) return null;
   const k = Math.cos(lat * DEG); let best = null;
@@ -104,7 +108,7 @@ export function nearestRiver(lf, lat, lon) {
     const s = lf.segments[index], ax = (s.a[1] - lon) * KM_PER_DEG * k, ay = (s.a[0] - lat) * KM_PER_DEG, bx = (s.b[1] - lon) * KM_PER_DEG * k, by = (s.b[0] - lat) * KM_PER_DEG;
     const dx = bx - ax, dy = by - ay, t = clamp(-(ax * dx + ay * dy) / (dx * dx + dy * dy || 1), 0, 1), d = Math.hypot(ax + t * dx, ay + t * dy);
     // A wider river reaches further: compare by distance over the river's own reach.
-    if (d < VALLEY_REACH_KM && (!best || d / valleyHalfWidthKm(s.widthM, 0) < best.distKm / valleyHalfWidthKm(best.widthM, 0))) best = { distKm: d, widthM: s.widthM };
+    if (d < VALLEY_REACH_KM && (!best || d / valleyHalfWidthKm(s.widthM, 0) < best.distKm / valleyHalfWidthKm(best.widthM, 0))) best = { distKm: d, widthM: s.widthM, ref: s.ref, k: s.k + t, areaKm2: s.areaKm2, channel: Boolean(s.channel) };
   }
   return best;
 }

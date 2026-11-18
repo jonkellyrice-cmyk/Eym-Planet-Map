@@ -144,6 +144,80 @@ function tideNote(t, tide) {
     : `High tide (${height}): the sea covers ${t.squares} squares of the shore, up to ${t.reachFt} ft in, as shallow surf (difficult terrain).`;
 }
 
+// ---------------------------------------------------------------- the river through the year
+
+/**
+ * The river's stage on a map (scripts/eym-river-flow.mjs: `river` is { stage, depthM, fillShare, fordable, bedWidthM }).
+ * River squares are measured from the bank: at low water the water fills only the middle of the bed and the rest
+ * is gravel bars; the water is knee-deep at its edge (difficult terrain), waist-deep further in (greater
+ * difficult) and deeper in the middle (swimming), so a low river can be waded. Streams run dry, swell, or in
+ * flood become torrents. In flood the river overtops its banks: low land near it (within 1.5 m of the water and
+ * 40 ft of the bed) lies under floodwater. `heights` are the squares' ground heights (m). Returns what it did, or null.
+ */
+function applyRiver(grid, columns, rows, river, heights) {
+  if (!river?.stage) return null;
+  const n = columns * rows, isRiver = (i) => grid.cover[i] === COVER.river, isStream = (i) => grid.cover[i] === COVER.stream;
+  if (!grid.cover.some((c) => c === COVER.river || c === COVER.stream)) return null;
+  const near = (i) => { const x = i % columns, y = Math.floor(i / columns), out = []; if (x > 0) out.push(i - 1); if (x < columns - 1) out.push(i + 1); if (y > 0) out.push(i - columns); if (y < rows - 1) out.push(i + columns); return out; };
+  const done = { bars: 0, knee: 0, waist: 0, swim: 0, dry: 0, swollen: 0, torrent: 0, flooded: 0 };
+  // Squares into the river from its bank (1 at the bank).
+  const fromBank = new Int16Array(n).fill(-1), queue = [];
+  for (let i = 0; i < n; i += 1) if (isRiver(i) && near(i).some((j) => !isRiver(j))) { fromBank[i] = 1; queue.push(i); }
+  for (let head = 0; head < queue.length; head += 1) { const i = queue[head]; for (const j of near(i)) if (isRiver(j) && fromBank[j] < 0) { fromBank[j] = fromBank[i] + 1; queue.push(j); } }
+  // How far across the bed a square lies (0 at the bank, 1 in the middle): its distance from the bank against half
+  // the bed's width (5-ft squares; squares no bank on the map reaches lie mid-river).
+  const halfSquares = Number.isFinite(river.bedWidthM) ? Math.max(1, river.bedWidthM / 2 / 1.524) : Math.max(1, ...Array.from(fromBank));
+  const fill = clamp(river.fillShare ?? 1, 0.15, 1), flood = river.stage === "flood";
+  const riverLevels = [];
+  for (let i = 0; i < n; i += 1) {
+    if (isRiver(i)) {
+      riverLevels.push(heights[i]);
+      const p = fromBank[i] < 0 ? 1 : clamp((fromBank[i] - 0.5) / halfSquares, 0, 1);
+      if (!flood && p < 1 - fill) { grid.cover[i] = COVER.beach; grid.ground[i] = "gravel bar"; grid.move[i] = MOVE.normal; done.bars += 1; continue; }
+      const depth = flood ? Infinity : (river.depthM ?? 3) * clamp((p - (1 - fill)) / fill * 1.6, 0.15, 1);
+      if (depth < 0.5) { grid.ground[i] = "shallow river (knee-deep)"; grid.move[i] = MOVE.difficult; done.knee += 1; }
+      else if (depth < 1.2) { grid.ground[i] = "river (waist-deep)"; grid.move[i] = MOVE.greater; done.waist += 1; }
+      else { grid.ground[i] = flood ? "river in flood" : "river"; grid.move[i] = MOVE.swim; done.swim += 1; }
+    } else if (isStream(i)) {
+      if (river.stage === "dry") { grid.cover[i] = COVER.beach; grid.ground[i] = "dry stream bed"; grid.move[i] = MOVE.normal; done.dry += 1; }
+      else if (river.stage === "high") { grid.ground[i] = "swollen stream"; grid.move[i] = MOVE.greater; done.swollen += 1; }
+      else if (flood) { grid.ground[i] = "stream in spate (torrent)"; grid.move[i] = MOVE.swim; done.torrent += 1; }
+    }
+  }
+  if (flood) {
+    // Floodwater: low land within 40 ft (8 squares) of the river or a stream and no more than 1.5 m above the water.
+    const level = riverLevels.length ? [...riverLevels].sort((a, b) => a - b)[Math.floor(riverLevels.length / 4)] : Math.min(...heights), reach = new Int16Array(n).fill(-1), q = [];
+    for (let i = 0; i < n; i += 1) if (isRiver(i) || isStream(i)) { reach[i] = 0; q.push(i); }
+    for (let head = 0; head < q.length; head += 1) { const i = q[head]; if (reach[i] >= 8) continue; for (const j of near(i)) if (reach[j] < 0) { reach[j] = reach[i] + 1; q.push(j); } }
+    for (let i = 0; i < n; i += 1) if (reach[i] > 0 && !WATER.has(grid.cover[i]) && grid.cover[i] !== COVER.built && grid.building[i] < 0 && heights[i] <= level + 1.5) { grid.cover[i] = COVER.marsh; grid.ground[i] = "floodwater (knee-deep)"; grid.move[i] = MOVE.greater; done.flooded += 1; }
+  }
+  return { stage: river.stage, fordable: Boolean(river.fordable), ...done };
+}
+
+/**
+ * How wide a map's water line (a stream or river from the world) is drawn at the river's stage, against its usual
+ * width: 0 (not drawn) for a dry stream bed, the water's share of the bed at low water, wider when high or in flood.
+ */
+export function waterLineScale(map, kind) {
+  const r = map.river; if (!r) return 1;
+  if (r.stage === "dry") return kind === "river" ? 1 : 0;
+  if (r.stage === "low") return kind === "river" ? clamp(map.conditions?.river?.fillShare ?? 1, 0.15, 1) : 0.7;
+  return r.stage === "high" ? 1.4 : r.stage === "flood" ? 1.7 : 1;
+}
+
+/** The river in a GM's note. */
+function riverNote(r, river) {
+  const head = `The ${r.bars + r.knee + r.waist + r.swim > 0 ? "river" : "stream"} is ${river.words ?? r.stage}`;
+  if (r.stage === "flood") return `${head}: it has burst its banks${r.flooded ? `, covering ${r.flooded} squares of low ground in knee-deep floodwater (greater difficult terrain)` : ""}. The current is strong (Athletics to Swim, DC 20); it cannot be forded.${r.torrent ? ` Its streams are torrents (${r.torrent} squares, swimming).` : ""}`;
+  const parts = [];
+  if (r.bars) parts.push(`${r.bars} squares of gravel bars lie bare`);
+  if (r.knee || r.waist) parts.push(`it can be waded: ${r.knee} squares knee-deep (difficult terrain), ${r.waist} waist-deep (greater difficult terrain)`);
+  if (r.swim) parts.push(`${r.swim} squares are too deep to wade (swimming${r.stage === "high" ? ", Athletics DC 15 in the strong current" : ""})`);
+  if (r.dry) parts.push(`its bed lies dry (${r.dry} squares, ordinary ground)`);
+  if (r.swollen) parts.push(`it is swollen (${r.swollen} squares of greater difficult terrain)`);
+  return `${head}${parts.length ? `: ${parts.join("; ")}` : ""}.`;
+}
+
 /** A blank grid of squares. */
 function makeGrid(columns, rows) {
   const n = columns * rows;
@@ -357,6 +431,8 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
   // The tide (scripts/eym-tides.mjs): at low water the sea draws back over the shore, uncovering flats; at high
   // water it covers the lower beach. Shaped settings keep their own water.
   const tided = rules.sculpt ? null : applyTide(grid, columns, rows, conditions.tide);
+  // The river's stage (scripts/eym-river-flow.mjs): gravel bars and fords at low water, floodwater in flood.
+  const rivered = rules.sculpt ? null : applyRiver(grid, columns, rows, conditions.river, site.heights);
   // Shaped settings (canyon terraces, canals, sky islands, chasms, caverns, halls, treetops…) reshape the ground.
   const placed = [], fixedFeatures = [], sculptFeatures = [];
   let sculpt = {};
@@ -505,12 +581,13 @@ export function buildBattleMap(asset, { center, spec, conditions = {}, setting =
   notes.push(...battleNotes(analysis, axis, placed, conditions, grid.ground.filter((g) => g.endsWith("(mud)")).length, grid.cover.filter((c) => c === COVER.sea).length));
   notes.push(...(sculpt.notes ?? []));
   if (tided) notes.push(tideNote(tided, conditions.tide));
+  if (rivered) notes.push(riverNote(rivered, conditions.river));
   if (inclineNote) notes.push(inclineNote);
   if (cliffs.length) notes.push(`${cliffs.length} cliff edges (10 ft or more): only stairs, ramps, ladders, a climb (up to 15 ft) or flight cross them.`);
   notes.push(`Line of sight: a standing creature sees about ${Math.round(sight.groundView * 100)}% of the field clearly; from the highest ground (${sight.highFt >= 0 ? "+" : ""}${sight.highFt} ft) ${Math.round(sight.highView * 100)}%; a flyer ${flyFt} ft over the centre ${Math.round(sight.flyView * 100)}%${sculpt.ceilingFt ? ` (the ceiling is ${sculpt.ceilingFt} ft)` : ""}.`);
   notes.push(...extraResult.notes);
   return {
-    version: BATTLE_RULES_VERSION, key, center: snap.center, anchor: snap.anchor, origin: snap.origin, spec, setting: chosen, biome: cell.biome, conditions,
+    version: BATTLE_RULES_VERSION, key, center: snap.center, anchor: snap.anchor, origin: snap.origin, spec, setting: chosen, biome: cell.biome, conditions, river: rivered,
     // The local rock (scripts/eym-geology.mjs): the colour and look of bare rock, cliffs and boulders.
     geology: geologyAt(asset, ...snap.center),
     style: style.id, skybridges, site, grid, buildings, objects, features: mapFeatures, cliffs, flattened: Boolean(sculpt.flatten), underground: Boolean(sculpt.underground), ceilingFt: sculpt.ceilingFt ?? null, dimLight: Boolean(sculpt.dim), traps: extraResult.traps, extras: extraResult.placed, zones, axis,

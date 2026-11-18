@@ -18,6 +18,7 @@ import { FEATURES } from "../../scripts/eym-battle-settings.mjs";
 import { FURNITURE, floorOutline, outlines } from "../../scripts/eym-battle-interiors.mjs";
 import { standHeightFt } from "../../scripts/eym-battle-oblique.mjs";
 import { footprintPolygon } from "../../scripts/eym-battle-buildings.mjs";
+import { waterLineScale } from "../../scripts/eym-battle-rules.mjs";
 
 export const RENDERER = Object.freeze({ tier: 2, name: "Traditional RPG pixel art", version: "eym-pixel-t2-v7" });
 
@@ -29,7 +30,7 @@ export function pixelPlan(gridPx) {
 }
 
 const HARD = new Set(["cobbled street", "paved square", "marble quay", "stone bridge", "stone arch", "floor", "flagstone floor", "raised dais", "tree platform", "rope bridge", "ladder", "stone stairs", "carved wall", "canal", "open sky (a fall)", "open air (a fall)", "cave wall"]);
-const WATERS = new Set(["deep water", "river", "canal", "shallow stream", "deep channel", "shallows", "glowing pool"]);
+const WATERS = new Set(["deep water", "river", "canal", "shallow stream", "deep channel", "shallows", "glowing pool", "shallow surf", "shallow river (knee-deep)", "river (waist-deep)", "swollen stream", "stream in spate (torrent)", "river in flood", "floodwater (knee-deep)"]);
 const SEASONAL = new Set(["grass", "meadow", "wet meadow", "scrub", "field", "yard", "floating rock", "forest floor"]);
 const SEASON_TINT = { spring: [[150, 210, 100, 255], 0.08], autumn: [[190, 150, 80, 255], 0.18], winter: [[140, 138, 116, 255], 0.24] };
 const TREE_STYLE = { taiga: "conifer", alpine: "conifer", glacier: "conifer", tundra: "conifer", jungle: "jungle", "blighted-wood": "dead", "mushroom-forest": "broadleaf" };
@@ -74,7 +75,9 @@ function drawGround(fb, map, P, season, street = null) {
   }
   // Streams and rivers from the world, as smooth water lines over the ground (natural maps).
   if (!map.flattened) for (const s of map.site.streams) {
-    const r = Math.max(1.5, (s.widthSquares * P) / 2);
+    // The river's stage (scripts/eym-river-flow.mjs): a dry bed has no water line; low water is narrower, a flood wider.
+    const scale = waterLineScale(map, s.kind); if (!scale) continue;
+    const r = Math.max(1.5, (s.widthSquares * scale * P) / 2);
     for (let k = 0; k + 1 < s.line.length; k += 1) {
       const [ax, ay] = s.line[k], [bx, by] = s.line[k + 1], n = Math.ceil(Math.hypot(bx - ax, by - ay) * P / 2) + 1;
       for (let t = 0; t <= n; t += 1) { const cx = (ax + (bx - ax) * (t / n)) * P, cy = (ay + (by - ay) * (t / n)) * P; fb.ellipse(cx, cy, r + 1, r + 1, null, (x, y, u, v) => (u * u + v * v > 0.7 ? rgb("#3f6f90") : groundPixel("shallow stream", ox * P + x, oy * P + y))); }
