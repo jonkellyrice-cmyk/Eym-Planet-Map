@@ -217,7 +217,7 @@ Eym is about 98.6% ocean, close to an aquaplanet. This applies throughout the pr
 
 ### Stage 2: ocean currents, tides and climate
 
-Split in three: *2a* currents, sea temperature, wet and dry seasons, El Niño and cyclones (done, 0.20.0); *2b* sea state and swell and direction-dependent sailing times (done, 0.21.0), low cloud and drizzle (still to do); *2c* tides from the two moons and the Sun, with tidal flats on coastal battle maps.
+Split in three: *2a* currents, sea temperature, wet and dry seasons, El Niño and cyclones (done, 0.20.0); *2b* sea state and swell and direction-dependent sailing times (done, 0.21.0), low cloud and drizzle (done, 0.21.1); *2c* tides from the two moons and the Sun, with tidal flats on coastal battle maps.
 
 1. *Currents:*
    - Wind-driven surface currents from the wind belts and rotation (Coriolis), steered by the coastlines. With Eym 98.6% ocean, expect mostly circumpolar, east–west flow, with boundary currents and gyres where Caren, Garyk and the Eastern Continent block it.

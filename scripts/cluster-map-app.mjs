@@ -763,7 +763,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     // The season the trees and grass are in (light and shadow are Foundry's, live).
     const season = foliageSeason(lat, yearFraction(this._sun.t));
     return {
-      conditions: { snowDepthCm: history?.snowDepthCm ?? 0, ground: history?.ground ?? "dry", tempC: now?.tempC ?? report.values.temperature.nowC, precipKind: now?.precipMmH > 0.1 ? now.precipKind : null, precipMmH: now?.precipMmH ?? 0, windMs: now?.windMs ?? 0, thunder: Boolean(now?.thunder), fog: (now?.humidity ?? 0) > 0.97 && (now?.windMs ?? 0) < 3, sunAltitudeDeg: altitude, season: report.season, sea: sea ? { words: sea.words, hsM: Math.round(sea.hsM * 10) / 10, swim: sea.swim } : null },
+      conditions: { snowDepthCm: history?.snowDepthCm ?? 0, ground: history?.ground ?? "dry", tempC: now?.tempC ?? report.values.temperature.nowC, precipKind: now?.precipMmH > 0.1 ? now.precipKind : null, precipMmH: now?.precipMmH ?? 0, windMs: now?.windMs ?? 0, thunder: Boolean(now?.thunder), fog: Boolean(now?.fog) || ((now?.humidity ?? 0) > 0.97 && (now?.windMs ?? 0) < 3), sunAltitudeDeg: altitude, season: report.season, sea: sea ? { words: sea.words, hsM: Math.round(sea.hsM * 10) / 10, swim: sea.swim } : null },
       season,
       words: { time: `${report.localTime}, ${report.season}; the sun ${report.sun}`, weather: said ? `${said.sky}${said.precip ? `, ${said.precip}` : ""}; wind ${said.wind}${sea ? `; the sea ${sea.words}` : ""}` : "", light: altitude >= 0 ? "daylight" : altitude > -6 ? "civil twilight (dim)" : altitude > -12 ? "dusk or dawn (dim to dark)" : "night (darkness, moonlight aside)" },
     };
