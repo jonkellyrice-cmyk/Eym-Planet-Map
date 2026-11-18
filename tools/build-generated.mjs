@@ -55,4 +55,10 @@ if (readWind()?.sourcesSha256 !== windSourcesSha256()) { run("tools/generate-eym
 const { flowSourcesSha256 } = await import("./generate-eym-flow.mjs");
 const readFlow = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/abydos/eventide-flow.json", root), "utf8")); } catch { return null; } };
 if (readFlow()?.sourcesSha256 !== flowSourcesSha256()) { run("tools/generate-eym-flow.mjs"); changed = true; }
+// Last, the Region layer's fingerprint (tools/generate-region-fingerprint.mjs): the code and data its stored tiles
+// are made from, all of the above included. Written again whenever either fingerprint moved.
+const { REGION_FINGERPRINT_FILE, regionFingerprint } = await import("./generate-region-fingerprint.mjs");
+const readFingerprint = () => { try { return JSON.parse(readFileSync(new URL(REGION_FINGERPRINT_FILE, root), "utf8")); } catch { return null; } };
+const fingerprintNow = regionFingerprint(), fingerprintKept = readFingerprint();
+if (fingerprintKept?.shapes !== fingerprintNow.shapes || fingerprintKept?.paint !== fingerprintNow.paint) { run("tools/generate-region-fingerprint.mjs"); changed = true; }
 console.log(changed ? "Eym's derived data was made again." : "Eym's derived data is up to date.");

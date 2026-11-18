@@ -24,6 +24,13 @@ export function regionStore(env = process.env, fetchImpl = globalThis.fetch) {
       if (r.status === 404 || r.status === 400) return null; // Supabase answers 400 for an object that is not there
       throw await fail("Reading from the store", r);
     },
+    /** A file's bytes from a private bucket (the shapes), or null if it is not there. */
+    async readPrivate(bucket, path) {
+      const r = await call(`/storage/v1/object/authenticated/${bucket}/${path}`);
+      if (r.status === 200) return Buffer.from(await r.arrayBuffer());
+      if (r.status === 404 || r.status === 400) return null;
+      throw await fail("Reading from the store", r);
+    },
     /** Put a file in a bucket (replacing one already there). */
     async write(bucket, path, bytes, type) {
       const r = await call(`/storage/v1/object/${bucket}/${path}`, { method: "POST", headers: { "content-type": type, "x-upsert": "true", "cache-control": "max-age=31536000" }, body: bytes });
@@ -42,6 +49,16 @@ export function regionStore(env = process.env, fetchImpl = globalThis.fetch) {
         const r = await call(`/rest/v1/eym_tiles?select=x,y&layer=eq.${layer}&kind=eq.${kind}&z=eq.${z}${rules}&order=x,y&offset=${from}&limit=1000`);
         if (!r.ok) throw await fail("Listing the tiles", r);
         const rows = await r.json(); for (const row of rows) made.add(`${row.x},${row.y}`);
+        if (rows.length < 1000) return made;
+      }
+    },
+    /** The tiles of a layer, kind and frame already made, with the version each was made under: a Map of "x,y" to it. */
+    async versions(layer, kind, z) {
+      const made = new Map();
+      for (let from = 0; ; from += 1000) {
+        const r = await call(`/rest/v1/eym_tiles?select=x,y,rules_version&layer=eq.${layer}&kind=eq.${kind}&z=eq.${z}&order=x,y&offset=${from}&limit=1000`);
+        if (!r.ok) throw await fail("Listing the tiles", r);
+        const rows = await r.json(); for (const row of rows) made.set(`${row.x},${row.y}`, row.rules_version);
         if (rows.length < 1000) return made;
       }
     },
