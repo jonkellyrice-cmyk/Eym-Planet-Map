@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Canon change recorded (the world's author, 19 November 2026): Eym is to be about 80% water, by enlarging Gaffa, Khohalis and Demani with the least possible change to the rest of the world (`docs/eym-canon.md`, `ROADMAP.md`). Nothing is changed yet. First finding: Gaffa's plate is too small to hold it.
+
 ## 0.28.0 (2026-11-19)
 
 The weather addendum (Part 1, item 7, the weather model; owner, 19 November 2026): the large-scale circulation moves. Caren's deserts and the Dubos label, the other parts of item 7, are left for later by the owner's decision. Also in this release: the canon records and the faster, repeatable Region tile refresh below, which were merged without a release.
