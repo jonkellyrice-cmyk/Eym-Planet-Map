@@ -277,6 +277,17 @@ export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (p
         const superseded = [...new Set([...stored.pictures, ...stored.shapes])].filter(purgeableRegionFolder).sort();
         return send(res, 200, { shapesVersion: REGION_SHAPES_ID, picturesVersion: REGION_PIXELS_ID, frames, stored, superseded, purgeOn: purge });
       }
+      // A frame cut into ranges that each hold about `per` of its own tiles, for requests to fill at the same time.
+      // (A frame's rectangle is mostly tiles outside it, which cost nothing: ranges of equal length would be very
+      // unequal work.) It reads nothing from the store and makes nothing.
+      if (req.method === "GET" && path === "/api/region/plan") {
+        const frame = regionFramesOnce().find((f) => f.id === url.searchParams.get("frame")); if (!frame) return send(res, 404, { error: "no such frame" });
+        const asked = Math.trunc(Number(url.searchParams.get("per") ?? 24)), per = Math.min(400, Math.max(1, Number.isFinite(asked) ? asked : 24)), { tx0, tx1, ty0, ty1 } = frame.tiles, width = tx1 - tx0 + 1, total = width * (ty1 - ty0 + 1), ranges = [];
+        let from = 0, held = 0;
+        for (let k = 0; k < total; k += 1) { if (regionFrameHasTile(frame, tx0 + (k % width), ty0 + Math.floor(k / width))) held += 1; if (held >= per) { ranges.push([from, k + 1]); from = k + 1; held = 0; } }
+        if (held) ranges.push([from, total]);
+        return send(res, 200, { frame: frame.id, total, per, ranges });
+      }
       // Make and keep the tiles of a frame that are not in the store yet, and refresh those that are stale (repainted
       // from their kept shapes when only the painting changed, made again otherwise), for as long as this request may
       // run. It looks at the tiles from `start` up to `end` (the frame's last by default), so several requests can

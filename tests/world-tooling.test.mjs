@@ -138,6 +138,7 @@ test("the post-release step fills separate ranges of the frames at once, tries a
   const get = async (path) => {
     const url = new URL(path, "http://x"), q = url.searchParams;
     if (url.pathname === "/api/region/stale") return { status: 200, picturesVersion: "v", frames: Object.keys(tiles).map((frame) => ({ frame, current: seen[frame].size, repaint: 0, remake: tiles[frame] - seen[frame].size })), superseded: [] };
+    if (url.pathname !== "/api/region/fill") return { status: 404 }; // a server without /api/region/plan: the tool cuts the ranges itself
     const frame = q.get("frame"), start = Number(q.get("start")), end = Math.min(tiles[frame], Number(q.get("end")));
     // One request is refused once (as a busy server would); it must be asked again.
     if (frame === "caren" && start === 20 && !refused) { refused = true; return { status: 503, error: "busy" }; }
@@ -152,6 +153,14 @@ test("the post-release step fills separate ranges of the frames at once, tries a
   const r = result.report; assert.equal(r.examined, 57); assert.equal(r.refusals, 1); assert.equal(r.calls, ranges.length + 1); assert.equal(r.repainted, ranges.length); assert.equal(r.remade, 57 - ranges.length);
   assert.equal(r.uploads, 2 * r.remade); assert.equal(r.timing.computeMs, 70 * ranges.length); assert.equal(r.serverMs, 100 * ranges.length);
   const words = describeRefresh(r).join("\n"); assert.match(words, /Tiles examined: 57/); assert.match(words, /Made again: \d+/); assert.match(words, /1 refused and tried again/); assert.match(words, /table writes/);
+  // A server that plans the ranges: the tool fills exactly those, and asks for no others.
+  const asked = [], planned = await refreshRegionTiles({ concurrency: 3, chunk: 10, wait: async () => {}, get: async (path) => {
+    const url = new URL(path, "http://x"), q = url.searchParams;
+    if (url.pathname === "/api/region/stale") return { status: 200, picturesVersion: "v", frames: [{ frame: "caren", current: 50, repaint: 0, remake: 0 }], superseded: [] };
+    if (url.pathname === "/api/region/plan") { assert.equal(q.get("per"), "10"); return { status: 200, frame: "caren", total: 900, per: 10, ranges: [[0, 400], [400, 430], [430, 900]] }; }
+    asked.push([Number(q.get("start")), Number(q.get("end"))]); return { status: 200, total: 900, next: Number(q.get("end")), kept: 0, repainted: 0, remade: 0, already: 10, sea: 0, outside: 0, errors: [], done: true, ms: 1 };
+  } });
+  assert.equal(planned.ok, true); assert.deepEqual(asked.sort((a, b) => a[0] - b[0]), [[0, 400], [400, 430], [430, 900]]); assert.equal(planned.report.examined, 900); assert.equal(planned.report.already, 30);
   // A server that keeps refusing: the frame is given up with an error, the others still finish.
   const down = await refreshRegionTiles({ get: async (path) => (path.includes("frame=sea") ? { status: 500 } : get(path)), onlyFrame: "sea", concurrency: 4, chunk: 10, wait: async () => {} });
   assert.equal(down.ok, false); assert.ok(down.errors.some((e) => /sea at 0: the server answered 500 four times/.test(e)));

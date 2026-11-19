@@ -15,7 +15,7 @@
 // It reads and writes only through the map server's own endpoints.
 //
 //   node tools/refresh-region-tiles.mjs [--url https://eym-planet-map.vercel.app] [--purge] [--frame caren]
-//                                       [--concurrency 8] [--chunk 24] [--inflight 12] [--force]
+//                                       [--concurrency 16] [--chunk 24] [--inflight 12] [--force]
 // --force makes and stores again the tiles that are already current (the same bytes): for timing a full refresh.
 // Exit status: 0 when every tile is current (and, with --purge, nothing superseded remains), 1 otherwise.
 
@@ -32,7 +32,7 @@ const TIMING = ["listMs", "computeMs", "firstTileMs", "pictureUploadMs", "shapes
  * errors, report }, where `report` counts the whole run: tiles examined, already current, repainted, made again,
  * new, uploads, requests, refusals, the time it took and the servers' account of where theirs went.
  */
-export async function refreshRegionTiles({ get, purge = false, onlyFrame = null, log = () => {}, maxCalls = 400, concurrency = 8, chunk = 24, inflight = 12, force = false, backoffMs = 1000, wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)) } = {}) {
+export async function refreshRegionTiles({ get, purge = false, onlyFrame = null, log = () => {}, maxCalls = 400, concurrency = 16, chunk = 24, inflight = 12, force = false, backoffMs = 1000, wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)) } = {}) {
   const errors = [], frames = [], purged = [], began = Date.now();
   const report = { examined: 0, already: 0, sea: 0, outside: 0, repainted: 0, remade: 0, kept: 0, uploads: 0, calls: 0, refusals: 0, wallMs: 0, serverMs: 0, timing: Object.fromEntries(TIMING.map((k) => [k, 0])) };
   const first = await get("/api/region/stale"); if (first.status !== 200) return { ok: false, frames, stale: null, superseded: [], purged, purgeOff: false, errors: [`/api/region/stale answered ${first.status}: ${first.error ?? ""}`], report };
@@ -40,7 +40,16 @@ export async function refreshRegionTiles({ get, purge = false, onlyFrame = null,
   log(`Server version ${first.picturesVersion}. Frames: ${first.frames.map((f) => `${f.frame} (${f.current} current, ${f.repaint} to repaint, ${f.remake} to make again)`).join("; ")}.`);
   // The work: ranges of tiles, each its own request. A frame's first range also says how many tiles the frame has,
   // and the rest of its ranges follow from that. A request that ran out of time leaves the rest of its range.
-  const totals = new Map(wanted.map((frame) => [frame, { frame, remade: 0, repainted: 0, kept: 0, sea: 0, calls: 0 }])), failed = new Set(), work = wanted.map((frame) => ({ frame, start: 0, end: chunk, first: true }));
+  const totals = new Map(wanted.map((frame) => [frame, { frame, remade: 0, repainted: 0, kept: 0, sea: 0, calls: 0 }])), failed = new Set(), work = [];
+  // The server plans the ranges where it can (each holding about `chunk` of the frame's own tiles, so the work is
+  // even); for one that cannot, the first range is `chunk` tiles long and the rest follow from the frame's size.
+  for (const frame of wanted) {
+    const plan = await get(`/api/region/plan?frame=${encodeURIComponent(frame)}&per=${chunk}`);
+    if (plan.status === 200 && Array.isArray(plan.ranges)) for (const [start, end] of plan.ranges) work.push({ frame, start, end });
+    else work.push({ frame, start: 0, end: chunk, first: true });
+  }
+  // The frames' ranges interleaved, so no frame waits for another to finish.
+  work.sort((a, b) => a.start - b.start);
   const fail = (frame, message) => { failed.add(frame); errors.push(message); };
   const run = async (job) => {
     const { frame } = job, total = totals.get(frame); if (failed.has(frame)) return;
@@ -103,7 +112,7 @@ export function describeRefresh(report) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = process.argv.slice(2), value = (flag, fallback) => { const i = args.indexOf(flag); return i >= 0 && args[i + 1] ? args[i + 1] : fallback; }, count = (flag, fallback, max) => Math.min(max, Math.max(1, Math.trunc(Number(value(flag, fallback))) || fallback));
-  const url = value("--url", process.env.EYM_MAP_SERVER ?? DEFAULT_MAP_SERVER), result = await refreshRegionTiles({ get: httpGet(url), purge: args.includes("--purge"), onlyFrame: value("--frame", null), log: console.log, concurrency: count("--concurrency", 8, 64), chunk: count("--chunk", 24, 400), inflight: count("--inflight", 12, 16), force: args.includes("--force") });
+  const url = value("--url", process.env.EYM_MAP_SERVER ?? DEFAULT_MAP_SERVER), result = await refreshRegionTiles({ get: httpGet(url), purge: args.includes("--purge"), onlyFrame: value("--frame", null), log: console.log, concurrency: count("--concurrency", 16, 64), chunk: count("--chunk", 24, 400), inflight: count("--inflight", 12, 16), force: args.includes("--force") });
   for (const f of result.frames) console.log(`${f.frame}: ${f.remade} made again, ${f.repainted} repainted, ${f.kept} new, in ${f.calls} calls.`);
   for (const line of describeRefresh(result.report)) console.log(line);
   if (result.stale === 0) console.log("Every stored tile is current.");

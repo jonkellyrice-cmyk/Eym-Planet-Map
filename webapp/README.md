@@ -42,6 +42,7 @@ cache in milliseconds.
 | GET | `/api/region/frames` | the Region layer's model, frames and whether a store is set up |
 | GET | `/api/region/tile/:frame/:tx/:ty.png` | one Region tile (`?kind=pixels` or `flat`), from the store or made |
 | GET | `/api/region/fill?frame=&start=&end=&count=&ms=&inflight=&force=` | make and keep a frame's tiles not yet in the store, and refresh stale ones, over a range of its tiles; several requests may work on separate ranges at once; reports where its time went |
+| GET | `/api/region/plan?frame=&per=` | a frame cut into ranges that each hold `per` of its own tiles, for fills to work on at the same time (reads and makes nothing) |
 | GET | `/api/region/stale?frame=` | how many stored tiles are current, need repainting, or need making again; the versions the store still holds and which are superseded (read only) |
 | GET | `/api/region/purge?model=&confirm=` | **temporary**, off by default: delete an old Region version's stored files (see below) |
 
