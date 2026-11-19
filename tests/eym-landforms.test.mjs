@@ -5,7 +5,7 @@ import { attachDrainage, attachGeology, drainageFileName } from "../scripts/cart
 import { coarseAt, buildLocalTile, landformsOf, localContext, terrainAt, COVER } from "../scripts/eym-local-detail.mjs";
 import { channelWidthM, cliffLiftM, coastCharacter, drainageChannels, shoreAt, valleyAt } from "../scripts/eym-landforms.mjs";
 import { REGION_MODEL, buildRegionTile, regionFrames, regionTileAt } from "../scripts/eym-region-layer.mjs";
-import { drainageSourcesSha256 } from "../tools/generate-eym-drainage.mjs";
+import { DETAILED, MinHeap, buildDrainageParallel, drainageSourcesSha256, landMassFingerprint, landMassesOf } from "../tools/generate-eym-drainage.mjs";
 
 const root = new URL("../", import.meta.url), read = (path) => readFileSync(new URL(path, root), "utf8");
 const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
@@ -18,7 +18,8 @@ test("the drainage is up to date with what it is made from, and small enough to 
   assert.equal(asset.drainage.sourcesSha256, drainageSourcesSha256(), "npm run build would make it again");
   assert.ok(statSync(new URL(drainagePath, root)).size <= 350_000);
   const channels = drainageChannels(asset);
-  assert.ok(channels.length > 1000 && channels.every((c) => c.points.length === c.areasKm2.length && c.points.length >= 2));
+  // (Caren's and Garyk's only, 980 of them: the far continents are outside the detailed scope and are not drained. It was "> 1000" while theirs were shipped too.)
+  assert.ok(channels.length > 900 && channels.every((c) => c.points.length === c.areasKm2.length && c.points.length >= 2));
   // Water gathers downhill: a channel drains more land the further it runs.
   const growing = channels.filter((c) => c.areasKm2.at(-1) >= c.areasKm2[0]).length;
   assert.ok(growing / channels.length > 0.98, `${growing} of ${channels.length} channels grow downstream`);
@@ -83,4 +84,49 @@ test("a local map on Caren's marble coast has its cliff, and the Region layer's 
   const frame = regionFrames(asset).find((f) => f.id === "garyk"), { tx, ty } = regionTileAt(frame, 14.25, -86.16), region = buildRegionTile(asset, frame, tx, ty);
   assert.ok(region.cover.filter((c) => c === COVER.marsh).length > 300, "the delta's marshes");
   assert.deepEqual(buildRegionTile(asset, frame, tx, ty).cover, region.cover, "the same tile every time");
+});
+
+test("only the detailed continents are drained, each on its own recorded lattice, and the reader follows the record", () => {
+  const doc = asset.drainage;
+  assert.deepEqual(doc.landMasses.map((m) => m.continent), DETAILED); assert.deepEqual(landMassesOf(asset).map((c) => c.continent), DETAILED);
+  assert.ok(doc.landMasses.every((m) => m.latticeDeg === 0.02 && m.channels > 100)); assert.equal(doc.landMasses.reduce((s, m) => s + m.channels, 0), doc.channelLengths.length);
+  assert.equal(doc.latticeDeg, undefined, "one step for all is no longer recorded");
+  // No channel lies off Caren's and Garyk's side of the world.
+  for (const c of drainageChannels(asset)) for (const [lat, lon] of c.points) assert.ok(lat > -30 && lat < 40 && lon > -110 && lon < 20, `${lat}, ${lon}`);
+  // The reader: a land mass on a coarser lattice is read on its own step; a file from before the record still reads.
+  const point = (i, j, a) => { const b = Buffer.alloc(6); b.writeInt16LE(i, 0); b.writeInt16LE(j, 2); b.writeUInt16LE(a, 4); return b; };
+  const packed = Buffer.concat([point(10, 20, 90), point(12, 22, 95), point(14, 24, 99), point(100, -50, 80), point(101, -51, 85), point(102, -52, 88)]).toString("base64");
+  const mixed = drainageChannels({ drainage: { landMasses: [{ continent: "a", latticeDeg: 0.02, channels: 1 }, { continent: "b", latticeDeg: 0.1, channels: 1 }], channelLengths: [3, 3], pointsInt16Base64: packed } });
+  const near = (p, q) => Math.abs(p[0] - q[0]) < 0.05 && Math.abs(p[1] - q[1]) < 0.05;
+  assert.ok(near(mixed[0].points[0], [0.2, 0.4]) && near(mixed[0].points.at(-1), [0.28, 0.48]) && near(mixed[1].points[0], [10, -5]) && near(mixed[1].points.at(-1), [10.2, -5.2]));
+  const legacy = drainageChannels({ drainage: { latticeDeg: 0.02, channelLengths: [3, 3], pointsInt16Base64: packed } });
+  assert.ok(near(legacy[1].points[0], [2, -1]));
+});
+
+test("the flood's heap on fixed arrays lets nodes go in exactly the order the array heap did, ties included", () => {
+  // The earlier heap, kept here as the reference.
+  class ArrayHeap {
+    constructor(keys) { this.keys = keys; this.a = []; }
+    push(i) { const a = this.a; a.push(i); let n = a.length - 1; while (n) { const p = (n - 1) >> 1; if (this.keys[a[p]] <= this.keys[a[n]]) break; [a[p], a[n]] = [a[n], a[p]]; n = p; } }
+    pop() { const a = this.a, top = a[0], last = a.pop(); if (a.length) { a[0] = last; let n = 0; for (;;) { const l = 2 * n + 1, r = l + 1; let m = n; if (l < a.length && this.keys[a[l]] < this.keys[a[m]]) m = l; if (r < a.length && this.keys[a[r]] < this.keys[a[m]]) m = r; if (m === n) break; [a[m], a[n]] = [a[n], a[m]]; n = m; } } return top; }
+    get size() { return this.a.length; }
+  }
+  let seed = 12345; const rand = () => { seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; return seed / 4294967296; };
+  const n = 20000, keys = Float64Array.from({ length: n }, () => Math.floor(rand() * 400) / 4 * (rand() < 0.3 ? 0 : 1)); // many exact ties, many zeros
+  const a = new ArrayHeap(keys), b = new MinHeap(keys, n), outA = [], outB = [];
+  // Pushes and pops interleaved, as in the flood.
+  for (let i = 0; i < n; i += 1) { a.push(i); b.push(i); if (i % 3 === 2) { outA.push(a.pop()); outB.push(b.pop()); } }
+  while (a.size) { outA.push(a.pop()); outB.push(b.pop()); }
+  assert.equal(b.size, 0); assert.deepEqual(outB, outA);
+});
+
+test("each land mass has a fingerprint of what it reads, and the threaded build writes the file as it stands", async () => {
+  const [caren, garyk] = landMassesOf(asset), print = landMassFingerprint(asset, caren);
+  assert.match(print, /^[0-9a-f]{64}$/); assert.equal(landMassFingerprint(asset, caren), print); assert.notEqual(landMassFingerprint(asset, garyk), print);
+  // Moving a point of Garyk's coast leaves Caren's fingerprint alone and changes Garyk's.
+  const moved = structuredClone(asset), coast = moved.terrain.coastlines.find((c) => c.kind === "mainland" && c.continent === "Garyk"); coast.points[5] = [coast.points[5][0] + 0.01, coast.points[5][1]];
+  assert.equal(landMassFingerprint(moved, landMassesOf(moved)[0]), print); assert.notEqual(landMassFingerprint(moved, landMassesOf(moved)[1]), landMassFingerprint(asset, garyk));
+  // Drained afresh in two threads, nothing reused: the very file that is shipped.
+  const report = [], doc = await buildDrainageParallel({ cache: false, report });
+  assert.equal(`${JSON.stringify(doc)}\n`, read(drainagePath)); assert.deepEqual(report.map((r) => r.continent).sort(), [...DETAILED].sort()); assert.ok(report.every((r) => !r.cached && r.landNodes > 100000));
 });
