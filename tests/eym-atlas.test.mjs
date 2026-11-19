@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { ATLAS_IMAGE_PRESETS, BATTLE_SIZE_PRESETS, GRID_DENSITY_PRESETS, atlasMapSpec, battleMapSpec } from "../scripts/eym-map-presets.mjs";
-import { buildReferenceMap } from "../scripts/eym-reference-map.mjs";
+import { buildReferenceMap, referenceFrame, referenceRingPaths } from "../scripts/eym-reference-map.mjs";
 import { mapPacket } from "../scripts/eym-map-packet.mjs";
 import { MAP_SETTING_KEYS, registerMapPresetSettings, savedMapDefaults } from "../scripts/eym-map-settings.mjs";
 
@@ -71,4 +71,22 @@ test("the defaults are Foundry settings, each a preset or custom, and the app of
   for (const token of ['name="atlasLevel"', 'name="atlasImage"', 'data-action="atlas-build"', 'data-action="atlas-copy-prompt"', 'data-action="atlas-download-base"']) assert.ok(template.includes(token), token);
   assert.match(app, /buildReferenceMap\(this\._eymGeography, spec/);
   assert.match(read("scripts/main.mjs"), /registerMapPresetSettings\(MODULE_ID\)/);
+});
+
+// ---------------------------------------------------------------- the whole-world map and ±180° (land-growth scaling, Fix 3)
+
+test("on the whole-world map, land across ±180° is filled as two closed pieces and outlined without a line across", () => {
+  const spec = atlasMapSpec({ level: "planet", image: "planet-2to1" }), frame = referenceFrame({}, spec), W = frame.W;
+  const numbers = (d) => d.split(/(?=[MLZ])/).map((c) => c.trim()).filter((c) => c && c !== "Z").map((c) => c.slice(1).trim().split(/[ ,]+/).map(Number));
+  const subpaths = (d) => d.split("M").filter(Boolean).map((part) => ({ closed: part.trim().endsWith("Z"), points: numbers(`M${part}`) }));
+  const astride = [[-30, 150], [-34, -160], [0, -140], [35, -155], [40, 160]], { outline, area } = referenceRingPaths(frame, astride);
+  // The area: two closed pieces, one at each edge of the map, neither reaching across it.
+  const pieces = subpaths(area); assert.equal(pieces.length, 2); assert.ok(pieces.every((piece) => piece.closed));
+  const spans = pieces.map((piece) => { const xs = piece.points.map((q) => q[0]); return [Math.min(...xs), Math.max(...xs)]; }).sort((a, b) => a[0] - b[0]);
+  assert.ok(spans[0][0] === 0 && spans[0][1] < W * 0.15, "a piece at the western edge"); assert.ok(spans[1][1] === W && spans[1][0] > W * 0.85, "a piece at the eastern edge");
+  // The outline: the same coast, broken at the seam, with no closing line and no step across the map.
+  const lines = subpaths(outline); assert.ok(lines.length >= 2 && lines.every((line) => !line.closed));
+  for (const line of lines) for (let i = 1; i < line.points.length; i += 1) assert.ok(Math.abs(line.points[i][0] - line.points[i - 1][0]) < W / 2);
+  // A ring away from the seam is one closed path, the same for both.
+  const plain = referenceRingPaths(frame, [[10, 10], [10, 30], [25, 20]]); assert.equal(plain.area, plain.outline); assert.ok(plain.area.endsWith("Z"));
 });

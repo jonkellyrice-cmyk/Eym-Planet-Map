@@ -87,7 +87,10 @@ export function fillRings(mask, W, H, rings, value, win = null) {
     // In a window, take the copy of the ring (the globe repeats every 360°) that lies nearest the window.
     const shift = win ? Math.round((W / 2 - (left + right) / 2) / P) * P : 0; if (win && (right + shift < 0 || left + shift > W)) continue;
     const px = Array.from(xs, (x) => x + shift), py = Array.from(ys), n0 = px.length, first = px[0], last = px[n0 - 1];
-    if (Math.abs(last - first) > P / 2) { const pole = (lat0 - (latSum > 0 ? 90 : -90)) / cell; px.push(last, first); py.push(pole, pole); }
+    // A ring right round a pole ends a whole turn from where it began: carry it on to its first point a turn on, then
+    // close it along the pole's edge of the map. (Closing it straight up from its last point left the stretch between
+    // its last point and its first unfilled: a wedge by the seam.)
+    if (Math.abs(last - first) > P / 2) { const pole = (lat0 - (latSum > 0 ? 90 : -90)) / cell, on = first + Math.sign(last - first) * P; px.push(on, on, first); py.push(py[0], pole, pole); }
     const n = px.length; let top = Infinity, bottom = -Infinity;
     for (let i = 0; i < n; i += 1) { if (py[i] < top) top = py[i]; if (py[i] > bottom) bottom = py[i]; }
     const r0 = Math.max(0, Math.floor(top)), r1 = Math.min(H - 1, Math.ceil(bottom)), cuts = [];
