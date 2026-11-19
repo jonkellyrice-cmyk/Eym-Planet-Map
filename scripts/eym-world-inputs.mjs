@@ -3,13 +3,16 @@
 // not dials). To change the world: change a value here, run `npm run world`, and read the report it writes.
 //
 // The modules that use each group import it from here and keep their own exported names (EYM_LAYOUT,
-// SHELF_KM, STEERING, …), so nothing else needs to know where a dial lives. This file is among the sources the
-// tectonic history and the ocean climate are fingerprinted from: changing a dial makes the build redo what
-// follows from it.
+// SHELF_KM, STEERING, …), so nothing else needs to know where a dial lives. Each generator fingerprints the groups
+// of dials it uses (inputsFingerprint below), so changing a dial makes the build redo what follows from it and
+// nothing that does not: a shelf-sea dial does not refit the plates.
 //
 // Hand-authored exceptions to what the rules give are not dials: they go in data/eym/overrides.json.
 
 const deepFreeze = (value) => { if (value && typeof value === "object" && !Object.isFrozen(value)) { Object.freeze(value); for (const v of Object.values(value)) deepFreeze(v); } return value; };
+
+/** The dials of the named groups as text, for a generator's fingerprint of what it is made from. */
+export const inputsFingerprint = (...groups) => JSON.stringify(groups.map((g) => { if (!(g in WORLD_INPUTS)) throw new Error(`no such group of dials: ${g}`); return [g, WORLD_INPUTS[g]]; }));
 
 export const WORLD_INPUTS = deepFreeze({
   /**
@@ -58,5 +61,18 @@ export const WORLD_INPUTS = deepFreeze({
     steering: 0.3,
     // The strength of upwelling along a continental slope (at 0.4 m/s) and over a seamount chain (at 0.3 m/s), on the wind-driven upwelling's scale.
     slopeUpwelling: 0.6, seamountUpwelling: 0.8,
+  },
+
+  /** The shelf seas of the mapped continents (tools/generate-eym-coasts.mjs, scripts/eym-shelf-seas.mjs): tides in bays and storm surge. */
+  shelfSeas: {
+    // The continents whose coasts are surveyed, and how far apart (km) the survey's points lie along them.
+    continents: ["Caren", "Garyk"], sampleSpacingKm: 25,
+    // A bay: sea with land within `bayReachKm` in at least `bayEnclosedShare` of directions (an open coast has land in
+    // about half), at least `bayMinLengthKm` from where the sea opens. A funnel-shaped one raises the tide as it
+    // narrows and shoals (Green's law), by no more than `funnelMaxGain` times.
+    bayReachKm: 100, bayEnclosedShare: 0.75, bayMinLengthKm: 30, funnelMaxGain: 2.5,
+    // Storm surge: the wind's drag on the sea (a drag coefficient of this size at storm strength) piles water up
+    // across the shelf; no surge is reported below `surgeMinM` metres or allowed above `surgeMaxM`.
+    surgeDragCoefficient: 0.0025, surgeMinM: 0.3, surgeMaxM: 9,
   },
 });

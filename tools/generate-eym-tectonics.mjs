@@ -11,13 +11,15 @@ import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { buildEymSurface, EYM_LAYOUT, fromLocal, toLocal, ringAreaKm2, greatCircleKm } from "../scripts/eym-surface.mjs";
 import { createRng } from "../scripts/planet-geography.mjs";
-import { WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
+import { inputsFingerprint, WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 import { CAREN_GEOLOGY, EYM_TECTONICS_MODEL, arcKm, classifyBoundary, latLon, layoutFirstLand, makeNoise, plateAt, plateVelocity, presentCrust, rotate, rotationBetween, vec } from "../scripts/eym-tectonics.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/tectonics.json", root);
 /** What the tectonic history is made from: this tool, the model, the surface and the traced continents. */
-export const TECTONIC_SOURCES = ["tools/generate-eym-tectonics.mjs", "scripts/eym-tectonics.mjs", "scripts/eym-surface.mjs", "scripts/eym-world-inputs.mjs", "scripts/planet-geography.mjs", "data/eym/traced-continents.json"];
-export const tectonicSourcesSha256 = () => { const h = createHash("sha256"); for (const path of TECTONIC_SOURCES) h.update(readFileSync(new URL(path, root))); return h.digest("hex"); };
+export const TECTONIC_SOURCES = ["tools/generate-eym-tectonics.mjs", "scripts/eym-tectonics.mjs", "scripts/eym-surface.mjs", "scripts/planet-geography.mjs", "data/eym/traced-continents.json"];
+/** The groups of dials (scripts/eym-world-inputs.mjs) the plate fit follows. */
+export const TECTONIC_INPUTS = ["layout", "plates"];
+export const tectonicSourcesSha256 = () => { const h = createHash("sha256"); for (const path of TECTONIC_SOURCES) h.update(readFileSync(new URL(path, root))); h.update(inputsFingerprint(...TECTONIC_INPUTS)); return h.digest("hex"); };
 export const TECTONIC_SEEDS = Array.from({ length: 40 }, (_, i) => `eym-tectonics|${String(i + 1).padStart(2, "0")}`);
 export const TARGET_TOLERANCE = WORLD_INPUTS.plates.targetTolerance;
 /** Eym stays 98.6% ocean: the fit keeps it between these. */

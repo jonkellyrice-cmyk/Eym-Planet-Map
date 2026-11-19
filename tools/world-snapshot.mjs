@@ -16,7 +16,7 @@ const ASSET = "data/planet-cartography/abydos/eventide";
 /** The files a world is read from (the registry CSV carries Eventide's input fingerprint). */
 export const WORLD_FILES = Object.freeze({
   tectonics: "data/eym/tectonics.json", climate: "data/eym/climate.json", asset: `${ASSET}.json`, geology: `${ASSET}-geology.json`, ocean: `${ASSET}-ocean.json`,
-  drainage: `${ASSET}-drainage.json`, wind: `${ASSET}-wind.json`, flow: `${ASSET}-flow.json`, regionFingerprint: "data/eym/region-fingerprint.json", registry: "docs/system-orbital-distances.csv", overrides: "data/eym/overrides.json",
+  drainage: `${ASSET}-drainage.json`, wind: `${ASSET}-wind.json`, flow: `${ASSET}-flow.json`, coasts: `${ASSET}-coasts.json`, regionFingerprint: "data/eym/region-fingerprint.json", registry: "docs/system-orbital-distances.csv", overrides: "data/eym/overrides.json",
 });
 
 /** A reader of the working tree: path → text, or null where there is no such file. */
@@ -28,7 +28,7 @@ export const refReader = (ref, dir = repoRoot) => (path) => { try { return execF
 export function loadWorld(read) {
   const text = Object.fromEntries(Object.entries(WORLD_FILES).map(([key, path]) => [key, read(path)]));
   const json = (key) => (text[key] ? JSON.parse(text[key]) : null);
-  return { text, tectonics: json("tectonics"), climate: json("climate"), asset: json("asset"), geology: json("geology"), ocean: json("ocean"), drainage: json("drainage"), wind: json("wind"), flow: json("flow"), regionFingerprint: json("regionFingerprint"), registry: text.registry, overrides: json("overrides") };
+  return { text, tectonics: json("tectonics"), climate: json("climate"), asset: json("asset"), geology: json("geology"), ocean: json("ocean"), drainage: json("drainage"), wind: json("wind"), flow: json("flow"), coasts: json("coasts"), regionFingerprint: json("regionFingerprint"), registry: text.registry, overrides: json("overrides") };
 }
 
 // ---------------------------------------------------------------- decoding
@@ -94,6 +94,18 @@ function mainlandBoxes(asset) {
 const histogram = (items) => { const out = {}; for (const x of items) out[x] = (out[x] ?? 0) + 1; return out; };
 const round = (x, k = 100) => Math.round(x * k) / k;
 
+/** The survey of the coasts in numbers, by continent: points, how many lie in bays and in funnels, the largest funnel gain, the median shelf width. Null without a survey. */
+function coastSummary(doc) {
+  if (!doc) return null;
+  const col = (name) => doc.fields.indexOf(name), [iC, iBay, iGain, iShelf, iLat, iLon] = ["continent", "bay", "funnelGain", "shelfKm", "lat", "lon"].map(col), out = {};
+  for (const name of doc.continents) {
+    const rows = doc.samples.filter((s) => s[iC] === name), shelves = rows.map((s) => s[iShelf]).sort((a, b) => a - b);
+    out[name] = { points: rows.length, bays: rows.filter((s) => s[iBay]).length, funnels: rows.filter((s) => s[iGain] > 1.2).length, maxGain: Math.max(1, ...rows.map((s) => s[iGain])), medianShelfKm: shelves.length ? shelves[shelves.length >> 1] : 0 };
+  }
+  // Each point's funnel gain by place, to find where the tide changed.
+  return { byContinent: out, gains: new Map(doc.samples.map((s) => [`${s[iLat]},${s[iLon]}`, s[iGain]])), points: doc.samples.map((s) => ({ continent: s[iC], lat: s[iLat], lon: s[iLon], gain: s[iGain], shelfKm: s[iShelf] })) };
+}
+
 /** The numbers of a world worth comparing (null where a world has no asset). */
 export function summarizeWorld(world) {
   const { asset, tectonics, climate, ocean, geology, drainage } = world; if (!asset) return null;
@@ -129,13 +141,14 @@ export function summarizeWorld(world) {
     volcanoesOnMap: geology?.geology?.volcanoes?.length ?? null, hasOceanFile: Boolean(ocean),
     regionFingerprint: world.regionFingerprint ? { shapes: world.regionFingerprint.shapes, paint: world.regionFingerprint.paint } : null,
     overrides: (world.overrides?.overrides ?? []).map((o) => JSON.stringify(o)),
+    coasts: coastSummary(world.coasts),
   };
 }
 
 // ---------------------------------------------------------------- the comparison
 
 /** What a change must exceed before it is flagged for a person to look at. */
-export const LOOK_AT = Object.freeze({ biomeShare: 0.1, highestM: 200, landCells: 0, sstC: 1.5, meanSpeedShare: 0.15, plateSpeedMm: 5 });
+export const LOOK_AT = Object.freeze({ biomeShare: 0.1, highestM: 200, landCells: 0, sstC: 1.5, meanSpeedShare: 0.15, plateSpeedMm: 5, funnelGain: 0.3, shelfKm: 30 });
 /** The continents whose coastlines are invariants (the owner's maps): any change to them is an error, never a judgement call. */
 export const FIXED_COASTS = Object.freeze(["Caren", "Garyk"]);
 
@@ -203,6 +216,19 @@ export function compareWorlds(before, after) {
     if (before.ocean.strongUpwellingCells !== after.ocean.strongUpwellingCells) sea.lines.push(`Cells of strong upwelling ${before.ocean.strongUpwellingCells} → ${after.ocean.strongUpwellingCells}.`);
     if (JSON.stringify(before.ocean.enso) !== JSON.stringify(after.ocean.enso)) { sea.lines.push(`The El Niño basin moved: ${JSON.stringify(before.ocean.enso)} → ${JSON.stringify(after.ocean.enso)}.`); flag(sea, "the El Niño basin moved"); }
   }
+
+  const shelves = section("Coasts: shelves, bays and the tide's funnelling");
+  if (before.coasts && after.coasts) {
+    for (const name of new Set([...Object.keys(before.coasts.byContinent), ...Object.keys(after.coasts.byContinent)])) {
+      const a = before.coasts.byContinent[name], b = after.coasts.byContinent[name];
+      if (!a || !b) { shelves.lines.push(`${name}: ${a ? "no longer surveyed" : "now surveyed"}.`); continue; }
+      const parts = []; for (const [key, label] of [["points", "coast points"], ["bays", "points in bays"], ["funnels", "points in funnel bays"], ["maxGain", "largest funnel gain"], ["medianShelfKm", "median shelf width (km)"]]) if (a[key] !== b[key]) parts.push(`${label} ${a[key]} → ${b[key]}`);
+      if (parts.length) shelves.lines.push(`${name}: ${parts.join("; ")}.`);
+      if (Math.abs(a.medianShelfKm - b.medianShelfKm) > LOOK_AT.shelfKm) flag(shelves, `${name}'s shelves changed width (median ${a.medianShelfKm} → ${b.medianShelfKm} km)`);
+    }
+    let moved = 0, most = 0; for (const [place, gain] of after.coasts.gains) { const was = before.coasts.gains.get(place); if (was !== undefined && Math.abs(gain - was) > LOOK_AT.funnelGain) { moved += 1; most = Math.max(most, Math.abs(gain - was)); } }
+    if (moved) { shelves.lines.push(`The tide's funnel gain changed by more than ${LOOK_AT.funnelGain} at ${moved} coast points (by up to ${round(most)}).`); flag(shelves, `tides changed at ${moved} coast points`); }
+  } else if (before.coasts || after.coasts) shelves.lines.push(after.coasts ? `A survey of the coasts was added: ${Object.entries(after.coasts.byContinent).map(([n, c]) => `${n} ${c.points} points, ${c.bays} in bays, ${c.funnels} in funnel bays (largest gain ${c.maxGain}), median shelf ${c.medianShelfKm} km`).join("; ")}.` : "The survey of the coasts is gone.");
 
   const authored = section("Hand-authored overrides");
   { const d = listDiff(before.overrides ?? [], after.overrides ?? []), id = (text) => JSON.parse(text).id; if (d.added.length) authored.lines.push(`Added or changed: ${d.added.map(id).join(", ")}.`); if (d.removed.length) authored.lines.push(`Removed or changed: ${d.removed.map(id).join(", ")}.`); }

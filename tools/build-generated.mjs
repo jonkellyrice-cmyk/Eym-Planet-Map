@@ -40,6 +40,11 @@ if (row.geography_input_fingerprint !== fingerprint) {
   run("tools/export-atlas-snapshots.mjs");
   changed = true;
 }
+// The survey of the mapped continents' coasts (tools/generate-eym-coasts.mjs: shelves, bays, the tide's funnelling)
+// follows the cartography and the plates: made again (about a quarter of a minute) when either changed.
+const { coastSourcesSha256 } = await import("./generate-eym-coasts.mjs");
+const readCoasts = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/abydos/eventide-coasts.json", root), "utf8")); } catch { return null; } };
+if (readCoasts()?.sourcesSha256 !== coastSourcesSha256()) { run("tools/generate-eym-coasts.mjs"); changed = true; }
 // Eym's drainage (tools/generate-eym-drainage.mjs) follows the cartography: made again (about a minute) when the
 // cartography or the local detail's surface changed.
 const { drainageSourcesSha256 } = await import("./generate-eym-drainage.mjs");

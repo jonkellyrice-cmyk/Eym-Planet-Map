@@ -73,5 +73,11 @@ export const flowFileName = (assetPath) => assetPath.replace(/^.*\//, "").replac
 /** Put a monthly-climate document into its asset (returns the asset). */
 export function attachFlow(asset, document) { if (document) asset.flow = document; return asset; }
 
+/** The coasts file beside an asset's ("eventide.json" → "eventide-coasts.json"): the survey of the mapped continents' shelves and bays (tools/generate-eym-coasts.mjs). */
+export const coastsFileName = (assetPath) => assetPath.replace(/^.*\//, "").replace(/\.json$/, "-coasts.json");
+
+/** Put a coasts document into its asset (returns the asset). */
+export function attachCoasts(asset, document) { if (document) asset.coasts = document; return asset; }
+
 /** Whether an asset has geology, loaded or not (the globe draws its sea floor from the plates when it has). */
 export const hasGeology = (asset) => Boolean(asset?.geology || asset?.geologyFile);

@@ -48,11 +48,13 @@ import { SETTINGS as BATTLE_SETTINGS } from "./eym-battle-settings.mjs";
 import { battleArtDirection, battleGridSvg, battlePacket, battleReferenceSvg, battleSceneData, battleTacticalSvg, darknessFor, weatherEffectFor } from "./eym-battle-render.mjs";
 import { BATTLE_SIZE_PRESETS, GRID_DENSITY_PRESETS, battleMapSpec } from "./eym-map-presets.mjs";
 import { placeHistory, describeWeather } from "./eym-weather.mjs";
-import { crossingPassage, placeSea } from "./eym-sea.mjs";
+import { crossingPassage, nearestSea, placeSea } from "./eym-sea.mjs";
 import { battleTide, coastalResponse, createTideClock, tideReport } from "./eym-tides.mjs";
 import { describeGround, describeStone, geologyAt, localStonePrompt } from "./eym-geology.mjs";
 import { describeTremors, tremorsAt } from "./eym-quakes.mjs";
-import { attachDrainage, attachFlow, attachGeology, attachOcean, attachWind, drainageFileName, flowFileName, windFileName } from "./cartography-asset.mjs";
+import { attachCoasts, attachDrainage, attachFlow, attachGeology, attachOcean, attachWind, coastsFileName, drainageFileName, flowFileName, windFileName } from "./cartography-asset.mjs";
+import { describeSurge, funnelledResponse, nearestCoast, stormSurgeM } from "./eym-shelf-seas.mjs";
+import { fishingAt } from "./eym-climate.mjs";
 import { sunAltitudeDeg, yearFraction } from "./eym-seasons.mjs";
 import { foliageSeason } from "./eym-battle-season.mjs";
 import { guardPageZoom } from "./zoom-guard.mjs";
@@ -367,7 +369,8 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     if (!asset.drainage) this._drainageLoading ??= load(drainageFileName(`${asset.body.toLowerCase()}.json`), "drainage", attachDrainage).then(() => { if (!asset.drainage) this._drainageLoading = null; });
     if (!asset.wind) this._windLoading ??= load(windFileName(`${asset.body.toLowerCase()}.json`), "wind climate", attachWind).then(() => { if (!asset.wind) this._windLoading = null; });
     if (!asset.flow) this._flowLoading ??= load(flowFileName(`${asset.body.toLowerCase()}.json`), "rivers' monthly climate", attachFlow).then(() => { if (!asset.flow) this._flowLoading = null; });
-    return Promise.all([this._geologyLoading, this._drainageLoading, this._windLoading, this._flowLoading]);
+    if (!asset.coasts) this._coastsLoading ??= load(coastsFileName(`${asset.body.toLowerCase()}.json`), "coast survey", attachCoasts).then(() => { if (!asset.coasts) this._coastsLoading = null; else this._tideResponseKey = null; });
+    return Promise.all([this._geologyLoading, this._drainageLoading, this._windLoading, this._flowLoading, this._coastsLoading]);
   }
 
   /**
@@ -391,8 +394,15 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
   #tideHere(latDeg, lonDeg) {
     if (!this._tideClock || !this._eymGeography || !this._eymField || !this._sun) return null;
     const key = `${latDeg.toFixed(3)},${lonDeg.toFixed(3)}`;
-    if (this._tideResponseKey !== key) { this._tideResponseKey = key; this._tideResponse = coastalResponse(this._eymGeography, this._eymField, latDeg, lonDeg); }
+    // (A coast in a funnel-shaped bay answers more strongly: the survey of the coasts says by how much.)
+    if (this._tideResponseKey !== key) { this._tideResponseKey = key; this._tideCoast = nearestCoast(this._eymGeography, latDeg, lonDeg); this._tideResponse = funnelledResponse(coastalResponse(this._eymGeography, this._eymField, latDeg, lonDeg), this._tideCoast); }
     return this._tideResponse ? tideReport(this._tideClock, this._tideResponse, this._sun.t) : null;
+  }
+
+  /** The storm surge on the coast by a place for the weather there now (m; 0 inland, off the surveyed coasts or in quiet weather). */
+  #surgeHere(latDeg, lonDeg, weatherNow) {
+    const coast = this._tideResponseKey === `${latDeg.toFixed(3)},${lonDeg.toFixed(3)}` ? this._tideCoast : nearestCoast(this._eymGeography, latDeg, lonDeg);
+    return coast && weatherNow ? stormSurgeM(coast, weatherNow) : 0;
   }
 
   /** Eym's ocean currents (a separate file, scripts/cartography-asset.mjs), fetched the first time a voyage needs them. */
@@ -776,7 +786,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const now = this._weather ? placeWeatherNow(this._weather, lat, lon, { subsolar: this._sun.subsolar, timeMs: this._sun.t }) : null;
     const history = this._weather ? placeHistory(this._weather, lat, lon) : null;
     const sea = this._weather && now ? placeSea(this._weather, lat, lon, { ...now, timeMs: this._sun.t }) : null;
-    const tide = this.#tideHere(lat, lon);
+    const tide = this.#tideHere(lat, lon), surgeM = tide ? this.#surgeHere(lat, lon, now) : 0;
     const asset = this._eymGeography, river = asset?.flow && asset?.drainage ? battleRiver(riverHere(asset, lat, lon, this._sun.t)) : null;
     const said = now ? describeWeather(now) : null;
     const report = placeReport({ field: this._eymField, subsolar: this._sun.subsolar, latDeg: lat, lonDeg: lon, timeMs: this._sun.t });
@@ -784,7 +794,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     // The season the trees and grass are in (light and shadow are Foundry's, live).
     const season = foliageSeason(lat, yearFraction(this._sun.t));
     return {
-      conditions: { snowDepthCm: history?.snowDepthCm ?? 0, ground: history?.ground ?? "dry", tempC: now?.tempC ?? report.values.temperature.nowC, precipKind: now?.precipMmH > 0.1 ? now.precipKind : null, precipMmH: now?.precipMmH ?? 0, windMs: now?.windMs ?? 0, thunder: Boolean(now?.thunder), fog: Boolean(now?.fog) || ((now?.humidity ?? 0) > 0.97 && (now?.windMs ?? 0) < 3), sunAltitudeDeg: altitude, season: report.season, sea: sea ? { words: sea.words, hsM: Math.round(sea.hsM * 10) / 10, swim: sea.swim } : null, tide: battleTide(tide), river },
+      conditions: { snowDepthCm: history?.snowDepthCm ?? 0, ground: history?.ground ?? "dry", tempC: now?.tempC ?? report.values.temperature.nowC, precipKind: now?.precipMmH > 0.1 ? now.precipKind : null, precipMmH: now?.precipMmH ?? 0, windMs: now?.windMs ?? 0, thunder: Boolean(now?.thunder), fog: Boolean(now?.fog) || ((now?.humidity ?? 0) > 0.97 && (now?.windMs ?? 0) < 3), sunAltitudeDeg: altitude, season: report.season, sea: sea ? { words: sea.words, hsM: Math.round(sea.hsM * 10) / 10, swim: sea.swim } : null, tide: battleTide(tide, surgeM), river },
       season,
       words: { time: `${report.localTime}, ${report.season}; the sun ${report.sun}`, weather: said ? `${said.sky}${said.precip ? `, ${said.precip}` : ""}; wind ${said.wind}${sea ? `; the sea ${sea.words}` : ""}` : "", light: altitude >= 0 ? "daylight" : altitude > -6 ? "civil twilight (dim)" : altitude > -12 ? "dusk or dawn (dim to dark)" : "night (darkness, moonlight aside)" },
     };
@@ -954,10 +964,13 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       // The sea here (or off the nearest coast), and the passage across to Garyk or Caren leaving now.
       const sea = placeSea(this._weather, latDeg, lonDeg, { ...weather.values.weather, timeMs: this._sun.t });
       values.sea = sea ? `${sea.words[0].toUpperCase()}${sea.words.slice(1)}` : "Inland";
+      // The fishing off this shore (from the sea's upwelling; the currents' file comes when a voyage first needs it).
+      const seaAt = sea && this._eymGeography.ocean ? nearestSea(this._eymField, latDeg, lonDeg) : null, fishing = seaAt ? fishingAt(this._eymGeography, seaAt[0], seaAt[1], this._sun.t) : null;
+      if (fishing) values.sea += `; ${fishing.words}`;
       values.passage = sea ? this.#passageHere(latDeg, lonDeg) : "—";
     }
-    const tide = this.#tideHere(latDeg, lonDeg);
-    values.tide = tide ? `${tide.words[0].toUpperCase()}${tide.words.slice(1)}` : "Inland";
+    const tide = this.#tideHere(latDeg, lonDeg), surge = tide ? describeSurge(this.#surgeHere(latDeg, lonDeg, weather?.values?.weather)) : "";
+    values.tide = tide ? `${tide.words[0].toUpperCase()}${tide.words.slice(1)}${this._tideResponse?.funnelGain ? `; a funnel bay (${this._tideResponse.funnelGain.toFixed(1)} times the open coast's tide)` : ""}${surge ? `; ${surge}` : ""}` : "Inland";
     // The river nearby through the year (scripts/eym-river-flow.mjs): its stage, and whether it can be waded.
     if (this._eymGeography.flow && this._eymGeography.drainage) values.river = describeRiver(riverHere(this._eymGeography, latDeg, lonDeg, this._sun.t));
     else { values.river = "…"; void this.#ensureEymGeology().then(() => { if (this._eymGeography?.flow && this._eymGeography?.drainage) this.#updatePlaceReadout(); }); }

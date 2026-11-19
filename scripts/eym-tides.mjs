@@ -155,9 +155,10 @@ export function tideReport(clock, response, timeMs) {
   return { heightM, rising, nextHigh, nextLow, rangeM, spring, springWords, words };
 }
 
-/** What a battle map needs of the tide (kept small: it travels to the web app's map server). */
-export function battleTide(report) {
+/** What a battle map needs of the tide (kept small: it travels to the web app's map server); a storm surge (m) raises the water by its height. */
+export function battleTide(report, surgeM = 0) {
   if (!report) return null;
+  if (surgeM > 0) return { ...battleTide(report), heightM: Math.round((report.heightM + surgeM) * 100) / 100, surgeM: Math.round(surgeM * 100) / 100 };
   const next = [report.nextHigh, report.nextLow].filter(Boolean).sort((a, b) => a.timeMs - b.timeMs)[0];
   return { heightM: Math.round(report.heightM * 100) / 100, rangeM: Math.round(report.rangeM * 100) / 100, rising: report.rising, turn: next ? `${next.kind} water at ${formatUniversalClock(next.timeMs).slice(0, 5)}` : "" };
 }

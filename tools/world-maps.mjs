@@ -97,10 +97,28 @@ export function heightChangePicture(before, after, scale = 4) {
   return { name: "heights.png", title: "Heights: where the land or the sea floor rose (red) or fell (blue), full colour at 1,500 m; land is light grey, sea dark", png: png(c) };
 }
 
+/**
+ * A continent's surveyed coast in the later world: each survey point as a dot, grey on an open coast and yellow to
+ * red by how much its bay's funnel raises the tide (red at 2.5 times), with a blue tick out to sea whose length is
+ * the shelf's width. Null where the continent is not surveyed.
+ */
+export function coastPicture(name, after, scale = 40) {
+  const points = (after.coasts?.points ?? []).filter((p) => p.continent === name), box = boxOf(name, [after], 3); if (!points.length || !box) return null;
+  const { biome, lonCount, latCount } = after.fields, rows = box.r1 - box.r0 + 1, c = canvas(box.cols * scale, rows * scale), perDeg = lonCount / 360;
+  for (let y = 0; y < rows; y += 1) for (let x = 0; x < box.cols; x += 1) { const i = (box.r1 - y) * lonCount + ((box.c0 + x) % lonCount + lonCount) % lonCount; c.block(x * scale, y * scale, scale, scale, /ocean|sea-ice/.test(biome.at(i)) ? [28, 52, 86] : [70, 78, 66]); }
+  const X = (lon) => ((((lon + 180) * perDeg - box.c0) % lonCount) + lonCount) % lonCount * scale, Y = (lat) => (box.r1 + 1 - (lat + 90) * (latCount / 180)) * scale;
+  // Shelf widths first (so the dots sit on top): a faint blue disc whose radius is the shelf's width.
+  for (const p of points) { const r = Math.round(Math.min(400, p.shelfKm) / 111.2 * scale / 8); for (let dy = -r; dy <= r; dy += 1) for (let dx = -r; dx <= r; dx += 1) if (dx * dx + dy * dy <= r * r) c.set(X(p.lon) + dx, Y(p.lat) + dy, [60, 110, 170]); }
+  for (const p of points) { const f = Math.max(0, Math.min(1, (p.gain - 1) / 1.5)), col = p.gain <= 1.02 ? [205, 205, 205] : [255, Math.round(230 - 190 * f), Math.round(60 - 40 * f)], r = p.gain > 1.02 ? 4 : 2; for (let dy = -r; dy <= r; dy += 1) for (let dx = -r; dx <= r; dx += 1) if (dx * dx + dy * dy <= r * r) c.set(X(p.lon) + dx, Y(p.lat) + dy, col); }
+  return { name: `coasts-${name.toLowerCase()}.png`, title: `${name}'s surveyed coast: grey dots are open coast; yellow to red dots lie in funnel bays (red raises the tide 2.5 times); the blue haze is wider where the shelf is wider`, png: png(c) };
+}
+
 /** Every standard picture for two worlds (those with nothing to show are left out). */
 export function worldPictures(before, after) {
   const names = [...new Set([...Object.keys(before.continents), ...Object.keys(after.continents)])].filter((n) => n !== "islands");
   const changed = (name) => { const fb = before.fields, fa = after.fields; for (let i = 0; i < fa.owner.length; i += 1) if ((fa.owner[i] === name || fb.owner[i] === name) && fb.biome.at(i) !== fa.biome.at(i)) return true; return before.continents[name]?.coastSha256 !== after.continents[name]?.coastSha256; };
   const seaChanged = before.fields.sst.length !== after.fields.sst.length || before.fields.sst.some((x, i) => x !== after.fields.sst[i] || before.fields.u[i] !== after.fields.u[i] || before.fields.v[i] !== after.fields.v[i]);
-  return [...names.filter(changed).map((n) => biomePicture(n, before, after)), seaChanged ? seaPicture(before, after) : null, heightChangePicture(before, after)].filter(Boolean);
+  // The coasts' survey is drawn where it is new or its tides changed.
+  const coastChanged = (name) => { const a = before.coasts, b = after.coasts; if (!b) return false; if (!a) return true; return JSON.stringify(a.byContinent[name]) !== JSON.stringify(b.byContinent[name]) || b.points.some((p) => p.continent === name && a.gains.get(`${p.lat},${p.lon}`) !== p.gain); };
+  return [...names.filter(changed).map((n) => biomePicture(n, before, after)), seaChanged ? seaPicture(before, after) : null, heightChangePicture(before, after), ...names.filter(coastChanged).map((n) => coastPicture(n, after))].filter(Boolean);
 }
