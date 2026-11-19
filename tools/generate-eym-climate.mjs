@@ -20,13 +20,14 @@ import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { buildEymSurface, EYM_LAYOUT } from "../scripts/eym-surface.mjs";
 import { marginOf, seaFloorHeightM, seamountsOf, shoalOverSeamounts, tectonicDistances } from "../scripts/eym-seafloor.mjs";
+import { WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 import { seaLevelTemperatureC, seasonalTemperature } from "../scripts/eym-seasons.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universal-time.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/climate.json", root);
 export const EYM_CLIMATE_MODEL = "eym-climate-v2";
 /** What the climate is made from: this tool, the surface (its land) and the seasons (base temperatures). */
-export const CLIMATE_SOURCES = ["tools/generate-eym-climate.mjs", "scripts/eym-surface.mjs", "scripts/eym-seafloor.mjs", "scripts/eym-seasons.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json"];
+export const CLIMATE_SOURCES = ["tools/generate-eym-climate.mjs", "scripts/eym-surface.mjs", "scripts/eym-world-inputs.mjs", "scripts/eym-seafloor.mjs", "scripts/eym-seasons.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json"];
 export const climateSourcesSha256 = () => { const h = createHash("sha256"); for (const p of CLIMATE_SOURCES) h.update(readFileSync(new URL(p, root))); return h.digest("hex"); };
 
 const DEG = Math.PI / 180, R = 6.371e6, OMEGA = 7.292e-5, RHO = 1025, YEAR_MS = DAYS_PER_YEAR * DAY_MS;
@@ -34,7 +35,7 @@ const RES = 2, NLAT = 180 / RES, NLON = 360 / RES, N = NLAT * NLON;
 /** Fractions of the year (0 = March equinox) the four seasons are taken at. */
 export const SEASONS = Object.freeze([0, 0.25, 0.5, 0.75]);
 /** How far the wind belts follow the Sun (Earth's move about 0.6 of the declination; an aquaplanet's less). */
-export const BELT_SHIFT = 0.4;
+export const BELT_SHIFT = WORLD_INPUTS.ocean.beltShift;
 const latOf = (r) => -90 + RES * (r + 0.5), lonOf = (c) => -180 + RES * (c + 0.5);
 const g = (x, m, s) => Math.exp(-(((x - m) / s) ** 2));
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -63,8 +64,8 @@ const idx = (r, c) => r * NLON + ((c % NLON) + NLON) % NLON;
 /**
  * The sea's depth (m, positive) on the 2° grid, from the sea floor the cartography draws (scripts/eym-seafloor.mjs):
  * worked on a 1° grid (distance to the nearest coast, the plates' ridges and trenches, the seamount chains) and
- * averaged over each cell's sea. Also each cell's share of shelf break (water between 150 m and 1,500 m deep on the
- * continental slope) and of seamount (floor raised 300 m or more by a chain).
+ * averaged over each cell's sea. Also each cell's share of shelf break (water between 150 m and 3,300 m deep, within
+ * 450 km of a coast: the continental slope) and of seamount (floor raised 300 m or more by a chain).
  */
 export function bathymetry() {
   const traced = JSON.parse(readFileSync(new URL("data/eym/traced-continents.json", root), "utf8"));
@@ -102,7 +103,7 @@ export function bathymetry() {
 const percentile = (values, q) => { const v = values.filter(Number.isFinite).sort((a, b) => a - b); return v.length ? v[Math.min(v.length - 1, Math.floor(q * v.length))] : 0; };
 
 /** How much of the sea floor's shape the upper ocean feels (0 = a flat floor, 1 = one unlayered sea). */
-export const STEERING = 0.3;
+export const STEERING = WORLD_INPUTS.ocean.steering;
 
 /**
  * What the floor adds to f in f/h (f·(1/h − 1), h in units of the mean depth) on the 2° grid, with h the depth the flow feels: the reference depth where the floor is not felt, toward
@@ -121,7 +122,7 @@ function potentialVorticity(land, depthM, H) {
 }
 
 /** The strength of upwelling along a continental slope (at 0.4 m/s) and over a seamount chain (at 0.3 m/s), on the wind-driven upwelling's scale. */
-export const SLOPE_UPWELLING = 0.6, SEAMOUNT_UPWELLING = 0.8;
+export const SLOPE_UPWELLING = WORLD_INPUTS.ocean.slopeUpwelling, SEAMOUNT_UPWELLING = WORLD_INPUTS.ocean.seamountUpwelling;
 
 /** One season: currents (m/s), upwelling (0–1.5) and the sea-surface temperature anomaly (°C), on the 2° grid. */
 export function solveSeason(land, f, floor = null) {

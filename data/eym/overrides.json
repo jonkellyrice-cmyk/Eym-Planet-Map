@@ -1,0 +1,4 @@
+{
+  "about": "Hand-authored exceptions to what Eym's rules give (scripts/eym-overrides.mjs). Each is applied last, after the rules, and listed in every change report (npm run world). An override names what it sets (layer), where (a box of latitudes and longitudes, or a list of places; land only unless sea is true) and the value, and must say why (note). Layers: temperatureC and precipitationMm (set, or add / scale) act before the biome is chosen, so the biome, soil and resources follow; biome, soil and resource set the outcome itself.",
+  "overrides": []
+}

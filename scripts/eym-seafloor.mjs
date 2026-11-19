@@ -5,11 +5,12 @@
 // Pure functions: no files are read here.
 
 import { greatCircleKm } from "./eym-surface.mjs";
+import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
 
 /** Shelf width (km) by the kind of margin: narrow where sea floor goes down or continents collide, wide on rifted coasts. */
-export const SHELF_KM = Object.freeze({ active: 50, passive: 220 });
+export const SHELF_KM = WORLD_INPUTS.seaFloor.shelfKm;
 /** The continental slope's width (km) beyond the shelf, and the stretch over which the abyss goes on deepening. */
-export const SLOPE_KM = 260, ABYSS_KM = 1500;
+export const SLOPE_KM = WORLD_INPUTS.seaFloor.slopeKm, ABYSS_KM = WORLD_INPUTS.seaFloor.abyssKm;
 
 /** A coast's margin from its distances (km) to the nearest trench and collision. */
 export const marginOf = (trenchKm, collideKm) => (trenchKm <= 500 || collideKm <= 400 ? "active" : "passive");

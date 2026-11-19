@@ -21,6 +21,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { compareWorlds, loadWorld, refReader, summarizeWorld, treeReader } from "./world-snapshot.mjs";
 import { managedPinsOf, readPins, worldChecks } from "./world-checks.mjs";
 import { BIOME_COLOURS, worldPictures } from "./world-maps.mjs";
+import { describeOverrides } from "../scripts/eym-overrides.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 
@@ -72,7 +73,7 @@ export async function reportWorld({ base = "HEAD", out = "reports/world/latest",
   const pictures = before && after && !comparison.same ? worldPictures(before, after) : [];
   const dir = `${root}${out.replace(/\/$/, "")}`; rmSync(dir, { recursive: true, force: true }); mkdirSync(dir, { recursive: true });
   for (const p of pictures) writeFileSync(`${dir}/${p.name}`, p.png);
-  writeFileSync(`${dir}/report.md`, reportMarkdown({ base, comparison, checks, pinsMoved, pictures }));
+  writeFileSync(`${dir}/report.md`, reportMarkdown({ base, comparison, checks, pinsMoved, pictures, overrides: describeOverrides(now.overrides) }));
   const failed = checks.filter((c) => !c.ok && c.level === "must"), ok = failed.length === 0 && comparison.errors.length === 0;
   log(`Report: ${out}/report.md (${pictures.length} picture${pictures.length === 1 ? "" : "s"})`);
   log(ok ? (comparison.same ? "The world is unchanged." : `The world changed; ${comparison.flags.length} to look at${pinsMoved.length ? `; ${pinsMoved.length} managed pin${pinsMoved.length === 1 ? "" : "s"} moved` : ""}.`) : `BROKEN: ${[...comparison.errors, ...failed.map((c) => c.rule)].join("; ")}`);

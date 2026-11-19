@@ -4,6 +4,7 @@
 // the same rings, relief and land mask.
 
 import { createRng } from "./planet-geography.mjs";
+import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
 
 export const EYM_SURFACE_MODEL = "eym-surface-v1";
 export const EYM_RADIUS_KM = 6371;
@@ -11,29 +12,15 @@ const DEG = Math.PI / 180;
 const CAREN_AREA_KM2 = 590_000 * 2.589988110336;
 
 /**
- * Where everything goes. Caren straddles the equator (its centroid sits on
- * it). Garyk lies slightly north of the equator, three weeks by steamer from
- * Caren: its south-east port is that far from Caren's north-west port
- * (Pouk), which puts it west-north-west of Caren;
- * the largest continent lies east of Caren; two smaller, colder ones lie far
- * to the north and south. The seeded shapes come from `seed`.
+ * Where everything goes: the layout of scripts/eym-world-inputs.mjs (the dials), with each seeded continent's
+ * area worked out from its multiple of Caren's. Caren straddles the equator (its centroid sits on it). Garyk lies
+ * slightly north of the equator, three weeks by steamer from Caren: its south-east port is that far from Caren's
+ * north-west port (Pouk), which puts it west-north-west of Caren; the largest continent lies east of Caren; two
+ * smaller, colder ones lie far to the north and south. The seeded shapes come from `seed`.
  */
 export const EYM_LAYOUT = Object.freeze({
-  seed: "eym-surface|v1",
-  caren: { center: [0, 0] },
-  // 21 days at an average 9 knots, sailing 8% further than the great circle.
-  garyk: { centerLat: 15, steamer: { days: 21, knots: 9, routeFactor: 1.08 }, carenPortPx: [85, 421], garykPortPx: [1318, 828] },
-  seeded: [
-    { id: "eastern", name: "Gaffa", areaKm2: 1.6 * CAREN_AREA_KM2, center: [5, 161], elongation: 1.5, orientationDeg: 20, ridges: [4300, 3100], offshoreIslands: 12 },
-    { id: "northern", name: "Khohalis", areaKm2: 0.65 * CAREN_AREA_KM2, center: [52, 138], elongation: 1.8, orientationDeg: 70, ridges: [2900], offshoreIslands: 9 },
-    { id: "southern", name: "Demani", areaKm2: 0.55 * CAREN_AREA_KM2, center: [-50, 166], elongation: 1.6, orientationDeg: 115, ridges: [3300], offshoreIslands: 8 },
-  ],
-  // The archipelagos' centres are fixed (they were placed in eym-surface-v1 by 18 draws against the old seeded
-  // coasts); the draws are still taken so each archipelago's islands come out exactly as before.
-  // (17 November 2026: when Gaffa moved to the far side of Eym, the chain at 8.8°N 152.4°E stood in its way and
-  // moved to 8.8°N 39°E, the open ocean Gaffa left; its islands keep their shape around the new centre.)
-  archipelagos: { count: 10, islands: [5, 14], spreadKm: 420, minCoastClearanceKm: 900, areaKm2: [60, 18_000], placementDraws: 36,
-    centers: [[-33.425, 154.562], [-15.44, -64.333], [-13.744, 60.808], [36.419, 115.164], [12.415, 95.444], [8.836, 39], [-21.136, -115.839], [20.432, -131.434], [-20.699, -163.072], [-16.488, 19.933]] },
+  ...WORLD_INPUTS.layout,
+  seeded: WORLD_INPUTS.layout.seeded.map(({ id, name, areaCarens, ...rest }) => ({ id, name, areaKm2: areaCarens * CAREN_AREA_KM2, ...rest })),
 });
 
 // ---------------------------------------------------------------- geometry

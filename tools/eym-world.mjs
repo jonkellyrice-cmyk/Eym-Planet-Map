@@ -24,6 +24,13 @@ function climateInput() {
   const text = readFileSync(url, "utf8"); return { text, data: JSON.parse(text) };
 }
 
+/** The hand-authored exceptions (data/eym/overrides.json), as text and parsed; its text counts toward the fingerprint only when it holds any. */
+function overridesInput() {
+  const url = new URL("data/eym/overrides.json", root);
+  if (!existsSync(url)) return { text: "", data: null };
+  const data = JSON.parse(readFileSync(url, "utf8")); return { text: data.overrides?.length ? JSON.stringify(data.overrides) : "", data };
+}
+
 export const isEymRow = (row) => row?.geography_model_version === EYM_SURFACE_MODEL;
 
 export function loadEymWorld(row) {
@@ -34,11 +41,11 @@ export function loadEymWorld(row) {
     caren: JSON.parse(readFileSync(new URL("data/eym/caren-labels.json", root), "utf8")),
     garyk: JSON.parse(readFileSync(new URL("data/eym/garyk-markers.json", root), "utf8")),
   };
-  const tectonics = tectonicsInput(), climate = climateInput();
-  const fingerprint = eymInputFingerprint(tracedText + JSON.stringify(labels) + tectonics.text + climate.text, EYM_LAYOUT);
+  const tectonics = tectonicsInput(), climate = climateInput(), overrides = overridesInput();
+  const fingerprint = eymInputFingerprint(tracedText + JSON.stringify(labels) + tectonics.text + climate.text + overrides.text, EYM_LAYOUT);
   if (row.geography_input_fingerprint !== fingerprint) throw new Error(`Eym's surface inputs changed: set geography_input_fingerprint for ${row.object} to ${fingerprint} in docs/system-orbital-distances.csv`);
   const surface = buildEymSurface(traced, EYM_LAYOUT, tectonics.data);
-  const world = { ...buildEymGeography({ ...surface, traced, labels, row, fingerprint, tectonics: tectonics.data, climate: climate.data }), surface: surface.surface, fingerprint };
+  const world = { ...buildEymGeography({ ...surface, traced, labels, row, fingerprint, tectonics: tectonics.data, climate: climate.data, overrides: overrides.data }), surface: surface.surface, fingerprint };
   cached = { row, world };
   return world;
 }
@@ -46,5 +53,5 @@ export function loadEymWorld(row) {
 export function eymFingerprintFromRepo() {
   const tracedText = readFileSync(new URL("data/eym/traced-continents.json", root), "utf8");
   const labels = { caren: JSON.parse(readFileSync(new URL("data/eym/caren-labels.json", root), "utf8")), garyk: JSON.parse(readFileSync(new URL("data/eym/garyk-markers.json", root), "utf8")) };
-  return eymInputFingerprint(tracedText + JSON.stringify(labels) + tectonicsInput().text + climateInput().text, EYM_LAYOUT);
+  return eymInputFingerprint(tracedText + JSON.stringify(labels) + tectonicsInput().text + climateInput().text + overridesInput().text, EYM_LAYOUT);
 }

@@ -11,16 +11,17 @@ import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { buildEymSurface, EYM_LAYOUT, fromLocal, toLocal, ringAreaKm2, greatCircleKm } from "../scripts/eym-surface.mjs";
 import { createRng } from "../scripts/planet-geography.mjs";
+import { WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 import { CAREN_GEOLOGY, EYM_TECTONICS_MODEL, arcKm, classifyBoundary, latLon, layoutFirstLand, makeNoise, plateAt, plateVelocity, presentCrust, rotate, rotationBetween, vec } from "../scripts/eym-tectonics.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/tectonics.json", root);
 /** What the tectonic history is made from: this tool, the model, the surface and the traced continents. */
-export const TECTONIC_SOURCES = ["tools/generate-eym-tectonics.mjs", "scripts/eym-tectonics.mjs", "scripts/eym-surface.mjs", "scripts/planet-geography.mjs", "data/eym/traced-continents.json"];
+export const TECTONIC_SOURCES = ["tools/generate-eym-tectonics.mjs", "scripts/eym-tectonics.mjs", "scripts/eym-surface.mjs", "scripts/eym-world-inputs.mjs", "scripts/planet-geography.mjs", "data/eym/traced-continents.json"];
 export const tectonicSourcesSha256 = () => { const h = createHash("sha256"); for (const path of TECTONIC_SOURCES) h.update(readFileSync(new URL(path, root))); return h.digest("hex"); };
 export const TECTONIC_SEEDS = Array.from({ length: 40 }, (_, i) => `eym-tectonics|${String(i + 1).padStart(2, "0")}`);
-export const TARGET_TOLERANCE = { areaFraction: 0.1, centerDeg: 3 };
+export const TARGET_TOLERANCE = WORLD_INPUTS.plates.targetTolerance;
 /** Eym stays 98.6% ocean: the fit keeps it between these. */
-export const OCEAN_FRACTION = [0.9855, 0.9865];
+export const OCEAN_FRACTION = WORLD_INPUTS.plates.oceanFraction;
 const DEG = Math.PI / 180, MYR = 210, CELL_KM = 8;
 const r1 = (v) => Math.round(v * 10) / 10, r3 = (v) => Math.round(v * 1000) / 1000;
 
@@ -359,7 +360,7 @@ export function buildTectonics({ seeds = TECTONIC_SEEDS, inputs = tectonicInputs
 // What drives a plate: the pull of sea floor sinking at its edges. A plate with a slab along at least a tenth of its
 // edge moves at 5-10 cm a year; one without, at 1-3 (Forsyth and Uyeda's pattern on Earth). Caren's plate is the gods'
 // (exempt); Garyk's is kept at about 1 cm a year, the rate its fitted history gives it.
-export const SLAB_SHARE = 0.1, SLAB_SPEED_MM = [50, 100], FREE_SPEED_MM = [10, 30], SPEED_EXEMPT = Object.freeze(["caren", "garyk"]);
+export const SLAB_SHARE = WORLD_INPUTS.plates.slabShare, SLAB_SPEED_MM = WORLD_INPUTS.plates.slabSpeedMmYr, FREE_SPEED_MM = WORLD_INPUTS.plates.freeSpeedMmYr, SPEED_EXEMPT = WORLD_INPUTS.plates.speedExempt;
 
 /** Each plate's speed (mm a year, root mean square over its area) and the share of its edge where its own sea floor sinks, on a 1° grid. */
 export function plateDrivers(plates, plateOf) {
