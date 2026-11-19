@@ -14,11 +14,12 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { LATTICE_DEG, globeNoise, latticeNode, localContext } from "../scripts/eym-local-detail.mjs";
+import { bboxWrap } from "../scripts/geo-wrap.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartography/abydos/eventide-drainage.json", root);
 export const DRAINAGE_MODEL = "eym-drainage-v1";
 /** What the drainage is made from: this tool, the local detail's surface, and the cartography it reads. */
-export const DRAINAGE_SOURCES = ["tools/generate-eym-drainage.mjs", "scripts/eym-local-detail.mjs", "data/planet-cartography/abydos/eventide.json"];
+export const DRAINAGE_SOURCES = ["tools/generate-eym-drainage.mjs", "scripts/eym-local-detail.mjs", "scripts/geo-wrap.mjs", "data/planet-cartography/abydos/eventide.json"];
 export const drainageSourcesSha256 = () => { const h = createHash("sha256"); for (const p of DRAINAGE_SOURCES) h.update(readFileSync(new URL(p, root))); return h.digest("hex"); };
 /** The smallest catchment kept (km²): a stream big enough to have cut a valley worth drawing at 300 m. */
 export const MIN_AREA_KM2 = 800;
@@ -35,8 +36,9 @@ class MinHeap {
 
 /** The channels of one land mass (its outline's bounding box, with a margin of sea). */
 function drainLand(ctx, outline, nearRiver) {
-  let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
-  for (const [lat, lon] of outline) { minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat); minLon = Math.min(minLon, lon); maxLon = Math.max(maxLon, lon); }
+  // Its box, the longitudes as the shortest arc that holds it (scripts/geo-wrap.mjs): west to east, running on past
+  // 180° for a land mass that crosses the map's seam.
+  const { minLat, maxLat, lonExtent } = bboxWrap(outline), minLon = lonExtent.westLon, maxLon = lonExtent.westLon <= lonExtent.eastLon ? lonExtent.eastLon : lonExtent.eastLon + 360;
   const i0 = Math.floor((minLat - 0.1) / LATTICE_DEG), i1 = Math.ceil((maxLat + 0.1) / LATTICE_DEG), j0 = Math.floor((minLon - 0.1) / LATTICE_DEG), j1 = Math.ceil((maxLon + 0.1) / LATTICE_DEG);
   const rows = i1 - i0 + 1, cols = j1 - j0 + 1, n = rows * cols;
   const z = new Float64Array(n), land = new Uint8Array(n), river = new Uint8Array(n);

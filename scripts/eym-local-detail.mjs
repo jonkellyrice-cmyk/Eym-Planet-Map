@@ -10,6 +10,7 @@
 // outrank all of this.
 
 import { fromLocal, greatCircleKm, toLocal } from "./eym-surface.mjs";
+import { bboxWrap, lonInExtent } from "./geo-wrap.mjs";
 import { riverCourses } from "./eym-river-courses.mjs";
 import { annualMeanTemperatureC, environmentField, zonalPrecipitationMm } from "./eym-seasons.mjs";
 import { blendedShoreAt, cliffLiftM, landformContext, nearestRiver, valleyAt, windWorkAt } from "./eym-landforms.mjs";
@@ -54,9 +55,9 @@ const contextCache = new WeakMap();
 
 function ringIndex(rings, extra = () => ({})) {
   return rings.map((ring) => {
-    let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
-    for (const [lat, lon] of ring) { minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat); minLon = Math.min(minLon, lon); maxLon = Math.max(maxLon, lon); }
-    return { ring, minLat, maxLat, minLon, maxLon, ...extra(ring) };
+    // Its box, with the longitudes as the shortest arc that holds it (scripts/geo-wrap.mjs): right for a ring that crosses ±180° too.
+    const { minLat, maxLat, lonExtent: lon } = bboxWrap(ring);
+    return { ring, minLat, maxLat, lon, ...extra(ring) };
   });
 }
 function pointInRing(lat, lon, ring) {
@@ -67,7 +68,7 @@ function pointInRing(lat, lon, ring) {
   }
   return inside;
 }
-const insideAny = (index, lat, lon) => { let inside = false; for (const r of index) if (lat >= r.minLat && lat <= r.maxLat && lon >= r.minLon && lon <= r.maxLon && pointInRing(lat, lon, r.ring)) inside = !inside; return inside; };
+const insideAny = (index, lat, lon) => { let inside = false; for (const r of index) if (lat >= r.minLat && lat <= r.maxLat && lonInExtent(lon, r.lon) && pointInRing(lat, lon, r.ring)) inside = !inside; return inside; };
 
 /** Everything the generator reads from the accepted cartography, indexed once per asset. */
 export function localContext(asset) {
@@ -255,7 +256,7 @@ function latticePath(ctx, a, b) {
 function fillRings(index, center, n, half, res, reachKm) {
   const out = new Uint8Array(n * n), edges = [];
   for (const r of index) {
-    if (greatCircleKm([(r.minLat + r.maxLat) / 2, (r.minLon + r.maxLon) / 2], center) > reachKm + 111.2 * Math.max(r.maxLat - r.minLat, (r.maxLon - r.minLon) * Math.cos(center[0] * DEG)) / 2 + 5) continue;
+    if (greatCircleKm([(r.minLat + r.maxLat) / 2, r.lon.centerLon], center) > reachKm + 111.2 * Math.max(r.maxLat - r.minLat, r.lon.spanDeg * Math.cos(center[0] * DEG)) / 2 + 5) continue;
     const pts = r.ring.map(([lat, lon]) => toLocal(center, lat, lon));
     for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) edges.push([pts[j], pts[i]]);
   }

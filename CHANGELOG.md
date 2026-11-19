@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+Land-growth scaling fixes (owner, 19 November 2026), Fix 0: one utility for the antimeridian and the poles. No change to any map, tile or data value.
+
+- `scripts/geo-wrap.mjs`: `normLon`, `lonOffset`, `unwrapRing`, `ringWinding` (a ring round a pole is known for one), `lonExtent` (the shortest arc of longitude that holds a ring), `bboxWrap`, `lonInExtent`, `splitRingAtAntimeridian` (rings cut at ±180° for flat grids, a ring round a pole closed along the pole's edge of the map). Pure, with no imports. For a ring away from ±180° the results are exactly what the least and greatest longitudes gave.
+- Replaced with it: the local detail's ring index, its land test's first filter and the local tile's reach filter (`scripts/eym-local-detail.mjs`); the Region frames' centres (`scripts/eym-region-layer.mjs`); the drainage tool's box (`tools/generate-eym-drainage.mjs`). Not yet replaced: the plate fit's own box (`tools/generate-eym-tectonics.mjs`), left for Fix 4, which already makes the plate fit check itself again.
+- Proof that nothing moved: the drainage data is identical (only its stamp of sources moves); a sample of 92 Region tiles, 10 local tiles and 6 battle maps on Caren and Garyk hash the same before and after; the Region frames are the same. The Region fingerprint moves with the code, so the stored tiles are made again (the same bytes).
+- Recorded in `ROADMAP.md`: the eight fixes and their rules, the requirements F1 to F6 for later systems, the owner's expectation checks for the rebuild, and the decisions on the growth (composite Gaffa, leaned growth, clearances, three shown steps; the world's author approved the first outlines).
+- Tests: `tests/geo-wrap.test.mjs` (a small ring gives the old results exactly; a ring astride ±180° its true width; rings round each pole; cut pieces hold the same area and the same places, a coast with a bay on the seam included).
+
 - Canon change recorded (the world's author, 19 November 2026): Eym is to be about 80% water, by enlarging Gaffa, Khohalis and Demani with the least possible change to the rest of the world (`docs/eym-canon.md`, `ROADMAP.md`). Nothing is changed yet. First finding: Gaffa's plate is too small to hold it.
 
 ## 0.28.0 (2026-11-19)
