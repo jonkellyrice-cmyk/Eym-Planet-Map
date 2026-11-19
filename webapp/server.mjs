@@ -277,27 +277,50 @@ export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (p
         const superseded = [...new Set([...stored.pictures, ...stored.shapes])].filter(purgeableRegionFolder).sort();
         return send(res, 200, { shapesVersion: REGION_SHAPES_ID, picturesVersion: REGION_PIXELS_ID, frames, stored, superseded, purgeOn: purge });
       }
-      // Make and keep the next tiles of a frame that are not in the store yet, and refresh those that are stale (repainted
-      // from their kept shapes when only the painting changed, made again otherwise), for as long as this request may run.
+      // Make and keep the tiles of a frame that are not in the store yet, and refresh those that are stale (repainted
+      // from their kept shapes when only the painting changed, made again otherwise), for as long as this request may
+      // run. It looks at the tiles from `start` up to `end` (the frame's last by default), so several requests can
+      // work on separate ranges of one frame at once: fills are not queued behind one another. Within a request the
+      // making of the next tile overlaps the uploads of the last (`inflight` of them at most), and the table is
+      // written once for the whole request. The report's `timing` says where the time went. With force=1 the tiles
+      // already current are made and stored again all the same (the same bytes under the same names): a way to time
+      // a full refresh, and to check that it stores what is stored already.
       if (req.method === "GET" && path === "/api/region/fill") {
         if (!store) return send(res, 503, { error: "no store is set up (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)" });
         const all = regionFramesOnce(), frame = all.find((f) => f.id === url.searchParams.get("frame")); if (!frame) return send(res, 404, { error: "no such frame" });
-        const { tx0, tx1, ty0, ty1 } = frame.tiles, width = tx1 - tx0 + 1, total = width * (ty1 - ty0 + 1), start = Math.max(0, Number(url.searchParams.get("start") ?? 0) | 0), count = Math.min(400, Math.max(1, Number(url.searchParams.get("count") ?? 60) | 0)), budgetMs = Math.min(50000, Math.max(1000, Number(url.searchParams.get("ms") ?? 40000) | 0));
-        const report = await (queue = queue.then(async () => {
-          const began = Date.now(), pixels = await store.versions("region", "pixels", frame.store), shapes = await store.versions("region", "shapes", frame.store);
-          const out = { frame: frame.id, version: REGION_PIXELS_ID, total, start, next: start, kept: 0, repainted: 0, remade: 0, already: 0, sea: 0, outside: 0, errors: [] };
-          for (let k = start; k < total && out.kept + out.repainted + out.remade < count && Date.now() - began < budgetMs; k += 1) {
-            const tx = tx0 + (k % width), ty = ty0 + Math.floor(k / width), key = `${tx},${ty}`, was = pixels.get(key); out.next = k + 1;
-            if (!regionFrameHasTile(frame, tx, ty)) { out.outside += 1; continue; }
-            if (was === REGION_PIXELS_ID) { out.already += 1; continue; }
-            // Stale, but its shapes are current: only the painting changed, so paint it again from the kept shapes.
-            if (was && shapes.get(key) === REGION_SHAPES_ID) { try { if (await repaintRegionTile(store, frame, tx, ty)) { out.repainted += 1; continue; } } catch (error) { out.errors.push(`${key}: ${error.message}`); if (out.errors.length >= 3) break; continue; } }
-            const made = await regionTilePicture(data, all, store, frame.id, tx, ty, "pixels", { read: false }); // the list above says it is not kept as it is now
-            if (made.sea) out.sea += 1; else if (made.source === "made and kept" || made.source === "store") out[was ? "remade" : "kept"] += 1; else { out.errors.push(`${key}: ${made.error ?? "not kept"}`); if (out.errors.length >= 3) break; }
-          }
-          return { ...out, done: out.next >= total, ms: Date.now() - began };
-        }));
-        return send(res, 200, report);
+        const int = (name, fallback) => { const v = Number(url.searchParams.get(name) ?? fallback); return Number.isFinite(v) ? Math.trunc(v) : fallback; };
+        const { tx0, tx1, ty0, ty1 } = frame.tiles, width = tx1 - tx0 + 1, total = width * (ty1 - ty0 + 1), start = Math.max(0, int("start", 0)), end = Math.min(total, Math.max(start, int("end", total))), count = Math.min(400, Math.max(1, int("count", 60))), budgetMs = Math.min(50000, Math.max(1000, int("ms", 40000))), inflight = Math.min(16, Math.max(1, int("inflight", 12))), force = url.searchParams.get("force") === "1";
+        const began = Date.now(), timing = { listMs: 0, computeMs: 0, firstTileMs: 0, pictureUploadMs: 0, shapesUploadMs: 0, tableMs: 0, tiles: 0, uploads: 0 };
+        const out = { frame: frame.id, version: REGION_PIXELS_ID, total, start, end, next: start, kept: 0, repainted: 0, remade: 0, already: 0, sea: 0, outside: 0, errors: [] };
+        const pixels = await store.versions("region", "pixels", frame.store), shapes = await store.versions("region", "shapes", frame.store); timing.listMs = Date.now() - began;
+        const pending = new Set(), rows = [], done = []; let started = 0;
+        for (let k = start; k < end && started < count && Date.now() - began < budgetMs && out.errors.length < 3; k += 1) {
+          const tx = tx0 + (k % width), ty = ty0 + Math.floor(k / width), key = `${tx},${ty}`, was = pixels.get(key); out.next = k + 1;
+          if (!regionFrameHasTile(frame, tx, ty)) { out.outside += 1; continue; }
+          if (was === REGION_PIXELS_ID && !force) { out.already += 1; continue; }
+          // Stale, but its shapes are current: only the painting changed, so paint it again from the kept shapes.
+          if (was && was !== REGION_PIXELS_ID && shapes.get(key) === REGION_SHAPES_ID) { try { if (await repaintRegionTile(store, frame, tx, ty)) { out.repainted += 1; started += 1; continue; } } catch (error) { out.errors.push(`${key}: ${error.message}`); continue; } }
+          // Make it (the list above says it is not kept as it is now), then send it on its way while the next is made.
+          const t0 = Date.now(), tile = buildRegionTile(data, frame, tx, ty); if (tile.sea) { timing.computeMs += Date.now() - t0; out.sea += 1; continue; }
+          const png = encodePng({ width: tile.cells, height: tile.cells, data: renderRegionTile(tile) }), file = regionShapesFile(tile), ms = Date.now() - t0;
+          timing.computeMs += ms; timing.tiles += 1; if (timing.tiles === 1) timing.firstTileMs = ms; started += 1;
+          const picturePath = regionTilePath(frame.id, "pixels", tx, ty), shapesPath = regionShapesPath(frame.id, tx, ty);
+          const upload = (async () => {
+            const a = Date.now(); await store.write(store.buckets.tiles, picturePath, png, "image/png"); const b = Date.now(); await store.write(store.buckets.shapes, shapesPath, file, "application/gzip");
+            timing.pictureUploadMs += b - a; timing.shapesUploadMs += Date.now() - b; timing.uploads += 2;
+            rows.push({ layer: "region", kind: "pixels", z: frame.store, frame: frame.id, x: tx, y: ty, rules_version: REGION_PIXELS_ID, bucket: store.buckets.tiles, path: picturePath, bytes: png.length, sha256: sha256(png), is_sea: false },
+              { layer: "region", kind: "shapes", z: frame.store, frame: frame.id, x: tx, y: ty, rules_version: REGION_SHAPES_ID, bucket: store.buckets.shapes, path: shapesPath, bytes: file.length, sha256: sha256(file), is_sea: false });
+            done.push(was ? "remade" : "kept");
+          })().catch((error) => { out.errors.push(`${key}: ${error.message}`); });
+          pending.add(upload); upload.finally(() => pending.delete(upload));
+          // Let the uploads move (the making above does not yield), and wait for one to finish when enough are in flight.
+          if (pending.size >= inflight) await Promise.race(pending); else await new Promise((resolve) => setImmediate(resolve));
+        }
+        await Promise.all(pending);
+        // One note in the table for the whole request. A tile counts as kept only once it is noted: if this fails,
+        // the next request finds the tiles not noted and makes them again.
+        if (rows.length) { const t = Date.now(); try { await store.recordMany(rows); for (const what of done) out[what] += 1; } catch (error) { out.errors.push(`table: ${error.message}`); } timing.tableMs = Date.now() - t; }
+        return send(res, 200, { ...out, done: out.next >= end && !out.errors.length, ms: Date.now() - began, timing });
       }
       // TEMPORARY (0.25.2), to be removed once the layers' models settle: see webapp/README.md, "Purging old Region
       // tiles". Deletes the stored files of an old Region version (an older model, or this one made from other code

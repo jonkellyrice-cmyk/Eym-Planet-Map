@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+Performance of the Region tile refresh, part 1 (owner, 19 November 2026): the same tiles, byte for byte, made several at once. The map server and the refresh tool only; the module is unchanged.
+
+- `/api/region/fill` no longer waits behind other requests, and takes an `end`, so several requests work on separate ranges of one frame at once. Within a request the making of the next tile overlaps the uploads of the last (`inflight`, 12 unless told otherwise, 16 at most).
+- The table is written once for each request (one upsert of all its tiles' rows) instead of twice for each tile. A tile counts as kept only once it is noted.
+- Each fill reports where its time went: listing what is stored, making tiles, the first tile (the warm-up), picture uploads, shapes uploads, table writes.
+- `npm run tiles:refresh` cuts each frame into ranges and runs `--concurrency` requests at once (8 unless told otherwise), tries a refused request again after a growing wait, and ends with an account of the run. `--force` makes and stores again the tiles already current, for timing.
+- Tests: tiles filled by three requests at once, and by one request, are byte for byte the tiles made one at a time (pictures, shapes and table rows); a request writes the table once; the tool's ranges cover every tile once, several at a time, and a refused request is tried again. The tests' stand-in for the store now accepts an upsert of several rows (it took one row before).
+
 ## 0.27.0 (2026-11-19)
 
 Part 1 of the owner's consolidated addenda, item 2 (second half): the shelf seas of the mapped continents. Built into the world's propagation chain from the start (owner, 19 November 2026).
