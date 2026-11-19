@@ -104,14 +104,74 @@ The history engine starts from this.
   city and the border lie: for the world's author.*
 - Garyk canon belongs to the current campaign and stays out of the repository.
 
+## Ages of Eym and its life (from the world's author, 19 November 2026)
+
+- **Eym formed about 3.5 billion years ago** (Earth: 4.5). The system's age in `docs/system-orbital-distances.csv`
+  (`system_age_gyr_est`) is 3.5 for Mitkear, Eym and the three other rocky planets (it was 5.8; nothing in the
+  system is older than its star).
+- **Life began about 2.5 billion years ago.**
+- **Forests and complex life** (the plants and animals the gods placed) have existed long enough for coal and oil to
+  have formed as on Earth: they are treated as present for the last several hundred million years.
+- **Mitkear's brightness stays exactly 1.00 solar luminosity** (the climate is calibrated to it). A Sun-like star 3.5
+  billion years old would be about 9% dimmer than today's Sun, so Mitkear's mass is recorded as about **1.02 solar
+  masses**: a star that much heavier is about as bright at 3.5 billion years as the Sun is now. Luminosity, orbits,
+  the 350-day year and the climate are unchanged.
+- **Resources that depend on deep time are no longer blocked** (applied in the Resources step):
+  - banded iron formations in old continental cores (Garyk's old core; the old inland belts of Gaffa, Khohalis and
+    Demani), roughly 1.5 to 2.5 billion years old, from the oxygenation of the oceans by early life;
+  - coal in swamp basins of the last several hundred million years, placed with the plate history (which spans the
+    last 420 million years);
+  - oil and gas in suitable marine sedimentary basins of the same era;
+  - Caren's resources follow its own rulebook (below), not these rules.
+
+## Canon update of 19 November 2026 (from the world's author)
+
+Applied in the Resources, climate and Ecology steps.
+
+*Caren's ores and minerals: European-style deposits.* Caren is god-shaped, so Europe's pattern of deposits is its
+rulebook instead of tectonic rules, placed by analogous settings on Caren's own relief:
+
+- varied and moderate: many small-to-medium deposits widely spread, rather than a few giant ones; gold modest;
+- old granite highlands and ranges: tin and tungsten (the Cornwall pattern); silver, lead, zinc, copper and cobalt in
+  veins (the Harz and Erzgebirge "ore mountains" pattern);
+- a coal belt along the foothills of old ranges (the Wales, Ruhr and Silesia pattern);
+- iron ore in sedimentary basins (the Lorraine pattern), and some rich iron in old hard rock (the Kiruna pattern);
+- salt from ancient evaporite basins (the Hallstatt, Wieliczka and Cheshire patterns), plus Caren's enclosed desert
+  basin;
+- copper and pyrite belts (the Rio Tinto pattern);
+- building and fine stone (marble, slate, limestone), and occasional specialities (mercury, for one).
+
+The resulting provinces are reported and shown to the owner before they are finalised.
+
+*Plants and animals: by habitat, confirmed.* Each Earth species lives wherever its habitat exists on Eym, the wild
+ancestors of crops and livestock included. This is canon, no longer a provisional default.
+
+*Caren's dividing wall was the Sondel Range.* It collapsed at the end of the previous campaign, about 50 years before
+the campaign's present (*the exact date: to confirm with the owner*); a central mountain remains. The fallen parts
+are drawn as recent ruin (rubble, landslides, dammed lakes, new passes), never as tectonic mountains. *Before the
+source map's Sondel Range is used as present-day terrain, ask the owner whether the map shows the range before or
+after the fall.*
+
+*Caren's smaller deserts, the basin's drainage, canon eruptions and earthquakes:* nothing is fixed beyond what the
+source map shows. They are derived from the map and the physics; the model's own dated eruptions and earthquakes
+stand, with no canon fixed points.
+
+*Garyk:* the world's author is building Garyk with this tool. The generated physical geography (mountains, rivers,
+deserts, climate) is his working draft, not something to match against hidden canon. Peoples and history on Garyk
+stay GM-only, as recorded.
+
+*Supernatural places:* Eym has many (dead-magic and wild-magic zones, ley lines, places where other planes press
+close). Their details are to come from the owner. They are recorded as existing and given a placeholder layer;
+nothing is generated until the owner supplies them.
+
 ## Still the author's to decide (defaults until he answers)
 
-- *Life:* Earth's species plus Pathfinder's monsters, placed by the gods. Placement rule (by habitat, or by choice):
-  default by habitat, provisional.
 - *Peoples, gods and magic in the history engine:* Pathfinder defaults for every setting, including which magical
   effects are switched on, the gods' accord, the per-realm setting of who counts as people, and monster settings. The
   engine itself waits for his answers to the questions in `ROADMAP.md` (later programmes, 3.1).
-- *Caren:* the peace treaty's terms and signatories; where the orc city and its border with Dubos lie.
+- *Caren:* the peace treaty's terms and signatories; where the orc city and its border with Dubos lie; the exact date
+  the Sondel Range fell; whether the source map shows the range before or after the fall.
+- *Supernatural places:* which, where and what they do (owner to supply; nothing generated until then).
 - *Fire:* whether monsters start fires as well as lightning and people.
 - *Aquatic peoples* on shelves and reefs.
 - *Planar lenses:* the strengths of the resemblance and the specific places; seeded defaults until he decides. The
