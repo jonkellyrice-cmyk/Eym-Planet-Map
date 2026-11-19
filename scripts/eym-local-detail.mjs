@@ -10,7 +10,7 @@
 // outrank all of this.
 
 import { fromLocal, greatCircleKm, toLocal } from "./eym-surface.mjs";
-import { bboxWrap, lonInExtent } from "./geo-wrap.mjs";
+import { bboxWrap, lonInExtent, normLon, splitRingAtAntimeridian } from "./geo-wrap.mjs";
 import { riverCourses } from "./eym-river-courses.mjs";
 import { annualMeanTemperatureC, environmentField, zonalPrecipitationMm } from "./eym-seasons.mjs";
 import { blendedShoreAt, cliffLiftM, landformContext, nearestRiver, valleyAt, windWorkAt } from "./eym-landforms.mjs";
@@ -68,7 +68,70 @@ function pointInRing(lat, lon, ring) {
   }
   return inside;
 }
-const insideAny = (index, lat, lon) => { let inside = false; for (const r of index) if (lat >= r.minLat && lat <= r.maxLat && lonInExtent(lon, r.lon) && pointInRing(lat, lon, r.ring)) inside = !inside; return inside; };
+
+// ---------------------------------------------------------------- inside a set of rings, quickly
+
+// Whether a place lies inside a set of rings (even-odd: a ring inside a ring is a hole) is asked for every node and
+// square the generator makes, so it is answered from an index built once for each set:
+//   - each ring is cut where it crosses ±180° (scripts/geo-wrap.mjs), a ring round a pole closed along the pole's
+//     edge of the map, so every piece is a plain ring in latitude and longitude with a plain box;
+//   - a grid of quarter-degree cells says, for each cell, all outside, all inside, or on an edge (some ring's edge
+//     passes through it). A cell no edge touches is the same throughout: it is worked out once, at its centre, the
+//     first time it is asked about;
+//   - for a cell on an edge, only the edges that reach its quarter-degree row of latitude are tried (an edge can
+//     only count for a place whose latitude it spans).
+// The answers are those of trying every ring in turn (`insidePlain`), edge for edge the same arithmetic.
+const MASK_DEG = 0.25, MASK_COLS = 1440, MASK_ROWS = 720, UNKNOWN = 0, OUTSIDE = 1, INSIDE = 2, EDGE = 3;
+const maskRow = (lat) => Math.min(MASK_ROWS - 1, Math.max(0, Math.floor((lat + 90) / MASK_DEG))), maskCol = (lon) => Math.min(MASK_COLS - 1, Math.max(0, Math.floor((lon + 180) / MASK_DEG)));
+
+/** The pieces of an index's rings: each ring as it is, or cut at ±180° when it crosses (then each piece has its own box). */
+function ringPieces(index) {
+  const pieces = [];
+  for (const r of index) { const cut = splitRingAtAntimeridian(r.ring); if (cut.length === 1 && cut[0] === r.ring) pieces.push(r); else for (const ring of cut) { const { minLat, maxLat, lonExtent: lon } = bboxWrap(ring); pieces.push({ ring, minLat, maxLat, lon }); } }
+  return pieces;
+}
+/** Inside the rings, by trying every piece in turn (the reference the index must agree with). */
+function insidePlain(pieces, lat, lon) { let inside = false; for (const r of pieces) if (lat >= r.minLat && lat <= r.maxLat && lonInExtent(lon, r.lon) && pointInRing(lat, lon, r.ring)) inside = !inside; return inside; }
+
+function buildInsideIndex(index) {
+  const pieces = ringPieces(index), state = new Uint8Array(MASK_COLS * MASK_ROWS), rows = Array.from({ length: MASK_ROWS }, () => []);
+  pieces.forEach((piece, p) => {
+    const ring = piece.ring;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const ya = ring[i][0], xa = ring[i][1], yb = ring[j][0], xb = ring[j][1];
+      const r0 = maskRow(Math.min(ya, yb)), r1 = maskRow(Math.max(ya, yb)), c0 = maskCol(Math.min(xa, xb)), c1 = maskCol(Math.max(xa, xb));
+      for (let r = r0; r <= r1; r += 1) { rows[r].push(p, i); for (let c = c0; c <= c1; c += 1) state[r * MASK_COLS + c] = EDGE; }
+    }
+  });
+  return { pieces, state, rows: rows.map((list) => Int32Array.from(list)) };
+}
+
+const insideIndexes = new WeakMap();
+function insideAny(index, lat, lon) {
+  let ix = insideIndexes.get(index); if (!ix) insideIndexes.set(index, (ix = buildInsideIndex(index)));
+  if (!(lat >= -90 && lat <= 90)) return false;
+  if (lon < -180 || lon > 180) lon = normLon(lon); // a longitude given past the seam (a grid that runs on across it)
+  const row = maskRow(lat), cell = row * MASK_COLS + maskCol(lon), known = ix.state[cell];
+  if (known === OUTSIDE) return false;
+  if (known === INSIDE) return true;
+  if (known === UNKNOWN) { const inside = insidePlain(ix.pieces, (row + 0.5) * MASK_DEG - 90, (maskCol(lon) + 0.5) * MASK_DEG - 180); ix.state[cell] = inside ? INSIDE : OUTSIDE; return inside; }
+  // On an edge: the same crossing test as for a whole ring, over the edges that reach this row only.
+  const list = ix.rows[row], pieces = ix.pieces; let inside = false;
+  for (let k = 0; k < list.length; k += 2) {
+    const piece = pieces[list[k]]; if (!(lat >= piece.minLat && lat <= piece.maxLat && lonInExtent(lon, piece.lon))) continue;
+    const ring = piece.ring, i = list[k + 1], a = ring[i], b = ring[i === 0 ? ring.length - 1 : i - 1], ya = a[0], xa = a[1], yb = b[0], xb = b[1];
+    if ((ya > lat) !== (yb > lat) && lon < (xb - xa) * (lat - ya) / (yb - ya) + xa) inside = !inside;
+  }
+  return inside;
+}
+
+/** Whether a place is inside a coastline (land, lakes included): the indexed test every land question goes through. */
+export const insideCoast = (ctx, lat, lon) => insideAny(ctx.coasts, lat, lon);
+/** The same answer the long way, trying every coast in turn: the reference for tests and measurements. */
+export const insideCoastPlain = (ctx, lat, lon) => insidePlain(ctx.coastPieces ??= ringPieces(ctx.coasts), lat, lon);
+/** A set of rings ready to be asked about (`insideRings`), and the same question answered the long way: for tests, and for tools that have rings of their own. */
+export const ringSet = (rings) => ringIndex(rings);
+export const insideRings = (set, lat, lon) => insideAny(set, lat, lon);
 
 /** Everything the generator reads from the accepted cartography, indexed once per asset. */
 export function localContext(asset) {
