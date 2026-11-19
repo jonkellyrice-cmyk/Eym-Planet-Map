@@ -74,7 +74,7 @@ The module id is `eym-planet-map`, so it installs alongside the original Orphane
   - **Garyk**, four fifths of Caren's size, lies slightly north of the equator (centered 15°N, 79.8°W), west-north-west of Caren. From Caren's north-west port (Pouk) to Garyk's south-east port is three weeks by steamer: 7,780 km on the great circle, taken as 8,400 km sailed at an average 9 knots. It is traced from its map with its 51 settlements, grouped by realm colour (yellow, red, magenta, green, blue, orange) and not yet named.
   - **Gaffa** (a hard G), the largest (1.6× Caren), lies near the equator on the far side of Eym (centred 5°N, 161°E), twice as far from Caren as Garyk is: about 17,800 km. **Khohalis** in the north and **Demani** in the south (about 0.65× and 0.55× Caren) lie near it, at 52°N 138°E and 50°S 166°E, in taiga and tundra. These three are pieces of an old supercontinent (the First Land) that broke from Garyk's side and were carried by the plates to where they stand (`data/eym/tectonics.json`); ten island chains in the open ocean are seeded. Caren, set down whole by the gods, takes no part in the plates.
 
-  How to change it: the layout and seed are `EYM_LAYOUT` in `scripts/eym-surface.mjs`. The traced continents are `data/eym/traced-continents.json` (from `tools/trace-eym-continents.py` and the two source maps, which are not stored in the repository). Caren's labels and Garyk's markers are `data/eym/caren-labels.json` and `data/eym/garyk-markers.json`; most of Caren's settlement names were read from small text and are marked `"confidence": "low"`, so correct them there. After any change, run `npm run build`: it makes the tectonic history again if its sources changed (`tools/generate-eym-tectonics.mjs`), sets Eym's input fingerprint in its registry row, and regenerates the geography, cartography and atlas snapshot; it does nothing when nothing changed.
+  How to change it: the layout and seed are in `scripts/eym-world-inputs.mjs` (see "Changing Eym's world" below). The traced continents are `data/eym/traced-continents.json` (from `tools/trace-eym-continents.py` and the two source maps, which are not stored in the repository). Caren's labels and Garyk's markers are `data/eym/caren-labels.json` and `data/eym/garyk-markers.json`; most of Caren's settlement names were read from small text and are marked `"confidence": "low"`, so correct them there. After any change, run `npm run build`: it makes the tectonic history again if its sources changed (`tools/generate-eym-tectonics.mjs`), sets Eym's input fingerprint in its registry row, and regenerates the geography, cartography and atlas snapshot; it does nothing when nothing changed.
 - **Rock, soil, earthquakes and eruptions.** The bedrock follows the plates; soils grow from it and the climate; each rock says how it shapes the land, what stone it gives and what ores it holds (`scripts/eym-geology.mjs`). Earthquakes and eruptions are drawn by rule from the plate boundaries and volcanoes, the same whenever they are asked for, and can be looked up by place and dates with how strongly each was felt (`tremorsAt` in `scripts/eym-quakes.mjs`). The "Here and now" card shows them for the chosen place; map packets, battle maps and architecture prompts use the local rock.
 - **Time.** Eym's year is exactly 350 days of 24 hours × 60 minutes × 60 seconds. Because Eym's year is as long as Earth's, each Eym second is 1.0435 SI seconds; every day and hour value in the registry is in Eym units.
 - **Calendar.** Twelve months with Gregorian names, each exactly 28 days (4 weeks), then the 14-day **Year's End** holiday (month 13 in the clock's date inputs). Every month and every year begins on a Monday. The calendar follows the seasons: the March equinox falls at noon on 20 March every year. Years count from the new calendar; the campaign begins on **Sunday, 14 March, year 50**, at 08:00, and the clock starts there.
@@ -148,7 +148,13 @@ npm run moons:almanac -- 50
 
 ## Changing Eym's world
 
-Eym's world is made by rule from a few inputs (the continents' layout in `scripts/eym-surface.mjs`, the traced maps of Caren and Garyk, their labels) and everything else follows from them: the plates, the ocean, the coasts, heights, biomes and rivers, the drainage, the wind and the rivers' flow. To change the world, change an input and let the tools carry it through:
+Eym's world is made by rule from a few inputs and everything else follows from them: the plates, the ocean, the coasts, heights, biomes and rivers, the drainage, the wind and the rivers' flow. The inputs are:
+
+- the dials, all in `scripts/eym-world-inputs.mjs`: where the continents lie and how large they are (each seeded continent's `areaCarens` is its size as a multiple of Caren's), the plates' speed rules, the sea floor's shape, and the ocean's settings (how far the wind belts follow the Sun, how much the sea floor steers the currents, the strength of upwelling);
+- the drawings: the traced maps of Caren and Garyk (`data/eym/traced-continents.json`) and their labels;
+- the exceptions: `data/eym/overrides.json`, for places where a person judges the rules' result wrong for the setting. Each override says what it sets (temperature or rainfall, which the biome then follows; or the biome, soil or resource itself), where (a box or a list of places) and why. They are applied last and listed in every report.
+
+To change the world, change an input and let the tools carry it through:
 
 ```bash
 npm run world           # rebuild everything made from the inputs, check it, and report what changed since HEAD
@@ -171,8 +177,6 @@ npm run tiles:refresh -- --purge   # refill every frame on the map server, check
 ```
 
 (The purge works only while the deployment has `EYM_REGION_PURGE=on`; see `webapp/README.md`.)
-
-Still to come: one inputs file holding every dial, and an overrides file for hand-authored exceptions (listed in every report).
 
 ## Coordinate model
 

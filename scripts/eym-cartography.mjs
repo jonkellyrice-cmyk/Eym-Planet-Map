@@ -12,6 +12,7 @@ import { polygonize } from "./cartography-regions.mjs";
 import { EYM_LAYOUT, EYM_SURFACE_MODEL, fromLocal, greatCircleKm } from "./eym-surface.mjs";
 import { seaLevelTemperatureC, zonalPrecipitationMm } from "./eym-seasons.mjs";
 import { soilFromRock } from "./eym-geology.mjs";
+import { prepareOverrides } from "./eym-overrides.mjs";
 import { marginOf, seaFloorHeightM, seamountsOf, shoalOverSeamounts, tectonicDistances } from "./eym-seafloor.mjs";
 
 const DEG = Math.PI / 180;
@@ -221,7 +222,9 @@ function terrainDetail(frames) {
  * Build Eym's coarse and refined geography from its surface.
  * @param {object} input { surface, sampler, frames, traced, labels: { caren, garyk }, row, fingerprint }
  */
-export function buildEymGeography({ surface, sampler, frames, traced, labels, row, fingerprint, tectonics = null, climate = null }) {
+export function buildEymGeography({ surface, sampler, frames, traced, labels, row, fingerprint, tectonics = null, climate = null, overrides = null }) {
+  // Hand-authored exceptions (data/eym/overrides.json), applied after the rules: see scripts/eym-overrides.mjs.
+  const exceptions = prepareOverrides(overrides, EYM_CARTOGRAPHY_RESOLUTION_DEG);
   const res = EYM_CARTOGRAPHY_RESOLUTION_DEG, latCount = 180 / res, lonCount = 360 / res, sub = 4;
   const rng = createRng(`${row.geography_seed}|eym-ocean`);
   const ridgeNoise = Array.from({ length: 6 }, () => ({ a: rng() * 2 - 1, b: rng() * 2 - 1, c: rng() * Math.PI * 2, k: 2 + rng() * 3 }));
@@ -330,6 +333,7 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
     cell.riverAccumulation = Number((riverCells.get(cell.id) ?? 0).toFixed(2));
     cell.river = riverCells.has(cell.id) && !cell.ocean;
     cell.lake = false;
+    exceptions.climate(cell);
     cell.biome = cell.landCovered
       ? landBiome({ lat: cell.lat, temperatureC: cell.temperatureC, precipitationMm: cell.precipitationMm, forestShare: cell.forestShare, relief: cell.relief, origin: cell.origin })
       : cell.temperatureC < -1 ? "sea-ice" : cell.temperatureC > 23 ? "tropical-ocean" : "open-ocean";
@@ -338,6 +342,7 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
     // With the plates, soil grows from the bedrock and the climate (scripts/eym-geology.mjs).
     cell.soil = tect ? soilFromRock(cell) : soilFor(cell);
     cell.resource = resourceFor(cell);
+    exceptions.outcome(cell);
     const comfort = clamp(1 - Math.abs(cell.temperatureC - 18) / 32, 0, 1), moisture = clamp(cell.precipitationMm / 1000, 0.1, 1.15), terrain = clamp(1 - Math.max(0, cell.elevationM - 1200) / 5000, 0.1, 1);
     cell.suitability = cell.landCovered ? Number((comfort * moisture * terrain * (["volcanic-fertile", "alluvial-fertile", "temperate-loam"].includes(cell.soil) ? 1 : 0.55)).toFixed(3)) : 0;
   }

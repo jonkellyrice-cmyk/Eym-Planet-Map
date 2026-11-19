@@ -10,6 +10,7 @@
 
 import { readFileSync } from "node:fs";
 import { cellContinents, heights, sha256, summarizeWorld } from "./world-snapshot.mjs";
+import { overrideProblems } from "../scripts/eym-overrides.mjs";
 
 const PINS = new URL("world-pins.json", import.meta.url);
 export const readPins = () => JSON.parse(readFileSync(PINS, "utf8"));
@@ -27,6 +28,9 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
   const { asset, tectonics, climate } = world;
   if (!asset) { rule("asset", "Eventide has a cartography asset", false, "missing"); return out; }
   const summary = summarizeWorld(world), { latCount, lonCount } = asset.grid, n = latCount * lonCount, height = heights(asset), owner = cellContinents(asset), biome = summary.fields.biome;
+
+  // The hand-authored exceptions are sound (each says what, where and why).
+  if (world.overrides) { const problems = overrideProblems(world.overrides); rule("overrides", "every hand-authored override says what it sets, where and why", problems.length === 0, problems.join("; ")); }
 
   // The owner's maps.
   for (const [name, pin] of Object.entries(pins.fixed.coastSha256)) rule(`coast-${name.toLowerCase()}`, `${name}'s coastline is the owner's map, unchanged`, summary.continents[name]?.coastSha256 === pin, summary.continents[name] ? "" : "no such continent");
@@ -90,7 +94,9 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
     const fp = regionFingerprint(); if (world.regionFingerprint?.shapes !== fp.shapes || world.regionFingerprint?.paint !== fp.paint) stale.push("Region fingerprint");
     rule("up-to-date", "every derived file is up to date with what it is made from", stale.length === 0, stale.length ? `stale: ${stale.join(", ")} (run npm run world)` : "");
     const managed = managedPinsOf(world), moved = Object.keys(managed).filter((k) => pins.managed[k]?.value !== managed[k]);
-    rule("managed-pins", "the managed pins record the world as it is", moved.length === 0, moved.length ? `moved: ${moved.join(", ")} (accept with node tools/world.mjs --accept-pins)` : "");
+    // (A moved pin is a change waiting to be accepted, not a broken world: a warning here. The test that reads the
+    // pin, tests/cartography-acceptance.test.mjs, fails until it is accepted, so it cannot be released unnoticed.)
+    rule("managed-pins", "the managed pins record the world as it is", moved.length === 0, moved.length ? `moved: ${moved.join(", ")} (accept with node tools/world.mjs --accept-pins --note "…")` : "", "should");
   }
   return out;
 }

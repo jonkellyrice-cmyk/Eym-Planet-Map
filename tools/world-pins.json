@@ -8,8 +8,8 @@
   },
   "managed": {
     "registryCsvSha256": {
-      "value": "a4ccc5197439daa0b2a1c657a274e0541d2f26eedbbdcac45d3600a54f862bc3",
-      "note": "0.26.0: the sea floor in the ocean model (19 November 2026)"
+      "value": "af47c8da9361067b4cd5b57027baeccd453e0314b467d0aa68bf3a66953a953c",
+      "note": "0.26.2: the dials moved to scripts/eym-world-inputs.mjs (fingerprints only; the world is unchanged)"
     }
   }
 }

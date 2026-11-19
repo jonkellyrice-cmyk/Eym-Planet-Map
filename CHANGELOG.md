@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.26.2 (2026-11-19)
+
+One file for Eym's dials and one for hand-authored exceptions (owner, 19 November 2026). The world itself is unchanged: `npm run world` reports no change to any continent, river, name, plate or current; only the fingerprints move.
+
+- `scripts/eym-world-inputs.mjs`: every dial in one place, with what each means: the continents' layout (each seeded continent's size as a multiple of Caren's, its centre, shape and ranges; the archipelagos), the plate fit's tolerances and speed rules, the sea floor's shelf, slope and abyss, and the ocean's belt shift, steering and upwelling strengths. The modules that use them (`EYM_LAYOUT`, `SHELF_KM`, `STEERING`, …) keep their names and read their values from it. The file is among the sources the plate fit, the ocean climate and the stored tiles are fingerprinted from, so changing a dial makes the build redo what follows.
+- `data/eym/overrides.json` and `scripts/eym-overrides.mjs`: hand-authored exceptions, applied last by the cartography. An override sets temperature or rainfall over a box or a list of places (the biome, soil and resources then follow), or sets the biome, soil or resource itself; each must say why. None are in force yet. Every change report lists those in force, and a standing rule checks the file is sound.
+- The change report no longer calls a moved managed pin a broken world: it is a notice to accept (the test that reads the pin still fails until it is accepted).
+- A comment in the ocean generator that gave the wrong depths for the shelf break is corrected (0.26.0's code was right: 150 m to 3,300 m within 450 km of a coast).
+- Every stored Region tile is stale once (the tiles' fingerprint covers the new inputs file) and is made again.
+- Tests: new `tests/eym-world-inputs.test.mjs` (the dials are read from the one file and are among the fingerprinted sources; an unsound override is refused; an override changes the cells it names and nothing else, on plain cells and on the real world). The managed pin was recorded by the tool with its note; `tests/release-package.test.mjs` updated for 0.26.2.
+
 ## 0.26.1 (2026-11-19)
 
 Tools that carry a change to the world through everything made from it and report what moved (owner, 19 November 2026). The world itself is unchanged.

@@ -16,7 +16,7 @@ const ASSET = "data/planet-cartography/abydos/eventide";
 /** The files a world is read from (the registry CSV carries Eventide's input fingerprint). */
 export const WORLD_FILES = Object.freeze({
   tectonics: "data/eym/tectonics.json", climate: "data/eym/climate.json", asset: `${ASSET}.json`, geology: `${ASSET}-geology.json`, ocean: `${ASSET}-ocean.json`,
-  drainage: `${ASSET}-drainage.json`, wind: `${ASSET}-wind.json`, flow: `${ASSET}-flow.json`, regionFingerprint: "data/eym/region-fingerprint.json", registry: "docs/system-orbital-distances.csv",
+  drainage: `${ASSET}-drainage.json`, wind: `${ASSET}-wind.json`, flow: `${ASSET}-flow.json`, regionFingerprint: "data/eym/region-fingerprint.json", registry: "docs/system-orbital-distances.csv", overrides: "data/eym/overrides.json",
 });
 
 /** A reader of the working tree: path → text, or null where there is no such file. */
@@ -28,7 +28,7 @@ export const refReader = (ref, dir = repoRoot) => (path) => { try { return execF
 export function loadWorld(read) {
   const text = Object.fromEntries(Object.entries(WORLD_FILES).map(([key, path]) => [key, read(path)]));
   const json = (key) => (text[key] ? JSON.parse(text[key]) : null);
-  return { text, tectonics: json("tectonics"), climate: json("climate"), asset: json("asset"), geology: json("geology"), ocean: json("ocean"), drainage: json("drainage"), wind: json("wind"), flow: json("flow"), regionFingerprint: json("regionFingerprint"), registry: text.registry };
+  return { text, tectonics: json("tectonics"), climate: json("climate"), asset: json("asset"), geology: json("geology"), ocean: json("ocean"), drainage: json("drainage"), wind: json("wind"), flow: json("flow"), regionFingerprint: json("regionFingerprint"), registry: text.registry, overrides: json("overrides") };
 }
 
 // ---------------------------------------------------------------- decoding
@@ -128,6 +128,7 @@ export function summarizeWorld(world) {
     fields: { biome, soil, resource, height, owner, sst, u, v, up, climateRes: climate?.resolutionDeg ?? null, latCount, lonCount },
     volcanoesOnMap: geology?.geology?.volcanoes?.length ?? null, hasOceanFile: Boolean(ocean),
     regionFingerprint: world.regionFingerprint ? { shapes: world.regionFingerprint.shapes, paint: world.regionFingerprint.paint } : null,
+    overrides: (world.overrides?.overrides ?? []).map((o) => JSON.stringify(o)),
   };
 }
 
@@ -202,6 +203,9 @@ export function compareWorlds(before, after) {
     if (before.ocean.strongUpwellingCells !== after.ocean.strongUpwellingCells) sea.lines.push(`Cells of strong upwelling ${before.ocean.strongUpwellingCells} → ${after.ocean.strongUpwellingCells}.`);
     if (JSON.stringify(before.ocean.enso) !== JSON.stringify(after.ocean.enso)) { sea.lines.push(`The El Niño basin moved: ${JSON.stringify(before.ocean.enso)} → ${JSON.stringify(after.ocean.enso)}.`); flag(sea, "the El Niño basin moved"); }
   }
+
+  const authored = section("Hand-authored overrides");
+  { const d = listDiff(before.overrides ?? [], after.overrides ?? []), id = (text) => JSON.parse(text).id; if (d.added.length) authored.lines.push(`Added or changed: ${d.added.map(id).join(", ")}.`); if (d.removed.length) authored.lines.push(`Removed or changed: ${d.removed.map(id).join(", ")}.`); }
 
   const tiles = section("Stored map tiles");
   if (JSON.stringify(before.regionFingerprint) !== JSON.stringify(after.regionFingerprint)) tiles.lines.push(before.regionFingerprint?.shapes !== after.regionFingerprint?.shapes ? "The Region tiles' shapes fingerprint changed: every stored tile is made again after release." : "Only the Region tiles' painting changed: stored tiles are repainted after release.");
