@@ -63,6 +63,24 @@ export const WORLD_INPUTS = deepFreeze({
     slopeUpwelling: 0.6, seamountUpwelling: 0.8,
   },
 
+  /** The weather's large-scale circulation (scripts/eym-weather.mjs): the belts' seasonal shift, the jet streams and blocking. */
+  weather: {
+    // How far the wind and pressure belts follow the Sun at the equator, as a share of its declination (the rain
+    // belt's own share); the shift fades toward the poles (about 6° each way at 30°, 3° at 60°).
+    beltShift: 0.4,
+    // The polar-front jet: its mean latitude, and the slow waves it meanders in (how many round the world, how far
+    // each swings in degrees, how fast it drifts east in degrees of longitude a day). Modest: a world of ocean has
+    // stronger, straighter jets than Earth. The subtropical branch lies at `subtropicalLat` and hardly meanders.
+    jetLat: 47, subtropicalLat: 30,
+    jetWaves: [{ count: 3, swingDeg: 3.5, eastDegPerDay: 3 }, { count: 4, swingDeg: 2.5, eastDegPerDay: 6 }, { count: 6, swingDeg: 1.5, eastDegPerDay: 11 }],
+    // How closely each kind of system keeps to the jet's swings (1 = moves with it).
+    follow: { low: 1, high: 0.5 },
+    // Blocking: a meander that stalls. Chances are drawn every `blockSlotDays` for each hemisphere (about
+    // `blocksPerYear` a year); a block lasts `blockDays`, bends the jet `blockSwingDeg` poleward around a stationary
+    // high of `blockHpa`, and warms a summer or chills a winter under it by up to `blockTempC`.
+    blockSlotDays: 14, blocksPerYear: 4, blockDays: [7, 21], blockSwingDeg: 9, blockHpa: [12, 18], blockRadiusKm: [1500, 2000], blockTempC: 4,
+  },
+
   /** The shelf seas of the mapped continents (tools/generate-eym-coasts.mjs, scripts/eym-shelf-seas.mjs): tides in bays and storm surge. */
   shelfSeas: {
     // The continents whose coasts are surveyed, and how far apart (km) the survey's points lie along them.

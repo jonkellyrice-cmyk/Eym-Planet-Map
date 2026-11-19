@@ -1,6 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.28.0 (2026-11-19)
+
+The weather addendum (Part 1, item 7, the weather model; owner, 19 November 2026): the large-scale circulation moves. Caren's deserts and the Dubos label, the other parts of item 7, are left for later by the owner's decision. Also in this release: the canon records and the faster, repeatable Region tile refresh below, which were merged without a release.
+
+- The wind and pressure belts follow the Sun through the year as the rain belt does: the same share of the Sun's declination at the equator (0.4), fading toward the poles (about 6° each way at 30°, 3° at 60°). The trades, the subtropical highs and the westerlies stand further north in the northern summer and further south in the southern. Reasons: consistency with the rain belt, seasonal sailing on the trade-wind routes, and Caren's northern margin.
+- A jet stream in each hemisphere (`jetLatAt`): the polar-front jet at about 47°, further poleward in its summer, meandering in three slow waves (3, 4 and 6 round the world; 3.5°, 2.5° and 1.5° of swing; drifting east 3 to 11° of longitude a day) whose strength comes and goes over weeks. Modest on purpose: a world of ocean has stronger, straighter jets than Earth. A subtropical branch at about 30° follows the season and does not meander. Mid-latitude lows ride the jet (highs half follow it) instead of travelling on straight lines; tropical waves and cyclones keep their own tracks.
+- Blocking (`blocksBetween`): about four times a year in each hemisphere a meander stalls for 7 to 21 days. The jet bends some 9° poleward round a stationary high of 12 to 18 hPa, with a trough on either side that steers the storms round it; under it the weather holds (clear but for a marine layer's drizzle at sea, up to 4 °C warmer in summer or colder in winter). The episodes are listed for the history engine's timeline of shocks. The globe's pressure centres mark a block.
+- All of it is a direct function of the clock, like the rest of the weather: no simulation of the days between.
+- In the propagation chain: the dials are a new group, `weather`, in `scripts/eym-world-inputs.mjs`; the wind climate and the rivers' monthly climate (`tools/generate-eym-wind.mjs`, `tools/generate-eym-flow.mjs`) fingerprint it with their sources and were made again. The rain's calibration table was measured again (`tools/calibrate-eym-weather.mjs`, run until it settled within 1%).
+- What moved in the data: Caren's and Garyk's yearly rain by about 1% on average (20 mm of 2,270; 84 mm at most in a cell); the sand-moving winds' directions and strengths with the trades' seasonal shift; wave heights at sea by about 0.1 m. Loess and dunes follow. The Region fingerprint moves, so every stored tile is made again.
+- Tests: the belts shift with the seasons by the dial's share; the jet meanders, keeps to the mid-latitudes, is slow and stands poleward in summer; every low's place is its straight track plus the jet's swing; blocks come two to seven times a year in each hemisphere, last one to three weeks, stand still, bend the jet, raise the pressure and warm a summer or chill a winter under them; Caren's tropics feel no block and no mid-latitude system. Changed, said plainly: `tests/eym-world-inputs.test.mjs` lists the generators that fingerprint each group of dials, and now names the wind and flow generators for the new group.
 
 Canon update from the world's author (19 November 2026), recorded in `docs/eym-canon.md` and `ROADMAP.md`; no change to the map, the climate or the module.
 

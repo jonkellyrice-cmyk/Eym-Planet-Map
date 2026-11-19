@@ -6,8 +6,14 @@
 // seasonal climate (scripts/eym-seasons.mjs). What builds up — snow cover, ground wetness and flooding
 // — is reconstructed over the preceding 168 hours in 3-hour steps. Identical inputs give identical
 // weather.
+//
+// The large-scale circulation (the weather addendum, 19 November 2026): the wind and pressure belts follow the Sun
+// through the year as the rain belt does; a jet stream in each hemisphere meanders in a few slow waves, and the
+// mid-latitude storms travel along it; now and then a meander stalls for one to three weeks (a block), holding a
+// high in place with persistent weather under and beside it. All of it is a direct function of the clock.
 
-import { annualMeanTemperatureC, rainBeltLat, seasonalTemperature, yearFraction, zonalPrecipitationMm } from "./eym-seasons.mjs";
+import { annualMeanTemperatureC, approximateDeclinationDeg, rainBeltLat, seasonalTemperature, yearFraction, zonalPrecipitationMm } from "./eym-seasons.mjs";
+import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
 import { DAY_MS, DAYS_PER_YEAR } from "./universal-time.mjs";
 
 export const WEATHER_SEED = "eym-weather|v1";
@@ -41,20 +47,78 @@ function noise3(x, y, t) {
 
 // ---------------------------------------------------------------- the circulation
 
-/** Mean surface wind by latitude (m/s east, m/s north): trades, westerlies, polar easterlies. */
-export function backgroundWind(lat) {
-  const a = Math.abs(lat), h = lat >= 0 ? 1 : -1;
+const W = WORLD_INPUTS.weather;
+
+/**
+ * How far (degrees of latitude, northward positive) the wind and pressure belts stand from their mean places at a
+ * latitude, for the Sun's declination: they follow the Sun as the rain belt does, less and less toward the poles.
+ */
+export const beltShiftDeg = (lat, declinationDeg) => W.beltShift * declinationDeg * (1 - Math.abs(lat) / 90);
+
+/** Mean surface wind by latitude (m/s east, m/s north): trades, westerlies, polar easterlies, shifted with the season. */
+export function backgroundWind(lat, declinationDeg = 0) {
+  const at = clamp(lat - beltShiftDeg(lat, declinationDeg), -90, 90), a = Math.abs(at), h = at >= 0 ? 1 : -1;
   const east = a < 30 ? -6 * Math.sin(Math.PI * a / 30) - 1 : a < 60 ? 8 * Math.sin(Math.PI * (a - 30) / 30) : -3 * Math.sin(Math.PI * (a - 60) / 30);
   const north = a < 30 ? -h * 2.5 * Math.sin(Math.PI * a / 30) : a < 60 ? h * 1 * Math.sin(Math.PI * (a - 30) / 30) : -h * 0.8 * Math.sin(Math.PI * (a - 60) / 30);
   return { east, north };
 }
 
-/** Mean sea-level pressure by latitude (hPa): equatorial trough, subtropical highs, subpolar lows. */
-export function backgroundPressure(lat) {
-  const a = Math.abs(lat);
+/** Mean sea-level pressure by latitude (hPa): equatorial trough, subtropical highs, subpolar lows, shifted with the season. */
+export function backgroundPressure(lat, declinationDeg = 0) {
+  const a = Math.abs(clamp(lat - beltShiftDeg(lat, declinationDeg), -90, 90));
   return 1013 - 3 * Math.exp(-((a / 10) ** 2)) + 8 * Math.exp(-(((a - 32) / 9) ** 2)) - 7 * Math.exp(-(((a - 62) / 9) ** 2)) + 4 * Math.exp(-(((a - 90) / 10) ** 2));
 }
 
+// ---------------------------------------------------------------- the jet streams and blocking
+
+const BLOCK_SLOT_HOURS = W.blockSlotDays * 24, BLOCK_MAX_HOURS = W.blockDays[1] * 24;
+const lonGap = (a, b) => ((a - b + 540) % 360) - 180;
+/** A block's strength (0–1) at an hour: it builds over two days, holds, and fades over two. */
+const blockEnvelope = (block, hour) => { const tau = hour - block.born; return tau <= 0 || tau >= block.life ? 0 : smooth(clamp(Math.min(tau, block.life - tau) / 48, 0, 1)); };
+
+/** The block that may begin in one slot of one hemisphere, or null. */
+function slotBlock(hemisphere, slot) {
+  const r = rng(`${WEATHER_SEED}|block|${hemisphere}|${slot}`);
+  if (r() >= W.blocksPerYear * W.blockSlotDays / DAYS_PER_YEAR) return null;
+  const pick = ([a, b]) => a + (b - a) * r(), born = (slot + r()) * BLOCK_SLOT_HOURS, life = pick(W.blockDays) * 24, lon = r() * 360 - 180;
+  // The high sits a little poleward of the jet's place for the season, where the stalled ridge reaches.
+  const mid = (born + life / 2) * HOUR_MS, lat = hemisphere * (W.jetLat + 6) + beltShiftDeg(hemisphere * W.jetLat, approximateDeclinationDeg(mid));
+  return { id: `block-${hemisphere > 0 ? "n" : "s"}-${slot}`, kind: "high", block: true, hemisphere, born, life, lat0: lat, lon0: lon, amp: pick(W.blockHpa), radiusKm: pick(W.blockRadiusKm), eastMs: 0, polewardMs: 0, turn: 0 };
+}
+
+/**
+ * The blocking episodes alive at some point in [fromHour, toHour] (hours since the timeline's zero), each
+ * { id, hemisphere, born, life (hours), lat0, lon0, amp (hPa), radiusKm }: for the weather, and for the history
+ * engine's timeline of shocks (a spell of persistent dry, hot or cold weather under it, and wet beside it).
+ */
+export function blocksBetween(fromHour, toHour) {
+  const out = [];
+  for (let slot = Math.floor((fromHour - BLOCK_MAX_HOURS) / BLOCK_SLOT_HOURS); slot <= Math.floor(toHour / BLOCK_SLOT_HOURS); slot += 1) for (const hemisphere of [1, -1]) { const b = slotBlock(hemisphere, slot); if (b && b.born + b.life >= fromHour && b.born <= toHour) out.push(b); }
+  return out;
+}
+
+/**
+ * The latitude (signed) of a hemisphere's polar-front jet at a longitude and hour: its place for the season, a few
+ * slow waves drifting east whose strength comes and goes over weeks, and, where a block stands, a stalled ridge
+ * bending it poleward with a trough on either side.
+ */
+export function jetLatAt(hemisphere, lon, hour) {
+  const days = hour / 24, season = beltShiftDeg(hemisphere * W.jetLat, approximateDeclinationDeg(hour * HOUR_MS));
+  let swing = 0;
+  W.jetWaves.forEach((w, k) => {
+    const strength = 0.65 + 0.35 * noise3(17.3 * (k + 1), 5.1 * hemisphere, days / 25), phase = 2 * Math.PI * lattice(k + 1, hemisphere, 7);
+    swing += w.swingDeg * strength * Math.sin(w.count * (lon - w.eastDegPerDay * days) * DEG + phase);
+  });
+  let ridge = 0;
+  for (const b of blocksBetween(hour, hour)) {
+    if (b.hemisphere !== hemisphere) continue; const e = blockEnvelope(b, hour), d = lonGap(lon, b.lon0);
+    ridge += e * W.blockSwingDeg * (Math.exp(-((d / 24) ** 2)) - 0.45 * Math.exp(-(((Math.abs(d) - 50) / 20) ** 2)));
+  }
+  return hemisphere * (W.jetLat + swing + ridge) + season;
+}
+
+/** The latitude (signed) of a hemisphere's subtropical jet at an hour: it follows the season and hardly meanders. */
+export const subtropicalJetLatAt = (hemisphere, hour) => hemisphere * W.subtropicalLat + beltShiftDeg(hemisphere * W.subtropicalLat, approximateDeclinationDeg(hour * HOUR_MS));
 
 // ---------------------------------------------------------------- weather systems
 
@@ -97,6 +161,7 @@ export function systemsBetween(fromHour, toHour, isOcean = () => true, sstAt = n
   for (let slot = Math.floor((fromHour - MAX_LIFE_HOURS) / SLOT_HOURS); slot <= Math.floor(toHour / SLOT_HOURS); slot += 1) {
     for (const population of POPULATIONS) for (const hemisphere of [1, -1]) for (const s of slotSystems(population, hemisphere, slot, isOcean, sstAt)) if (s.born + s.life >= fromHour && s.born <= toHour) systems.push(s);
   }
+  systems.push(...blocksBetween(fromHour, toHour));
   return systems;
 }
 
@@ -117,13 +182,17 @@ export function systemAt(system, hour, landFractionAt = () => 0) {
     northKm = 3.6 * system.hemisphere * system.polewardMs * tau;
     envelope = Math.sin(Math.PI * tau / system.life) ** 0.7;
   }
-  const lat = clamp(system.lat0 + northKm / 111.2, -88, 88);
-  const lon = ((system.lon0 + eastKm / (111.2 * Math.max(0.15, Math.cos(((system.lat0 + lat) / 2) * DEG))) + 540) % 360) - 180;
+  const straight = clamp(system.lat0 + northKm / 111.2, -88, 88);
+  const lon = ((system.lon0 + eastKm / (111.2 * Math.max(0.15, Math.cos(((system.lat0 + straight) / 2) * DEG))) + 540) % 360) - 180;
+  // Mid-latitude lows and highs ride the jet: wherever it swings from its mean place, they swing with it.
+  const follow = system.block ? 0 : W.follow[system.kind] ?? 0;
+  const lat = follow ? clamp(straight + follow * (jetLatAt(system.hemisphere, lon, hour) - system.hemisphere * W.jetLat), -88, 88) : straight;
+  if (system.block) envelope = blockEnvelope(system, hour);
   if (system.kind === "tropical" && Math.abs(lat) > 40) envelope *= 0.4; // transitions to an ordinary low
   let amp = system.amp * envelope;
   if (system.kind === "tropical") amp *= 1 - 0.7 * landFractionAt(lat, lon); // land starves it
   const p = lat * DEG, l = lon * DEG;
-  return { id: system.id, kind: system.kind, hemisphere: system.hemisphere, lat, lon, amp, radiusKm: system.radiusKm, unit: [Math.cos(p) * Math.cos(l), Math.cos(p) * Math.sin(l), Math.sin(p)] };
+  return { id: system.id, kind: system.kind, ...(system.block ? { block: true } : {}), hemisphere: system.hemisphere, lat, lon, amp, radiusKm: system.radiusKm, unit: [Math.cos(p) * Math.cos(l), Math.cos(p) * Math.sin(l), Math.sin(p)] };
 }
 
 /** Maximum sustained wind of a tropical cyclone from its central pressure deficit (m/s). */
@@ -135,10 +204,10 @@ export const tropicalMaxWindMs = (deficitHpa) => 3.45 * Math.abs(deficitHpa) ** 
 export const BIOME_RAIN = Object.freeze({ "hot-desert": 0.25, "cold-desert": 0.3, steppe: 0.65, savanna: 0.75, tundra: 0.6, "ice-cap": 0.35, taiga: 0.9, "temperate-forest": 1, "seasonal-forest": 1, "temperate-rainforest": 1.4, "tropical-rainforest": 1.35 });
 /** Normalization of the rain-producing lift by latitude (2.5° bands from 90°S), from calibrate-eym-weather. */
 export const RAIN_NORMALIZATION = Object.freeze([
-  62.19, 94.97, 39.37, 43.95, 19.54, 11.04, 7.25, 4.78, 4.04, 3.87, 3.87, 4.35, 4.77, 5.03, 5.7, 6, 6.69, 7.73,
-  7.95, 9.04, 9.74, 10.06, 12.01, 13.48, 16.63, 28.07, 33.15, 41.66, 34.05, 24.65, 21.67, 10.36, 6.92, 4.7, 3.53, 3.33,
-  3.35, 3.27, 3.42, 3.27, 3.47, 4.31, 5.77, 10.16, 19.32, 23.32, 24.4, 15.06, 12.58, 11.18, 9.5, 9.32, 8.56, 7.67,
-  7.38, 6.54, 6.06, 5.66, 4.81, 4.62, 4.2, 3.85, 3.95, 4.12, 4.92, 7.37, 10.56, 19.61, 37.97, 37.13, 92.22, 56.46,
+  45.67, 51.06, 23.05, 20.15, 11.7, 7.86, 6.37, 4.88, 4.45, 4.28, 4, 4.24, 4.4, 4.58, 5.25, 5.51, 6.13, 6.96,
+  7.32, 8.72, 9.71, 10.33, 12.54, 13.5, 15.45, 22.1, 25.21, 32.56, 31.2, 23.35, 20.92, 10.29, 6.82, 4.67, 3.54, 3.33,
+  3.35, 3.27, 3.4, 3.26, 3.41, 4.26, 5.61, 9.89, 17.61, 19.74, 19.29, 13.45, 12.51, 11.54, 9.51, 9.09, 8.21, 7.2,
+  7.02, 6.07, 5.55, 5.17, 4.57, 4.56, 4.4, 4.18, 4.36, 4.39, 4.83, 6.14, 7.45, 10.98, 17.06, 20.34, 40.17, 36.26,
 ]);
 /** The normalization at a latitude, interpolated between band centres (it changes steeply in the subtropics). */
 export function rainNormalization(lat) {
@@ -156,7 +225,7 @@ export function weatherAt(systems, lat, lon, ctx) {
   const p = lat * DEG, l = lon * DEG, here = [Math.cos(p) * Math.cos(l), Math.cos(p) * Math.sin(l), Math.sin(p)];
   const east = [-Math.sin(l), Math.cos(l), 0], north = [-Math.sin(p) * Math.cos(l), -Math.sin(p) * Math.sin(l), Math.cos(p)];
   const cell = ctx.cell, land = cell ? !cell.ocean : false, hour = ctx.timeMs / HOUR_MS;
-  let anomaly = 0, gx = 0, gy = 0, tcEast = 0, tcNorth = 0, tcRain = 0, nearestStorm = null;
+  let anomaly = 0, gx = 0, gy = 0, tcEast = 0, tcNorth = 0, tcRain = 0, nearestStorm = null, blocked = 0;
   for (const s of systems) {
     const cosd = clamp(here[0] * s.unit[0] + here[1] * s.unit[1] + here[2] * s.unit[2], -1, 1), dKm = Math.acos(cosd) * R_KM;
     if (dKm > s.radiusKm * 3.2) continue;
@@ -176,17 +245,18 @@ export function weatherAt(systems, lat, lon, ctx) {
       continue;
     }
     anomaly += s.amp * e;
+    if (s.block) blocked = Math.max(blocked, e * s.amp / W.blockHpa[1]);
     const g = s.amp * e * 2 * dKm / (s.radiusKm * s.radiusKm); // hPa per km, pointing toward the centre for highs
     gx += g * towardE; gy += g * towardN;
   }
-  const pressureHpa = backgroundPressure(lat) + anomaly;
+  const pressureHpa = backgroundPressure(lat, ctx.declinationDeg) + anomaly;
   // Geostrophic wind from the systems' pressure gradient, slowed and turned toward low pressure by friction.
   const sinLat = Math.sin(p), f = 2 * OMEGA * (Math.abs(sinLat) < 0.22 ? (sinLat >= 0 ? 0.22 : -0.22) : sinLat);
   let ge = -0.1 * gy / (1.2 * f), gn = 0.1 * gx / (1.2 * f);
   const gs = Math.hypot(ge, gn), cap = 38;
   if (gs > cap) { ge *= cap / gs; gn *= cap / gs; }
   const friction = land ? 0.6 : 0.8, turn = 20 * DEG * (sinLat >= 0 ? 1 : -1);
-  const back = backgroundWind(lat);
+  const back = backgroundWind(lat, ctx.declinationDeg);
   let windE = back.east + friction * (ge * Math.cos(turn) - gn * Math.sin(turn)) + tcEast * (land ? 0.75 : 1);
   let windN = back.north + friction * (ge * Math.sin(turn) + gn * Math.cos(turn)) + tcNorth * (land ? 0.75 : 1);
   const windMs = Math.hypot(windE, windN), windFromDeg = (Math.atan2(-windE, -windN) / DEG + 360) % 360;
@@ -219,12 +289,14 @@ export function weatherAt(systems, lat, lon, ctx) {
   const poleward = windN * (lat >= 0 ? 1 : -1) - back.north * (lat >= 0 ? 1 : -1);
   const advection = clamp(0.32 * poleward, -9, 9) * Math.min(1, Math.abs(sinLat) * 1.6);
   const diurnal = (seasonal.nowC - seasonal.dayMeanC) * (1 - 0.6 * cloud);
-  const tempC = seasonal.dayMeanC + diurnal + advection - (precipMmH > 0.3 ? 1.5 : 0);
+  // Under a block the weather holds: clear skies day after day warm a summer and chill a winter.
+  const spell = blocked * W.blockTempC * clamp((ctx.declinationDeg ?? 0) * (lat >= 0 ? 1 : -1) / 12, -1, 1);
+  const tempC = seasonal.dayMeanC + diurnal + advection + spell - (precipMmH > 0.3 ? 1.5 : 0);
   const kind = precipMmH < 0.05 ? null : tempC < 0.5 ? "snow" : tempC < 2 ? "sleet" : "rain";
   const thunder = kind === "rain" && precipMmH > 3 && tempC > 16 && cloud > 0.8;
   const fog = lowCloud > 0.62 && coolSea > 0.25 && windMs < 7 && Math.abs(lat) > 12; // warm air over cold water, away from the doldrums
   const humidity = fog ? 100 : Math.round(clamp((cell?.ocean === false ? 35 + 35 * Math.min(1.2, wetness) : 78) + 22 * (cloud - 0.45) + (precipMmH > 0.1 ? 12 : 0), 12, 100));
-  return { pressureHpa, windMs, windFromDeg, windE, windN, gustMs: windMs * (land ? 1.5 : 1.3), cloud, lowCloud, precipMmH, precipKind: kind, drizzle: drizzle && kind === "rain", fog, thunder, tempC, humidity, nearestStorm };
+  return { pressureHpa, windMs, windFromDeg, windE, windN, gustMs: windMs * (land ? 1.5 : 1.3), cloud, lowCloud, precipMmH, precipKind: kind, drizzle: drizzle && kind === "rain", fog, thunder, tempC, humidity, nearestStorm, blocked };
 }
 
 /** Words for one moment's weather. */
@@ -344,7 +416,7 @@ export function globeWeather(state, { landCells = 5000 } = {}) {
     const w = weatherAt(step.systems, lat, lon, { cell, declinationDeg: step.declinationDeg, solarHour: solarHourAt(lon, step.subsolarLonDeg), timeMs: step.timeMs, anomalyC: state.field?.anomalyAt?.(lat, lon, step.timeMs) ?? 0 });
     cells.push({ lat, lon, cloud: w.cloud, precipMmH: w.precipMmH, precipKind: w.precipKind, thunder: w.thunder, windMs: w.windMs, windE: w.windE, windN: w.windN });
   }
-  const centres = step.systems.filter((s) => s.kind !== "tropical" && Math.abs(s.amp) >= 6).map((s) => ({ lat: s.lat, lon: s.lon, kind: s.amp < 0 ? "low" : "high", pressureHpa: Math.round(backgroundPressure(s.lat) + s.amp) }));
+  const centres = step.systems.filter((s) => s.kind !== "tropical" && Math.abs(s.amp) >= 6).map((s) => ({ lat: s.lat, lon: s.lon, kind: s.amp < 0 ? "low" : "high", ...(s.block ? { block: true } : {}), pressureHpa: Math.round(backgroundPressure(s.lat, step.declinationDeg) + s.amp) }));
   const cyclones = step.systems.filter((s) => s.kind === "tropical" && -s.amp >= 8).map((s) => { const vmax = tropicalMaxWindMs(-s.amp); return { lat: s.lat, lon: s.lon, maxWindMs: vmax, kind: vmax >= 33 ? "hurricane" : vmax >= 17.5 ? "tropical storm" : "tropical depression", id: s.id }; });
   // Snow and floods on land: reconstruct the last week at land cells (sampled evenly, capped for speed).
   const land = state.field ? state.field.cells.filter((c) => !c.ocean) : [];
