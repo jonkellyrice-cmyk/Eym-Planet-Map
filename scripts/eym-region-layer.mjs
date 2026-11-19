@@ -8,6 +8,7 @@
 // those (scripts/eym-region-paint.mjs): a plain flat one for checking, and the pixel art. Pure: no canvas, no
 // storage here.
 
+import { bboxWrap } from "./geo-wrap.mjs";
 import { fromLocal, greatCircleKm, toLocal } from "./eym-surface.mjs";
 import { annualMeanTemperatureC } from "./eym-seasons.mjs";
 import { COVER, coarseAt, coastDistanceKm, globeNoise, hashUnit, landformsOf, localContext, roadsNear } from "./eym-local-detail.mjs";
@@ -58,9 +59,9 @@ const segmentDistance = ([ax, ay], [bx, by], x, y) => {
 /** A continent's frame: centred on its mainland, holding its mainland and its own islands, nothing else. */
 function continentFrame(asset, { name, store }) {
   const own = asset.terrain.coastlines.filter((c) => c.continent === name), mainland = own.find((c) => c.kind === "mainland");
-  let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
-  for (const [lat, lon] of mainland.points) { minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat); minLon = Math.min(minLon, lon); maxLon = Math.max(maxLon, lon); }
-  const center = [Math.round((minLat + maxLat) / 2 * 100) / 100, Math.round((minLon + maxLon) / 2 * 100) / 100];
+  // The middle of its box, the longitudes taken as the shortest arc that holds it (scripts/geo-wrap.mjs).
+  const { minLat, maxLat, lonExtent } = bboxWrap(mainland.points);
+  const center = [Math.round((minLat + maxLat) / 2 * 100) / 100, Math.round(lonExtent.centerLon * 100) / 100];
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (const c of own) for (const [lat, lon] of c.points) { const [x, y] = toLocal(center, lat, lon); minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
   return { id: slug(name), name, store, center, tiles: { tx0: Math.floor(minX / REGION_TILE_KM), tx1: Math.floor(maxX / REGION_TILE_KM), ty0: Math.floor(-maxY / REGION_TILE_KM), ty1: Math.floor(-minY / REGION_TILE_KM) } };

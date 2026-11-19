@@ -211,6 +211,13 @@ km²: Gaffa cannot reach its size on its own plate by means (a) to (c) alone. Ei
 lying across existing plate boundaries, none of them moved (as Eurasia lies on several plates), or its plate is
 enlarged by moving boundaries (means d). The owner decides.
 
+*Decided (owner, 19 November 2026):* Gaffa is a composite continent, no plate boundary moved. The growth leans to
+spread the three out: Khohalis westward, Gaffa and Demani eastward, with at least 1,800 km of sea between the three,
+at least 3,500 km between new land and Garyk or the strait corridor, and Caren far clear (at least 6,000 km). The
+world's author approved the first outlines drawn on that basis (Gaffa a broad eastern mass with a long arm running
+south-west through its present core; Khohalis and Demani their present shapes, enlarged). The work is shown in
+three steps: outlines and relief; sea floor and currents, with the check of Caren's canon; the revised climate.
+
 ## Still the author's to decide (defaults until he answers)
 
 - *Peoples, gods and magic in the history engine:* Pathfinder defaults for every setting, including which magical

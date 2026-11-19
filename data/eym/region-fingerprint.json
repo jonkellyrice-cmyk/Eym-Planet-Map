@@ -1,5 +1,5 @@
 {
-  "shapes": "aa225c74c9441b6515962372a50cb4dda08a52b22b5bdd206bde623da4f38239",
+  "shapes": "2bf5e615827b3fd58b2e52ad70c7a4053e7440701221233a1a46a9c09ab1cd80",
   "paint": "2d71b3a902992d9c0135c24c043286623d0ead09420f7495b38b7ae813704558",
   "shapesFiles": [
     "scripts/astronomy.mjs",
@@ -21,6 +21,7 @@
     "scripts/eym-tides.mjs",
     "scripts/eym-weather.mjs",
     "scripts/eym-world-inputs.mjs",
+    "scripts/geo-wrap.mjs",
     "scripts/ground-sky.mjs",
     "scripts/planet-geography.mjs",
     "scripts/scholars-model.mjs",
