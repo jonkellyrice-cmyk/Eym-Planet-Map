@@ -44,6 +44,7 @@ Part 1 retrofits work already done and comes first; item 7 (owner, 19 November 2
      - Resources: evaporite salt. Settlement potential: oases where water reaches the surface.
      - Climate: hot if the floor is low, cooler if it is a raised plateau; report which the source map's heights imply.
    - *Smaller deserts:* after item 4 re-runs the currents, check that rain shadows and any cold upwelling coast produce them. The current data shows no desert on Caren, only a little steppe. If they fall short, check the ranges' orientation against the trade winds (with their seasonal shift, below) and the current off the lee coast first; raise ranges only as a last resort. Do not tune to guessed places: if the source map does not settle where they are, ask the owner.
+   - *Canon of 19 November 2026 (`docs/eym-canon.md`):* nothing is fixed about the smaller deserts, the basin's drainage, eruptions or earthquakes beyond what the source map shows: derive them from the map and the physics. The dividing wall was the Sondel Range; it collapsed about 50 years before the campaign's present (exact date to confirm with the owner) and a central mountain remains. Draw the fallen parts as recent ruin (rubble, landslides, dammed lakes, new passes), never as tectonic mountains. Before using the source map's Sondel Range as present-day terrain, ask the owner whether the map shows the range before or after the fall.
    - *Seasons readouts:* check that readouts for Caren places show a mild yearly temperature cycle (larger toward its north end, about 16° N) as well as wet and dry seasons.
    - *The weather model* (`scripts/eym-weather.mjs` now has fixed wind and pressure belts by latitude, a seasonal rain belt, and storms on straight, steady tracks):
      - The wind and pressure belts shift with the seasons, consistent with the rain belt's shift (a few degrees toward the summer hemisphere). Reasons: consistency, seasonal sailing on the trade-wind routes, and Caren's northern margin.
@@ -69,10 +70,13 @@ This is the order for everything after the Part 1 retrofits above, and it replac
      - lead and zinc in sedimentary basins;
      - salt and other evaporites in evaporite basins, including Caren's enclosed desert basin;
      - placer gold and gems in rivers below mountains, from Stage 3's erosion and the river courses.
-   - Coal in old swamp basins, placed with the plate history: basins that lay in wet tropical latitudes in the past. Oil and gas in suitable sedimentary basins if the world's author wants them.
-   - *Blocked on one answer from the world's author:* how long life has existed on Eym. Coal, oil and banded iron formations depend on life over deep time; if life was placed recently they are scarce or absent unless the gods placed them. Build everything else in this step now; place coal, oil and banded iron only after his answer.
+   - Deposits that depend on deep time (canon, 19 November 2026: Eym is about 3.5 billion years old, life began about 2.5 billion years ago, forests and complex life have been present for the last several hundred million years; `docs/eym-canon.md`):
+     - banded iron formations in old continental cores (Garyk's old core; the old inland belts of Gaffa, Khohalis and Demani), about 1.5 to 2.5 billion years old, from the oxygenation of the oceans by early life;
+     - coal in swamp basins of the last several hundred million years, placed with the plate history (which spans the last 420 million years): basins that lay in wet tropical latitudes;
+     - oil and gas in suitable marine sedimentary basins of the same era.
    - Individual deposits are deterministic draws within provinces (size, grade, depth, accessibility).
-   - Caren is god-shaped: its ores follow its stated geology, not tectonic rules. Ask the owner where Caren's geology is unspecified.
+   - Caren is god-shaped: its deposits follow Europe's pattern, not tectonic rules (canon, 19 November 2026; the full rulebook is in `docs/eym-canon.md`): many small-to-medium deposits widely spread, gold modest; tin, tungsten and vein silver, lead, zinc, copper and cobalt in old granite highlands; a coal belt along the foothills of old ranges; iron in sedimentary basins and some rich iron in old hard rock; salt from old evaporite basins and the enclosed desert basin; copper and pyrite belts; building and fine stone; occasional specialities. Placed by analogous settings on Caren's own relief. Report the provinces and show them to the owner before finalising.
+   - A placeholder layer for supernatural places (dead-magic and wild-magic zones, ley lines, places where other planes press close): Eym has many, the owner supplies them; nothing is generated until then.
    - A resources lens on the globe and a readout by place. Test that each province lies on the right geology.
 3. **Stage 5: ice ages and old sea levels** (before ecology: its glacial landforms, lakes and soils feed it).
    - Cold periods timed by Eym's own orbital cycles already in its data (obliquity 22.1–24.5°, the precession and obliquity periods), Milankovitch-style.
@@ -85,7 +89,7 @@ This is the order for everything after the Part 1 retrofits above, and it replac
    - Smooth zoom transitions at every layer boundary: in a narrow zoom band, morph the projection from the globe to the layer's flat frame and blend, tied to the gesture; complete to the nearer side within about 200–300 ms if the gesture stops mid-band; never rest mid-blend; prefetch tiles; check the frame rate on a phone.
    - The basic science lenses on the globe: tectonics, oceans, weather, climate, resources, sky and fields (per the science-lens record). Tap-to-explain on features.
 5. **Ecology** (per the ecology record below).
-   - Habitat ranges for Earth species, including the wild ancestors of crops and livestock; placement "by habitat" as the provisional default until the world's author decides.
+   - Habitat ranges for Earth species, including the wild ancestors of crops and livestock; placement "by habitat" (canon, 19 November 2026): each species lives wherever its habitat exists.
    - Fire regimes (dry-season fuel, lightning; test that Caren's and Garyk's tropics are not uniformly forest).
    - Vegetation coupled with erosion.
    - Biological landforms (reefs, atolls, mangroves, salt marshes, peat bogs, beaver-style wetlands), never changing Caren's or Garyk's outlines.
@@ -421,7 +425,7 @@ Agreed in the owner's planning conversations and written here in full; this reco
 
 1. Life on Eym is Earth's animals and plants plus Pathfinder's monsters, placed by the gods, not evolved: no evolution or biosphere simulation.
 2. Habitat ranges for Earth species from climate, biome, season, water, depth and altitude, including the wild ancestors of crops (wheat, barley, rice, maize, olives and others) and of livestock (horse, aurochs and cattle, sheep, goat, pig, camel, llama, chicken, dog and others).
-3. Placement rule, for the world's author: species live wherever their habitat exists ("by habitat"), or only where placed ("by choice"). Default: by habitat, flagged provisional.
+3. Placement rule (canon, 19 November 2026): species live wherever their habitat exists ("by habitat"), the wild ancestors of crops and livestock included.
 4. Optional, ask the owner first: Pathfinder creatures tagged with habitat, giving encounter suitability by place and season; tameable creatures (riding drakes, giant lizards and so on) listed beside Earth's domesticates.
 5. Ecology shapes geography:
    - *Vegetation and erosion:* plant cover holds soil and stream banks; bare or overgrazed ground erodes faster (the Dust Bowl pattern, with the wind model).

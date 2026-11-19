@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+Canon update from the world's author (19 November 2026), recorded in `docs/eym-canon.md` and `ROADMAP.md`; no change to the map, the climate or the module.
+
+- Ages: Eym formed about 3.5 billion years ago and life began about 2.5 billion years ago; forests and complex life have been present for the last several hundred million years. `system_age_gyr_est` in `docs/system-orbital-distances.csv` is 3.5 (was 5.8) for Eym and the three other rocky planets, and now set for Mitkear too.
+- Mitkear stays at exactly 1.00 solar luminosity; its mass is recorded as about 1.02 solar masses (a star that much heavier is about as bright at 3.5 billion years as the Sun is now). Its notes say so. Orbits, the 350-day year and the climate are unchanged. Changed test, said plainly: `tests/earth-twin.test.mjs` asserted "1.00 solar mass" in the star's notes; it now asserts 1.02 solar masses at 1.00 solar luminosity, the two ages, and that nothing in the system is older than its star.
+- Resources: coal, oil and gas, and banded iron are no longer blocked or provisional; the roadmap's Resources step says where each goes. Caren's deposits follow Europe's pattern (the rulebook is in the canon notes), reported and shown to the owner before finalising.
+- Plants and animals live wherever their habitat exists: canon, no longer a provisional default.
+- Caren's dividing wall was the Sondel Range, fallen about 50 years before the present (date to confirm), drawn as recent ruin; the owner is asked whether the source map shows it before or after the fall. Caren's smaller deserts, the basin's drainage, eruptions and earthquakes have no canon fixed points. Garyk's generated geography is the author's working draft. Supernatural places exist and get a placeholder layer; nothing is generated until the owner supplies them.
+- The registry file's managed pin moves with the system data.
+
 Performance of the Region tile refresh, part 1 (owner, 19 November 2026): the same tiles, byte for byte, made several at once. The map server and the refresh tool only; the module is unchanged.
 
 - `/api/region/fill` no longer waits behind other requests, and takes an `end`, so several requests work on separate ranges of one frame at once. Within a request the making of the next tile overlaps the uploads of the last (`inflight`, 12 unless told otherwise, 16 at most).

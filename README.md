@@ -67,7 +67,7 @@ The module id is `eym-planet-map`, so it installs alongside the original Orphane
 
 ## Eym and its sky
 
-- **Mitkear**, the sun, is a twin of Earth's Sun (G2V, 1 solar mass and luminosity).
+- **Mitkear**, the sun, is as bright as Earth's Sun (G2V, 1.00 solar luminosity): about 1.02 solar masses and 3.5 billion years old, which comes to the same brightness.
 - **Eym** is an Earth twin: 1 AU, Earth's radius, mass and gravity, 23.44° tilt (precessing every ~25,772 years; obliquity rocking 22.1°–24.5° over ~41,000 years), eccentricity 0.0167 and an Earth-like magnetic field (a dipole tilted about 10°, its north pole over open ocean toward 100° E, so that Caren and Garyk never see an aurora: see `docs/eym-canon.md`, the canon notes).
 - **Eym's surface** is five continents in a planet-wide ocean (98.6% water, 7.3 million km² of land):
   - **Caren**, 590,000 sq mi (1.53 million km²), straddles the equator, centered on 0°, 0°. It is traced from its source map with its coastline, islands, lakes, great rivers, mountains, forests, 4 nations, 81 settlements and 39 named features.
