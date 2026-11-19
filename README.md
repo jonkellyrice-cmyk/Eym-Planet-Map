@@ -146,6 +146,34 @@ npm run constellations:check
 npm run moons:almanac -- 50
 ```
 
+## Changing Eym's world
+
+Eym's world is made by rule from a few inputs (the continents' layout in `scripts/eym-surface.mjs`, the traced maps of Caren and Garyk, their labels) and everything else follows from them: the plates, the ocean, the coasts, heights, biomes and rivers, the drainage, the wind and the rivers' flow. To change the world, change an input and let the tools carry it through:
+
+```bash
+npm run world           # rebuild everything made from the inputs, check it, and report what changed since HEAD
+npm run world:report    # check and report only (no rebuild); add -- --base v0.25.5 to compare with another commit
+```
+
+`npm run world` (`tools/world.mjs`):
+
+1. runs the build until it is finished, the plate fit's many steps included;
+2. checks the world against the standing rules (`tools/world-checks.mjs`): the owner's coasts of Caren and Garyk unchanged, 98–99% ocean, rivers that end somewhere, settlements on land, plates at speeds their drivers allow, and that every derived file is up to date. A rule that must hold and does not is an error; a rule that should hold is a warning;
+3. compares the world with the commit, layer by layer (`tools/world-snapshot.mjs`): land, each continent's coast, heights and biomes, rivers, names, plates, the ocean. Changes past the look-at thresholds (`LOOK_AT`: a tenth of a continent's cells changing biome, a coast moving, sea temperature by more than 1.5 °C, and so on) are flagged for a person's look;
+4. writes `reports/world/latest/report.md` with before-and-after pictures (`tools/world-maps.mjs`). The folder is not committed.
+
+Pinned values are in `tools/world-pins.json`. The *fixed* pins (Caren's and Garyk's coastlines) are invariants no tool changes. The *managed* pins follow the world (the registry file's hash): a rebuild that moves one says so in the report, and `node tools/world.mjs --accept-pins --note "why"` records it once the change is accepted.
+
+After a release that changes the world or the painting, the stored Region tiles are stale. One step refreshes them and removes the sets nothing reads any more:
+
+```bash
+npm run tiles:refresh -- --purge   # refill every frame on the map server, check nothing is stale, purge superseded sets
+```
+
+(The purge works only while the deployment has `EYM_REGION_PURGE=on`; see `webapp/README.md`.)
+
+Still to come: one inputs file holding every dial, and an overrides file for hand-authored exceptions (listed in every report).
+
 ## Coordinate model
 
 System navigation retains the established physical coordinate model. Operational assets explicitly declare whether their geometry is physical, a physical reference-epoch snapshot, a constrained estimate, or an uncertain observation volume. Belt layouts are reference-epoch snapshots; anomalies remain observational/uncertain; gas giants use atmospheric coordinates rather than a fictitious solid surface. The night sky uses the same system frame. See `docs/IMPLEMENTATION_NOTES.md`.

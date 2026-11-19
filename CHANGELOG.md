@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.26.1 (2026-11-19)
+
+Tools that carry a change to the world through everything made from it and report what moved (owner, 19 November 2026). The world itself is unchanged.
+
+- `npm run world` (`tools/world.mjs`): runs the build to completion (the plate fit's steps included), checks the world, compares it with a commit and writes a change report with before-and-after pictures to `reports/world/latest/` (not committed). `npm run world:report` checks and compares without rebuilding.
+- The change report (`tools/world-snapshot.mjs`, `tools/world-maps.mjs`): what changed layer by layer (land, each continent's coast, heights, biomes, soils and resources, rivers and drainage, names, plates, the ocean, the stored tiles), with flags where a change passes a look-at threshold. Checked against the 0.26.0 change, it gives the figures reported by hand then.
+- Standing rules (`tools/world-checks.mjs`): what must hold however the inputs change (the owner's coasts of Caren and Garyk, the ocean's share, rivers, settlements, plate speeds, the ocean's limits, every derived file up to date). A rule that must hold and fails is an error; one that should hold is a warning. The first run found an older flaw, reported as a warning: seven small tributaries on Gaffa and Demani end 14–86 m higher than they start.
+- Pinned values in `tools/world-pins.json`: fixed pins (the owner's coastlines) that no tool changes, and managed pins that follow the world, reported when they move and recorded only by `node tools/world.mjs --accept-pins --note "…"`.
+- `npm run tiles:refresh` (`tools/refresh-region-tiles.mjs`): the post-release step. It refills every frame's stale Region tiles on the map server, checks that nothing is stale, and with `--purge` removes superseded sets through the guarded purge. `GET /api/region/stale` now also lists the versions the store holds and which are superseded (`folders` in `webapp/region-store.mjs`).
+- Tests: new `tests/world-tooling.test.mjs` (the rules hold; the comparison, its flags and invariants; the report; the post-release step against a stand-in server); `tests/eym-region-store.test.mjs` checks the stale report's new lists; `tests/release-package.test.mjs` updated for 0.26.1.
+- Changed test, called out: in `tests/cartography-acceptance.test.mjs` the registry file's hash is no longer written in the test and re-pinned by hand; the test reads it from the managed pin in `tools/world-pins.json` and requires the pin to carry a note. The file must still hash to exactly the recorded value. What changes is that a tool, not a hand edit, records an accepted change (owner's instruction).
+
 ## 0.26.0 (2026-11-19)
 
 Part 1 of the owner's consolidated addenda, item 2 (first half): the sea floor in the ocean model.

@@ -76,6 +76,16 @@ export function regionStore(env = process.env, fetchImpl = globalThis.fetch) {
       await walk(folder.replace(/\/+$/, ""));
       return out;
     },
+    /** The folders directly under a folder of a bucket, by name (read only). */
+    async folders(bucket, folder) {
+      const prefix = folder.replace(/\/+$/, ""), out = [];
+      for (let offset = 0; ; offset += 1000) {
+        const r = await call(`/storage/v1/object/list/${bucket}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prefix, limit: 1000, offset, sortBy: { column: "name", order: "asc" } }) });
+        if (!r.ok) throw await fail("Listing the store", r);
+        const entries = await r.json(); for (const e of entries) if (!e.id) out.push(e.name);
+        if (entries.length < 1000) return out;
+      }
+    },
     /** Delete files from a bucket by their full paths (at most 1000 a call). Returns how many the store says it removed. */
     async remove(bucket, paths) {
       if (!paths.length) return 0;

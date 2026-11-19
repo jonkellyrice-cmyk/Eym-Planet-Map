@@ -1,0 +1,15 @@
+{
+  "about": "Pinned values for Eym's world (tools/world-checks.mjs). 'fixed' are invariants no tool changes: the owner's maps. 'managed' follow the world: a rebuild that moves one reports it, and node tools/world.mjs --accept-pins records the new value with a note.",
+  "fixed": {
+    "coastSha256": {
+      "Caren": "6200884021edf3166e8c7cb6b209431b188bd6dd9a5706412f2504815c43bb5f",
+      "Garyk": "953d7b92cd342baab154888dcddb499306d0d2e91380f1da52b43f0dc1d837e0"
+    }
+  },
+  "managed": {
+    "registryCsvSha256": {
+      "value": "a4ccc5197439daa0b2a1c657a274e0541d2f26eedbbdcac45d3600a54f862bc3",
+      "note": "0.26.0: the sea floor in the ocean model (19 November 2026)"
+    }
+  }
+}
