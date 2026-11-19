@@ -1,14 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
+import { inputsFingerprint, WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 import { buildEymSurface, EYM_LAYOUT } from "../scripts/eym-surface.mjs";
 import { ABYSS_KM, SHELF_KM, SLOPE_KM } from "../scripts/eym-seafloor.mjs";
 import { buildEymGeography } from "../scripts/eym-cartography.mjs";
 import { describeOverrides, overrideProblems, prepareOverrides } from "../scripts/eym-overrides.mjs";
 import { parseCsv } from "../scripts/system-data.mjs";
-import { FREE_SPEED_MM, OCEAN_FRACTION, SLAB_SHARE, SLAB_SPEED_MM, SPEED_EXEMPT, TARGET_TOLERANCE, TECTONIC_SOURCES } from "../tools/generate-eym-tectonics.mjs";
-import { BELT_SHIFT, CLIMATE_SOURCES, SEAMOUNT_UPWELLING, SLOPE_UPWELLING, STEERING } from "../tools/generate-eym-climate.mjs";
+import { FREE_SPEED_MM, OCEAN_FRACTION, SLAB_SHARE, SLAB_SPEED_MM, SPEED_EXEMPT, TARGET_TOLERANCE, TECTONIC_INPUTS } from "../tools/generate-eym-tectonics.mjs";
+import { BELT_SHIFT, CLIMATE_INPUTS, SEAMOUNT_UPWELLING, SLOPE_UPWELLING, STEERING } from "../tools/generate-eym-climate.mjs";
 import { moduleClosure } from "../tools/generate-region-fingerprint.mjs";
 import { eymFingerprintFromRepo } from "../tools/eym-world.mjs";
 
@@ -27,9 +27,13 @@ test("Eym's dials live in one file, and everything that uses one reads it from t
   // Nothing can change a dial by accident at run time.
   assert.ok(Object.isFrozen(WORLD_INPUTS) && Object.isFrozen(WORLD_INPUTS.layout.seeded[0]) && Object.isFrozen(WORLD_INPUTS.ocean));
   assert.throws(() => { "use strict"; WORLD_INPUTS.ocean.steering = 1; });
-  // Changing a dial makes the build redo what follows: the file is among the sources of the plate fit and the ocean
-  // climate (the rest follows from those), and of the stored tiles' fingerprint.
-  assert.ok(TECTONIC_SOURCES.includes("scripts/eym-world-inputs.mjs") && CLIMATE_SOURCES.includes("scripts/eym-world-inputs.mjs"));
+  // Changing a dial makes the build redo what follows from it and nothing that does not: each generator
+  // fingerprints the groups of dials it uses (the plate fit does not follow the ocean's or the shelf seas' dials).
+  assert.deepEqual(TECTONIC_INPUTS, ["layout", "plates"]); assert.deepEqual(CLIMATE_INPUTS, ["layout", "seaFloor", "ocean"]);
+  assert.ok(inputsFingerprint("ocean").includes(`"steering":${WORLD_INPUTS.ocean.steering}`) && !inputsFingerprint("ocean").includes("slabShare"));
+  assert.notEqual(inputsFingerprint("layout", "plates"), inputsFingerprint("layout", "ocean"));
+  assert.throws(() => inputsFingerprint("nonsense"), /no such group of dials/);
+  for (const group of Object.keys(WORLD_INPUTS)) assert.ok([...TECTONIC_INPUTS, ...CLIMATE_INPUTS, "shelfSeas"].includes(group), `the group ${group} is fingerprinted by a generator`);
   assert.ok(moduleClosure("scripts/eym-region-layer.mjs").includes("scripts/eym-world-inputs.mjs"));
   // The dials are not repeated as numbers where they are used.
   assert.doesNotMatch(read("tools/generate-eym-climate.mjs"), /export const STEERING = \d/);

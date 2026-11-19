@@ -97,3 +97,38 @@ test("the post-release step refills every frame, checks nothing is stale, and pu
   const d = server(true), stuck = async (path) => (path.startsWith("/api/region/fill") ? { status: 200, total: 5, next: 5, kept: 0, repainted: 0, remade: 0, sea: 0, errors: [], done: true } : d.get(path)), bad = await refreshRegionTiles({ get: stuck, purge: true });
   assert.equal(bad.ok, false); assert.ok(bad.errors.some((e) => /still stale/.test(e))); assert.ok(!d.state.calls.some((x) => x.includes("purge")));
 });
+
+test("every generator of Eym's derived data is in the propagation chain (a new system cannot be left out)", async () => {
+  const { readdirSync } = await import("node:fs");
+  const generators = readdirSync(new URL("tools/", root)).filter((f) => /^generate-eym-.*\.mjs$/.test(f)), build = read("tools/build-generated.mjs"), checks = read("tools/world-checks.mjs"), inputs = read("scripts/eym-world-inputs.mjs");
+  assert.ok(generators.length >= 6);
+  const groups = new Set();
+  for (const file of generators) {
+    const source = read(`tools/${file}`), module = await import(`../tools/${file}`);
+    // 1. The build runs it when what it is made from changes.
+    assert.ok(build.includes(`tools/${file}`) || build.includes(`./${file}`), `${file}: npm run build (and so npm run world) runs it`);
+    // 2. It says what it is made from, as a fingerprint the build and the checks compare.
+    const sha = Object.keys(module).find((k) => /SourcesSha256$/.test(k)); assert.ok(sha, `${file}: exports a …SourcesSha256`);
+    assert.match(module[sha](), /^[0-9a-f]{64}$/);
+    // 3. The standing rules check it is up to date.
+    assert.ok(checks.includes(`./${file}`) && checks.includes(sha), `${file}: tools/world-checks.mjs checks it is up to date`);
+    // 4. The change report reads what it writes.
+    const out = /new URL\((?:"([^"]+)"|`([^`]+)`), root\)/.exec(source.slice(source.indexOf("OUT =")));
+    const path = (out[1] ?? out[2]).replace("${DIR}", "data/planet-cartography/abydos");
+    assert.ok(Object.values(WORLD_FILES).includes(path), `${file}: the change report reads ${path}`);
+    // 5. Its dials, if it has any, are groups of the one inputs file, fingerprinted with its sources.
+    const key = Object.keys(module).find((k) => /_INPUTS$/.test(k));
+    if (key) { for (const g of module[key]) { groups.add(g); assert.ok(new RegExp(`\\n  ${g}: \\{`).test(inputs), `${file}: the group ${g} is in scripts/eym-world-inputs.mjs`); } assert.ok(source.includes(`inputsFingerprint(...${key})`), `${file}: its fingerprint covers its dials`); }
+  }
+  // Every group of dials is followed by some generator.
+  const { WORLD_INPUTS } = await import("../scripts/eym-world-inputs.mjs");
+  assert.deepEqual([...groups].sort(), Object.keys(WORLD_INPUTS).sort());
+});
+
+test("the change report covers the survey of the coasts: a tide that changes is flagged", () => {
+  const changed = { ...world, coasts: { ...world.coasts, samples: world.coasts.samples.map((s, k) => (k < 5 ? s.map((v, i) => (world.coasts.fields[i] === "funnelGain" ? Math.min(2.5, v + 1) : world.coasts.fields[i] === "bay" ? 1 : v)) : s)) } };
+  const result = compareWorlds(summary, summarizeWorld(changed)), section = result.sections.find((s) => /^Coasts/.test(s.title));
+  assert.ok(section.lines.some((l) => /funnel gain changed by more than 0\.3 at 5 coast points/.test(l)), section.lines.join(" | "));
+  assert.ok(result.flags.some((f) => /tides changed at 5 coast points/.test(f)));
+  assert.equal(compareWorlds(summary, summary).sections.find((s) => /^Coasts/.test(s.title)).lines[0], "No change.");
+});

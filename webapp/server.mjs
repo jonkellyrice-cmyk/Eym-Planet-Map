@@ -37,7 +37,7 @@ import { gunzipSync, gzipSync } from "node:zlib";
 import { REGION_CELL_KM, REGION_MODEL, REGION_TILE_CELLS, buildRegionTile, regionFrameHasTile, regionFrames } from "../scripts/eym-region-layer.mjs";
 import { flatRegionTile, renderRegionTile } from "../scripts/eym-region-paint.mjs";
 import { regionStore, sha256 } from "./region-store.mjs";
-import { attachDrainage, attachFlow, attachGeology, attachWind, drainageFileName, flowFileName, windFileName } from "../scripts/cartography-asset.mjs";
+import { attachCoasts, attachDrainage, attachFlow, attachGeology, attachWind, coastsFileName, drainageFileName, flowFileName, windFileName } from "../scripts/cartography-asset.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const hashText = (text) => { let a = 2166136261, b = 5381; for (let i = 0; i < text.length; i += 1) { const c = text.charCodeAt(i); a = Math.imul(a ^ c, 16777619); b = (Math.imul(b, 33) + c) | 0; } return (a >>> 0).toString(16).padStart(8, "0") + (b >>> 0).toString(16).padStart(8, "0"); };
@@ -216,6 +216,8 @@ export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (p
   const windFile = join(dataDir, windFileName("eventide.json"));
   if (!data.wind && existsSync(windFile)) attachWind(data, JSON.parse(readFileSync(windFile, "utf8")));
   // And its rivers' monthly climate (tools/generate-eym-flow.mjs): the widths of their beds.
+  const coastsFile = join(dataDir, coastsFileName("eventide.json"));
+  if (!data.coasts && existsSync(coastsFile)) attachCoasts(data, JSON.parse(readFileSync(coastsFile, "utf8")));
   const flowFile = join(dataDir, flowFileName("eventide.json"));
   if (!data.flow && existsSync(flowFile)) attachFlow(data, JSON.parse(readFileSync(flowFile, "utf8")));
   mkdirSync(cacheDir, { recursive: true });

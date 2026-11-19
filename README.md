@@ -150,7 +150,7 @@ npm run moons:almanac -- 50
 
 Eym's world is made by rule from a few inputs and everything else follows from them: the plates, the ocean, the coasts, heights, biomes and rivers, the drainage, the wind and the rivers' flow. The inputs are:
 
-- the dials, all in `scripts/eym-world-inputs.mjs`: where the continents lie and how large they are (each seeded continent's `areaCarens` is its size as a multiple of Caren's), the plates' speed rules, the sea floor's shape, and the ocean's settings (how far the wind belts follow the Sun, how much the sea floor steers the currents, the strength of upwelling);
+- the dials, all in `scripts/eym-world-inputs.mjs`: where the continents lie and how large they are (each seeded continent's `areaCarens` is its size as a multiple of Caren's), the plates' speed rules, the sea floor's shape, the ocean's settings (how far the wind belts follow the Sun, how much the sea floor steers the currents, the strength of upwelling), and the shelf seas' (which coasts are surveyed, what counts as a bay, the limits on a funnel's tide and a storm's surge);
 - the drawings: the traced maps of Caren and Garyk (`data/eym/traced-continents.json`) and their labels;
 - the exceptions: `data/eym/overrides.json`, for places where a person judges the rules' result wrong for the setting. Each override says what it sets (temperature or rainfall, which the biome then follows; or the biome, soil or resource itself), where (a box or a list of places) and why. They are applied last and listed in every report.
 
@@ -177,6 +177,18 @@ npm run tiles:refresh -- --purge   # refill every frame on the map server, check
 ```
 
 (The purge works only while the deployment has `EYM_REGION_PURGE=on`; see `webapp/README.md`.)
+
+### Adding a system to the world
+
+A new system that makes derived data joins the same chain, so that it follows every later change by itself. `tests/world-tooling.test.mjs` fails until it does all of these:
+
+1. Its generator is `tools/generate-eym-<name>.mjs`, writes one data file, and exports a `…SourcesSha256()` fingerprint of what it is made from (kept in the file as `sourcesSha256`).
+2. Its dials are a group in `scripts/eym-world-inputs.mjs`, named in an exported `…_INPUTS` list and included in that fingerprint with `inputsFingerprint(...)`. It fingerprints only the groups it uses, so its dials do not make other systems rebuild.
+3. `tools/build-generated.mjs` runs it when its fingerprint moves, after the steps it depends on.
+4. `tools/world-snapshot.mjs` reads its file (`WORLD_FILES`), summarises it, and compares it in a section of the change report, with look-at thresholds in `LOOK_AT`.
+5. `tools/world-checks.mjs` holds its standing rules and checks it is up to date.
+
+The survey of the coasts (`tools/generate-eym-coasts.mjs`, 0.27.0) was added this way and is the pattern to copy.
 
 ## Coordinate model
 

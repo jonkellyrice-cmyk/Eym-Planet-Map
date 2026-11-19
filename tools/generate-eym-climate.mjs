@@ -20,15 +20,17 @@ import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { buildEymSurface, EYM_LAYOUT } from "../scripts/eym-surface.mjs";
 import { marginOf, seaFloorHeightM, seamountsOf, shoalOverSeamounts, tectonicDistances } from "../scripts/eym-seafloor.mjs";
-import { WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
+import { inputsFingerprint, WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 import { seaLevelTemperatureC, seasonalTemperature } from "../scripts/eym-seasons.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universal-time.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/climate.json", root);
 export const EYM_CLIMATE_MODEL = "eym-climate-v2";
 /** What the climate is made from: this tool, the surface (its land) and the seasons (base temperatures). */
-export const CLIMATE_SOURCES = ["tools/generate-eym-climate.mjs", "scripts/eym-surface.mjs", "scripts/eym-world-inputs.mjs", "scripts/eym-seafloor.mjs", "scripts/eym-seasons.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json"];
-export const climateSourcesSha256 = () => { const h = createHash("sha256"); for (const p of CLIMATE_SOURCES) h.update(readFileSync(new URL(p, root))); return h.digest("hex"); };
+export const CLIMATE_SOURCES = ["tools/generate-eym-climate.mjs", "scripts/eym-surface.mjs", "scripts/eym-seafloor.mjs", "scripts/eym-seasons.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json"];
+/** The groups of dials (scripts/eym-world-inputs.mjs) the ocean climate follows. */
+export const CLIMATE_INPUTS = ["layout", "seaFloor", "ocean"];
+export const climateSourcesSha256 = () => { const h = createHash("sha256"); for (const p of CLIMATE_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...CLIMATE_INPUTS)); return h.digest("hex"); };
 
 const DEG = Math.PI / 180, R = 6.371e6, OMEGA = 7.292e-5, RHO = 1025, YEAR_MS = DAYS_PER_YEAR * DAY_MS;
 const RES = 2, NLAT = 180 / RES, NLON = 360 / RES, N = NLAT * NLON;

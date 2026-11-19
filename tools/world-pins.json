@@ -8,8 +8,8 @@
   },
   "managed": {
     "registryCsvSha256": {
-      "value": "af47c8da9361067b4cd5b57027baeccd453e0314b467d0aa68bf3a66953a953c",
-      "note": "0.26.2: the dials moved to scripts/eym-world-inputs.mjs (fingerprints only; the world is unchanged)"
+      "value": "a6b855755b92762b0296fb92344f12c7ab6e89dac3ea5dc68ad3db5d02aeefeb",
+      "note": "0.27.0: the survey of the coasts joined the build; generators fingerprint their own groups of dials (the world's land, plates and ocean are unchanged)"
     }
   }
 }

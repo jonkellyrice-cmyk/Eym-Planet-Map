@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.27.0 (2026-11-19)
+
+Part 1 of the owner's consolidated addenda, item 2 (second half): the shelf seas of the mapped continents. Built into the world's propagation chain from the start (owner, 19 November 2026).
+
+- A survey of the coasts (`tools/generate-eym-coasts.mjs`, written to `data/planet-cartography/abydos/eventide-coasts.json`, 84 KB): a point every 25 km along Caren's and Garyk's coastlines (1,518 points), each with the way out to sea, the shelf in front of it (width and mean depth) and the bay it lies in, if any. `npm run build` makes it again when the cartography, the plates or its dials change.
+- The fine sea floor (`scripts/eym-shelf-seas.mjs`): within 160 km of a coast the depth follows the true distance to the coastline, by the same shelf, slope and trench rule as everywhere, and joins the 1° grid offshore.
+- Tides in funnel-shaped bays: a bay is sea with land within 100 km in three quarters of directions. Where one narrows and shoals toward its head the tide grows by Green's law, up to 2.5 times: 367 of the survey's points lie in bays and 215 gain more than a fifth. The tide report uses it and says so.
+- Storm surge: an onshore wind's drag across the shelf, divided by its depth, raised by a funnel bay, plus a centimetre for every hectopascal of low pressure, from the weather at the place. Reported with the tide from 0.3 m ("storm surge +1.4 m") and added to the water's height on battle maps; `surgePotentialM` gives each coast's exposure for hazard tables.
+- The sea readout names the fishing (ordinary, good, rich) from the upwelling, once the currents' file is loaded.
+- In the propagation chain: the shelf seas' dials are a group of `scripts/eym-world-inputs.mjs`; the change report has a section for the coasts (shelves, bays, where the tide changed) and draws each surveyed continent's coast; standing rules bound the survey and check it is up to date.
+- Each generator now fingerprints only the groups of dials it uses (`inputsFingerprint`), so a shelf-sea dial rebuilds the survey in seconds and does not refit the plates. This changed the fingerprints of the tectonic history and the ocean climate once; the land, the plates and the ocean are unchanged.
+- "Adding a system to the world" in the README lists what a new generator must do, and a test fails until it does.
+- Not changed: the Region layer's coast kinds still use the open-coast tide (feeding them the funnel's gain would redraw estuaries; left for a decision). Every stored Region tile is stale once all the same (the tiles' fingerprint covers the dials file) and is made again.
+- Tests: new `tests/eym-shelf-seas.test.mjs` (the survey, bays and funnels on drawn shapes, the fine sea floor, storm surge); `tests/world-tooling.test.mjs` gains the chain test and the coasts in the report; `tests/eym-world-inputs.test.mjs` checks the groups' fingerprints (one assertion there, that the dials file is among two generators' source files, became the stricter per-group check); `tests/release-package.test.mjs` updated for 0.27.0. The managed pin was recorded by the tool.
+
 ## 0.26.2 (2026-11-19)
 
 One file for Eym's dials and one for hand-authored exceptions (owner, 19 November 2026). The world itself is unchanged: `npm run world` reports no change to any continent, river, name, plate or current; only the fingerprints move.

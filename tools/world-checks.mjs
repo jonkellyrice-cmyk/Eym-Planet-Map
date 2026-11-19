@@ -80,10 +80,17 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
     rule("current-speed", "no current runs faster than 3 m/s", fast <= 3, `${fast.toFixed(2)} m/s`);
   }
 
+  // The survey of the coasts stays within its dials.
+  if (world.coasts) {
+    const { SHELF_SEAS } = await import("../scripts/eym-shelf-seas.mjs"), d = world.coasts, col = (name) => d.fields.indexOf(name), bad = d.samples.filter((s) => !(s[col("funnelGain")] >= 1 && s[col("funnelGain")] <= SHELF_SEAS.funnelMaxGain) || !(s[col("shelfKm")] >= 0 && s[col("shelfKm")] <= 400) || !(s[col("shelfDepthM")] > 0) || (s[col("funnelGain")] > 1 && !s[col("bay")]));
+    rule("coasts", "every surveyed coast point has a shelf of 0 to 400 km, water over it, and a tide gain within the dial, raised only in a bay", bad.length === 0 && d.samples.length > 0, `${bad.length} of ${d.samples.length} points out of bounds`);
+    rule("coasts-covered", "every continent the dials name is surveyed", SHELF_SEAS.continents.every((c) => d.samples.some((s) => s[col("continent")] === c)), d.continents.join(", "));
+  }
+
   // Everything derived is up to date with what it is made from (the working tree only).
   if (current) {
-    const [{ tectonicSourcesSha256 }, { climateSourcesSha256 }, { drainageSourcesSha256 }, { windSourcesSha256 }, { flowSourcesSha256 }, { eymFingerprintFromRepo }, { regionFingerprint }] = await Promise.all([
-      import("./generate-eym-tectonics.mjs"), import("./generate-eym-climate.mjs"), import("./generate-eym-drainage.mjs"), import("./generate-eym-wind.mjs"), import("./generate-eym-flow.mjs"), import("./eym-world.mjs"), import("./generate-region-fingerprint.mjs")]);
+    const [{ tectonicSourcesSha256 }, { climateSourcesSha256 }, { drainageSourcesSha256 }, { windSourcesSha256 }, { flowSourcesSha256 }, { eymFingerprintFromRepo }, { regionFingerprint }, { coastSourcesSha256 }] = await Promise.all([
+      import("./generate-eym-tectonics.mjs"), import("./generate-eym-climate.mjs"), import("./generate-eym-drainage.mjs"), import("./generate-eym-wind.mjs"), import("./generate-eym-flow.mjs"), import("./eym-world.mjs"), import("./generate-region-fingerprint.mjs"), import("./generate-eym-coasts.mjs")]);
     const stale = [];
     if (tectonics?.sourcesSha256 !== tectonicSourcesSha256()) stale.push("tectonic history");
     if (climate?.sourcesSha256 !== climateSourcesSha256()) stale.push("ocean climate");
@@ -91,6 +98,7 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
     if (world.drainage?.sourcesSha256 !== drainageSourcesSha256()) stale.push("drainage");
     if (world.wind?.sourcesSha256 !== windSourcesSha256()) stale.push("wind");
     if (world.flow?.sourcesSha256 !== flowSourcesSha256()) stale.push("river flow");
+    if (world.coasts?.sourcesSha256 !== coastSourcesSha256()) stale.push("coast survey");
     const fp = regionFingerprint(); if (world.regionFingerprint?.shapes !== fp.shapes || world.regionFingerprint?.paint !== fp.paint) stale.push("Region fingerprint");
     rule("up-to-date", "every derived file is up to date with what it is made from", stale.length === 0, stale.length ? `stale: ${stale.join(", ")} (run npm run world)` : "");
     const managed = managedPinsOf(world), moved = Object.keys(managed).filter((k) => pins.managed[k]?.value !== managed[k]);
