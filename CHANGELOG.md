@@ -10,6 +10,7 @@ Canon update from the world's author (19 November 2026), recorded in `docs/eym-c
 - Plants and animals live wherever their habitat exists: canon, no longer a provisional default.
 - Caren's dividing wall was the Sondel Range, fallen about 50 years before the present (date to confirm), drawn as recent ruin; the owner is asked whether the source map shows it before or after the fall. Caren's smaller deserts, the basin's drainage, eruptions and earthquakes have no canon fixed points. Garyk's generated geography is the author's working draft. Supernatural places exist and get a placeholder layer; nothing is generated until the owner supplies them.
 - The registry file's managed pin moves with the system data.
+- Owner's answers (19 November 2026): the source map shows Caren after the fall of the Sondel Range (the mountain in the middle is what is left; before, it ran coast to coast), and the fall was about 50 years ago, the best date there is.
 
 Performance of the Region tile refresh, part 1 (owner, 19 November 2026): the same tiles, byte for byte, made several at once. The map server and the refresh tool only; the module is unchanged.
 
