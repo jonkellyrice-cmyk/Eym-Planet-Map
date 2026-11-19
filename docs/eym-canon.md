@@ -147,10 +147,12 @@ The resulting provinces are reported and shown to the owner before they are fina
 ancestors of crops and livestock included. This is canon, no longer a provisional default.
 
 *Caren's dividing wall was the Sondel Range.* It collapsed at the end of the previous campaign, about 50 years before
-the campaign's present (*the exact date: to confirm with the owner*); a central mountain remains. The fallen parts
-are drawn as recent ruin (rubble, landslides, dammed lakes, new passes), never as tectonic mountains. *Before the
-source map's Sondel Range is used as present-day terrain, ask the owner whether the map shows the range before or
-after the fall.*
+the campaign's present ("about 50 years ago" is the best there is: owner, 19 November 2026; the model's fall date is
+50 years before the present); a central mountain remains. The fallen parts are drawn as recent ruin (rubble,
+landslides, dammed lakes, new passes), never as tectonic mountains. **The source map shows Caren after the fall**
+(owner, 19 November 2026): its Sondel Range is the mountain left in the middle, with land on either side, and is
+present-day terrain as drawn. Before the fall the range ran from the east coast to the west coast; that wall is not
+on the map and is rebuilt only for the terrain and climate before the fall.
 
 *Caren's smaller deserts, the basin's drainage, canon eruptions and earthquakes:* nothing is fixed beyond what the
 source map shows. They are derived from the map and the physics; the model's own dated eruptions and earthquakes
@@ -169,8 +171,7 @@ nothing is generated until the owner supplies them.
 - *Peoples, gods and magic in the history engine:* Pathfinder defaults for every setting, including which magical
   effects are switched on, the gods' accord, the per-realm setting of who counts as people, and monster settings. The
   engine itself waits for his answers to the questions in `ROADMAP.md` (later programmes, 3.1).
-- *Caren:* the peace treaty's terms and signatories; where the orc city and its border with Dubos lie; the exact date
-  the Sondel Range fell; whether the source map shows the range before or after the fall.
+- *Caren:* the peace treaty's terms and signatories; where the orc city and its border with Dubos lie.
 - *Supernatural places:* which, where and what they do (owner to supply; nothing generated until then).
 - *Fire:* whether monsters start fires as well as lightning and people.
 - *Aquatic peoples* on shelves and reefs.
