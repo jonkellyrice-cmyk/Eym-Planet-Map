@@ -8,8 +8,8 @@
   },
   "managed": {
     "registryCsvSha256": {
-      "value": "a6b855755b92762b0296fb92344f12c7ab6e89dac3ea5dc68ad3db5d02aeefeb",
-      "note": "0.27.0: the survey of the coasts joined the build; generators fingerprint their own groups of dials (the world's land, plates and ocean are unchanged)"
+      "value": "49f2e9819acbda7ba3021fee41e37972c7861d57ea406b959fc5052c5d215e48",
+      "note": "canon of 19 November 2026: the system's age 3.5 billion years, Mitkear 1.02 solar masses"
     }
   }
 }
