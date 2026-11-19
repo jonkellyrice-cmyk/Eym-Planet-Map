@@ -54,12 +54,63 @@ owner is to be asked before it goes into the panel.
 pole stays in the box, that Caren's and Garyk's coasts stay within the magnetic latitudes above, and that neither
 ever sees an aurora.
 
+## Caren (from the world's author, 18 November 2026)
+
+*Name:* the city the source map labels "Dubor" is **Dubos** (the author's spelling). The label and everything derived
+from it are corrected with the next climate and weather work (`data/eym/caren-labels.json`, then the cartography asset
+and the atlas snapshot made from it).
+
+*Climate, as the author describes it:*
+
+- The Dubos area is tropical, along the equator.
+- Most of Caren is forest: rainforest, seasonal dry forest and cooler highland forest, with savanna between.
+- Seasons exist but are much milder than on Earth's temperate lands: a small yearly swing of temperature (larger toward
+  Caren's north end, about 16° N) together with wet and dry seasons. This follows from Caren's latitudes; nothing is
+  forced.
+- Caren's main desert lies north of the equator, in a basin ringed by mountains: an enclosed desert (the Tarim, Great
+  Basin and central-Iran pattern), dry because the ranges block moisture from every direction.
+- Smaller deserts occur elsewhere, as around Ecuador and Peru: rain shadows behind single ranges that block the moist
+  trade winds, and coastal desert where a cold upwelling current runs offshore in their lee.
+
+How the model meets this (the enclosed basin, the smaller deserts, the tests and what is shown first) is in
+`ROADMAP.md`, consolidated addenda, item 7. Caren's coastline is unchanged; its mountains, rivers and lakes stay where
+the source map draws them, though Caren is god-shaped, so heights may be set without tectonic cause.
+
+## The previous campaign (public to the owner)
+
+The history engine starts from this.
+
+- Caren was divided north from south by an artificial mountain range, which collapsed at the end of the previous
+  campaign. *Which labelled range it is: for the owner to confirm.* It is drawn as recent ruin (rubble, landslides,
+  dammed lakes, new passes), never as tectonic mountains, and the climate model is to support the terrain both before
+  and after the fall, switching at the fall's date.
+- Sailing around the range was historically fatal: a magical barrier, not a physical one.
+- The northern realms developed as ordinary magical civilisations. The southern city-states each had an artifact or pact
+  that gave its society an edge at a cost, all now destroyed:
+  - Dubos: lethal trials of adulthood, extended lifespans, fast births;
+  - the orc city: its monolith;
+  - Dree: a masterwork caste system;
+  - the southeastern holy city: a transmutation ring, and curfew rings;
+  - the first southern city: magically enforced collectivism.
+- The present era: the upheaval after the pacts were destroyed nearly became a continent-wide war, averted by peace
+  accords that favoured some states over others. The two leading military powers are the orcs and the Goliaths of
+  Dubos, with an unstable border between them; the orcs are the rising central power, and the other states are caught
+  between. The Exilarchs (exiled angels, order taken to extremes) are trying to break back into reality.
+- For the history engine: per-city pact modifiers (birth and death rates, lifespan, class structure, cohesion,
+  productivity), each with its cost; the present starts from two great powers, buffer states, the treaty's winners and
+  losers (grievance), and the Exilarchs as an outside threat. *The treaty's terms and signatories, and where the orc
+  city and the border lie: for the world's author.*
+- Garyk canon belongs to the current campaign and stays out of the repository.
+
 ## Still the author's to decide (defaults until he answers)
 
 - *Life:* Earth's species plus Pathfinder's monsters, placed by the gods. Placement rule (by habitat, or by choice):
   default by habitat, provisional.
 - *Peoples, gods and magic in the history engine:* Pathfinder defaults for every setting, including which magical
-  effects are switched on, the gods' accord, the per-realm setting of who counts as people, and monster settings.
+  effects are switched on, the gods' accord, the per-realm setting of who counts as people, and monster settings. The
+  engine itself waits for his answers to the questions in `ROADMAP.md` (later programmes, 3.1).
+- *Caren:* which labelled range was the artificial north-south wall (the owner to confirm); the peace treaty's terms
+  and signatories; where the orc city and its border with Dubos lie.
 - *Fire:* whether monsters start fires as well as lightning and people.
 - *Aquatic peoples* on shelves and reefs.
 - *Planar lenses:* the strengths of the resemblance and the specific places; seeded defaults until he decides. The

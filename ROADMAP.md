@@ -8,7 +8,7 @@ This section is the current plan. The sections below it are the earlier agreemen
 
 ### Consolidated addenda (owner, 18 November 2026)
 
-Part 1 retrofits work already done and comes next, before Stage 5. Part 2 is recorded in the sections below and is not started. The usual rules hold: every change through Twig; renders shown first; no test weakened, skipped or deleted without the owner's yes; Caren's and Garyk's outlines are invariants. Stage 4 (rivers through the year) was already done when these were written (0.25.0); Stage 5 follows Part 1.
+Part 1 retrofits work already done and comes next, before Stage 5; item 7 (owner, 19 November 2026) joins it. Part 2 is recorded in the sections below and is not started; its items D, F, G and H are superseded by the full record of the later programmes (owner, 19 November 2026). The usual rules hold: every change through Twig; renders shown first; no test weakened, skipped or deleted without the owner's yes; Caren's and Garyk's outlines are invariants. Stage 4 (rivers through the year) was already done when these were written (0.25.0); Stage 5 follows Part 1.
 
 **Part 1, in the order it is done** (the order follows what feeds what: the store first, so that every later change refreshes the tiles it makes stale; the mantle before the sea floor, whose seamount chains it makes):
 
@@ -35,6 +35,22 @@ Part 1 retrofits work already done and comes next, before Stage 5. Part 2 is rec
 6. *Moonlight in battle scenes* (item 5). Reason: Pathfinder's light levels (bright, dim, darkness) change concealment and vision, and Eym has two moons with tracked phases, but night scenes do not use them.
    - Night scenes take their light from Austarm's and Chatarm's phase and altitude and the cloud cover at the scene's place and time, and set Foundry's darkness and global light to match (full moons give dim light outdoors; double-dark nights or overcast give darkness).
    - Tested on a full-moon night against a double-dark night.
+7. *Caren canon and the weather addendum* (owner, 19 November 2026). Done with the next climate and weather work, alongside items 4 and 5: the check on Caren's smaller deserts needs item 4's currents. The canon is in `docs/eym-canon.md` (Caren). Caren's coastline is unchanged; its mountains, rivers and lakes stay where the source map draws them.
+   - *Dubos:* the city labelled "Dubor" is "Dubos" (the world's author's spelling). Correct the label (`data/eym/caren-labels.json`) and everything derived from it (the cartography asset, the atlas snapshot). No canon note says "Dubose".
+   - *Caren's main desert*, an enclosed basin north of the equator:
+     - Find the ring of ranges on the source map. Set crest heights and the basin floor so the ring is continuous and blocks moisture from every direction. Caren is god-shaped, so heights may be set without tectonic cause.
+     - Drainage agrees with the traced rivers and lakes: if none leave the basin, it drains inward (rivers ending in salt lakes, marshes or salt flats); if the map shows an outflow, it is kept.
+     - Landforms from the wind model: salt flats, dune fields, desert pavement, gravel plains; dust and loess downwind beyond the ranges.
+     - Resources: evaporite salt. Settlement potential: oases where water reaches the surface.
+     - Climate: hot if the floor is low, cooler if it is a raised plateau; report which the source map's heights imply.
+   - *Smaller deserts:* after item 4 re-runs the currents, check that rain shadows and any cold upwelling coast produce them. The current data shows no desert on Caren, only a little steppe. If they fall short, check the ranges' orientation against the trade winds (with their seasonal shift, below) and the current off the lee coast first; raise ranges only as a last resort. Do not tune to guessed places: if the source map does not settle where they are, ask the owner.
+   - *Seasons readouts:* check that readouts for Caren places show a mild yearly temperature cycle (larger toward its north end, about 16° N) as well as wet and dry seasons.
+   - *The weather model* (`scripts/eym-weather.mjs` now has fixed wind and pressure belts by latitude, a seasonal rain belt, and storms on straight, steady tracks):
+     - The wind and pressure belts shift with the seasons, consistent with the rain belt's shift (a few degrees toward the summer hemisphere). Reasons: consistency, seasonal sailing on the trade-wind routes, and Caren's northern margin.
+     - A jet stream in each hemisphere (subtropical and polar-front branches), meandering in a few slow waves whose phase and amplitude are deterministic functions of the clock; mid-latitude storms follow the jet instead of straight lines. Meanders kept modest: Eym's near-total ocean makes its jets stronger and more zonal than Earth's.
+     - Occasional blocking: rare, deterministic episodes where a meander stalls for one to three weeks, bringing persistent dry, wet, hot or cold spells under and beside it. Recorded for the history engine's timeline of shocks.
+   - *Tests:* Dubos throughout; the main basin is drier than its ranges' outer slopes, and its drainage agrees with the traced rivers and lakes; seasons readouts for Caren places include a mild temperature cycle as well as wet and dry seasons; the weather changes are deterministic; the belts shift with the seasons; storm tracks follow the jet; blocking comes a few times a year per hemisphere; Caren's tropical weather is essentially unchanged by the jet and blocking except at its northern margin.
+   - *Shown to the owner before submitting:* before-and-after biome and rainfall maps of Caren with the main basin and the smaller deserts marked; seasons readouts for a few Caren places, Dubos among them; a jet-stream and storm-track overlay for two contrasting seasons, with one blocking episode.
 
 ### Scope of detail (owner's decision, 17 November 2026)
 
@@ -61,6 +77,7 @@ These override anything below where they differ.
   5. Globe fixes (owner 2026-11-17: folded into Stage 1 of the physical history and climate programme, item 6; not a release of their own): the vertical dotted streaks in the ocean around Caren at deep zoom; labels in the panel's serif, hidden where they would overlap (Gowain, Caren and Lyle pile up); the H and L pressure letters off by default, behind the weather toggle; sea ice and cloud in clearly different colours.
   6. *Eym's physical history and climate*, Stages 1–6 (see that section below), each stage its own pull request, with renders shown before submitting. The globe fixes (item 5) go into Stage 1. This comes before the globe's tier-3 work and the side-by-side.
   7. The Continent layer at tier 2 (Caren and Garyk, two pictures; no tier-2 renderer for it exists yet), then the Local layer at tier 2 for sample places only (Dree, a coast, mountains, farmland, forest), then the side-by-side for the owner's judgement.
+  8. Later, not started: the ecology, human geography, history engine and planar lens programmes (owner, 19 November 2026; see "Later programmes" below).
 
 ### Done
 
@@ -334,84 +351,158 @@ Implements the canon in `docs/eym-canon.md` (owner and the world's author, 18 No
 - *Stage 5:* the glacial maximum's coastlines and sea-ice edge.
 - *Stage 6:* a night sky with an aurora.
 
-## Ecology programme: additions (owner, 18 November 2026)
+## Later programmes: ecology, human geography, the history engine and the planar lenses (owner, 19 November 2026)
 
-Ecology shapes geography. Recorded, not started. (The earlier record of this programme that these add to is not in this repository; these items stand on their own until it is found.)
+Agreed in the owner's planning conversations and written here in full; this record supersedes the partial sections made from the 18 November addenda (Part 2, items D, F, G and H). These are later work, after the physical-history programme (Stages 1–6) and the tier-2 layer work (the Continent layer, Local samples, the side-by-side). Not started.
 
-- *Fire regimes.* Dry-season fuel plus lightning from the weather, later people, and monsters if the world's author says so. Fire keeps savanna and grassland from becoming forest. Reason: without fire, the wet-dry tropics where both campaigns are set come out wrongly over-forested. Test that Caren's and Garyk's tropics are not uniformly forest.
-- *Vegetation coupled with erosion:* plant cover holds soil and banks; bare or overgrazed ground erodes faster (the Dust Bowl pattern, with the wind model).
-- *Biological landforms*, offshore and inland only, never changing Caren's or Garyk's outlines:
-  - coral reefs, atolls, reef islands and lagoons on shallow warm platforms (from sea temperature and bathymetry);
-  - mangroves and salt marshes;
-  - peat bogs;
-  - beaver-style wetlands where suitable species live.
-- *Trophic cascades* in the history engine: removing predators (including monsters cleared by people) can cause overgrazing, bank erosion and the loss of wetlands (the Yellowstone pattern); some damage persists after recovery.
-- *Iterate* landforms → climate → vegetation and animals → erosion → landforms, deterministically.
-- *Life* is Earth's species plus Pathfinder's monsters, placed by the gods. The placement rule (by habitat, or by choice) is for the world's author; default by habitat, flagged provisional.
+### Ground rules for all four
 
-## Human geography and hazards: additions (owner, 18 November 2026)
+- Derived by rule: offline tools in `tools/`, named seeds, same inputs give the same output. The module ships the results as data and overlays.
+- Everything derived about life, people and history is potential, not canon, and is labelled so.
+- Nothing overrides authored places: Caren's and Garyk's cities, realms and names are invariants. Generators never invent named places, peoples or events.
+- Lore decisions belong to the world's author (Dave). Where his answer is needed, a stated default is used only where this record names one, flagged provisional.
+- Spoilers: the owner is also a player. Garyk canon (the current campaign) is entered by the world's author and stored outside the Git repository (GM-only world data, or the web app's store); anything calibrated on it is GM-only. Development and tests use public or synthetic canon.
 
-Recorded, not started.
+### 1. Ecology
 
-- Tsunamis from Stage 1b's trench earthquakes, with coastal run-up from the sea floor.
-- Storm-surge risk by coast.
-- Shipwrecks clustering on shoals and reefs along routes and storm tracks (feeds the treasure map).
-- Fisheries at upwelling zones and shelf edges.
-- Aquatic peoples on shelves and reefs: for the world's author.
+1. Life on Eym is Earth's animals and plants plus Pathfinder's monsters, placed by the gods, not evolved: no evolution or biosphere simulation.
+2. Habitat ranges for Earth species from climate, biome, season, water, depth and altitude, including the wild ancestors of crops (wheat, barley, rice, maize, olives and others) and of livestock (horse, aurochs and cattle, sheep, goat, pig, camel, llama, chicken, dog and others).
+3. Placement rule, for the world's author: species live wherever their habitat exists ("by habitat"), or only where placed ("by choice"). Default: by habitat, flagged provisional.
+4. Optional, ask the owner first: Pathfinder creatures tagged with habitat, giving encounter suitability by place and season; tameable creatures (riding drakes, giant lizards and so on) listed beside Earth's domesticates.
+5. Ecology shapes geography:
+   - *Vegetation and erosion:* plant cover holds soil and stream banks; bare or overgrazed ground erodes faster (the Dust Bowl pattern, with the wind model).
+   - *Fire regimes:* dry-season fuel plus lightning from the weather, later people, and monsters if the world's author says so. Fire keeps savanna and grassland from becoming forest. Reason: without it the wet-dry tropics where both campaigns are set come out wrongly over-forested. Test that Caren's and Garyk's tropics are not uniformly forest.
+   - *Biological landforms*, never changing Caren's or Garyk's outlines:
+     - coral reefs, atolls, reef islands and lagoons on shallow warm platforms (from sea temperature and bathymetry);
+     - mangroves and salt marshes;
+     - peat bogs;
+     - beaver-style wetlands where suitable species live.
+   - *Iterate* landforms → climate → vegetation and animals → erosion → landforms, deterministically.
 
-## History engine: design notes (owner, 18 November 2026)
+### 2. Human geography (potential maps)
 
-From the owner's discussions. Recorded, not started. Every setting about peoples, gods and magic is for the world's author; Pathfinder defaults until he answers.
+1. *Ore provinces* from the geology, with single deposits drawn deterministically within them:
+   - copper, gold and silver at volcanic arcs;
+   - tin and tungsten in collision granites;
+   - iron in old cores, and bog iron;
+   - lead and zinc in sedimentary basins;
+   - salt in evaporite basins (Caren's enclosed desert basin among them);
+   - coal in old swamp basins;
+   - placer gold and gems in rivers below mountains.
+2. *Soils and farming:* soil fertility (loess plains included); crop suitability by crop and season; grazing suitability.
+3. *Settlement-site potential:* harbours (drowned river mouths, sheltered bays), river crossings and confluences, passes, fertile plains, oases, resource sites, defensibility.
+4. *Disease ecology:*
+   - insect-borne fever zones in warm wet lowlands;
+   - waterborne risk in dense river settlements;
+   - crowding risk where many people live close to herd animals;
+   - natural refuges (cold, dry, high): tropical highlands historically escaped fevers and became centres of population.
+5. *Hazards:*
+   - tsunamis from Stage 1b's trench earthquakes, with coastal run-up from the sea floor;
+   - storm-surge risk by coast;
+   - floods, eruptions and earthquakes by place.
+6. *The sea:*
+   - fisheries at upwelling zones and shelf edges;
+   - shipwrecks clustering on shoals and reefs along routes and storm tracks (they feed the treasure map, 3.6);
+   - aquatic peoples on shelves and reefs: for the world's author.
+7. *Derived layers for the history engine:*
+   - carrying capacity by region at several technology levels;
+   - a travel-cost map over land, rivers and sea, with winds, currents, seasons and sea state (sea travel dominates on a world that is 98.6% ocean), and from it who neighbours whom, the routes of trade and invasion, and how far a state can project power;
+   - chokepoints and strategic dependencies: straits, passes, river mouths, single-source resources (copper and tin are rarely found together, so bronze needs trade);
+   - a dated timeline of shocks: droughts, weak wet seasons, volcanic winters, blocking episodes, earthquakes, tsunamis, plague introductions.
 
-- *Non-physical drivers:*
-  - social structures (institutions, cohesion and legitimacy, elite dynamics, path dependence) as per-realm state;
-  - chance;
-  - exceptional people and groups, appearing at a rate set by population, access to education and wealth, open ladders (armies, temples, academies, guilds, adventuring), clusters, frontiers and crises, access to magic and divine favour. Chance decides who. Their influence is greatest at critical junctures.
-  - Player characters and the world's author's NPCs are fixed inputs, not simulated.
-- *The adventurer pyramid:* characters per level from population (the D&D 3.5 / PF1 settlement tables as a start), with power rising steeply by level. High-level individuals act as strategic deterrents.
-- *State cultivation systems* per realm: breadth of recruitment, training through graded danger (including managed monster preserves), licensing and ranks, loyalty controls. These shape the pyramid and the risk of rogue champions and coups.
-- *Monsters:*
-  - a pressure map from habitat (wilderness, depth, altitude, distance from settlement) and a monster pyramid with slow breeding at the top;
-  - monsters caused by events (wars and plagues raise undead; rifts and the Exilarchs bring outsiders);
-  - frontier push-back over time;
-  - tribute arrangements with intelligent monsters;
-  - a monster relations table (prey, rival, sworn enemy, ally, indifferent) with territories, monster wars and waves of displacement;
-  - monster statecraft by realms (tribute, alliances, luring threats onto rivals), with a chance of blowback;
-  - cohesion that rises with monster pressure and drops when a threat is cleared;
-  - a per-realm setting of who counts as people.
-- *Treasure:*
-  - from ruins (collapses and wars), monster hoards and tribute, tombs (burial customs), wrecks, adventurers' losses and monster parts;
-  - less extracted overall, most where it is easy, least where it is guarded;
-  - loot taxes and local inflation.
-- *Gods:*
-  - influence by region (worshippers, holy sites);
-  - an escalation ladder of intervention (spells, omens, champions, miracles, servants, avatars, open divine war), each rung with a chance of a response from opposed powers;
-  - proxy conflicts between churches;
-  - rare top-rung events with large collateral damage;
-  - pantheon-wide responses to existential threats.
-  The accord itself is the world's author's.
-- *Magic and technology:*
-  - a technology's motive = need × the cost and availability of the magical alternative (casters per head, from the pyramid) × political resistance from those it threatens;
-  - magic wins low-volume, high-value work; technology wins bulk and scale;
-  - firearms are political (they threaten the heroic class);
-  - places where magic is scarce or unreliable become hotspots of invention.
-- *Spell availability:* a magical effect's social impact scales with how many can cast it (spell rank → the pyramid), its cost and who controls it. Effects to switch on per the world's author: resurrection, healing, a certain afterlife, undead labour, divination and scrying, instant communication, truth magic in courts, mind-control law, shapechangers, conjured food, durable magic capital, monetary instability, ancestries' lifespans and growth rates, planar lineages, supernatural geography (dead or wild magic, ley lines, rifts), defences against flight and teleportation in architecture, visible divine legitimacy, adventurers' side effects, rediscovered ancient knowledge.
-- *Calibration and spoilers:* canon calibrates the rules; Garyk canon is GM-only and kept outside the repository. (The owner refers to an earlier record of these; it is not in this repository.)
+### 3. The history engine
 
-## Planar lenses (final phase): additions (owner, 18 November 2026)
+1. *Questions for the world's author*; the engine waits for his answers:
+   - peoples and ancestries: homelands, numbers, dates of arrival or creation;
+   - lifespans and growth rates per ancestry;
+   - how common magic is, and what it can do for food, healing, communication and travel;
+   - how active the gods are, and the pantheon's accord (3.7);
+   - monster pressure by region, and which monsters oppose which;
+   - fixed history: known events, realms and dates (invariants the engine must reach);
+   - the species placement rule (1.3).
+2. *Physical and structural mechanisms*, calibrated where possible against published work on historical dynamics (Turchin's cliodynamics, the Seshat databank):
+   - population growth to carrying capacity, and surplus;
+   - the fiscal-demographic cycle (population pressure, then too many competing elites, then fiscal strain on the state, then unrest; roughly two to three centuries in agrarian states);
+   - cohesion that rises at frontiers between very different peoples and decays in long-safe cores;
+   - institutions, legitimacy, elite dynamics and path dependence as per-realm state;
+   - diffusion of technology, religion and disease along the travel network;
+   - conflict between neighbours with overlapping interests, decided by population, logistics within supply range, military technology, defensible terrain and sea power;
+   - the timeline of shocks (2.7);
+   - chance.
+3. *Exceptional people and groups:*
+   - They arise at a rate set by population, access to education and wealth, open ladders (armies, temples, academies, guilds, adventuring), clusters, frontiers and crises, access to magic and divine favour. Chance decides who.
+   - Their influence is small in stable times and greatest at critical junctures (crisis, succession, collapse, invasion).
+   - Player characters and the world's author's NPCs are fixed inputs, not simulated.
+4. *Adventurers:*
+   - The level pyramid: characters per level from population (the D&D 3.5 / PF1 settlement tables as a start), with power rising steeply by level. High-level individuals act as strategic deterrents.
+   - State cultivation systems per realm: breadth of recruitment, training through graded danger (managed monster preserves included), licensing and ranks, loyalty controls. These shape the pyramid and the risk of rogue champions and coups.
+5. *Monsters:*
+   - a pressure map from habitat (wilderness, depth, altitude, distance from settlement), and a monster pyramid with slow breeding at the top;
+   - monsters caused by events: wars and plagues raise undead; rifts and the Exilarchs bring outsiders;
+   - frontier push-back over time;
+   - tribute arrangements with intelligent monsters;
+   - a monster relations table (prey, rival, sworn enemy, ally, indifferent) with territories, monster wars and waves of displacement;
+   - monster statecraft by realms (tribute, alliances, luring threats onto rivals), with a chance of blowback;
+   - cohesion that rises with monster pressure and drops when a threat is cleared;
+   - a per-realm setting of who counts as people;
+   - trophic cascades: removing predators (monsters cleared by people among them) can cause overgrazing, bank erosion and the loss of wetlands (the Yellowstone pattern); some damage persists after recovery;
+   - people and monsters as engineers of the landscape over time (clearing forest, terracing, drainage, burning; monsters' effects only as the world's author defines them).
+6. *Treasure:*
+   - sources: ruins (from collapses and wars), monster hoards and tribute, tombs (burial customs), wrecks (2.6), adventurers' losses, monster parts;
+   - less what has been taken: most taken where it is easy, least where it is guarded, so treasure and danger lie together;
+   - loot taxes and local inflation.
+7. *Gods:*
+   - influence by region (worshippers, holy sites);
+   - an escalation ladder of intervention (spells, omens, champions, miracles, servants, avatars, open divine war), each rung with a chance of a response from opposed powers;
+   - proxy conflicts between churches; rare top-rung events with great collateral damage; pantheon-wide responses to existential threats.
+   The accord itself (which rungs are allowed, who enforces it) is the world's author's.
+8. *Magic and technology:*
+   - a technology's motive = need × the cost and availability of the magical alternative (casters per head, from the pyramid) × political resistance from those it threatens;
+   - magic wins low-volume, high-value work; technology wins bulk and scale;
+   - firearms are political (they threaten the heroic class);
+   - places where magic is scarce or unreliable become hotspots of invention.
+9. *Spell availability:* a magical effect's social impact scales with how many can cast it (spell rank → the pyramid), its cost and who controls it. Effects to switch on per the world's author: resurrection, healing, a certain afterlife, undead labour, divination and scrying, instant communication, truth magic in courts, mind-control law, shapechangers, conjured food, durable magic capital, monetary instability, ancestries' lifespans and growth rates, planar lineages, supernatural geography (dead or wild magic, ley lines, rifts), defences against flight and teleportation in architecture, visible divine legitimacy, adventurers' side effects, rediscovered ancient knowledge.
+10. *Calibration:*
+    - Canon about Caren and Garyk is evidence: unknown rules are calibrated by ensemble runs, keeping only settings whose results resemble the canon (approximate Bayesian computation), then applied to the rest of Eym, whose results are reported as ranges.
+    - Canon seeds neighbouring regions through the travel network.
+    - Caren's land is god-shaped: its coastline and terrain are left out when calibrating rules for natural landscape. Its people and history are valid evidence. Northern Caren (ordinary development before the wall fell) is the clean calibration set; southern Caren shows the pacts' modifiers (`docs/eym-canon.md`, the previous campaign).
+11. *Output*, run as an ensemble (many runs, each deterministic from its seed; only runs consistent with the fixed history count), labelled as simulated odds:
+    - likely cores and peripheries of empires;
+    - frontiers and flashpoints;
+    - trade networks and plague corridors;
+    - the odds of named outcomes;
+    - per-run timelines, for inspiration.
+    Never written into canon automatically.
 
-Recorded, not started. (The existing record these add to is not in this repository; these stand on their own until it is found.)
+### 4. The planar lenses (final phase)
 
-- *Scale:* each lens shows only the portion of a plane linked to Eym. Open edges fade into the rest of the plane; nothing beyond is generated. Two levels: a schematic overview (not to scale, not explorable) and the local view.
-- *The Inner Sphere:* six elemental planes. Air is a full plane and also the neutral membrane between the others. Each plane resembles Eym in proportion to how much that element dominates Eym (default: dominance at the surface), so Water is strong and recognisable. Anchors come from each element's real expression: currents, trenches and ridges; wind belts and storms; mountains and cores; volcanoes and hotspots; ore provinces; forests.
-- *The First World:* Eym transformed. A smooth, reversible warp (regions swell or shrink); caricature that exaggerates each place's distinctive features; its own field of travel times.
-- *The Netherworld:* the same machinery with the opposite settings:
-  - ground down (deep-time erosion, features pulled toward the average);
-  - hollowed out (dry channels, empty basins, bare trunks, karst caves and hollow mountains, settlements as empty shells);
-  - a muted look (a small dim palette, flat directionless light, a dim starless sky);
-  - stretched distances.
-- *Creation's Forge and the Void:* abstract spaces with no geography, routes or distances. Anchor points are correspondences, not bridges, arranged by nature if at all. Optional suggestion for the world's author: tectonic anchors (the Forge: ridges, hotspots, springs, deltas; the Void: trenches, craters, drowned places).
-- Strengths and specific places are for the world's author; seeded defaults until he decides.
+1. *Scale:* the planes are universe-sized, and Eym is part of the Universe. Each lens shows only the portion of a plane linked to Eym, never the whole; its edges are open and fade into the rest of the plane, and nothing beyond Eym's portion is generated. Two levels per lens:
+   - a schematic overview of the whole structure, for orientation: not to scale, not explorable;
+   - the local view of Eym's portion, where navigation happens.
+2. *Three lenses*, as new levels above the system map (the Pathfinder 2e Remaster cosmology). Per plane: one picture, a few named points of interest, and a short description written fresh (not copied from Paizo's text), in the same parchment and pixel-art style.
+   - *The overlapping planes:* a vertical stack: Creation's Forge (top), the First World, the Universe, the Netherworld, the Void (bottom). The Ethereal Plane is the medium between them, not a layer. The Universe opens the system map.
+   - *The Inner Sphere:* the Universe at the centre and six elemental planes (Fire, Earth, Metal, Water, Wood, Air). Air is a full plane and also the neutral membrane between the other five, so it is drawn both ways.
+   - *The Outer Sphere:* the Inner Sphere at the centre, the Astral Plane as the sea around it, and the outer planes around that: Axis, Heaven, Nirvana, Elysium, the Outer Rifts, Abaddon, Hell, the Maelstrom and the Boneyard. Planes with canonical layers (Hell, Heaven and others) may have one step down into a layer, no further. Eym's own places there (where Eym's dead arrive in the Boneyard, for one) are for the world's author.
+3. *The overlapping planes' gradient:* the closer a plane is to the Universe, the more it reflects it.
+   - *The First World* (one step away, derived from Eym):
+     - a smooth, deterministic, reversible warp (regions swell or shrink, coastlines bend, neighbours stay neighbours);
+     - caricature that exaggerates each place's distinctive features against the average (taller, sharper mountains; denser forests; wider, more winding rivers; more ragged coasts; more saturated colour);
+     - its own field of travel times, independent of the picture.
+   - *The Netherworld* (one step away; the same machinery, with opposite settings):
+     - ground down: Eym's erosion model run as if over deep time, features pulled toward the average;
+     - hollowed out: rivers as dry channels, lakes as empty basins, a shallow, still, dark sea, forests as bare trunks, karst caves and hollow mountains (strongest where the geology supports karst), settlements as empty shells (battle maps may reuse building layouts as roofless ruins);
+     - muted: a small dim palette, flat directionless light, a dim sky with few stars;
+     - stretched distances.
+   - *Creation's Forge and the Void* (two steps away): abstract spaces with no geography, routes or travel distances (the Forge: light and making; the Void: darkness and absence). Anchor points are correspondences with places on Eym, not physical bridges; if they have positions, they are arranged by nature, never by Eym's geography. An optional suggestion for the world's author, not to be built unasked: tectonic anchors (the Forge: ridges, hotspots, springs, deltas; the Void: subduction trenches, craters, drowned places).
+   - *"See this place in another plane":* from any spot on Eym, open the same spot in the First World or the Netherworld, and back.
+4. *The elemental planes:* abstractions themed on each element. A plane resembles Eym's portion in proportion to how much that element dominates Eym (default: dominance at the surface, the owner's preference), so the Plane of Water's echo is strong and recognisable and may reuse Eym's ocean data (great currents as rivers within the water, trenches as abysses). Anchors from each element's real expression on Eym:
+   - Water: currents, trenches, ridges;
+   - Air: wind belts, jet streams, storm tracks, cyclones;
+   - Earth: mountains, old continental cores;
+   - Fire: volcanoes, hotspots;
+   - Metal: ore provinces;
+   - Wood: forests.
+5. *Data:* one canonical planes file (names, axis, position, connective planes, layers). Strengths, points of interest, descriptions and authored overrides (places that exist in only one plane) are for the world's author, with placeholders and seeded defaults until he decides. The generator never invents named places.
 
 ## The night sky's tier (owner's decision, 17 November 2026)
 
