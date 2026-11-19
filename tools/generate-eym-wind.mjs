@@ -12,6 +12,7 @@
 //   node tools/generate-eym-wind.mjs           write the data file
 //   node tools/generate-eym-wind.mjs --check   rebuild and compare with the data file
 
+import { inputsFingerprint } from "../scripts/eym-world-inputs.mjs";
 import { readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
@@ -26,7 +27,9 @@ const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartogr
 export const WIND_MODEL = "eym-wind-v1";
 /** What the wind climate is made from: this tool, the weather and sea models, and the data they read. */
 export const WIND_SOURCES = ["tools/generate-eym-wind.mjs", "scripts/eym-weather.mjs", "scripts/eym-sea.mjs", "scripts/eym-seasons.mjs", "scripts/eym-geology.mjs", "data/planet-cartography/abydos/eventide.json", "data/planet-cartography/abydos/eventide-geology.json", "data/planet-cartography/abydos/eventide-ocean.json", "data/eym/climate.json"];
-export const windSourcesSha256 = () => { const h = createHash("sha256"); for (const p of WIND_SOURCES) h.update(readFileSync(new URL(p, root))); return h.digest("hex"); };
+/** The dials it follows (scripts/eym-world-inputs.mjs): the weather's circulation. */
+export const WIND_INPUTS = ["weather"];
+export const windSourcesSha256 = () => { const h = createHash("sha256"); for (const p of WIND_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...WIND_INPUTS)); return h.digest("hex"); };
 export const CONTINENTS = ["Caren", "Garyk"];
 export const YEARS = 4, STEP_HOURS = 7, SECTORS = 16;
 /** The wind (m/s at 10 m) at which dry sand starts to move. */
