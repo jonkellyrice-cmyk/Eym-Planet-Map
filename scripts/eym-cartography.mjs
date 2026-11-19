@@ -264,6 +264,17 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
   const tect = tectonics ? tectonicFields(tectonics, latCount, lonCount) : null;
   // The ranges each continent's bedrock follows: active coastal ranges (volcanic) and old sutures (metamorphic).
   const rangeLines = tectonics ? Object.values(tectonics.continents).flatMap((c) => c.ridges.map((r) => ({ origin: r.origin, points: densify(r.points.map(([x, y]) => fromLocal(c.center, x, y)), 20) }))) : [];
+  // Hotspot chains (the mantle's plumes, tools/generate-eym-tectonics.mjs): seamounts some 50 km across, each summit
+  // deeper the older it is. A 1° cell holds about a fifth of one, so it rises a fifth of the way toward the summit.
+  const seamounts = tectonics?.mantle ? tectonics.mantle.chains.flatMap((c) => c.seamounts) : [];
+  const shoalOver = (cell, depthM) => {
+    let e = depthM;
+    for (const s of seamounts) {
+      if (Math.abs(s.at[0] - cell.lat) > 3 || s.summitDepthM <= e) continue;
+      const km = greatCircleKm(s.at, [cell.lat, cell.lon]); if (km < 250) e += (s.summitDepthM - e) * 0.35 * Math.exp(-((km / 80) ** 2));
+    }
+    return e;
+  };
   const rangeKm = (cell, origin) => { let best = Infinity; for (const r of rangeLines) if (r.origin === origin) for (const p of r.points) { if (Math.abs(p[0] - cell.lat) > 6) continue; best = Math.min(best, greatCircleKm(p, [cell.lat, cell.lon])); } return best; };
   for (const cell of cells) {
     const d = dist[cell.id], v = [Math.cos(cell.lat * DEG) * Math.cos(cell.lon * DEG), Math.cos(cell.lat * DEG) * Math.sin(cell.lon * DEG), Math.sin(cell.lat * DEG)];
@@ -276,7 +287,7 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
         const shelfKm = cell.margin === "active" ? 50 : 220;
         const shelf = -40 - Math.min(d, shelfKm) / shelfKm * 110, slope = d > shelfKm ? -Math.min(1, (d - shelfKm) / 260) * 3050 : 0, abyss = d > shelfKm + 260 ? -Math.min(1, (d - shelfKm - 260) / 1500) * 1300 : 0;
         const ridge = d > 400 ? 2300 * Math.exp(-((ridgeKm / 320) ** 2)) : 0, trench = -3200 * Math.exp(-((trenchKm / 110) ** 2));
-        cell.elevationM = Math.round(clamp(shelf + slope + abyss + ridge + trench, -9500, -20));
+        cell.elevationM = Math.round(clamp(shoalOver(cell, shelf + slope + abyss + ridge + trench), -9500, -20));
       } else cell.elevationM = Math.round(Math.max(1, cell.landElevationM));
       continue;
     }
@@ -432,6 +443,8 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
       volcanoes: tectonics.volcanoes.map(({ plate, at, ...v }) => ({ at: at.map((x) => Math.round(x * 100) / 100), ...v })), history: tectonics.history, caren: tectonics.caren, garyk: tectonics.garyk,
       // The plate boundaries, for earthquakes (scripts/eym-quakes.mjs).
       boundaries: packBoundaries(tectonics.boundaries),
+      // The mantle (owner's addenda, 18 November 2026, item 3): its two upwellings and the plumes' seamount chains.
+      ...(tectonics.mantle ? { mantle: { upwellings: tectonics.mantle.upwellings, radiusDeg: tectonics.mantle.radiusDeg, chains: tectonics.mantle.chains.map(({ hotspot, seamounts }) => ({ hotspot, seamounts: seamounts.map(({ at, ageMyr, summitDepthM }) => ({ at: at.map((x) => Math.round(x * 100) / 100), ageMyr, summitDepthM })) })) } } : {}),
     } } : {}),
     resolutionDeg: res, grid,
   };

@@ -198,7 +198,10 @@ export function buildForSeed(seed, inputs = tectonicInputs()) {
     }
     return base;
   };
-  return { ok: failures.length === 0, failures, state: { seed, first, pieces, plates, plateOf: plateWithMargins, continents, inputs, rangeAxis: { center: [mLat, mLon], bearing: axis, toward } } };
+  // Today's speeds follow what drives each plate (the owner's addenda, 18 November 2026, item 3). Only the size of
+  // each plate's turning changes, not its axis, so no coastline moves: the continents follow their motion's direction.
+  const speeds = plausibleSpeeds(plates, plateWithMargins);
+  return { ok: failures.length === 0, failures, state: { seed, first, pieces, plates, plateOf: plateWithMargins, continents, inputs, speeds, rangeAxis: { center: [mLat, mLon], bearing: axis, toward } } };
 }
 
 // ---------------------------------------------------------------- the global picture: boundaries, volcanoes, rasters
@@ -232,8 +235,12 @@ function globalPicture(state) {
     const activity = e.closingMmYr > 45 ? "active" : vrng() < 0.4 ? "dormant" : "extinct";
     volcanoes.push({ at: latLon(spot).map(r3), kind: continental(over) ? "arc (continental margin)" : "arc (island)", setting: "subduction", plate: plates[over].id, ageMyr: r1(0.1 + vrng() ** 2 * 30), activity, heightM: Math.round(1800 + vrng() * 2600) });
   }
-  const archipelagoHotspots = state.archipelagoCenters ?? [];
-  const hotspots = archipelagoHotspots.filter((_, i) => i % 3 === 0).map((ll, i) => ({ at: ll, kind: "hotspot", setting: "hotspot", plate: plates[plateOf(vec(ll))].id, ageMyr: r1(0.01 + vrng() * 2), activity: i === 0 ? "active" : vrng() < 0.6 ? "active" : "dormant", heightM: Math.round(2500 + vrng() * 1800) }));
+  // Hotspots: plumes fixed in the deep mantle, rising from the margins of its two broad antipodal upwellings
+  // (mantleUpwellings). Each stands under one of the open-sea archipelagos, and the plate above carries away an
+  // age-ordered chain of seamounts along its motion (the Hawaii-Emperor pattern).
+  const mantle = mantleUpwellings(state.archipelagoCenters ?? [], latLon(state.first.S));
+  const hotspots = mantle.hotspots.map((ll, i) => ({ at: ll, kind: "hotspot", setting: "hotspot", plate: plates[plateOf(vec(ll))].id, ageMyr: r1(0.01 + vrng() * 2), activity: i === 0 ? "active" : vrng() < 0.6 ? "active" : "dormant", heightM: Math.round(2500 + vrng() * 1800) }));
+  const chains = hotspots.map((h) => ({ hotspot: h.at, plate: h.plate, seamounts: hotspotChain(plates, plateOf, h.at) }));
 
   // Coarse rasters at 1°: plate, distance to the nearest ridge and trench (in 10 km steps), and margin side.
   const R = 1, C = 360, Rw = 180, plateRaster = new Uint8Array(C * Rw), ridgeKm = new Uint8Array(C * Rw).fill(255), trenchKm = new Uint8Array(C * Rw).fill(255), collideKm = new Uint8Array(C * Rw).fill(255);
@@ -247,7 +254,7 @@ function globalPicture(state) {
     ridgeKm[r * C + c] = near(ridges); trenchKm[r * C + c] = near(trenches); collideKm[r * C + c] = near(collisions);
   }
   const typed = (type) => boundary.filter((e) => e.type === type).length;
-  return { boundary, volcanoes: [...volcanoes, ...hotspots], rasters: { resolutionDeg: 1, plate: b64(plateRaster), ridgeDistance10Km: b64(ridgeKm), trenchDistance10Km: b64(trenchKm), collisionDistance10Km: b64(collideKm) }, counts: { convergent: typed("convergent"), divergent: typed("divergent"), transform: typed("transform") }, lines: { ridges, trenches, collisions } };
+  return { boundary, volcanoes: [...volcanoes, ...hotspots], mantle: { upwellings: mantle.upwellings, radiusDeg: mantle.radiusDeg, chains }, rasters: { resolutionDeg: 1, plate: b64(plateRaster), ridgeDistance10Km: b64(ridgeKm), trenchDistance10Km: b64(trenchKm), collisionDistance10Km: b64(collideKm) }, counts: { convergent: typed("convergent"), divergent: typed("divergent"), transform: typed("transform") }, lines: { ridges, trenches, collisions } };
 }
 
 // ---------------------------------------------------------------- ranges
@@ -319,12 +326,15 @@ export function buildTectonics({ seeds = TECTONIC_SEEDS, inputs = tectonicInputs
       log(`${seed}: ${failures.join("; ")}`);
       continue;
     }
-    const plates = state.plates.map((p) => ({ id: p.id, name: p.name, kind: p.kind, micro: Boolean(p.micro), seed: latLon(p.v).map(r3), weightKm: p.weightKm, pole: p.pole.map(r3), rateDegPerMyr: r3(p.rate), speedMmYrAtSeed: r1(Math.hypot(...plateVelocity(p, p.v))) }));
+    const speedOf = Object.fromEntries(state.speeds.map((s) => [s.id, s]));
+    const plates = state.plates.map((p) => ({ id: p.id, name: p.name, kind: p.kind, micro: Boolean(p.micro), seed: latLon(p.v).map(r3), weightKm: p.weightKm, pole: p.pole.map(r3), rateDegPerMyr: r3(p.rate), speedMmYrAtSeed: r1(Math.hypot(...plateVelocity(p, p.v))), speedMmYr: speedOf[p.id].speedMmYr, slabShare: speedOf[p.id].slabShare, driver: speedOf[p.id].driver }));
     const history = [
-      { stage: "assembly", myrAgo: [420, 320], text: "Old cores collide and weld into the First Land; their seams become the inland belts of Gaffa, Khohalis and Demani and the old core under Garyk." },
-      { stage: "break-up", myrAgo: [MYR, MYR - 20], text: "The First Land rifts apart around Garyk; the rifts become passive, smooth coasts with wide shelves." },
+      { stage: "mantle", myrAgo: null, text: "Beneath the plates the mantle turns over in two broad upwellings on opposite sides of the world, with cold sinking sheets between them; plumes rise from the upwellings' margins and stay fixed while the plates pass over them." },
+      { stage: "assembly", myrAgo: [420, 320], text: "Old cores, swept together over the sinking mantle between the upwellings, collide and weld into the First Land; their seams become the inland belts of Gaffa, Khohalis and Demani and the old core under Garyk." },
+      { stage: "break-up", myrAgo: [MYR, MYR - 20], text: "Lying long over the mantle like a lid, the First Land comes to sit above one of the upwellings, which domes it up and rifts it apart around Garyk; the rifts become passive, smooth coasts with wide shelves." },
       { stage: "drift", myrAgo: [MYR - 20, 0], text: "Gaffa, Khohalis and Demani break away from Garyk's side and drift together to the far side of the world, some twelve thousand kilometres, each turning about its own pole; Garyk stays behind." },
-      { stage: "accretion", myrAgo: [120, 0], text: "Leading edges override sinking sea floor: coastal ranges, volcanoes and island arcs grow along them." },
+      { stage: "accretion", myrAgo: [120, 0], text: "Leading edges override sinking sea floor: coastal ranges, volcanoes and island arcs grow along them. The sea floor that still trails a sinking slab is pulled fast; Gaffa, Khohalis and Demani, whose slabs are gone and whose edges now ride over the sea floor ahead, have slowed to a few centimetres a year." },
+      { stage: "hotspots", myrAgo: [80, 0], text: "Plumes rising from the upwellings' margins build the open-sea archipelagos; each plate carries the older volcanoes away along its motion, where they sink into lines of seamounts, oldest farthest from the plume." },
       { stage: "collision", myrAgo: [60, 0], text: "The Northern Garyk Sea Plate closes on Garyk; its northern ranges rise along the seam." },
       { stage: "erosion", myrAgo: [320, 0], text: "Wear and the slow rebound of the crust soften the old belts to rounded hills and lower the young ranges." },
       { stage: "Caren", myrAgo: null, text: "Caren is set down whole by the gods into the sea where the First Land had broken apart. It takes no part in the turning of the plates." },
@@ -336,12 +346,97 @@ export function buildTectonics({ seeds = TECTONIC_SEEDS, inputs = tectonicInputs
       garyk: { rangeAxis: { centre: state.rangeAxis.center.map(r3), bearingDeg: r1(state.rangeAxis.bearing) }, convergentWith: "garyk-north", core: "old core of granite and gneiss under the interior (part of the First Land)" },
       caren: CAREN_GEOLOGY, continents,
       boundaries: { counts: world.counts, ridges: world.lines.ridges.map((p) => latLon(p).map((v) => r1(v))), trenches: world.lines.trenches.map((p) => latLon(p).map((v) => r1(v))), collisions: world.lines.collisions.map((p) => latLon(p).map((v) => r1(v))) },
-      volcanoes: world.volcanoes, rasters: world.rasters, history,
-      report: { tried, chosen: seed },
+      volcanoes: world.volcanoes, mantle: world.mantle, rasters: world.rasters, history,
+      report: { tried, chosen: seed, plateSpeeds: state.speeds },
     };
     return data;
   }
   throw new Error(`No seed met the targets:\n${tried.map((x) => `${x.seed}: ${x.failures.join("; ")}`).join("\n")}`);
+}
+
+// ---------------------------------------------------------------- the mantle (the owner's addenda, 18 November 2026, item 3)
+
+// What drives a plate: the pull of sea floor sinking at its edges. A plate with a slab along at least a tenth of its
+// edge moves at 5-10 cm a year; one without, at 1-3 (Forsyth and Uyeda's pattern on Earth). Caren's plate is the gods'
+// (exempt); Garyk's is kept at about 1 cm a year, the rate its fitted history gives it.
+export const SLAB_SHARE = 0.1, SLAB_SPEED_MM = [50, 100], FREE_SPEED_MM = [10, 30], SPEED_EXEMPT = Object.freeze(["caren", "garyk"]);
+
+/** Each plate's speed (mm a year, root mean square over its area) and the share of its edge where its own sea floor sinks, on a 1° grid. */
+export function plateDrivers(plates, plateOf) {
+  const cols = 360, rows = 180, ids = new Uint8Array(cols * rows), at = (r, c) => vec([90 - (r + 0.5), -180 + (c + 0.5)]);
+  for (let r = 0; r < rows; r += 1) for (let c = 0; c < cols; c += 1) ids[r * cols + c] = plateOf(at(r, c));
+  const stats = plates.map(() => ({ area: 0, speed2: 0, perim: 0, slab: 0 })), continental = (i) => plates[i].kind === "continental";
+  for (let r = 0; r < rows; r += 1) for (let c = 0; c < cols; c += 1) {
+    const i = ids[r * cols + c], w = Math.cos((90 - (r + 0.5)) * DEG), v = plateVelocity(plates[i], at(r, c));
+    stats[i].area += w; stats[i].speed2 += w * (v[0] ** 2 + v[1] ** 2 + v[2] ** 2);
+  }
+  for (let r = 0; r < rows; r += 1) for (let c = 0; c < cols; c += 1) for (const [dr, dc] of [[0, 1], [1, 0]]) {
+    const rr = r + dr, cc = (c + dc) % cols; if (rr >= rows) continue; const a = ids[r * cols + c], b = ids[rr * cols + cc]; if (a === b) continue;
+    const pa = at(r, c), pb = at(rr, cc), p = norm3([pa[0] + pb[0], pa[1] + pb[1], pa[2] + pb[2]]), cls = classifyBoundary(plates[a], plates[b], p, norm3(sub(pb, pa)));
+    const len = 111.2 * (dr ? 1 : Math.cos((90 - (r + 0.5 + rr + 0.5) / 2) * DEG)); stats[a].perim += len; stats[b].perim += len;
+    if (cls.type !== "convergent" || (continental(a) && continental(b))) continue;
+    // Which goes down: sea floor under a continent; between two sea plates the later one (as for the arc volcanoes).
+    const over = continental(a) && !continental(b) ? a : continental(b) && !continental(a) ? b : Math.min(a, b);
+    stats[over === a ? b : a].slab += len;
+  }
+  return stats.map((s) => ({ speed: Math.sqrt(s.speed2 / (s.area || 1)), slabShare: s.slab / (s.perim || 1) }));
+}
+
+/** Bring each plate's present speed within the range its driver allows, turning about the same pole: only outliers change. Returns the report. */
+export function plausibleSpeeds(plates, plateOf) {
+  const before = plateDrivers(plates, plateOf);
+  let now = before;
+  for (let round = 0; round < 8; round += 1) {
+    let changed = false;
+    plates.forEach((p, i) => {
+      if (SPEED_EXEMPT.includes(p.id) || !now[i].speed) return;
+      const [lo, hi] = now[i].slabShare >= SLAB_SHARE ? SLAB_SPEED_MM : FREE_SPEED_MM, target = now[i].speed < lo ? lo + 5 : now[i].speed > hi ? hi - 5 : null;
+      if (target !== null) { p.rate *= target / now[i].speed; changed = true; }
+    });
+    if (!changed) break;
+    now = plateDrivers(plates, plateOf);
+  }
+  return plates.map((p, i) => {
+    const driver = SPEED_EXEMPT.includes(p.id) ? "exempt" : now[i].slabShare >= SLAB_SHARE ? "slab" : "no slab", [lo, hi] = driver === "slab" ? SLAB_SPEED_MM : FREE_SPEED_MM;
+    return { id: p.id, kind: p.kind, driver, slabShare: r3(now[i].slabShare), speedMmYrBefore: r1(before[i].speed), speedMmYr: r1(now[i].speed), withinTarget: driver === "exempt" || (now[i].speed >= lo - 0.5 && now[i].speed <= hi + 0.5) };
+  });
+}
+
+/**
+ * The mantle's two broad upwellings, antipodal, and the plumes on their margins: fitted to the open-sea archipelagos
+ * (which stay where they are) and to the First Land, which rifted above one of them. Searched on a 2° grid of centres
+ * within 60° of the equator and radii of 25°-45°: the First Land must lie inside an upwelling (8° clear of its margin);
+ * the fit keeps the most archipelagos within 7° of a margin with both upwellings represented, then the smallest radius,
+ * then the lowest latitude and longitude (so it is the same every time). Those archipelagos are the hotspots.
+ */
+export function mantleUpwellings(archipelagos, firstLand) {
+  const angle = (p, q) => Math.acos(Math.max(-1, Math.min(1, p[0] * q[0] + p[1] * q[1] + p[2] * q[2]))) / DEG;
+  let best = null;
+  for (let la = -60; la <= 60; la += 2) for (let lo = -180; lo < 180; lo += 2) {
+    const U = vec([la, lo]), fa = angle(vec(firstLand), U), fl = Math.min(fa, 180 - fa);
+    for (let R = 25; R <= 45; R += 1) {
+      if (fl > R - 8) continue;
+      const near = archipelagos.filter((h) => { const a = angle(vec(h), U); return Math.abs(Math.min(a, 180 - a) - R) <= 7; });
+      if (near.length < 2) continue;
+      const sides = new Set(near.map((h) => (angle(vec(h), U) < 90 ? "a" : "b")));
+      const score = [sides.size, near.length, -R];
+      if (!best || score[0] > best.score[0] || (score[0] === best.score[0] && (score[1] > best.score[1] || (score[1] === best.score[1] && score[2] > best.score[2])))) best = { score, la, lo, R, near };
+    }
+  }
+  if (!best) return { upwellings: [], radiusDeg: null, hotspots: [] };
+  return { upwellings: [[best.la, best.lo], [-best.la, best.lo >= 0 ? best.lo - 180 : best.lo + 180]], radiusDeg: best.R, hotspots: best.near };
+}
+
+/** A hotspot's chain: where the plate above has carried the volcano made over the plume every 4 Myr for 80 Myr, while it stays on that plate. */
+export function hotspotChain(plates, plateOf, at) {
+  const p = vec(at), index = plateOf(p), plate = plates[index], axis = vec(plate.pole), out = [];
+  for (let age = 4; age <= 80; age += 4) {
+    const q = rotate(p, axis, plate.rate * age * DEG);
+    if (plateOf(q) !== index) break;
+    // Older volcanoes have sunk further with the cooling sea floor: summits deepen with age.
+    out.push({ at: latLon(q).map(r3), ageMyr: age, summitDepthM: -Math.round(200 + 25 * age) });
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------- small helpers
