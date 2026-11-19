@@ -1,0 +1,39 @@
+{
+  "shapes": "75ea4271bb5fd06e6d3c72fcda4f8a75c7584e8ab1a8f313d9e60b03d2dbbc2c",
+  "paint": "2d71b3a902992d9c0135c24c043286623d0ead09420f7495b38b7ae813704558",
+  "shapesFiles": [
+    "scripts/astronomy.mjs",
+    "scripts/atmosphere.mjs",
+    "scripts/cartography-asset.mjs",
+    "scripts/cartography-regions.mjs",
+    "scripts/eym-aeolian.mjs",
+    "scripts/eym-climate.mjs",
+    "scripts/eym-cover.mjs",
+    "scripts/eym-geology.mjs",
+    "scripts/eym-landforms.mjs",
+    "scripts/eym-local-detail.mjs",
+    "scripts/eym-region-layer.mjs",
+    "scripts/eym-river-courses.mjs",
+    "scripts/eym-river-flow.mjs",
+    "scripts/eym-sea.mjs",
+    "scripts/eym-seasons.mjs",
+    "scripts/eym-surface.mjs",
+    "scripts/eym-tides.mjs",
+    "scripts/eym-weather.mjs",
+    "scripts/ground-sky.mjs",
+    "scripts/planet-geography.mjs",
+    "scripts/scholars-model.mjs",
+    "scripts/sky-frame.mjs",
+    "scripts/system-data.mjs",
+    "scripts/universal-time.mjs",
+    "data/planet-cartography/abydos/eventide-drainage.json",
+    "data/planet-cartography/abydos/eventide-flow.json",
+    "data/planet-cartography/abydos/eventide-geology.json",
+    "data/planet-cartography/abydos/eventide-wind.json",
+    "data/planet-cartography/abydos/eventide.json"
+  ],
+  "paintFiles": [
+    "scripts/eym-cover.mjs",
+    "scripts/eym-region-paint.mjs"
+  ]
+}

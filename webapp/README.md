@@ -41,8 +41,26 @@ cache in milliseconds.
 | GET | `/api/battle-maps/:id/files/:name` | a layer (PNG) |
 | GET | `/api/region/frames` | the Region layer's model, frames and whether a store is set up |
 | GET | `/api/region/tile/:frame/:tx/:ty.png` | one Region tile (`?kind=pixels` or `flat`), from the store or made |
-| GET | `/api/region/fill?frame=&start=&count=&ms=` | make and keep a frame's tiles not yet in the store, a batch at a time |
-| GET | `/api/region/purge?model=&confirm=` | **temporary**, off by default: delete an old Region model's stored files (see below) |
+| GET | `/api/region/fill?frame=&start=&count=&ms=` | make and keep a frame's tiles not yet in the store, and refresh stale ones, a batch at a time |
+| GET | `/api/region/stale?frame=` | how many stored tiles are current, need repainting, or need making again (read only) |
+| GET | `/api/region/purge?model=&confirm=` | **temporary**, off by default: delete an old Region version's stored files (see below) |
+
+## Stored Region tiles and staleness
+
+The Region layer's tiles are kept under the version they were made from, not a hand-bumped label: `data/eym/region-fingerprint.json`
+(made by `tools/generate-region-fingerprint.mjs` during `npm run build`, and checked by a test) holds two fingerprints:
+
+- *shapes*: every module the shapes are made by (`scripts/eym-region-layer.mjs` and everything it imports, followed
+  automatically) and every data file they read (the cartography and the geology, drainage, wind and river-climate files);
+- *paint*: the painting (`scripts/eym-region-paint.mjs` and the shared cover classes, `scripts/eym-cover.mjs`).
+
+Shapes are kept under `region/eym-region-layer-v5-s<shapes>/…` and pictures under `region/eym-region-layer-v5-s<shapes>-p<paint>/…`
+(the first 12 hex digits of each), and each row of `eym_tiles` names the version it was made under. So when any of that
+code or data changes, the tiles are no longer found under the current name: a tile is made again on request rather than
+served stale, and no cache can hold an old picture. `/api/region/stale` counts what is out of date, and
+`/api/region/fill` refreshes it: a tile whose shapes are current but whose painting is not is repainted from its kept
+shapes (quick); one whose shapes are stale is made again from the start. The Continent and Local stores are to work the
+same way when they exist.
 
 The manifest lists the layers: `exterior` (outside with roofs), `ground` (outside with every building
 opened), `roofs[floor]` (roofs alone, for Foundry's roof layer), `floors[floor]` (upper floors over
@@ -110,15 +128,17 @@ been tried live.
 
 ## Purging old Region tiles (temporary: remove this endpoint)
 
-Each Region model keeps its tiles in its own folder (`region/<model>/…` in the `eym-tiles` and `eym-shapes`
-buckets), so a new model leaves the old one's files behind: by 0.25.1, v1 to v4 held some 230 MB nobody reads.
+Each Region version keeps its tiles in its own folder (`region/<version>/…` in the `eym-tiles` and `eym-shapes`
+buckets), so a new version leaves the old one's files behind: by 0.25.1, v1 to v4 held some 230 MB nobody reads, and
+since 0.25.3 every change to the code or data the tiles are made from leaves another (see the section above).
 `GET /api/region/purge` deletes them. It exists only while the layers' models keep changing during development,
 and it is guarded:
 
 - **Off unless switched on.** It answers 403 unless the deployment sets `EYM_REGION_PURGE=on` (Vercel project
   settings, then a redeploy). Set it only for a clean-up, and unset it again afterwards.
-- **Old models only.** `model` must name a Region model older than the server's own (`eym-region-layer-v1` while
-  v5 is current); the current model, a newer one or anything else is refused.
+- **Old versions only.** `model` must name a Region folder older than the server's own: an older model
+  (`eym-region-layer-v1`), or the current model made from other code or data (`eym-region-layer-v5`, or one with
+  fingerprints that are no longer current). The current shapes and pictures, a newer model, or anything else is refused.
 - **A dry run unless confirmed.** Without `confirm` repeating the model's name, it only counts the files.
 - **Nothing else.** It touches only `region/<model>/` in the two Region buckets. The `eym_tiles` table needs no
   change: it holds one row per tile, already naming the current model.

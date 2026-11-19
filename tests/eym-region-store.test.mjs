@@ -7,7 +7,9 @@ import { gunzipSync } from "node:zlib";
 import { REGION_MODEL, regionFrames, regionTileAt } from "../scripts/eym-region-layer.mjs";
 import { decodePng } from "../webapp/render/png.mjs";
 import { regionStore, sha256 } from "../webapp/region-store.mjs";
-import { createMapServer, regionShapesFile, regionTilePath, regionTilePicture } from "../webapp/server.mjs";
+import { REGION_PIXELS_ID, REGION_SHAPES_ID, createMapServer, purgeableRegionFolder, regionShapesFile, regionShapesPath, regionTileFromShapes, regionTilePath, regionTilePicture } from "../webapp/server.mjs";
+import { buildRegionTile } from "../scripts/eym-region-layer.mjs";
+import { renderRegionTile } from "../scripts/eym-region-paint.mjs";
 
 const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
 const frames = regionFrames(asset), caren = frames.find((f) => f.id === "caren"), home = regionTileAt(caren, -6.79, 0.412);
@@ -22,6 +24,8 @@ function fakeSupabase() {
     const pub = /^\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/.exec(url.pathname);
     if (pub) return files.has(`${pub[1]}/${pub[2]}`) ? answer(200, files.get(`${pub[1]}/${pub[2]}`)) : answer(400, { error: "not_found" });
     if (headers.authorization !== "Bearer service-key-for-tests" || headers.apikey !== "service-key-for-tests") return answer(401, "no key");
+    const kept = /^\/storage\/v1\/object\/authenticated\/([^/]+)\/(.+)$/.exec(url.pathname);
+    if (kept && method === "GET") return files.has(`${kept[1]}/${kept[2]}`) ? answer(200, files.get(`${kept[1]}/${kept[2]}`)) : answer(400, { error: "not_found" });
     const listing = /^\/storage\/v1\/object\/list\/([^/]+)$/.exec(url.pathname);
     if (listing && method === "POST") {
       // One level under the prefix, as Supabase lists it: files with an id, folders without.
@@ -36,7 +40,7 @@ function fakeSupabase() {
     const obj = /^\/storage\/v1\/object\/([^/]+)\/(.+)$/.exec(url.pathname);
     if (obj && method === "POST") { files.set(`${obj[1]}/${obj[2]}`, Buffer.from(init.body)); return answer(200, {}); }
     if (url.pathname === "/rest/v1/eym_tiles" && method === "POST") { const row = JSON.parse(init.body); rows.set([row.layer, row.kind, row.z, row.x, row.y].join("|"), row); return answer(201); }
-    if (url.pathname === "/rest/v1/eym_tiles") { const want = (k) => url.searchParams.get(k).slice(3), all = [...rows.values()].filter((r) => r.layer === want("layer") && r.kind === want("kind") && String(r.z) === want("z") && (!url.searchParams.has("rules_version") || r.rules_version === want("rules_version"))), from = Number(url.searchParams.get("offset")); return answer(200, all.slice(from, from + 1000).map((r) => ({ x: r.x, y: r.y }))); }
+    if (url.pathname === "/rest/v1/eym_tiles") { const want = (k) => url.searchParams.get(k).slice(3), all = [...rows.values()].filter((r) => r.layer === want("layer") && r.kind === want("kind") && String(r.z) === want("z") && (!url.searchParams.has("rules_version") || r.rules_version === want("rules_version"))), from = Number(url.searchParams.get("offset")); return answer(200, all.slice(from, from + 1000).map((r) => ({ x: r.x, y: r.y, rules_version: r.rules_version }))); }
     return answer(404, "?");
   };
   return { files, rows, calls, fetchImpl };
@@ -50,17 +54,17 @@ test("there is no store without the project's address and key", () => {
 
 test("a land tile is made once, kept with its shapes, and read back from the store after that", async () => {
   const fake = fakeSupabase(), store = regionStore(ENV, fake.fetchImpl), path = regionTilePath("caren", "pixels", home.tx, home.ty);
-  assert.equal(path, `region/${REGION_MODEL}/caren/pixels/${home.tx}_${home.ty}.png`);
+  assert.equal(path, `region/${REGION_PIXELS_ID}/caren/pixels/${home.tx}_${home.ty}.png`);
   const first = await regionTilePicture(asset, frames, store, "caren", home.tx, home.ty); assert.equal(first.source, "made and kept"); assert.equal(first.error, undefined);
   assert.deepEqual(fake.files.get(`eym-tiles/${path}`), first.png); assert.equal(decodePng(first.png).width, 256);
-  const row = fake.rows.get(`region|pixels|${caren.store}|${home.tx}|${home.ty}`); assert.equal(row.sha256, sha256(first.png)); assert.equal(row.bytes, first.png.length); assert.equal(row.rules_version, REGION_MODEL);
-  const shapes = JSON.parse(gunzipSync(fake.files.get(`eym-shapes/region/${REGION_MODEL}/caren/shapes/${home.tx}_${home.ty}.json.gz`)));
+  const row = fake.rows.get(`region|pixels|${caren.store}|${home.tx}|${home.ty}`); assert.equal(row.sha256, sha256(first.png)); assert.equal(row.bytes, first.png.length); assert.equal(row.rules_version, REGION_PIXELS_ID); assert.equal(fake.rows.get(`region|shapes|${caren.store}|${home.tx}|${home.ty}`).rules_version, REGION_SHAPES_ID);
+  const shapes = JSON.parse(gunzipSync(fake.files.get(`eym-shapes/${regionShapesPath("caren", home.tx, home.ty)}`)));
   assert.equal(shapes.cells, 256); assert.equal(Buffer.from(shapes.cover, "base64").length, 260 * 260); assert.ok(shapes.settlements.some((s) => s.name === "Dree"));
   assert.ok(fake.rows.has(`region|shapes|${caren.store}|${home.tx}|${home.ty}`));
   const again = await regionTilePicture(asset, frames, store, "caren", home.tx, home.ty); assert.equal(again.source, "store"); assert.deepEqual(again.png, first.png);
   assert.deepEqual([...(await store.listed("region", "pixels", caren.store))], [`${home.tx},${home.ty}`]);
   // A tile made under older rules does not count as made under these ones.
-  assert.deepEqual([...(await store.listed("region", "pixels", caren.store, REGION_MODEL))], [`${home.tx},${home.ty}`]);
+  assert.deepEqual([...(await store.listed("region", "pixels", caren.store, REGION_PIXELS_ID))], [`${home.tx},${home.ty}`]);
   assert.deepEqual([...(await store.listed("region", "pixels", caren.store, "eym-region-layer-v0"))], []);
   // Each row is dated when it was made (a tile made again gets a new date, not its first one).
   const dated = Date.parse(fake.rows.get(`region|pixels|${caren.store}|${home.tx}|${home.ty}`).made_at); assert.ok(Math.abs(Date.now() - dated) < 600_000);
@@ -107,7 +111,7 @@ test("old Region models' files can be purged, only when switched on, only older 
   const fake = fakeSupabase(), cacheDir = mkdtempSync(join(tmpdir(), "eym-region-")), store = regionStore(ENV, fake.fetchImpl);
   const old = ["caren/pixels/1_2.png", "caren/pixels/1_3.png", "garyk/pixels/-7_-7.png"];
   for (const p of old) { fake.files.set(`eym-tiles/region/eym-region-layer-v2/${p}`, Buffer.from("old")); fake.files.set(`eym-shapes/region/eym-region-layer-v2/${p.replace("pixels", "shapes").replace(".png", ".json.gz")}`, Buffer.from("old")); }
-  fake.files.set(`eym-tiles/region/${REGION_MODEL}/caren/pixels/1_2.png`, Buffer.from("now")); fake.files.set("eym-tiles/region/eym-region-layer-v3/caren/pixels/1_2.png", Buffer.from("other"));
+  fake.files.set(`eym-tiles/region/${REGION_PIXELS_ID}/caren/pixels/1_2.png`, Buffer.from("now")); fake.files.set(`eym-shapes/region/${REGION_SHAPES_ID}/caren/shapes/1_2.json.gz`, Buffer.from("now")); fake.files.set("eym-tiles/region/eym-region-layer-v3/caren/pixels/1_2.png", Buffer.from("other"));
   const kept = fake.files.size, off = createMapServer({ asset, cacheDir, store }), on = createMapServer({ asset, cacheDir, store, purge: true });
   await Promise.all([off, on].map((s) => new Promise((resolve) => s.listen(0, "127.0.0.1", resolve))));
   const at = (s, query) => fetch(`http://127.0.0.1:${s.address().port}/api/region/purge?${query}`);
@@ -115,7 +119,7 @@ test("old Region models' files can be purged, only when switched on, only older 
     // Off unless the deployment switches it on.
     assert.equal((await at(off, "model=eym-region-layer-v2&confirm=eym-region-layer-v2")).status, 403); assert.equal(fake.files.size, kept);
     // Never the current model, a newer one, or anything that is not a model's name.
-    for (const model of [REGION_MODEL, "eym-region-layer-v99", "eym-region-layer-v2/..", "", "region"]) assert.equal((await at(on, `model=${encodeURIComponent(model)}&confirm=${encodeURIComponent(model)}`)).status, 400, model);
+    for (const model of [REGION_PIXELS_ID, REGION_SHAPES_ID, "eym-region-layer-v99", "eym-region-layer-v2/..", "", "region"]) assert.equal((await at(on, `model=${encodeURIComponent(model)}&confirm=${encodeURIComponent(model)}`)).status, 400, model);
     // Without confirm it only counts; with the wrong confirm too.
     for (const query of ["model=eym-region-layer-v2", "model=eym-region-layer-v2&confirm=eym-region-layer-v3"]) {
       const dry = await (await at(on, query)).json(); assert.equal(dry.dryRun, true); assert.deepEqual(dry.files, { "eym-tiles": 3, "eym-shapes": 3 }); assert.deepEqual(dry.deleted, { "eym-tiles": 0, "eym-shapes": 0 });
@@ -124,9 +128,44 @@ test("old Region models' files can be purged, only when switched on, only older 
     // Confirmed: the old model's files go, from both buckets; the current model's and other old models' stay.
     const done = await (await at(on, "model=eym-region-layer-v2&confirm=eym-region-layer-v2")).json();
     assert.equal(done.dryRun, false); assert.deepEqual(done.deleted, { "eym-tiles": 3, "eym-shapes": 3 });
-    assert.deepEqual([...fake.files.keys()].sort(), ["eym-tiles/region/eym-region-layer-v3/caren/pixels/1_2.png", `eym-tiles/region/${REGION_MODEL}/caren/pixels/1_2.png`].sort());
+    assert.deepEqual([...fake.files.keys()].sort(), ["eym-tiles/region/eym-region-layer-v3/caren/pixels/1_2.png", `eym-tiles/region/${REGION_PIXELS_ID}/caren/pixels/1_2.png`, `eym-shapes/region/${REGION_SHAPES_ID}/caren/shapes/1_2.json.gz`].sort());
     assert.deepEqual((await (await at(on, "model=eym-region-layer-v2")).json()).files, { "eym-tiles": 0, "eym-shapes": 0 });
   } finally { await Promise.all([off, on].map((s) => new Promise((resolve) => s.close(resolve)))); rmSync(cacheDir, { recursive: true, force: true }); }
+});
+
+test("stored tiles are named by what they were made from: a stale tile is never served, and is repainted or made again", async () => {
+  // The version names carry both fingerprints; only older versions and stale fingerprints may be purged.
+  assert.match(REGION_SHAPES_ID, new RegExp(`^${REGION_MODEL}-s[0-9a-f]{12}$`)); assert.match(REGION_PIXELS_ID, new RegExp(`^${REGION_SHAPES_ID}-p[0-9a-f]{12}$`));
+  assert.ok(purgeableRegionFolder(REGION_MODEL) && purgeableRegionFolder(`${REGION_MODEL}-s000000000000`) && purgeableRegionFolder(`${REGION_SHAPES_ID}-p000000000000`));
+  assert.ok(!purgeableRegionFolder(REGION_SHAPES_ID) && !purgeableRegionFolder(REGION_PIXELS_ID) && !purgeableRegionFolder("eym-region-layer-v99"));
+  const fake = fakeSupabase(), cacheDir = mkdtempSync(join(tmpdir(), "eym-region-")), store = regionStore(ENV, fake.fetchImpl), server = createMapServer({ asset, cacheDir, store });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve)); const base = `http://127.0.0.1:${server.address().port}`;
+  const width = caren.tiles.tx1 - caren.tiles.tx0 + 1, index = (home.ty - caren.tiles.ty0) * width + (home.tx - caren.tiles.tx0), key = `region|pixels|${caren.store}|${home.tx}|${home.ty}`;
+  const fill = async () => (await fetch(`${base}/api/region/fill?frame=caren&start=${index}&count=1`)).json(), stale = async () => (await (await fetch(`${base}/api/region/stale?frame=caren`)).json()).frames[0];
+  try {
+    const first = await fill(); assert.equal(first.kept, 1); assert.deepEqual(await stale(), { frame: "caren", current: 1, repaint: 0, remake: 0 });
+    const picture = fake.files.get(`eym-tiles/${regionTilePath("caren", "pixels", home.tx, home.ty)}`);
+    // Only the painting changed (its row names an older painting): repainted from the kept shapes, the same picture.
+    fake.rows.get(key).rules_version = `${REGION_SHAPES_ID}-p000000000000`; fake.files.delete(`eym-tiles/${regionTilePath("caren", "pixels", home.tx, home.ty)}`);
+    assert.deepEqual(await stale(), { frame: "caren", current: 0, repaint: 1, remake: 0 });
+    const repainted = await fill(); assert.equal(repainted.repainted, 1); assert.equal(repainted.kept + repainted.remade, 0); assert.deepEqual(repainted.errors, []);
+    assert.deepEqual(fake.files.get(`eym-tiles/${regionTilePath("caren", "pixels", home.tx, home.ty)}`), picture); assert.equal(fake.rows.get(key).rules_version, REGION_PIXELS_ID);
+    // The shapes are stale too: made again from the start.
+    fake.rows.get(key).rules_version = `${REGION_MODEL}-s000000000000-p000000000000`; fake.rows.get(`region|shapes|${caren.store}|${home.tx}|${home.ty}`).rules_version = `${REGION_MODEL}-s000000000000`;
+    assert.deepEqual(await stale(), { frame: "caren", current: 0, repaint: 0, remake: 1 });
+    const remade = await fill(); assert.equal(remade.remade, 1); assert.equal(remade.kept + remade.repainted, 0); assert.deepEqual(await stale(), { frame: "caren", current: 1, repaint: 0, remake: 0 });
+    // A picture kept under an old name is never served: the tile is looked for under the current name only.
+    const neighbour = { tx: home.tx + 1, ty: home.ty }; fake.files.set(`eym-tiles/region/${REGION_MODEL}/caren/pixels/${neighbour.tx}_${neighbour.ty}.png`, Buffer.from("stale"));
+    assert.equal((await fetch(`${base}/api/region/tile/caren/${neighbour.tx}/${neighbour.ty}.png`)).headers.get("x-eym-source"), "made and kept");
+    const info = await (await fetch(`${base}/api/region/frames`)).json(); assert.equal(info.picturesVersion, REGION_PIXELS_ID); assert.equal(info.shapesVersion, REGION_SHAPES_ID);
+    assert.equal((await fetch(`${base}/api/region/stale?frame=nowhere`)).status, 404);
+  } finally { await new Promise((resolve) => server.close(resolve)); rmSync(cacheDir, { recursive: true, force: true }); }
+});
+
+test("a tile's shapes read back paint the very same picture", () => {
+  const tile = buildRegionTile(asset, caren, home.tx, home.ty), back = regionTileFromShapes(regionShapesFile(tile));
+  assert.deepEqual(back.elevation, tile.elevation); assert.deepEqual(back.cover, tile.cover);
+  assert.deepEqual(renderRegionTile(back), renderRegionTile(tile));
 });
 
 test("a tile's shapes file holds everything needed to draw it again", () => {

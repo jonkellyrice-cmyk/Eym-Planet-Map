@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.25.3 (2026-11-18)
+
+Part 1 of the owner's consolidated addenda, item 6: stored tiles that cannot go stale.
+
+- The Region layer's stored tiles are kept under fingerprints of what they were made from, not a hand-bumped label (`tools/generate-region-fingerprint.mjs`, written to `data/eym/region-fingerprint.json` by `npm run build`): one for the shapes (every module the generator imports, followed automatically, and every data file it reads) and one for the painting. A tile made from older code or data is no longer found under the current name, so it is made again rather than served. (0.25.0 changed the rivers' widths and the stored tiles kept the old ones; that can no longer happen.)
+- The map server reports stale tiles (`GET /api/region/stale`) and the fill refreshes them: repainted from the kept shapes when only the painting changed, made again when the shapes are stale.
+- The Region layer's painting moved to `scripts/eym-region-paint.mjs`, and the cover classes, their colours and the world-keyed hash to `scripts/eym-cover.mjs` (still exported from `scripts/eym-local-detail.mjs`), so that the painting's fingerprint changes only when the painting does. Nothing draws differently.
+- The temporary purge endpoint also takes the current model made from other code or data.
+- After this release every stored Region tile is stale once (none was made under a fingerprint) and is made again.
+- Tests: `tests/eym-region-layer.test.mjs` checks the fingerprint is current and covers the code and data; `tests/eym-region-store.test.mjs` gains tests of staleness, repainting and remaking, and of shapes read back painting the same picture. Updated: three assertions there that named the bare model (`eym-region-layer-v5`) as the stored version now name the fingerprinted version, and the purge test's current folder and refused names follow it (the bare model's folder is now a stale one that may be purged); the import of the painting functions in `tests/eym-region-layer.test.mjs` moved to their new module. `tests/release-package.test.mjs` updated for 0.25.3.
+
 ## 0.25.2 (2026-11-18)
 
 - A temporary, guarded endpoint to delete the stored files of old Region models (`GET /api/region/purge` in `webapp/server.mjs`, with `files` and `remove` in `webapp/region-store.mjs`). Each model keeps its tiles in its own folder, and v1 to v4 hold some 230 MB nothing reads. It is off unless the deployment sets `EYM_REGION_PURGE=on`, only takes a model older than the server's own, only counts unless `confirm` repeats the model's name, and touches only that model's folder in the two Region buckets. It is to be removed once the layers' models settle; `webapp/README.md` ("Purging old Region tiles") and step 7 of `ROADMAP.md` say when.

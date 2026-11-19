@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { COVER, localContext, roadsNear } from "../scripts/eym-local-detail.mjs";
 import { toLocal } from "../scripts/eym-surface.mjs";
-import { REGION_CELL_KM, REGION_PALETTE, REGION_TILE_CELLS, REGION_TILE_KM, buildRegionTile, flatRegionTile, regionFrameHasTile, regionFrames, regionTileAt, renderRegionTile } from "../scripts/eym-region-layer.mjs";
+import { REGION_CELL_KM, REGION_TILE_CELLS, REGION_TILE_KM, buildRegionTile, regionFrameHasTile, regionFrames, regionTileAt } from "../scripts/eym-region-layer.mjs";
+import { REGION_PALETTE, flatRegionTile, renderRegionTile } from "../scripts/eym-region-paint.mjs";
+import { REGION_FINGERPRINT_FILE, moduleClosure, regionFingerprint } from "../tools/generate-region-fingerprint.mjs";
 
 const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
 const frames = regionFrames(asset), caren = frames.find((f) => f.id === "caren"), DREE = [-6.79, 0.412];
@@ -97,4 +99,15 @@ test("roads follow the land, not the lattice's eight directions", () => {
   }
   // Before roads followed the land, three quarters of their length ran within 3° of a lattice direction; chance alone gives about 13%.
   assert.ok(roads.length > 5 && aligned / total < 0.3, `${(100 * aligned / total).toFixed(0)}% of road length on lattice headings`);
+});
+
+test("the Region layer's fingerprint is current, covers its code and data, and keeps the painting apart", () => {
+  const kept = JSON.parse(readFileSync(new URL(`../${REGION_FINGERPRINT_FILE}`, import.meta.url), "utf8")), now = regionFingerprint();
+  assert.equal(kept.shapes, now.shapes, "npm run build would make it again"); assert.equal(kept.paint, now.paint, "npm run build would make it again");
+  // The shapes' fingerprint follows the generator's imports, however deep, and the data the map server attaches.
+  for (const f of ["scripts/eym-region-layer.mjs", "scripts/eym-local-detail.mjs", "scripts/eym-landforms.mjs", "scripts/eym-river-flow.mjs", "scripts/eym-geology.mjs", "data/planet-cartography/abydos/eventide.json", "data/planet-cartography/abydos/eventide-drainage.json", "data/planet-cartography/abydos/eventide-wind.json", "data/planet-cartography/abydos/eventide-flow.json", "data/planet-cartography/abydos/eventide-geology.json"]) assert.ok(now.shapesFiles.includes(f), f);
+  // The painting depends on itself and the shared cover classes only, so a change to it alone repaints the kept shapes.
+  assert.deepEqual(now.paintFiles, ["scripts/eym-cover.mjs", "scripts/eym-region-paint.mjs"]);
+  assert.ok(!now.shapesFiles.includes("scripts/eym-region-paint.mjs"));
+  assert.ok(moduleClosure("scripts/eym-local-detail.mjs").includes("scripts/eym-cover.mjs"));
 });
