@@ -59,9 +59,11 @@ test("canonical CSV is pinned to the five-continents canon edit", () => {
   // names are part of EYM_LAYOUT, which Eventide's fingerprint covers. And again when the owner moved them
   // (17 November 2026): their centres and one archipelago's are in EYM_LAYOUT too.
   // And again for Stage 2 (17 November 2026): the fingerprint covers the ocean climate (data/eym/climate.json).
+  // And again for the mantle retrofit (19 November 2026): plate speeds and hotspot chains change
+  // data/eym/tectonics.json, which Eventide's fingerprint covers.
   // Any further registry change must re-pin this on purpose.
   const csv = readFileSync(new URL("docs/system-orbital-distances.csv", root));
-  assert.equal(createHash("sha256").update(csv).digest("hex"), "2610d9cdc17781656dee2194d3eed96a5670b5cf97b68effda926a9a5e16622e");
+  assert.equal(createHash("sha256").update(csv).digest("hex"), "bcabf61f8db0c536b934833d0e4467dbb7be267a6cd7d198863c084ae51f1788");
 });
 
 test("Eym's accepted canon has five continents in a planet-wide ocean", () => {

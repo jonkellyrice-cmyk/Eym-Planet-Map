@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.25.4 (2026-11-19)
+
+Part 1 of the owner's consolidated addenda, item 3: the plates' motions agree with what drives them.
+
+- Plate speeds by their drivers (`tools/generate-eym-tectonics.mjs`): a plate with at least a tenth of its edge sinking at a trench moves 50–100 mm a year; one without slabs 10–30 mm a year. The fitted rates are rescaled with each plate's pole kept, so the continents, First Land and the poles do not move; Caren and Garyk keep theirs. The eastern, northern and southern plates slow from 52–61 to 25 mm a year; ocean-1, ocean-4 and micro-2 speed up to 55, and ocean-2, ocean-3 and micro-4 drop to 25. Each plate records its speed, slab share and driver.
+- Fixed plumes: two broad antipodal upwellings in the deep mantle (centred at 30° S 100° E and 30° N 80° W, 41° across), fitted so that their margins pass the archipelagos and First Land lies inside. Five hotspots rise on the margins, and each leaves an age-ordered chain of 8–20 seamounts along its plate's motion, one every 4 million years back to 80 million, deeper as they age (`geology.mantle` in the cartography asset). The sea floor shoals over each seamount.
+- The history text gains the mantle and the hotspots, and explains the assembly, break-up and accretion by the upwellings and downwellings.
+- The look: the coastal ranges of Gaffa, Khohalis and Demani are some 600–700 m lower (their highest points 3,006, 3,222 and 3,333 m, from 3,623, 3,815 and 4,029 m), because a range's height follows the slower plate. No land is gained or lost; the old hotspot swells go and new ones come. Renders were shown to the owner, who approved them.
+- Eym's derived data is made again by `npm run build` (the tectonic history kept seed 24; the climate, the cartography, drainage, wind and flow follow), and every stored Region tile is stale once and is made again.
+- Tests: `tests/eym-tectonics.test.mjs` gains a test of the mantle rules (speeds follow their drivers; plumes on the upwellings' margins; seamount chains ordered by age). Updated: `tests/cartography-acceptance.test.mjs` re-pins the canonical CSV deliberately, because Eventide's fingerprint covers the tectonic history (nothing loosened); `tests/release-package.test.mjs` updated for 0.25.4.
+
 ## 0.25.3 (2026-11-18)
 
 Part 1 of the owner's consolidated addenda, item 6: stored tiles that cannot go stale.

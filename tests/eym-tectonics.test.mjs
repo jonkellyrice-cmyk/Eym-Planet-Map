@@ -99,6 +99,40 @@ test("Caren is masked out: its geology is stated, not simulated; elsewhere bedro
   assert.ok(!values.some((k, i) => ["godstone-granite", "marble", "caren-limestone"].includes(k) && Math.abs(-179.5 + (i % 360)) > 20), "Caren's stated rock is Caren's alone");
 });
 
+test("the mantle: plate speeds follow their drivers; plumes rise on the upwellings' margins and leave age-ordered seamount chains", () => {
+  // Plates pulled by a sinking slab (a tenth of their edge or more) move at 5-10 cm a year; plates without, at 1-3.
+  // Caren's plate (the gods') and Garyk's are exempt; Gaffa, Khohalis and Demani have no slab and ride slowly.
+  for (const s of tect.report.plateSpeeds) {
+    assert.ok(s.withinTarget, `${s.id}: ${s.speedMmYr} mm/yr, ${s.driver}`);
+    if (s.driver === "slab") assert.ok(s.slabShare >= 0.1 && s.speedMmYr >= 49.5 && s.speedMmYr <= 100.5, JSON.stringify(s));
+    if (s.driver === "no slab") assert.ok(s.slabShare < 0.1 && s.speedMmYr >= 9.5 && s.speedMmYr <= 30.5, JSON.stringify(s));
+  }
+  for (const id of ["eastern", "northern", "southern"]) assert.equal(tect.report.plateSpeeds.find((s) => s.id === id).driver, "no slab");
+  assert.equal(tect.report.plateSpeeds.find((s) => s.id === "caren").driver, "exempt");
+  // Two broad upwellings on opposite sides of the world; the First Land rifted inside one of them.
+  const [a, b] = tect.mantle.upwellings, R = tect.mantle.radiusDeg;
+  assert.ok(Math.abs(greatCircleKm(a, b) / 111.195 - 180) < 0.5 && R >= 25 && R <= 45);
+  const fromAxis = (ll) => { const d = greatCircleKm(ll, a) / 111.195; return Math.min(d, 180 - d); };
+  assert.ok(fromAxis(tect.firstLand.centre) <= R - 8, "the First Land rifted above an upwelling");
+  // Every hotspot stands on an upwelling's margin, at an open-sea archipelago, both upwellings having some.
+  const hotspots = tect.volcanoes.filter((v) => v.setting === "hotspot"), archipelagos = EYM_LAYOUT.archipelagos.centers;
+  assert.ok(hotspots.length >= 3);
+  for (const h of hotspots) { assert.ok(Math.abs(fromAxis(h.at) - R) <= 7, `hotspot ${h.at} is ${fromAxis(h.at).toFixed(1)}° from the axis`); assert.ok(archipelagos.some((c) => c[0] === h.at[0] && c[1] === h.at[1])); }
+  assert.equal(new Set(hotspots.map((h) => greatCircleKm(h.at, a) < greatCircleKm(h.at, b))).size, 2);
+  // Each chain runs away from its plume, older and deeper the farther it goes.
+  assert.equal(tect.mantle.chains.length, hotspots.length);
+  for (const c of tect.mantle.chains) {
+    assert.ok(c.seamounts.length >= 3, `chain at ${c.hotspot}`);
+    for (let i = 1; i < c.seamounts.length; i += 1) {
+      const [p, q] = [c.seamounts[i - 1], c.seamounts[i]];
+      assert.ok(q.ageMyr > p.ageMyr && q.summitDepthM < p.summitDepthM && greatCircleKm(q.at, c.hotspot) > greatCircleKm(p.at, c.hotspot));
+    }
+  }
+  // The history says why; the asset carries the chains, and the sea floor rises over them.
+  for (const stage of ["mantle", "hotspots"]) assert.ok(asset.geology.history.some((h) => h.stage === stage), stage);
+  assert.equal(asset.geology.mantle.chains.length, hotspots.length);
+});
+
 test("the sea floor: trenches deeper than the abyss, ridges shallower, shelves wider on rifted coasts", () => {
   const mesh = [...elevationGrid(asset)], ocean = [...Buffer.from(asset.raster.oceanMaskBase64, "base64")];
   const deep = mesh.filter((e, i) => ocean[i]);
