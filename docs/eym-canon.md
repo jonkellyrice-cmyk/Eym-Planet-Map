@@ -166,6 +166,51 @@ stay GM-only, as recorded.
 close). Their details are to come from the owner. They are recorded as existing and given a placeholder layer;
 nothing is generated until the owner supplies them.
 
+## Eym is about 80% water (canon change from the world's author, 19 November 2026)
+
+Eym's ocean becomes about 80% of its surface (it was 98.6%) by enlarging the three far continents, with the least
+possible change to the rest of the world. To be done before the Resources step.
+
+- *Target:* ocean about 80% (land about 20%, about 102 million km²); the plate fit's ocean share becomes about
+  0.795 to 0.805.
+- *Fixed:* Eym's size, mass, gravity, orbit, moons, day and year. Caren and Garyk keep their exact outlines; the
+  Caren–Garyk crossing and the strait corridor are unchanged.
+- *The split* (each within about 5%, the total holding the ocean target): Gaffa about 65 million km², Khohalis about
+  19 million km², Demani about 15 million km². Gaffa is the largest; the other two are enlarged less.
+- *The governing rule, least change:* the present tectonic world is treated as fixed and the targets are met with the
+  smallest change to it, by these means in this order, a later one only where the earlier cannot supply enough land:
+  (a) raise each continent's own flooded margins (shelves and shallow continental crust), moving no plate boundary;
+  (b) attach island arcs, microcontinents and terranes already next to its active margins, as accretion at existing
+  subduction zones; (c) extend land outward along existing geology (continue ranges, widen basins and margins) in the
+  direction the plate motions already support; (d) only if still short, the smallest adjustments to the plate layout,
+  history or rates, each justified and reported. Kept wherever possible: the plates' number and boundaries, their
+  poles and speeds, the hotspots and plumes, the mantle's pattern, the history's stages and dates, and the sea floor
+  away from the growing continents.
+- *Shapes:* Khohalis and Demani stay recognisably the same shapes, enlarged, their present coasts the core of the new
+  outlines. Gaffa may be reshaped more freely, its growth still coming from the existing plate geology in the order
+  above. Growth is directed away from Caren, Garyk and the strait corridor wherever there is a choice, with a stated
+  minimum clearance, reported. All three stay outside the detailed scope (no Continent, Region or Local detail).
+- *The change is measured and kept small:* before and after, how many plate boundaries moved and how far; changes to
+  plate speeds and poles; how much of the sea-floor depth grid changed and where; changes to currents, sea
+  temperatures, rainfall and seasons near Caren and Garyk. Of two fits that meet the targets, the one with the
+  smaller change is chosen.
+- *What follows from it:* every downstream stage is run again (sea floor, currents and tides, climate and weather,
+  erosion and wind, rivers, geology and soils; stored tiles refresh through their fingerprints). The aquaplanet
+  addendum is revised: Eym is no longer nearly an aquaplanet. Expected: ocean gyres the size of basins with stronger
+  boundary currents; strong monsoons over the large continents; continental interiors with big seasonal swings;
+  larger ice ages if new land reaches high latitudes (Stage 5); the El Niño-like pattern moved to the widest
+  remaining equatorial ocean. The weather's calibration and the cyclone counts are checked again.
+- *Caren's canon is checked afterwards* (tropical Dubos, mild seasons, the enclosed desert basin north of the
+  equator, mostly forested). If the change would break it, that is reported before going on; Caren is not adjusted.
+- *Shown to the owner before submitting:* the new globe; before-and-after outlines of the three continents; the
+  measures of change; before-and-after climate maps for Caren and Garyk.
+
+*First finding (19 November 2026, measured on the present plates):* Khohalis's plate (50 million km²) and Demani's
+(51 million km²) can hold their new sizes. Gaffa's plate is 29.5 million km², less than half of Gaffa's 65 million
+km²: Gaffa cannot reach its size on its own plate by means (a) to (c) alone. Either it becomes a composite continent
+lying across existing plate boundaries, none of them moved (as Eurasia lies on several plates), or its plate is
+enlarged by moving boundaries (means d). The owner decides.
+
 ## Still the author's to decide (defaults until he answers)
 
 - *Peoples, gods and magic in the history engine:* Pathfinder defaults for every setting, including which magical
