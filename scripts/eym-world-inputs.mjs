@@ -50,6 +50,33 @@ export const WORLD_INPUTS = deepFreeze({
     slabShare: 0.1, slabSpeedMmYr: [50, 100], freeSpeedMmYr: [10, 30], speedExempt: ["caren", "garyk"],
   },
 
+  /**
+   * The growth of the three far continents (tools/generate-eym-growth.mjs; canon of 19 November 2026: Eym is about
+   * 80% water). The plate fit above is left exactly as it is: its continents are the cores, and the land is grown
+   * outward from them with no plate boundary moved. Areas in km².
+   */
+  growth: {
+    // The ocean's share of Eym once the continents are grown, and each continent's area (kept within `tolerance`).
+    oceanFraction: [0.795, 0.805], tolerance: 0.05,
+    areaKm2: { eastern: 65e6, northern: 19e6, southern: 15e6 },
+    // Which way each one's growth leans (a compass bearing from its core, and how strongly, 0 to 1): Khohalis west,
+    // Gaffa and Demani east, to spread the three out (owner, 19 November 2026).
+    lean: { eastern: [90, 0.35], northern: [270, 0.35], southern: [90, 0.35] },
+    // How much of its core's shape each keeps as it grows (1 = the same shape, enlarged; 0 = equally in every
+    // direction): Khohalis and Demani keep theirs, Gaffa may be reshaped more freely.
+    shape: { eastern: 0.3, northern: 1, southern: 1 },
+    // The order they are grown in: the two that keep their shapes first, Gaffa round them.
+    order: ["northern", "southern", "eastern"],
+    // No new land nearer than this (km) to Caren's coast, to Garyk's coast or the strait corridor, or to another
+    // grown continent; the growth is held back smoothly over `easeKm` before each limit.
+    clearanceKm: { caren: 6000, garyk: 3500, between: 1800 }, easeKm: 1200,
+    // Land on a continent's own plate comes first (means a and c); land across a plate boundary (accreted crust,
+    // means b) costs this much more reach.
+    offPlate: 2.2,
+    // The coasts' unevenness (a share of the reach) and its grain (km); the grid the outlines are drawn on (km).
+    coastNoise: 0.14, noiseKm: 900, cellKm: 30,
+  },
+
   /** The sea floor's shape (scripts/eym-seafloor.mjs): shelf widths (km) by margin, the slope's width, the abyss's run. */
   seaFloor: { shelfKm: { active: 50, passive: 220 }, slopeKm: 260, abyssKm: 1500 },
 
