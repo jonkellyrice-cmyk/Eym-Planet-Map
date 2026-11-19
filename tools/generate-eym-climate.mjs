@@ -19,13 +19,14 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { buildEymSurface, EYM_LAYOUT } from "../scripts/eym-surface.mjs";
+import { marginOf, seaFloorHeightM, seamountsOf, shoalOverSeamounts, tectonicDistances } from "../scripts/eym-seafloor.mjs";
 import { seaLevelTemperatureC, seasonalTemperature } from "../scripts/eym-seasons.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universal-time.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/climate.json", root);
-export const EYM_CLIMATE_MODEL = "eym-climate-v1";
+export const EYM_CLIMATE_MODEL = "eym-climate-v2";
 /** What the climate is made from: this tool, the surface (its land) and the seasons (base temperatures). */
-export const CLIMATE_SOURCES = ["tools/generate-eym-climate.mjs", "scripts/eym-surface.mjs", "scripts/eym-seasons.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json"];
+export const CLIMATE_SOURCES = ["tools/generate-eym-climate.mjs", "scripts/eym-surface.mjs", "scripts/eym-seafloor.mjs", "scripts/eym-seasons.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json"];
 export const climateSourcesSha256 = () => { const h = createHash("sha256"); for (const p of CLIMATE_SOURCES) h.update(readFileSync(new URL(p, root))); return h.digest("hex"); };
 
 const DEG = Math.PI / 180, R = 6.371e6, OMEGA = 7.292e-5, RHO = 1025, YEAR_MS = DAYS_PER_YEAR * DAY_MS;
@@ -58,22 +59,93 @@ export function landMask() {
 }
 
 const idx = (r, c) => r * NLON + ((c % NLON) + NLON) % NLON;
+
+/**
+ * The sea's depth (m, positive) on the 2° grid, from the sea floor the cartography draws (scripts/eym-seafloor.mjs):
+ * worked on a 1° grid (distance to the nearest coast, the plates' ridges and trenches, the seamount chains) and
+ * averaged over each cell's sea. Also each cell's share of shelf break (water between 150 m and 1,500 m deep on the
+ * continental slope) and of seamount (floor raised 300 m or more by a chain).
+ */
+export function bathymetry() {
+  const traced = JSON.parse(readFileSync(new URL("data/eym/traced-continents.json", root), "utf8"));
+  const tectonics = JSON.parse(readFileSync(new URL("data/eym/tectonics.json", root), "utf8"));
+  const { sampler } = buildEymSurface(traced, EYM_LAYOUT, tectonics);
+  const rows = 180, cols = 360, lat1 = (r) => -89.5 + r, lon1 = (c) => -179.5 + c, n = rows * cols, at = (r, c) => r * cols + ((c % cols) + cols) % cols;
+  const land = new Uint8Array(n); for (let r = 0; r < rows; r += 1) for (let c = 0; c < cols; c += 1) { const s = sampler(lat1(r), lon1(c)); land[at(r, c)] = s?.land && !s.inlandWater ? 1 : 0; }
+  // Distance to the nearest land cell (km), by sweeping until nothing shortens (eight neighbours).
+  const dist = Float64Array.from(land, (l) => (l ? 0 : Infinity));
+  for (let changed = true; changed;) {
+    changed = false;
+    for (const dir of [1, -1]) for (let k = dir > 0 ? 0 : n - 1; k >= 0 && k < n; k += dir) {
+      const r = Math.floor(k / cols), c = k % cols; if (land[k]) continue;
+      for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+        const rr = r + dr; if (rr < 0 || rr >= rows) continue;
+        const d = dist[at(rr, c + dc)] + 111.195 * Math.hypot(dr, dc * Math.cos(((lat1(r) + lat1(rr)) / 2) * DEG));
+        if (d < dist[k] - 1e-9) { dist[k] = d; changed = true; }
+      }
+    }
+  }
+  const tect = tectonicDistances(tectonics, rows, cols), seamounts = seamountsOf(tectonics);
+  const depth = new Float64Array(N), shelfBreak = new Float64Array(N), seamount = new Float64Array(N);
+  for (let R2 = 0; R2 < NLAT; R2 += 1) for (let C2 = 0; C2 < NLON; C2 += 1) {
+    let sum = 0, k = 0, brk = 0, mount = 0;
+    for (const dr of [0, 1]) for (const dc of [0, 1]) {
+      const r = 2 * R2 + dr, c = 2 * C2 + dc; if (land[at(r, c)]) continue;
+      const t = tect.index(r, c), margin = marginOf(tect.trenchKm[t], tect.collideKm[t]);
+      const plain = seaFloorHeightM(dist[at(r, c)], tect.ridgeKm[t], tect.trenchKm[t], margin), h = Math.max(-9500, Math.min(-20, shoalOverSeamounts(seamounts, lat1(r), lon1(c), plain)));
+      sum += -h; k += 1; if (dist[at(r, c)] < 450 && -h > 150 && -h < 3300) brk += 1; if (h - plain >= 300) mount += 1;
+    }
+    const i = R2 * NLON + C2; depth[i] = k ? sum / k : 0; shelfBreak[i] = k ? brk / k : 0; seamount[i] = k ? mount / k : 0;
+  }
+  return { depthM: depth, shelfBreak, seamount };
+}
 const percentile = (values, q) => { const v = values.filter(Number.isFinite).sort((a, b) => a - b); return v.length ? v[Math.min(v.length - 1, Math.floor(q * v.length))] : 0; };
 
+/** How much of the sea floor's shape the upper ocean feels (0 = a flat floor, 1 = one unlayered sea). */
+export const STEERING = 0.3;
+
+/**
+ * What the floor adds to f in f/h (f·(1/h − 1), h in units of the mean depth) on the 2° grid, with h the depth the flow feels: the reference depth where the floor is not felt, toward
+ * the real depth by STEERING (never shallower than 800 m, so a shelf is a gentle wall, not a cliff), smoothed
+ * once over the neighbouring sea. Land cells take the reference depth (the coast itself is already a wall).
+ */
+function potentialVorticity(land, depthM, H) {
+  const mean = (() => { let s = 0, k = 0; for (let i = 0; i < N; i += 1) if (!land[i]) { s += depthM[i]; k += 1; } return s / k; })();
+  const felt = Float64Array.from(depthM, (d, i) => (land[i] ? 1 : 1 / (1 - STEERING + STEERING * mean / Math.max(800, d))));
+  const smooth = Float64Array.from(felt, (v, i) => {
+    if (land[i]) return 1; const r = Math.floor(i / NLON), c = i % NLON; let s = 2 * v, k = 2;
+    for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) { const rr = r + dr; if (rr < 0 || rr >= NLAT) continue; const j = idx(rr, c + dc); if (!land[j]) { s += felt[j]; k += 1; } }
+    return s / k;
+  });
+  return Float64Array.from(smooth, (h, i) => 2 * OMEGA * Math.sin(latOf(Math.floor(i / NLON)) * DEG) * (1 / h - 1));
+}
+
+/** The strength of upwelling along a continental slope (at 0.4 m/s) and over a seamount chain (at 0.3 m/s), on the wind-driven upwelling's scale. */
+export const SLOPE_UPWELLING = 0.6, SEAMOUNT_UPWELLING = 0.8;
+
 /** One season: currents (m/s), upwelling (0–1.5) and the sea-surface temperature anomaly (°C), on the 2° grid. */
-export function solveSeason(land, f) {
+export function solveSeason(land, f, floor = null) {
   const decl = 23.44 * Math.sin(2 * Math.PI * f), timeMs = NORTHWARD_EQUINOX_MS + f * YEAR_MS;
   const ocean = (r, c) => !land[idx(r, c)];
   // Wind stress and its curl by latitude.
   const tau = Array.from({ length: NLAT }, (_, r) => windStress(latOf(r), decl));
   const curl = tau.map((_, r) => { const n = tau[Math.min(NLAT - 1, r + 1)], s = tau[Math.max(0, r - 1)]; return -(n - s) / (2 * R * RES * DEG); });
-  // The wind-driven circulation: r∇²ψ + β ∂ψ/∂x = curl τ / (ρH), ψ = 0 on every coast and beyond 78°.
+  // The wind-driven circulation: r∇²ψ + H·J(ψ, f/h) = curl τ / (ρH), ψ = 0 on every coast and beyond 78°. Over a
+  // flat floor (h = H) the middle term is the beta effect, β ∂ψ/∂x; over the real floor the flow also follows the
+  // lines of f/h, so ridges, plateaus and continental slopes steer it. The layers of a real ocean shield the upper
+  // water from most of the floor's shape, so only a share of it is felt (STEERING), smoothed to the grid.
   const H = 500, fr = 6e-6, psi = new Float64Array(N), dy = R * RES * DEG;
+  const q = floor ? potentialVorticity(land, floor.depthM, H) : null;
   const active = []; for (let r = 0; r < NLAT; r += 1) if (Math.abs(latOf(r)) < 78) for (let c = 0; c < NLON; c += 1) if (ocean(r, c)) active.push([r, c]);
   for (let it = 0; it < 5000; it += 1) for (const [r, c] of active) {
     const lat = latOf(r), dx = R * Math.cos(lat * DEG) * RES * DEG, beta = 2 * OMEGA * Math.cos(lat * DEG) / R;
     const e = psi[idx(r, c + 1)], w = psi[idx(r, c - 1)], n = psi[idx(r + 1, c)] ?? 0, s = psi[idx(r - 1, c)] ?? 0;
-    const target = (fr * (e + w) / (dx * dx) + fr * (n + s) / (dy * dy) + beta * (e - w) / (2 * dx) - curl[r] / (RHO * H)) / (2 * fr / (dx * dx) + 2 * fr / (dy * dy));
+    // The floor's share of f/h's gradient (q is what the floor adds to f, so a flat floor adds nothing). It carries ψ
+    // along the lines of f/h like a wind: differenced from the side it blows from, which keeps the sweep steady
+    // however steep the floor.
+    const cx = q ? (q[idx(Math.min(NLAT - 1, r + 1), c)] - q[idx(Math.max(0, r - 1), c)]) / (2 * dy) : 0, cy = q ? -(q[idx(r, c + 1)] - q[idx(r, c - 1)]) / (2 * dx) : 0;
+    const ax = Math.abs(cx) / dx, ay = Math.abs(cy) / dy;
+    const target = (fr * (e + w) / (dx * dx) + fr * (n + s) / (dy * dy) + beta * (e - w) / (2 * dx) + ax * (cx > 0 ? e : w) + ay * (cy > 0 ? n : s) - curl[r] / (RHO * H)) / (2 * fr / (dx * dx) + 2 * fr / (dy * dy) + ax + ay);
     psi[idx(r, c)] += 1.3 * (target - psi[idx(r, c)]);
   }
   // Geostrophic (gyre) velocities, and Ekman drift from the zonal stress.
@@ -99,6 +171,17 @@ export function solveSeason(land, f) {
     div[idx(r, c)] = (at(r + 1, c) - at(r - 1, c)) / (2 * dy * Math.cos(lat * DEG));
   }
   const top = percentile([...div].filter((d) => d > 0), 0.95) || 1, up = Float64Array.from(div, (d) => clamp(d / top, 0, 1.5));
+  // The sea floor's own upwelling: a current running along a continental slope draws deep water up it (most when
+  // the shallows lie on its right in the north, its left in the south: the bottom layer then creeps upslope), and
+  // any current crossing a seamount chain is lifted over it. Both scale with the current's speed.
+  if (floor) for (let r = 1; r < NLAT - 1; r += 1) for (let c = 0; c < NLON; c += 1) {
+    const i = idx(r, c); if (!ocean(r, c) || (!floor.shelfBreak[i] && !floor.seamount[i])) continue;
+    const lat = latOf(r), dx = R * Math.cos(lat * DEG) * RES * DEG, speed = Math.hypot(u[i], v[i]);
+    const hAt = (rr, cc) => (ocean(rr, cc) ? floor.depthM[idx(rr, cc)] : 0), hx = (hAt(r, c + 1) - hAt(r, c - 1)) / (2 * dx), hy = (hAt(r + 1, c) - hAt(r - 1, c)) / (2 * dy), steep = Math.hypot(hx, hy);
+    // (The shallows are down the depth's gradient; to the right of the flow is (v, −u).)
+    const along = speed && steep ? (v[i] * -hx - u[i] * -hy) / (speed * steep) * Math.sign(lat || 1) : 0;
+    up[i] = clamp(up[i] + SLOPE_UPWELLING * floor.shelfBreak[i] * (speed / 0.4) * (0.3 + 0.7 * Math.max(0, along)) + SEAMOUNT_UPWELLING * floor.seamount[i] * (speed / 0.3), 0, 1.5);
+  }
   return { declinationDeg: decl, u, v, upwelling: up };
 }
 
@@ -114,6 +197,9 @@ export function solveAnomaly(land, u, v, up) {
   const base = Float64Array.from({ length: N }, (_, i) => seaLevelTemperatureC(latOf(Math.floor(i / NLON))));
   let T = Float64Array.from(base);
   const dt = 6 * 3600, cool = 3.5;
+  // Upwelled water cools the surface by how much colder the deep is: fully where the surface is 24 °C or warmer,
+  // not at all where it is already as cold as the deep (about 4 °C), as in the far north and south.
+  const contrast = Array.from({ length: NLAT }, (_, r) => clamp((seaLevelTemperatureC(latOf(r)) - 4) / 20, 0, 1));
   for (let step = 0; step < 2400; step += 1) {
     const next = Float64Array.from(T);
     for (let r = 1; r < NLAT - 1; r += 1) {
@@ -125,7 +211,7 @@ export function solveAnomaly(land, u, v, up) {
         const t = T[i], tw = ocean(r, c - 1) ? T[idx(r, c - 1)] : t, te = ocean(r, c + 1) ? T[idx(r, c + 1)] : t, ts = ocean(r - 1, c) ? T[idx(r - 1, c)] : t, tn = ocean(r + 1, c) ? T[idx(r + 1, c)] : t;
         const adv = -(u[i] > 0 ? u[i] * (t - tw) : u[i] * (te - t)) / dx - (v[i] > 0 ? v[i] * (t - ts) : v[i] * (tn - t)) / dy;
         const diff = kappa * ((te + tw - 2 * t) / (dx * dx) + (tn + ts - 2 * t) / (dy * dy));
-        next[i] = t + dt * (adv + diff + (base[i] - t) / relax - cool * up[i] / relax);
+        next[i] = t + dt * (adv + diff + (base[i] - t) / relax - cool * contrast[r] * up[i] / relax);
       }
     }
     T = next;
@@ -216,8 +302,8 @@ const round = (a, k) => Array.from(a, (x) => Math.round(x * k) / k);
 
 /** Build the whole climate document. */
 export function buildClimate() {
-  const land = landMask();
-  const solved = SEASONS.map((f) => solveSeason(land, f));
+  const land = landMask(), floor = bathymetry();
+  const solved = SEASONS.map((f) => solveSeason(land, f, floor));
   const mean = (k) => Float64Array.from({ length: N }, (_, i) => solved.reduce((s, x) => s + x[k][i], 0) / solved.length);
   const annual = solveAnomaly(land, mean("u"), mean("v"), mean("upwelling")), tilt = tradeTilt(land);
   const seasons = solved.map((s, k) => {

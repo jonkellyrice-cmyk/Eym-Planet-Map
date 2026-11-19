@@ -61,15 +61,44 @@ export function sstAnomalyAt(asset, lat, lon, timeMs) {
 /** Whether an asset has a climate section. */
 export const hasClimate = (asset) => Boolean(asset?.climate);
 
-/** The surface current (m/s east and north) at a place in a season, once the ocean file is attached; null otherwise. */
-export function currentAt(asset, lat, lon, timeMs) {
+/** The decoded ocean file of an asset (currents and upwelling for the four seasons), or null before it is attached. */
+function decodedOcean(asset) {
   const o = asset?.ocean; if (!o) return null;
   let d = cache.get(o);
   if (!d) {
-    d = { res: o.resolutionDeg, cols: Math.round(360 / o.resolutionDeg), rows: Math.round(180 / o.resolutionDeg), seasons: o.seasons.map((s) => ({ u: Float32Array.from(decodeInt8(s.uInt8Cm2), (v) => v / 50), v: Float32Array.from(decodeInt8(s.vInt8Cm2), (v) => v / 50) })) };
+    d = { res: o.resolutionDeg, cols: Math.round(360 / o.resolutionDeg), rows: Math.round(180 / o.resolutionDeg), seasons: o.seasons.map((s) => ({ u: Float32Array.from(decodeInt8(s.uInt8Cm2), (v) => v / 50), v: Float32Array.from(decodeInt8(s.vInt8Cm2), (v) => v / 50), up: Float32Array.from(decodeInt8(s.upwellingInt8Hundredths), (v) => v / 100) })) };
     cache.set(o, d);
   }
+  return d;
+}
+
+/** A field of the ocean file at a place and moment, blended between the two seasons on either side. */
+function oceanBlend(d, key, lat, lon, timeMs) {
   const f = yearFraction(timeMs), n = d.seasons.length, x = f * n, i0 = Math.floor(x) % n, i1 = (i0 + 1) % n, t = x - Math.floor(x);
-  const blend = (k) => sample(d, d.seasons[i0][k], lat, lon) * (1 - t) + sample(d, d.seasons[i1][k], lat, lon) * t;
-  return { east: blend("u"), north: blend("v") };
+  return sample(d, d.seasons[i0][key], lat, lon) * (1 - t) + sample(d, d.seasons[i1][key], lat, lon) * t;
+}
+
+/** The surface current (m/s east and north) at a place in a season, once the ocean file is attached; null otherwise. */
+export function currentAt(asset, lat, lon, timeMs) {
+  const d = decodedOcean(asset); if (!d) return null;
+  return { east: oceanBlend(d, "u", lat, lon, timeMs), north: oceanBlend(d, "v", lat, lon, timeMs) };
+}
+
+/**
+ * Upwelling at a place in a season (0 none, 1 strong, to 1.27), once the ocean file is attached; null otherwise.
+ * Cold, rich water rises where the wind's drift pulls the surface apart (the equator, some coasts), where a
+ * current runs along a continental slope, and where one crosses a seamount chain.
+ */
+export function upwellingAt(asset, lat, lon, timeMs) {
+  const d = decodedOcean(asset); return d ? Math.max(0, oceanBlend(d, "up", lat, lon, timeMs)) : null;
+}
+
+/**
+ * The fishing at a place at sea in a season, from its upwelling (what feeds the sea): { richness 0–1, words }.
+ * Null without the ocean file.
+ */
+export function fishingAt(asset, lat, lon, timeMs) {
+  const up = upwellingAt(asset, lat, lon, timeMs); if (up == null) return null;
+  const richness = Math.min(1, 0.15 + 0.85 * Math.min(1, up / 0.8));
+  return { richness, words: richness >= 0.65 ? "rich fishing grounds (cold water wells up here)" : richness >= 0.4 ? "good fishing" : "ordinary fishing" };
 }
