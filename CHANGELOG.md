@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.25.5 (2026-11-19)
+
+Map names on the planet that can be read on a phone, revealed by zoom (owner, 19 November 2026).
+
+- Names keep one size on the screen whatever the device (`styles/body-map.css`, `scripts/body-view-core.mjs`): the view sets `--body-px` (view units in a CSS pixel) and every name is scaled by it. Before, they were sized in the view's own units and shrank with a phone's screen to some 7-9 pixels. Now continents 20 px, oceans 16, capitals 15, ranges, forests, island groups and realms about 14, cities, ports, lakes, rivers and peaks 13, towns 12.
+- Higher contrast: light, slightly bold names on a thick dark halo, so they read over sea, land, snow and cloud.
+- Names come in by tiers as the view closes in: continents and oceans from afar (and give way once the view is well inside them); then what can be seen from space (ranges, great forests, island groups, seas); then realms and capitals; then cities, ports, lakes, rivers and peaks; last towns, forts and smaller places. Where names would overlap, capitals win, then natural features, realms, cities and the larger natural features, then towns; so the Sondel Range now shows.
+- Bigger names mean fewer at once at a given zoom; the rest come in as the view closes in further.
+- Canon (`docs/eym-canon.md`): the artificial wall that divided Caren was the Sondel Range, which before the party brought it down ran across the continent from the west coast to the east; the question is closed.
+- Tests: `tests/eym-globe-picking.test.mjs` gains a test of the tiers, their order and the screen-pixel sizes; `tests/release-package.test.mjs` updated for 0.25.5.
+
 ## 0.25.4 (2026-11-19)
 
 Part 1 of the owner's consolidated addenda, item 3: the plates' motions agree with what drives them.
