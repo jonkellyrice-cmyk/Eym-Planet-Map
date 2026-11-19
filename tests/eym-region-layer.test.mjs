@@ -6,6 +6,7 @@ import { toLocal } from "../scripts/eym-surface.mjs";
 import { REGION_CELL_KM, REGION_TILE_CELLS, REGION_TILE_KM, buildRegionTile, regionFrameHasTile, regionFrames, regionTileAt } from "../scripts/eym-region-layer.mjs";
 import { REGION_PALETTE, flatRegionTile, renderRegionTile } from "../scripts/eym-region-paint.mjs";
 import { REGION_FINGERPRINT_FILE, moduleClosure, regionFingerprint } from "../tools/generate-region-fingerprint.mjs";
+import { attachCoasts, attachDrainage, attachFlow, attachGeology, attachWind, coastsFileName, drainageFileName, flowFileName, geologyFileName, windFileName } from "../scripts/cartography-asset.mjs";
 
 const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
 const frames = regionFrames(asset), caren = frames.find((f) => f.id === "caren"), DREE = [-6.79, 0.412];
@@ -110,4 +111,22 @@ test("the Region layer's fingerprint is current, covers its code and data, and k
   assert.deepEqual(now.paintFiles, ["scripts/eym-cover.mjs", "scripts/eym-region-paint.mjs"]);
   assert.ok(!now.shapesFiles.includes("scripts/eym-region-paint.mjs"));
   assert.ok(moduleClosure("scripts/eym-local-detail.mjs").includes("scripts/eym-cover.mjs"));
+});
+
+test("a tile is the same whichever tiles were made before it", () => {
+  // Tiles along coasts whose character once depended on which tile asked first (found when the store was refreshed
+  // several ranges at once): each must come out the same alone, after its neighbours, and in the opposite order.
+  const garyk = frames.find((f) => f.id === "garyk"), wanted = [["caren", -5, 2], ["caren", -5, 3], ["garyk", 7, 1], ["garyk", 8, 1], ["garyk", 7, 2], ["garyk", 8, 2]];
+  // The world as the map server holds it: with its geology, drainage, wind, river flow and coasts attached.
+  const part = (name) => JSON.parse(readFileSync(new URL(`../data/planet-cartography/abydos/${name}`, import.meta.url), "utf8"));
+  const whole = () => { const copy = structuredClone(asset); attachGeology(copy, part(geologyFileName("eventide.json"))); attachDrainage(copy, part(drainageFileName("eventide.json"))); attachWind(copy, part(windFileName("eventide.json"))); attachFlow(copy, part(flowFileName("eventide.json"))); attachCoasts(copy, part(coastsFileName("eventide.json"))); return copy; };
+  const fresh = () => { const copy = whole(), own = regionFrames(copy); return (id, tx, ty) => buildRegionTile(copy, own.find((f) => f.id === id), tx, ty); };
+  const digest = (t) => [t.cover, t.elevation, t.shade, t.coastKm].map((a) => Buffer.from(a.buffer, a.byteOffset, a.byteLength).toString("base64")).join("|") + JSON.stringify([t.rivers, t.roads, t.settlements]);
+  const forward = fresh(), backward = fresh(), a = new Map(), b = new Map();
+  for (const w of wanted) a.set(w.join(), digest(forward(...w)));
+  for (const w of [...wanted].reverse()) b.set(w.join(), digest(backward(...w)));
+  for (const w of wanted) assert.equal(b.get(w.join()), a.get(w.join()), `${w.join(" ")} depends on the order of making`);
+  // And alone, in a world that has made nothing else.
+  for (const w of [wanted[1], wanted[3]]) assert.equal(digest(fresh()(...w)), a.get(w.join()), `${w.join(" ")} alone`);
+  assert.ok(garyk);
 });
