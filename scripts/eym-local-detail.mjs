@@ -155,7 +155,7 @@ const BIOME_WOODS = { "tropical-rainforest": 0.85, "temperate-rainforest": 0.85,
 /** Distance (km) from a point to the nearest coastline, searched out to 160 km. */
 export const coastDistanceKm = (ctx, lat, lon) => coastKm(ctx, lat, lon);
 /** The landforms (scripts/eym-landforms.mjs) for a context: its river valleys and the character of its coasts. */
-export const landformsOf = (ctx) => landformContext(ctx, (lat, lon) => coastKm(ctx, lat, lon), (lat, lon) => coarseAt(ctx, lat, lon).land);
+export const landformsOf = (ctx) => landformContext(ctx, (lat, lon) => coastKm(ctx, lat, lon), (lat, lon) => coarseAt(ctx, lat, lon).land, (lat, lon) => coarseAt(ctx, lat, lon).relief);
 
 /**
  * The terrain at a point: the coarse surface plus relief-scaled detail down to `shortKm`, cut by the valley of

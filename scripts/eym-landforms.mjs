@@ -72,7 +72,7 @@ export const channelWidthM = (areaKm2) => 3 * Math.sqrt(areaKm2);
  * bucketed by 0.05° cells, and the river mouths. `coastKmAt(lat, lon)` gives the distance to the coast (km) and
  * `landAt(lat, lon)` whether a place is land (at the local detail's 2 km lattice).
  */
-export function landformContext(ctx, coastKmAt, landAt = () => true) {
+export function landformContext(ctx, coastKmAt, landAt = () => true, reliefAt = null) {
   const hit = cache.get(ctx); if (hit && hit.drainage === (ctx.asset.drainage ?? null) && hit.wind === (ctx.asset.wind ?? null)) return hit;
   const segments = [], buckets = new Map(), mouths = [];
   for (const channel of drainageChannels(ctx.asset)) for (let k = 0; k + 1 < channel.points.length; k += 1) segments.push({ a: channel.points[k], b: channel.points[k + 1], widthM: channelWidthM(channel.areasKm2[k]), channel: true, ref: channel, k, areaKm2: channel.areasKm2[k] });
@@ -91,7 +91,7 @@ export function landformContext(ctx, coastKmAt, landAt = () => true) {
       const key = i * 100000 + j; let list = buckets.get(key); if (!list) buckets.set(key, (list = [])); list.push(index);
     }
   });
-  const lf = { ctx, segments, buckets, mouths, coastCache: new Map(), geologyCache: new Map(), coastKmAt, landAt, drainage: ctx.asset.drainage ?? null, wind: ctx.asset.wind ?? null };
+  const lf = { ctx, segments, buckets, mouths, coastCache: new Map(), geologyCache: new Map(), coastKmAt, landAt, reliefAt, drainage: ctx.asset.drainage ?? null, wind: ctx.asset.wind ?? null };
   cache.set(ctx, lf);
   return lf;
 }
@@ -182,6 +182,9 @@ export function coastCharacter(lf, lat, lon, relief = 0) {
   const hit = lf.coastCache.get(key); if (hit) return hit;
   const { asset, field } = lf.ctx, clat = (Math.floor(lat / BUCKET_DEG) + 0.5) * BUCKET_DEG, clon = (Math.floor(lon / BUCKET_DEG) + 0.5) * BUCKET_DEG;
   const sea = nearestSea(field, clat, clon) ?? [clat, clon];
+  // The cell's character is kept for every later asker, so it must not depend on who asks first: its relief is
+  // the coarse relief at the cell's own centre (the asker's `relief` only where the context cannot say).
+  if (lf.reliefAt) relief = lf.reliefAt(clat, clon);
   // Which directions lie open: to some hundreds of km of sea from offshore (for swell), and to the sea close by (for onshore wind).
   const openFar = [], openNear = [];
   for (let k = 0; k < 16; k += 1) {
