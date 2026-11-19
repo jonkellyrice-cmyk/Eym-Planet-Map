@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { CLOUD_AT, CLOUD_VEIL_ZOOM, GLOBE_PALETTE, PIXEL_GLOBE_MAX_ZOOM, THICK_AT, buildSurfacePatch, buildSurfaceRaster, cloudDensity, coverAt, coverMask, fillRings, patchServes, patchWindow, renderGlobe, weatherGrid } from "../scripts/eym-globe-pixels.mjs";
+import { plainRingAreaDeg2, splitRingAtAntimeridian } from "../scripts/geo-wrap.mjs";
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json")), raster = buildSurfaceRaster(asset);
@@ -122,4 +123,39 @@ test("the globe view paints the pixel globe at every zoom, on a canvas under the
   assert.ok(!view.includes("toDataURL"), "no image is encoded for each frame");
   assert.match(css, /\.oscm-globe-canvas \{[^}]*image-rendering: pixelated/);
   assert.match(css, /\.is-pixel-globe \.oscm-body-layer\.is-terrain/); assert.match(css, /\.is-pixel-globe \.oscm-weather-field/);
+});
+
+// ---------------------------------------------------------------- rings across ±180° and round a pole (land-growth scaling, Fix 3)
+
+test("a ring across ±180° or round a pole fills as its pieces cut at the seam do, with no band right across", () => {
+  const W = 1440, H = 720, fill = (rings) => fillRings(new Uint8Array(W * H), W, H, rings, 1);
+  // A continent astride the seam with a bay, an island wholly east of it, and a cap round the north pole.
+  const continent = [[-30, 150], [-34, -160], [0, -140], [35, -155], [40, 160], [12, 172], [12, -175], [-5, -175], [-5, 172]];
+  const island = [[-50, -179], [-50, -170], [-44, -174]], cap = Array.from({ length: 72 }, (_, i) => [78 + 4 * Math.sin(i * 0.7), -180 + i * 5]);
+  for (const ring of [continent, island, cap]) {
+    const whole = fill([ring]), pieces = splitRingAtAntimeridian(ring), cut = fill(pieces); let differ = 0, squares = 0, area = 0, bands = 0;
+    for (let y = 0; y < H; y += 1) { let row = 0; for (let x = 0; x < W; x += 1) { const i = y * W + x; if (whole[i] !== cut[i]) differ += 1; if (whole[i]) { row += 1; area += Math.cos((90 - (y + 0.5) / 4) * DEG) / 16; } } squares += row; if (row === W && ring !== cap) bands += 1; }
+    assert.equal(differ, 0, "the whole ring and its pieces fill the same squares");
+    assert.ok(squares > 100);
+    assert.equal(bands, 0, "no row is land right across");
+    // The squares filled hold the ring's own area (in square degrees at the equator): to within half a part in a
+    // hundred for the continent and the cap, and to within a few squares for the small island.
+    const want = pieces.reduce((sum, piece) => sum + plainRingAreaDeg2(piece), 0);
+    assert.ok(Math.abs(area - want) / want < (ring === island ? 0.03 : 0.005), `area ${area.toFixed(1)} against ${want.toFixed(1)}`);
+  }
+  // The cap covers the pole itself and every longitude at 85° north; the continent holds land on both sides of the seam and none in its bay.
+  const capMask = fill([cap]), at = (mask, lat, lon) => mask[Math.floor((90 - lat) * 4) * W + Math.floor((lon + 180) * 4)];
+  for (let lon = -179.9; lon < 180; lon += 7.3) { assert.equal(at(capMask, 85, lon), 1); assert.equal(at(capMask, 89.9, lon), 1); assert.equal(at(capMask, 70, lon), 0); }
+  const land = fill([continent]);
+  for (const [lat, lon, want] of [[20, 179, 1], [20, -179, 1], [-20, 178, 1], [-20, -178, 1], [3, 178, 0], [3, -178, 0], [0, 0, 0], [20, 90, 0], [20, -90, 0]]) assert.equal(at(land, lat, lon), want, `${lat}, ${lon}`);
+});
+
+test("a window on the globe that lies across ±180° shows the same squares as the whole globe there", () => {
+  const W = 1440, H = 720, continent = [[-30, 150], [-34, -160], [0, -140], [35, -155], [40, 160], [12, 172], [12, -175], [-5, -175], [-5, 172]];
+  const whole = fillRings(new Uint8Array(W * H), W, H, [continent], 1);
+  // 30° of longitude from 165° east across the seam to 165° west, 40° of latitude from 20° north, at the globe's own quarter degree.
+  const w = 120, h = 160, win = { lat0: 20, lon0: 165, cell: 0.25 }, part = fillRings(new Uint8Array(w * h), w, h, [continent], 1, win); let differ = 0, filled = 0;
+  for (let y = 0; y < h; y += 1) for (let x = 0; x < w; x += 1) { const gy = (90 - 20) * 4 + y, gx = ((165 + 180) * 4 + x) % W; if (part[y * w + x] !== whole[gy * W + gx]) differ += 1; if (part[y * w + x]) filled += 1; }
+  assert.equal(differ, 0);
+  assert.ok(filled > 5000 && filled < w * h, "the window holds the land and the bay");
 });

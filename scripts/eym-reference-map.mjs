@@ -5,6 +5,7 @@
 // names, scale bar and compass, laid over the result afterwards so the names stay exact.
 
 import { greatCircleKm, toLocal } from "./eym-surface.mjs";
+import { splitRingAtAntimeridian } from "./geo-wrap.mjs";
 
 const DEG = Math.PI / 180;
 const BIOME_COLORS = Object.freeze({
@@ -71,8 +72,12 @@ export function referenceFrame(asset, spec, { center = [0, 0], continentId = nul
 
 // ---------------------------------------------------------------- geometry
 
-function ringPath(frame, ring, closed = true) {
+function ringPath(frame, ring, closed = true, filled = false) {
   if (!ring?.length) return "";
+  // On the whole-world map (which is cut at ±180°) a ring to be filled that crosses the cut is drawn as its pieces,
+  // each closed along the cut (scripts/geo-wrap.mjs): left open at the cut, as its outline is, its fill would be
+  // closed by a chord across the map. A ring that does not cross comes back as itself, so it is drawn as before.
+  if (filled && closed && frame.wraps) { const pieces = splitRingAtAntimeridian(ring); if (pieces.length !== 1 || pieces[0] !== ring) return pieces.map((piece) => ringPath(frame, piece, true)).filter(Boolean).join(" "); }
   const W = frame.W, H = frame.H, pad = Math.max(W, H) * 0.25;
   // Skip rings on the far side of the world; nearer ones are culled by their projected extent below,
   // which keeps a coastline that lies wholly outside the view but encloses it.
@@ -96,28 +101,32 @@ function ringPath(frame, ring, closed = true) {
   return closed && !pts.includes(null) ? `${d}Z` : d;
 }
 
-const multiPath = (frame, rings, closed = true) => rings.map((ring) => ringPath(frame, ring, closed)).filter(Boolean).join(" ");
+const multiPath = (frame, rings, closed = true, filled = false) => rings.map((ring) => ringPath(frame, ring, closed, filled)).filter(Boolean).join(" ");
+/** The same rings as areas to fill: on the whole-world map, a ring that crosses ±180° is cut there and each piece closed. */
+const fillPath = (frame, rings) => multiPath(frame, rings, true, true);
+/** A ring's path as an outline and as an area, for tests. */
+export const referenceRingPaths = (frame, ring) => ({ outline: ringPath(frame, ring, true), area: ringPath(frame, ring, true, true) });
 
 // ---------------------------------------------------------------- the two layers
 
 /** The base map: land, biomes, relief, forests, water and settlement marks — no text. */
 export function referenceBaseSvg(asset, frame) {
   const { W, H } = frame, coasts = asset.terrain.coastlines;
-  const land = multiPath(frame, coasts.map((c) => c.points));
+  const shore = multiPath(frame, coasts.map((c) => c.points)), land = fillPath(frame, coasts.map((c) => c.points));
   const parts = [
     `<rect width="${W}" height="${H}" fill="${OCEAN}"/>`,
-    `<path d="${land}" fill="none" stroke="${SHALLOWS}" stroke-width="${f1(Math.max(4, 60 / frame.kmPerPx))}" stroke-linejoin="round" opacity=".55"/>`,
+    `<path d="${shore}" fill="none" stroke="${SHALLOWS}" stroke-width="${f1(Math.max(4, 60 / frame.kmPerPx))}" stroke-linejoin="round" opacity=".55"/>`,
     `<defs><clipPath id="eym-land"><path d="${land}" clip-rule="evenodd"/></clipPath></defs>`,
     `<path d="${land}" fill="${LAND}" fill-rule="evenodd"/>`,
   ];
   const biome = asset.regions.ecoregions.filter((r) => BIOME_COLORS[r.category]);
   parts.push(`<g clip-path="url(#eym-land)">`);
-  for (const region of biome) { const d = multiPath(frame, region.polygons); if (d) parts.push(`<path d="${d}" fill="${BIOME_COLORS[region.category]}" fill-rule="evenodd"/>`); }
+  for (const region of biome) { const d = fillPath(frame, region.polygons); if (d) parts.push(`<path d="${d}" fill="${BIOME_COLORS[region.category]}" fill-rule="evenodd"/>`); }
   for (const kind of ["forest", "upland", "mountains", "peaks"]) for (const detail of (asset.terrain.detail ?? []).filter((d) => d.kind === kind)) {
-    const d = multiPath(frame, detail.rings); if (d) parts.push(`<path d="${d}" fill="${DETAIL_STYLE[kind][0]}" fill-opacity="${DETAIL_STYLE[kind][1]}" fill-rule="evenodd"/>`);
+    const d = fillPath(frame, detail.rings); if (d) parts.push(`<path d="${d}" fill="${DETAIL_STYLE[kind][0]}" fill-opacity="${DETAIL_STYLE[kind][1]}" fill-rule="evenodd"/>`);
   }
   parts.push(`</g>`);
-  for (const lake of asset.hydrology.lakes) { const d = multiPath(frame, [lake.polygon, ...(lake.islands ?? [])]); if (d) parts.push(`<path d="${d}" fill="${WATER}" fill-rule="evenodd" stroke="${WATER_EDGE}" stroke-width="1"/>`); }
+  for (const lake of asset.hydrology.lakes) { const d = fillPath(frame, [lake.polygon, ...(lake.islands ?? [])]); if (d) parts.push(`<path d="${d}" fill="${WATER}" fill-rule="evenodd" stroke="${WATER_EDGE}" stroke-width="1"/>`); }
   for (const river of asset.hydrology.rivers) { const d = ringPath(frame, river.points, false); if (d) parts.push(`<path d="${d}" fill="none" stroke="${WATER}" stroke-width="${f1(Math.min(4, 0.8 + Math.log10(1 + river.dischargeIndex)))}" stroke-linecap="round" stroke-linejoin="round"/>`); }
   parts.push(`<path d="${land}" fill="none" stroke="${COAST}" stroke-width="1.3" stroke-linejoin="round"/>`);
   // Relief, forests and settlements as small three-quarter-view drawings (never flat symbols), north to south.
