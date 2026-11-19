@@ -11,9 +11,13 @@ const GM_EARTH = 398600.4418; // km^3/s^2
 const EYM_SECOND_SI = 365.2422 / 350;
 const synodic = (sidereal, year) => 1 / (1 / sidereal - 1 / year);
 
-test("the Sun is a twin of Earth's Sun", () => {
+test("the Sun is as bright as Earth's Sun: a little heavier, and younger (the world's author, 19 November 2026)", () => {
   assert.equal(row("Abydos").type, "G2V star");
-  assert.match(row("Abydos").notes, /1\.00 solar mass, 1\.00 solar luminosity/);
+  // 1.00 solar luminosity stays exactly (the climate is calibrated to it); the mass makes up for the younger age.
+  assert.match(row("Abydos").notes, /1\.02 solar masses and 3\.5 billion years old: 1\.00 solar luminosity/);
+  assert.equal(num("Abydos", "system_age_gyr_est"), 3.5); assert.equal(num("Eventide", "system_age_gyr_est"), 3.5);
+  // Nothing in the system is older than its star.
+  for (const r of rows) if (r.system_age_gyr_est) assert.ok(Number(r.system_age_gyr_est) <= 3.5, r.object);
 });
 
 test("Eym is an Earth twin at 1 AU with a 350-day year of 24-hour days", () => {
