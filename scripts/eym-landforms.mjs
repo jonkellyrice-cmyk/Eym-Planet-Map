@@ -34,11 +34,14 @@ export function drainageChannels(asset) {
   const doc = asset?.drainage; if (!doc?.pointsInt16Base64) return [];
   const bytes = typeof Buffer !== "undefined" ? Uint8Array.from(Buffer.from(doc.pointsInt16Base64, "base64")) : Uint8Array.from(atob(doc.pointsInt16Base64), (c) => c.charCodeAt(0));
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), out = []; let k = 0;
-  for (const length of doc.channelLengths) {
-    const points = [], areasKm2 = [];
-    for (let m = 0; m < length; m += 1, k += 1) { points.push([view.getInt16(k * 6, true) * doc.latticeDeg, view.getInt16(k * 6 + 2, true) * doc.latticeDeg]); areasKm2.push(view.getUint16(k * 6 + 4, true) * 10); }
+  // Each land mass's channels lie on its own lattice (`landMasses`: its lattice step and how many channels are its);
+  // a file from before that has one step for all.
+  const steps = doc.landMasses ? doc.landMasses.flatMap((m) => new Array(m.channels).fill(m.latticeDeg)) : null;
+  doc.channelLengths.forEach((length, index) => {
+    const points = [], areasKm2 = [], step = steps ? steps[index] : doc.latticeDeg;
+    for (let m = 0; m < length; m += 1, k += 1) { points.push([view.getInt16(k * 6, true) * step, view.getInt16(k * 6 + 2, true) * step]); areasKm2.push(view.getUint16(k * 6 + 4, true) * 10); }
     out.push(meander(points, areasKm2));
-  }
+  });
   return out;
 }
 

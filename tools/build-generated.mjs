@@ -45,7 +45,7 @@ if (row.geography_input_fingerprint !== fingerprint) {
 const { coastSourcesSha256 } = await import("./generate-eym-coasts.mjs");
 const readCoasts = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/abydos/eventide-coasts.json", root), "utf8")); } catch { return null; } };
 if (readCoasts()?.sourcesSha256 !== coastSourcesSha256()) { run("tools/generate-eym-coasts.mjs"); changed = true; }
-// Eym's drainage (tools/generate-eym-drainage.mjs) follows the cartography: made again (about a minute) when the
+// Eym's drainage (tools/generate-eym-drainage.mjs) follows the cartography: made again (a quarter of a minute) when the
 // cartography or the local detail's surface changed.
 const { drainageSourcesSha256 } = await import("./generate-eym-drainage.mjs");
 const readDrainage = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/abydos/eventide-drainage.json", root), "utf8")); } catch { return null; } };

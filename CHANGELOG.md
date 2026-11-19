@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+Land-growth scaling fixes, Fix 1: the drainage tool. Caren's and Garyk's channels are bit for bit what they were.
+
+- Scope: only Caren and Garyk are drained (`DETAILED`). The channels are read only by the detailed layers (the local detail, the Region layer and battle maps, through `scripts/eym-landforms.mjs`), which do not cover Gaffa, Khohalis and Demani, so nothing is worked out or shipped for those (the specification's choice a). The file holds 980 channels (2,450 before, 1,470 of them on the far continents) and is 108 KB (313 KB before).
+- The file records each land mass's lattice step and how many channels are its (`landMasses`) in place of one step for all; `drainageChannels()` reads either form.
+- The flood: neighbour offsets and the heap on arrays made once, the order kept in a fixed array, nothing allocated in the loop. The heap sifts step for step as before, so nodes of equal key leave in the same order.
+- Each land mass is drained in its own thread, and its channels are kept in `.cache/eym-drainage/` under a fingerprint of what it reads (the tool's and the local detail's code, its outline, the coasts, lakes, relief and rivers within 3° of its box, the 1° rasters): a land mass whose inputs did not change is not drained again.
+- Measured: 44.7 s and 878 MB at peak before (five land masses, 2.95 million nodes, one after another); 13.3 s now with nothing kept (two land masses, 955,223 nodes, 447 MB in the larger thread), 0.0 s when both are kept.
+- Tried and not kept, with the reason in the code: working the surface out only on the land and the sea that touches it (26 of 980 channels then ended one node from where they always have, because nodes that start the flood at exactly 0 m leave the heap in an order that depends on every node of the box); and the quicker flood that handles hollows with a plain queue (each node's step across a filled hollow carries a fixed jitter, so the order inside a hollow is part of the result).
+- Tests: only the detailed continents are drained and the reader follows the record (a coarser land mass and an older file included); the heap on fixed arrays gives the array heap's order on 20,000 keys with many ties; fingerprints follow each land mass's own inputs; the threaded build, nothing reused, writes the shipped file. Changed, said plainly: `tests/eym-landforms.test.mjs` asked for more than 1,000 channels and now asks for more than 900, because the far continents' 1,470 are no longer shipped.
+
 Land-growth scaling fixes (owner, 19 November 2026), Fix 0: one utility for the antimeridian and the poles. No change to any map, tile or data value.
 
 - `scripts/geo-wrap.mjs`: `normLon`, `lonOffset`, `unwrapRing`, `ringWinding` (a ring round a pole is known for one), `lonExtent` (the shortest arc of longitude that holds a ring), `bboxWrap`, `lonInExtent`, `splitRingAtAntimeridian` (rings cut at ±180° for flat grids, a ring round a pole closed along the pole's edge of the map). Pure, with no imports. For a ring away from ±180° the results are exactly what the least and greatest longitudes gave.
