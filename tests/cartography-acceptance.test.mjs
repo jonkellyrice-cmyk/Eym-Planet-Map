@@ -47,25 +47,18 @@ test("accepted names follow controlling culture and remain collision-free per wo
   }
 });
 
-test("canonical CSV is pinned to the five-continents canon edit", () => {
-  // Re-pinned deliberately after the Earth-twin edit (Sun-like star, Earth-twin Eym at 1 AU, orbits rescaled,
-  // White and Red Moons added, sci-fi objects removed), then re-pinned deliberately again after removing Cataphract,
-  // Sumatra and Ventus: the four "wandering stars" Ramses, Thraximundus, Kandahar and Tribune remain besides Eventide.
-  // Re-pinned deliberately again for Eym's new surface: five continents (Caren and Garyk traced from their maps,
-  // three seeded) in a 98.6% ocean, replacing the archipelago canon (eym-surface-v1).
-  // Re-pinned deliberately again for Stage 1 of the physical history (17 November 2026): Eventide's
-  // geography_input_fingerprint now covers data/eym/tectonics.json and the fixed archipelago centres.
-  // Re-pinned deliberately again when the owner named Gaffa, Khohalis and Demani (17 November 2026): the
-  // names are part of EYM_LAYOUT, which Eventide's fingerprint covers. And again when the owner moved them
-  // (17 November 2026): their centres and one archipelago's are in EYM_LAYOUT too.
-  // And again for Stage 2 (17 November 2026): the fingerprint covers the ocean climate (data/eym/climate.json).
-  // And again for the mantle retrofit (19 November 2026): plate speeds and hotspot chains change
-  // data/eym/tectonics.json, which Eventide's fingerprint covers.
-  // And again for the sea floor in the ocean model (19 November 2026): the currents and sea temperatures change
-  // data/eym/climate.json, which Eventide's fingerprint covers.
-  // Any further registry change must re-pin this on purpose.
-  const csv = readFileSync(new URL("docs/system-orbital-distances.csv", root));
-  assert.equal(createHash("sha256").update(csv).digest("hex"), "a4ccc5197439daa0b2a1c657a274e0541d2f26eedbbdcac45d3600a54f862bc3");
+test("canonical CSV is pinned to the world as accepted (a managed pin)", () => {
+  // The registry file carries Eventide's input fingerprint, which covers everything Eym's surface is made from
+  // (the traced continents, the labels, the layout, the tectonic history, the ocean climate). So any accepted change
+  // to the world moves this hash. Until 0.26.1 the hash was written here and re-pinned by hand each time (eight
+  // times, from the Earth-twin edit to the sea floor in the ocean model). It is now a managed pin in
+  // tools/world-pins.json: a rebuild that moves it says so in its report (npm run world), and it is recorded, with a
+  // note saying why, only by `node tools/world.mjs --accept-pins --note "…"`. The check is as strict as before: the
+  // file must hash to exactly the recorded value, and the record must say why it holds that value.
+  const csv = readFileSync(new URL("docs/system-orbital-distances.csv", root)), pin = JSON.parse(readFileSync(new URL("tools/world-pins.json", root), "utf8")).managed.registryCsvSha256;
+  assert.match(pin.value, /^[0-9a-f]{64}$/);
+  assert.ok(pin.note && pin.note.length >= 10, "the pin says why it holds this value");
+  assert.equal(createHash("sha256").update(csv).digest("hex"), pin.value);
 });
 
 test("Eym's accepted canon has five continents in a planet-wide ocean", () => {

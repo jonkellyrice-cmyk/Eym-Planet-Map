@@ -269,7 +269,11 @@ export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (p
         if (!store) return send(res, 503, { error: "no store is set up (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)" });
         const all = regionFramesOnce(), wanted = url.searchParams.get("frame"), chosen = wanted ? all.filter((f) => f.id === wanted) : all; if (!chosen.length) return send(res, 404, { error: "no such frame" });
         const frames = []; for (const frame of chosen) frames.push(await regionStaleness(store, frame));
-        return send(res, 200, { shapesVersion: REGION_SHAPES_ID, picturesVersion: REGION_PIXELS_ID, frames });
+        // The versions whose files the store still holds, and which of them nothing reads any more (what the
+        // purge would take): for the post-release step (tools/refresh-region-tiles.mjs).
+        const stored = { pictures: await store.folders(store.buckets.tiles, "region"), shapes: await store.folders(store.buckets.shapes, "region") };
+        const superseded = [...new Set([...stored.pictures, ...stored.shapes])].filter(purgeableRegionFolder).sort();
+        return send(res, 200, { shapesVersion: REGION_SHAPES_ID, picturesVersion: REGION_PIXELS_ID, frames, stored, superseded, purgeOn: purge });
       }
       // Make and keep the next tiles of a frame that are not in the store yet, and refresh those that are stale (repainted
       // from their kept shapes when only the painting changed, made again otherwise), for as long as this request may run.

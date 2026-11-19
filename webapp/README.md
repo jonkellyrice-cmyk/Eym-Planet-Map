@@ -42,7 +42,7 @@ cache in milliseconds.
 | GET | `/api/region/frames` | the Region layer's model, frames and whether a store is set up |
 | GET | `/api/region/tile/:frame/:tx/:ty.png` | one Region tile (`?kind=pixels` or `flat`), from the store or made |
 | GET | `/api/region/fill?frame=&start=&count=&ms=` | make and keep a frame's tiles not yet in the store, and refresh stale ones, a batch at a time |
-| GET | `/api/region/stale?frame=` | how many stored tiles are current, need repainting, or need making again (read only) |
+| GET | `/api/region/stale?frame=` | how many stored tiles are current, need repainting, or need making again; the versions the store still holds and which are superseded (read only) |
 | GET | `/api/region/purge?model=&confirm=` | **temporary**, off by default: delete an old Region version's stored files (see below) |
 
 ## Stored Region tiles and staleness
@@ -61,6 +61,10 @@ served stale, and no cache can hold an old picture. `/api/region/stale` counts w
 `/api/region/fill` refreshes it: a tile whose shapes are current but whose painting is not is repainted from its kept
 shapes (quick); one whose shapes are stale is made again from the start. The Continent and Local stores are to work the
 same way when they exist.
+
+After a release, `npm run tiles:refresh` (`tools/refresh-region-tiles.mjs`) does this in one step: it calls the fill
+for every frame until each is done, checks that nothing is stale, and with `--purge` removes the superseded sets
+through the guarded purge below (which must be switched on for the deployment).
 
 The manifest lists the layers: `exterior` (outside with roofs), `ground` (outside with every building
 opened), `roofs[floor]` (roofs alone, for Foundry's roof layer), `floors[floor]` (upper floors over

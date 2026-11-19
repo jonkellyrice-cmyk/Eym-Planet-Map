@@ -159,6 +159,12 @@ test("stored tiles are named by what they were made from: a stale tile is never 
     assert.equal((await fetch(`${base}/api/region/tile/caren/${neighbour.tx}/${neighbour.ty}.png`)).headers.get("x-eym-source"), "made and kept");
     const info = await (await fetch(`${base}/api/region/frames`)).json(); assert.equal(info.picturesVersion, REGION_PIXELS_ID); assert.equal(info.shapesVersion, REGION_SHAPES_ID);
     assert.equal((await fetch(`${base}/api/region/stale?frame=nowhere`)).status, 404);
+    // The report also lists the versions the store still holds and which of them nothing reads any more (for the
+    // post-release step, tools/refresh-region-tiles.mjs): here the bare model's folder, left by the stale picture above.
+    const whole = await (await fetch(`${base}/api/region/stale`)).json();
+    assert.ok(whole.stored.pictures.includes(REGION_PIXELS_ID) && whole.stored.shapes.includes(REGION_SHAPES_ID));
+    assert.ok(whole.superseded.includes(REGION_MODEL) && !whole.superseded.includes(REGION_PIXELS_ID) && !whole.superseded.includes(REGION_SHAPES_ID));
+    assert.equal(whole.purgeOn, false);
   } finally { await new Promise((resolve) => server.close(resolve)); rmSync(cacheDir, { recursive: true, force: true }); }
 });
 
