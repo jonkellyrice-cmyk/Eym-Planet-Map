@@ -28,3 +28,21 @@ test("clicking the globe picks a settlement or a place; the cursor shows where i
   assert.match(app, /latInput\.value = String\(Math\.round\(lat \* 1e4\) \/ 1e4\)/, "four decimals, not one");
   assert.match(read("styles/body-map.css"), /\.oscm-cursor-readout text/);
 });
+
+test("map names come in by tiers as the view closes in, and keep one size on the screen", async () => {
+  const { labelTier, LABEL_TIER_ZOOM, LABEL_TIER0_MAX_ZOOM, labelScreenPx } = await import("../scripts/body-view-core.mjs");
+  // Continents first; then what can be seen from space; then realms and capitals; then cities and the larger
+  // natural features; last the towns (owner, 19 November 2026).
+  assert.deepEqual(["continent", "range", "forest", "capital", "region", "city", "lake", "river", "town", "fort"].map(labelTier), [0, 1, 1, 2, 2, 3, 3, 3, 4, 4]);
+  for (let i = 1; i < LABEL_TIER_ZOOM.length; i += 1) assert.ok(LABEL_TIER_ZOOM[i] > LABEL_TIER_ZOOM[i - 1]);
+  assert.ok(LABEL_TIER0_MAX_ZOOM > LABEL_TIER_ZOOM[3], "the continent's name gives way only once cities show");
+  // Legible on a phone: no name under 12 CSS pixels, and the larger tiers larger.
+  assert.ok(labelScreenPx("town") >= 12 && labelScreenPx("city") > labelScreenPx("town") && labelScreenPx("continent") > labelScreenPx("capital"));
+  // The sizes are screen pixels: the view sets --body-px and the stylesheet scales every name by it, with a dark halo.
+  const core = readFileSync(new URL("../scripts/body-view-core.mjs", import.meta.url), "utf8"), css = readFileSync(new URL("../styles/body-map.css", import.meta.url), "utf8");
+  assert.match(core, /setProperty\?\.\("--body-px"/);
+  const rule = /\.oscm-cartography-label \{([^}]*)\}/.exec(css)[1];
+  assert.match(rule, /font-size: calc\(var\(--body-px, 1\) \* var\(--label-px\) \* 1px\)/);
+  assert.match(rule, /stroke-width: calc\(var\(--body-px, 1\)/);
+  for (const [cls, px] of [["continent", 20], ["capital", 15], ["city", 13]]) assert.match(css, new RegExp(`is-${cls}[^{]*\\{ --label-px: ${px};`), cls);
+});

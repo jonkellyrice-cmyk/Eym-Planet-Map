@@ -85,6 +85,20 @@ export function bodyVisualContract(model, geography = null) {
   return { kind: `${model.kind}-structure`, atmosphere: false, features: model.approach?.dockingNodes?.length ?? 0 };
 }
 
+// ---------------------------------------------------------------- map names: tiers by zoom, sizes in screen pixels
+
+/** A name's tier: 0 continents and oceans; 1 what can be seen from space; 2 realms and capitals; 3 cities, ports and the larger natural features; 4 towns and smaller places. */
+export const labelTier = (featureClass) => ["continent", "ocean"].includes(featureClass) ? 0
+  : ["range", "forest", "islands", "sea", "desert", "jungle"].includes(featureClass) ? 1
+  : ["capital", "region"].includes(featureClass) ? 2
+  : ["city", "port", "lake", "river", "mountain", "hills", "valley", "island"].includes(featureClass) ? 3 : 4;
+/** The zoom from which each tier's names show on worlds with vector coastlines. */
+export const LABEL_TIER_ZOOM = Object.freeze([0.46, 2.2, 3.2, 5.5, 9]);
+/** Beyond this zoom a continent's or ocean's name is hidden (the view is inside it). */
+export const LABEL_TIER0_MAX_ZOOM = 6;
+/** Each name's size on the screen, in CSS pixels (styles/body-map.css uses the same sizes). */
+export const labelScreenPx = (featureClass) => featureClass === "continent" ? 20 : featureClass === "ocean" ? 16 : featureClass === "capital" ? 15 : ({ 1: 14.5, 2: 14, 3: 13 })[labelTier(featureClass)] ?? 12;
+
 export class BodyView {
   constructor(svgRoot, { model, geography = null, onExitRequested = () => {}, onFeatureSelected = () => {}, onPlaceSelected = () => {} }) {
     this.svg = svgRoot; this.model = model; this.geography = geography;
@@ -209,11 +223,16 @@ export class BodyView {
       const node = svg("circle", { class: `oscm-body-settlement is-${site.kind}`, r: site.kind === "capital" ? 5 : minor ? 2 : 3, "data-feature": site.id }); node.addEventListener("click", () => this.onFeatureSelected(site)); this.layerGroups.get("settlements").append(node); this.featureNodes.push({ node, lat: site.lat, lon: site.lon, feature: site, minZoom });
     }
     for (const route of asset.transportRoutes) addPath(this.layerGroups.get("transport"), route, [route.points], `oscm-body-transport is-${route.mode}`, { minZoom: route.kind?.includes("primary") ? 1.05 : 1.35 });
-    const vectorLabelZoom = (featureClass) => ["capital", "continent", "ocean"].includes(featureClass) ? .46 : featureClass === "region" ? 2.5 : ["city", "port"].includes(featureClass) ? 4 : ["town", "fort", "village"].includes(featureClass) ? 9 : 5;
+    // Names come in by tiers as the view closes in (owner, 19 November 2026): the continents and oceans from afar; then
+    // what can be seen from space (ranges, great forests, island groups, seas); then the realms and their capitals;
+    // then cities, ports, lakes, rivers and peaks; last the towns, forts and smaller places.
+    const vectorLabelZoom = (featureClass) => LABEL_TIER_ZOOM[labelTier(featureClass)];
     for (const feature of selectCartographyLabels(asset, 4.5, false, vectorCoast ? 400 : undefined)) {
       const node = svg("text", { class: `oscm-cartography-label is-${feature.featureClass}`, "data-feature": feature.id }); node.textContent = feature.properName; node.addEventListener("click", () => this.onFeatureSelected(feature)); this.layerGroups.get("labels").append(node);
       const minZoom = vectorCoast ? vectorLabelZoom(feature.featureClass) : ["capital", "continent", "ocean"].includes(feature.featureClass) ? .46 : ["city", "port", "sea", "range", "region"].includes(feature.featureClass) ? 1.15 : 2.15;
-      this.featureNodes.push({ node, lat: feature.at[0], lon: feature.at[1], feature, minZoom, label: true });
+      // Close in, a continent's or ocean's name would sit over the very places it contains: it gives way.
+      const maxZoom = vectorCoast && labelTier(feature.featureClass) === 0 ? LABEL_TIER0_MAX_ZOOM : undefined;
+      this.featureNodes.push({ node, lat: feature.at[0], lon: feature.at[1], feature, minZoom, maxZoom, label: true });
     }
     this.layerGroups.get("resources").classList.add("is-hidden");
   }
@@ -474,15 +493,16 @@ export class BodyView {
   }
 
   /**
-   * Where two names would overlap, the less important gives way (continents and oceans first, then capitals,
-   * regions, cities and ports, seas and ranges, then the rest).
+   * Where two names would overlap, the less important gives way: continents and oceans, then capitals, then what can
+   * be seen from space, the realms, cities and the larger natural features, and last the towns. Sizes are the names'
+   * screen sizes in view units, so the test matches what is drawn on any screen.
    */
   #hideOverlappingLabels() {
-    const rank = { continent: 0, ocean: 0, capital: 1, region: 2, city: 3, port: 3, sea: 4, range: 4 }, size = { capital: 13, continent: 12, ocean: 12, region: 11 }, placed = [];
+    const rank = (cls) => cls === "capital" ? 1 : [0, 2, 3, 4, 5][labelTier(cls)], placed = [];
     const shown = this.featureNodes.filter((item) => item.label && !item.node.hidden).map((item) => {
-      const m = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(item.node.getAttribute("transform") ?? ""), cls = item.feature.featureClass, px = size[cls] ?? 10.5;
+      const m = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(item.node.getAttribute("transform") ?? ""), cls = item.feature.featureClass, px = labelScreenPx(cls) * (this.unitPerPx ?? 1);
       const w = (item.node.textContent?.length ?? 4) * px * 0.56 + 4, h = px * 1.25;
-      return { item, r: rank[cls] ?? 5, area: item.feature.scale ?? 0, x: m ? Number(m[1]) : 0, y: m ? Number(m[2]) : 0, w, h };
+      return { item, r: rank(cls), area: item.feature.scale ?? 0, x: m ? Number(m[1]) : 0, y: m ? Number(m[2]) : 0, w, h };
     }).sort((a, b) => a.r - b.r || b.area - a.area);
     for (const l of shown) {
       const box = { x0: l.x - l.w / 2, x1: l.x + l.w / 2, y0: l.y - l.h, y1: l.y + l.h * 0.3 };
@@ -498,6 +518,9 @@ export class BodyView {
       return;
     }
     const radius = 250 * this.state.zoom; this.discClip?.setAttribute("r", radius);
+    // Names keep one size on the screen whatever the view's size: the CSS scales them by the view units in a screen pixel.
+    const shownBox = this.svg.getBoundingClientRect?.(), fitScale = shownBox?.width ? Math.min(shownBox.width / 900, shownBox.height / 680) : 1, unitPerPx = fitScale > 0 ? 1 / fitScale : 1;
+    if (unitPerPx !== this.unitPerPx) { this.unitPerPx = unitPerPx; this.svg.style?.setProperty?.("--body-px", unitPerPx.toFixed(4)); }
     const pixels = Boolean(this.pixel) && this.state.zoom <= PIXEL_GLOBE_MAX_ZOOM, windHidden = this.weatherGroups?.wind?.classList.contains("is-hidden");
     if (this.pixel) { this.svg.classList.toggle("is-pixel-globe", pixels); this.pixel.canvas.classList.toggle("is-on", pixels); if (pixels) this.#queuePixels(); }
     if (this.fadeNightWithZoom) this.night.style.opacity = String(clamp(1.8 - this.state.zoom * 0.8, 0, 1));

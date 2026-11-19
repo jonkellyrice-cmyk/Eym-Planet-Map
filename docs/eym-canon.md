@@ -81,7 +81,9 @@ the source map draws them, though Caren is god-shaped, so heights may be set wit
 The history engine starts from this.
 
 - Caren was divided north from south by an artificial mountain range, which collapsed at the end of the previous
-  campaign. *Which labelled range it is: for the owner to confirm.* It is drawn as recent ruin (rubble, landslides,
+  campaign (the party brought it down). It is the *Sondel Range*, the range in the middle of Caren (owner, 19 November
+  2026). Before the fall it ran across the whole continent, from the west coast to the east coast; what is left is the
+  stretch in the middle. It is drawn as recent ruin (rubble, landslides,
   dammed lakes, new passes), never as tectonic mountains, and the climate model is to support the terrain both before
   and after the fall, switching at the fall's date.
 - Sailing around the range was historically fatal: a magical barrier, not a physical one.
@@ -109,8 +111,7 @@ The history engine starts from this.
 - *Peoples, gods and magic in the history engine:* Pathfinder defaults for every setting, including which magical
   effects are switched on, the gods' accord, the per-realm setting of who counts as people, and monster settings. The
   engine itself waits for his answers to the questions in `ROADMAP.md` (later programmes, 3.1).
-- *Caren:* which labelled range was the artificial north-south wall (the owner to confirm); the peace treaty's terms
-  and signatories; where the orc city and its border with Dubos lie.
+- *Caren:* the peace treaty's terms and signatories; where the orc city and its border with Dubos lie.
 - *Fire:* whether monsters start fires as well as lightning and people.
 - *Aquatic peoples* on shelves and reefs.
 - *Planar lenses:* the strengths of the resemblance and the specific places; seeded defaults until he decides. The
