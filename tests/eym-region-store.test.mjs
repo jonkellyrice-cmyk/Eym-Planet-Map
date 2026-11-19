@@ -4,7 +4,7 @@ import { readFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
-import { REGION_MODEL, regionFrames, regionTileAt } from "../scripts/eym-region-layer.mjs";
+import { REGION_MODEL, regionFrames, regionTileAt, regionFrameHasTile } from "../scripts/eym-region-layer.mjs";
 import { decodePng } from "../webapp/render/png.mjs";
 import { regionStore, sha256 } from "../webapp/region-store.mjs";
 import { REGION_PIXELS_ID, REGION_SHAPES_ID, createMapServer, purgeableRegionFolder, regionShapesFile, regionShapesPath, regionTileFromShapes, regionTilePath, regionTilePicture } from "../webapp/server.mjs";
@@ -185,6 +185,7 @@ test("tiles filled several at once are byte for byte the tiles made one at a tim
   const withServer = async (work) => {
     const fake = fakeSupabase(), cacheDir = mkdtempSync(join(tmpdir(), "eym-region-")), server = createMapServer({ asset, cacheDir, store: regionStore(ENV, fake.fetchImpl) });
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve)); const base = `http://127.0.0.1:${server.address().port}`;
+    fake.base = base;
     try { await work(async (query) => (await fetch(`${base}/api/region/fill?frame=caren&${query}`)).json(), fake); } finally { await new Promise((resolve) => server.close(resolve)); rmSync(cacheDir, { recursive: true, force: true }); }
     return fake;
   };
@@ -202,6 +203,11 @@ test("tiles filled several at once are byte for byte the tiles made one at a tim
   });
   // Three requests at once over separate ranges, many uploads in flight.
   const busy = await withServer(async (fill, fake) => {
+    // The server's plan of a frame: ranges end to end over the whole frame, each holding the asked number of its tiles (the last what is left).
+    const plan = await (await fetch(`${fake.base}/api/region/plan?frame=caren&per=24`)).json(), height = caren.tiles.ty1 - caren.tiles.ty0 + 1;
+    assert.equal(plan.total, width * height); assert.equal(plan.ranges[0][0], 0); assert.equal(plan.ranges.at(-1)[1], plan.total);
+    plan.ranges.forEach(([a, z], i) => { if (i) assert.equal(a, plan.ranges[i - 1][1]); let held = 0; for (let k = a; k < z; k += 1) if (regionFrameHasTile(caren, caren.tiles.tx0 + (k % width), caren.tiles.ty0 + Math.floor(k / width))) held += 1; assert.ok(i < plan.ranges.length - 1 ? held === 24 : held > 0 && held <= 24, `range ${i} holds ${held}`); });
+    assert.equal(plan.ranges.length, Math.ceil(464 / 24)); assert.equal(fake.files.size, 0, "planning makes and stores nothing");
     const parts = await Promise.all([[from, from + 2], [from + 2, from + 4], [from + 4, to]].map(([a, b]) => fill(`start=${a}&end=${b}&inflight=12`)));
     for (const r of parts) { assert.equal(r.done, true); assert.deepEqual(r.errors, []); }
     assert.equal(parts.reduce((n, r) => n + r.kept, 0), single.files.size / 2); assert.ok(fake.tableWrites.length <= 3);
