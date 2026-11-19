@@ -15,6 +15,7 @@ import { annualMeanTemperatureC, environmentField, zonalPrecipitationMm } from "
 import { blendedShoreAt, cliffLiftM, landformContext, nearestRiver, valleyAt, windWorkAt } from "./eym-landforms.mjs";
 import { daysUntilFordable, groundwaterMm, riverStage, riverYear, widthFactor, yearWetness } from "./eym-river-flow.mjs";
 import { geologyAt } from "./eym-geology.mjs";
+import { COVER, COVER_COLORS, COVER_NAMES, hashUnit } from "./eym-cover.mjs";
 
 export const LOCAL_DETAIL_MODEL = "eym-local-detail-v1";
 const DEG = Math.PI / 180;
@@ -22,9 +23,8 @@ const R_KM = 6371;
 const LATTICE_DEG = 0.02; // ~2.2 km: finer than the source detail (~6 km), so its edges are kept
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
-/** Ground cover classes. */
-export const COVER = Object.freeze({ sea: 0, lake: 1, river: 2, stream: 3, beach: 4, marsh: 5, meadow: 6, farmland: 7, scrub: 8, woods: 9, rock: 10, snow: 11, built: 12, road: 13 });
-export const COVER_NAMES = Object.freeze(Object.fromEntries(Object.entries(COVER).map(([k, v]) => [v, k])));
+/** Ground cover classes, their plain colours and the world-keyed hash (scripts/eym-cover.mjs), shared with every Eym map. */
+export { COVER, COVER_COLORS, COVER_NAMES, hashUnit };
 
 // ---------------------------------------------------------------- noise keyed to the globe
 
@@ -47,12 +47,6 @@ export function globeNoise(p, longKm, shortKm, salt = 1) {
   return total / norm;
 }
 const toKmVector = (lat, lon) => { const a = lat * DEG, b = lon * DEG; return [R_KM * Math.cos(a) * Math.cos(b), R_KM * Math.cos(a) * Math.sin(b), R_KM * Math.sin(a)]; };
-// FNV-1a with a final avalanche (keys differing only in their last digits must not give correlated values).
-export const hashUnit = (text) => {
-  let h = 2166136261; for (let i = 0; i < text.length; i += 1) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
-  h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16;
-  return (h >>> 0) / 4294967296;
-};
 
 // ---------------------------------------------------------------- the coarse facts, on a pinned lattice
 
@@ -506,11 +500,6 @@ export function buildLocalTile(asset, { center, sizeKm = 8, resolutionM = 25, ma
 }
 
 // ---------------------------------------------------------------- pictures
-
-export const COVER_COLORS = Object.freeze({
-  [COVER.sea]: [38, 82, 109], [COVER.lake]: [91, 155, 196], [COVER.river]: [91, 155, 196], [COVER.stream]: [104, 166, 205], [COVER.beach]: [222, 205, 160], [COVER.marsh]: [104, 128, 92],
-  [COVER.meadow]: [148, 168, 98], [COVER.farmland]: [189, 177, 112], [COVER.scrub]: [118, 140, 82], [COVER.woods]: [62, 104, 58], [COVER.rock]: [140, 128, 112], [COVER.snow]: [238, 241, 243], [COVER.built]: [150, 120, 96],
-});
 
 /** RGBA pixels for a tile, with hill shading (for a canvas, or a PNG). */
 export function tileRgba(tile) {

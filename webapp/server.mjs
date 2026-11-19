@@ -14,7 +14,10 @@
 //   GET  /api/battle-maps/:id/files/:name   a layer (PNG)
 //   GET  /api/region/frames        the region layer's frames and tile ranges, and whether a store is set up
 //   GET  /api/region/tile/:frame/:tx/:ty.png   a region tile (?kind=pixels|flat): from the store, or made (and kept)
-//   GET  /api/region/fill?frame=&start=&count=   make and keep the next tiles of a frame not yet in the store
+//   GET  /api/region/fill?frame=&start=&count=   make and keep the next tiles of a frame not yet in the store, and
+//                                  refresh stale ones (repainted from their stored shapes, or made again)
+//   GET  /api/region/stale?frame=  how many stored tiles are current, need repainting, or need making again
+//   GET  /api/region/purge?model=&confirm=   TEMPORARY, off by default: delete an old Region version's files
 
 import { createServer } from "node:http";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -30,8 +33,9 @@ import { normalizeSeason } from "../scripts/eym-battle-season.mjs";
 import { BUILDING_STYLES, styleForPlace } from "../scripts/eym-building-styles.mjs";
 import { decodePng, encodePng } from "./render/png.mjs";
 import { Framebuffer } from "./render/framebuffer.mjs";
-import { gzipSync } from "node:zlib";
-import { REGION_CELL_KM, REGION_MODEL, REGION_TILE_CELLS, buildRegionTile, flatRegionTile, regionFrameHasTile, regionFrames, renderRegionTile } from "../scripts/eym-region-layer.mjs";
+import { gunzipSync, gzipSync } from "node:zlib";
+import { REGION_CELL_KM, REGION_MODEL, REGION_TILE_CELLS, buildRegionTile, regionFrameHasTile, regionFrames } from "../scripts/eym-region-layer.mjs";
+import { flatRegionTile, renderRegionTile } from "../scripts/eym-region-paint.mjs";
 import { regionStore, sha256 } from "./region-store.mjs";
 import { attachDrainage, attachFlow, attachGeology, attachWind, drainageFileName, flowFileName, windFileName } from "../scripts/cartography-asset.mjs";
 
@@ -131,14 +135,50 @@ export function createMapServer(options = {}) { return createServer(createMapHan
 // ---------------------------------------------------------------- the region layer
 
 const REGION_KINDS = Object.freeze({ pixels: renderRegionTile, flat: flatRegionTile });
-/** Where a region tile's picture is kept (the rules' version is in the path: new rules, new tiles). */
-export const regionTilePath = (frame, kind, tx, ty) => `region/${REGION_MODEL}/${frame}/${kind}/${tx}_${ty}.png`;
-/** Whether a Region model name is an older one than the server's own (only those may be purged). */
-export const olderRegionModel = (model) => { const m = /^eym-region-layer-v(\d{1,4})$/.exec(String(model)), now = Number(/v(\d+)$/.exec(REGION_MODEL)[1]); return Boolean(m) && Number(m[1]) < now; };
+// What the stored tiles are made from (tools/generate-region-fingerprint.mjs; `npm run build` keeps it current and a
+// test checks it). Shapes are kept under the shapes' fingerprint; pictures under the shapes' and the painting's.
+// So a tile made from older code or data is not found under the current name: it is made again rather than served,
+// and no cache can hold it.
+const REGION_FINGERPRINT = JSON.parse(readFileSync(join(HERE, "..", "data", "eym", "region-fingerprint.json"), "utf8"));
+export const REGION_SHAPES_ID = `${REGION_MODEL}-s${REGION_FINGERPRINT.shapes.slice(0, 12)}`;
+export const REGION_PIXELS_ID = `${REGION_SHAPES_ID}-p${REGION_FINGERPRINT.paint.slice(0, 12)}`;
+/** Where a region tile's picture is kept (under the current fingerprints: new code or data, new tiles). */
+export const regionTilePath = (frame, kind, tx, ty) => `region/${REGION_PIXELS_ID}/${frame}/${kind}/${tx}_${ty}.png`;
+/** Where a region tile's shapes are kept (under the shapes' fingerprint). */
+export const regionShapesPath = (frame, tx, ty) => `region/${REGION_SHAPES_ID}/${frame}/shapes/${tx}_${ty}.json.gz`;
+/**
+ * Whether a folder of the store's region/ may be purged: a Region version older than the server's own, or this
+ * version made from other code or data (any fingerprint but the current ones). Never the current shapes or
+ * pictures, never a newer version, never anything that is not a Region version's name.
+ */
+export const purgeableRegionFolder = (name) => {
+  const m = /^eym-region-layer-v(\d{1,4})(?:-s[0-9a-f]{12}(?:-p[0-9a-f]{12})?)?$/.exec(String(name)), now = Number(/v(\d+)$/.exec(REGION_MODEL)[1]);
+  return Boolean(m) && Number(m[1]) <= now && name !== REGION_SHAPES_ID && name !== REGION_PIXELS_ID;
+};
 const b64 = (array) => Buffer.from(array.buffer, array.byteOffset, array.byteLength).toString("base64");
 /** A tile's shapes as a file: JSON (the arrays in base64), gzipped. */
 export function regionShapesFile(tile) {
   return gzipSync(JSON.stringify({ model: tile.model, frame: tile.frame, tx: tile.tx, ty: tile.ty, cells: tile.cells, pad: tile.pad, sea: tile.sea, cover: b64(tile.cover), elevationInt16: b64(tile.elevation), shade: b64(tile.shade), coastKm: b64(tile.coastKm), rivers: tile.rivers, roads: tile.roads, settlements: tile.settlements }));
+}
+/** A tile's shapes read back from its shapes file (the inverse of regionShapesFile): what its pictures are painted from. */
+export function regionTileFromShapes(file) {
+  const s = JSON.parse(gunzipSync(file)), bytes = (text) => Buffer.from(text, "base64"), u8 = (text) => new Uint8Array(bytes(text));
+  const raw = bytes(s.elevationInt16), elevation = new Int16Array(raw.length / 2); for (let i = 0; i < elevation.length; i += 1) elevation[i] = raw.readInt16LE(i * 2);
+  return { model: s.model, frame: s.frame, tx: s.tx, ty: s.ty, cells: s.cells, pad: s.pad, sea: s.sea, cover: u8(s.cover), elevation, shade: u8(s.shade), coastKm: u8(s.coastKm), rivers: s.rivers, roads: s.roads, settlements: s.settlements };
+}
+/** Paint a kept tile again from its kept shapes (its shapes current, its painting not) and keep the picture. Null if its shapes are not there. */
+export async function repaintRegionTile(store, frame, tx, ty) {
+  const shapes = await store.readPrivate(store.buckets.shapes, regionShapesPath(frame.id, tx, ty)); if (!shapes) return null;
+  const tile = regionTileFromShapes(shapes), png = encodePng({ width: tile.cells, height: tile.cells, data: renderRegionTile(tile) }), path = regionTilePath(frame.id, "pixels", tx, ty);
+  await store.write(store.buckets.tiles, path, png, "image/png");
+  await store.record({ layer: "region", kind: "pixels", z: frame.store, frame: frame.id, x: tx, y: ty, rules_version: REGION_PIXELS_ID, bucket: store.buckets.tiles, path, bytes: png.length, sha256: sha256(png), is_sea: false });
+  return png;
+}
+/** The stored tiles of a frame by state: current, to repaint (shapes current, painting stale), to make again (shapes stale). */
+export async function regionStaleness(store, frame) {
+  const pixels = await store.versions("region", "pixels", frame.store), shapes = await store.versions("region", "shapes", frame.store), out = { frame: frame.id, current: 0, repaint: 0, remake: 0 };
+  for (const [key, version] of pixels) { if (version === REGION_PIXELS_ID) out.current += 1; else if (shapes.get(key) === REGION_SHAPES_ID) out.repaint += 1; else out.remake += 1; }
+  return out;
 }
 /**
  * One region tile's picture. Land tiles are kept in the store once made (the pixel art with its shapes
@@ -153,11 +193,11 @@ export async function regionTilePicture(asset, frames, store, frameId, tx, ty, k
   if (!store || tile.sea || !regionFrameHasTile(frame, tx, ty)) return { png, source: "made", sea: tile.sea };
   try {
     await store.write(store.buckets.tiles, path, png, "image/png");
-    await store.record({ layer: "region", kind, z: index, frame: frameId, x: tx, y: ty, rules_version: REGION_MODEL, bucket: store.buckets.tiles, path, bytes: png.length, sha256: sha256(png), is_sea: false });
+    await store.record({ layer: "region", kind, z: index, frame: frameId, x: tx, y: ty, rules_version: REGION_PIXELS_ID, bucket: store.buckets.tiles, path, bytes: png.length, sha256: sha256(png), is_sea: false });
     if (kind === "pixels") {
-      const shapes = regionShapesFile(tile), shapesPath = `region/${REGION_MODEL}/${frameId}/shapes/${tx}_${ty}.json.gz`;
+      const shapes = regionShapesFile(tile), shapesPath = regionShapesPath(frameId, tx, ty);
       await store.write(store.buckets.shapes, shapesPath, shapes, "application/gzip");
-      await store.record({ layer: "region", kind: "shapes", z: index, frame: frameId, x: tx, y: ty, rules_version: REGION_MODEL, bucket: store.buckets.shapes, path: shapesPath, bytes: shapes.length, sha256: sha256(shapes), is_sea: false });
+      await store.record({ layer: "region", kind: "shapes", z: index, frame: frameId, x: tx, y: ty, rules_version: REGION_SHAPES_ID, bucket: store.buckets.shapes, path: shapesPath, bytes: shapes.length, sha256: sha256(shapes), is_sea: false });
     }
     return { png, source: "made and kept", sea: false };
   } catch (error) { return { png, source: "made", sea: false, error: error.message }; }
@@ -214,7 +254,7 @@ export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (p
         featureCategories: MAP_FEATURE_CATEGORIES, features: MAP_FEATURES.map((f) => ({ id: f.id, label: f.label, category: f.category })),
         settlements: data.settlements.filter((s) => s.properName).map((s) => ({ name: s.properName, kind: s.kind, lat: s.lat, lon: s.lon })).sort((a, b) => a.name.localeCompare(b.name)),
       });
-      if (req.method === "GET" && path === "/api/region/frames") return send(res, 200, { model: REGION_MODEL, cellKm: REGION_CELL_KM, tileCells: REGION_TILE_CELLS, kinds: Object.keys(REGION_KINDS), stored: Boolean(store), frames: regionFramesOnce() });
+      if (req.method === "GET" && path === "/api/region/frames") return send(res, 200, { model: REGION_MODEL, shapesVersion: REGION_SHAPES_ID, picturesVersion: REGION_PIXELS_ID, cellKm: REGION_CELL_KM, tileCells: REGION_TILE_CELLS, kinds: Object.keys(REGION_KINDS), stored: Boolean(store), frames: regionFramesOnce() });
       const tileMatch = /^\/api\/region\/tile\/([a-z0-9-]+)\/(-?\d{1,4})\/(-?\d{1,4})\.png$/.exec(path);
       if (req.method === "GET" && tileMatch) {
         const kind = url.searchParams.get("kind") ?? "pixels"; if (!REGION_KINDS[kind]) return send(res, 400, { error: "kind is pixels or flat" });
@@ -224,37 +264,48 @@ export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (p
         res.setHeader("x-eym-source", made.source); if (made.error) res.setHeader("x-eym-store-error", made.error.replace(/[^ -~]/g, " ").slice(0, 200));
         res.writeHead(200, { "content-type": "image/png", "cache-control": made.source === "made" && !made.sea ? "no-store" : "public, max-age=86400" }); res.end(made.png); return;
       }
-      // Make and keep the next tiles of a frame that are not in the store yet, for as long as this request may run.
+      // How many of the stored tiles are current, and how many are stale (read only).
+      if (req.method === "GET" && path === "/api/region/stale") {
+        if (!store) return send(res, 503, { error: "no store is set up (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)" });
+        const all = regionFramesOnce(), wanted = url.searchParams.get("frame"), chosen = wanted ? all.filter((f) => f.id === wanted) : all; if (!chosen.length) return send(res, 404, { error: "no such frame" });
+        const frames = []; for (const frame of chosen) frames.push(await regionStaleness(store, frame));
+        return send(res, 200, { shapesVersion: REGION_SHAPES_ID, picturesVersion: REGION_PIXELS_ID, frames });
+      }
+      // Make and keep the next tiles of a frame that are not in the store yet, and refresh those that are stale (repainted
+      // from their kept shapes when only the painting changed, made again otherwise), for as long as this request may run.
       if (req.method === "GET" && path === "/api/region/fill") {
         if (!store) return send(res, 503, { error: "no store is set up (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)" });
         const all = regionFramesOnce(), frame = all.find((f) => f.id === url.searchParams.get("frame")); if (!frame) return send(res, 404, { error: "no such frame" });
         const { tx0, tx1, ty0, ty1 } = frame.tiles, width = tx1 - tx0 + 1, total = width * (ty1 - ty0 + 1), start = Math.max(0, Number(url.searchParams.get("start") ?? 0) | 0), count = Math.min(400, Math.max(1, Number(url.searchParams.get("count") ?? 60) | 0)), budgetMs = Math.min(50000, Math.max(1000, Number(url.searchParams.get("ms") ?? 40000) | 0));
         const report = await (queue = queue.then(async () => {
-          const began = Date.now(), have = await store.listed("region", "pixels", frame.store, REGION_MODEL), out = { frame: frame.id, total, start, next: start, kept: 0, already: 0, sea: 0, outside: 0, errors: [] };
-          for (let k = start; k < total && out.kept < count && Date.now() - began < budgetMs; k += 1) {
-            const tx = tx0 + (k % width), ty = ty0 + Math.floor(k / width); out.next = k + 1;
+          const began = Date.now(), pixels = await store.versions("region", "pixels", frame.store), shapes = await store.versions("region", "shapes", frame.store);
+          const out = { frame: frame.id, version: REGION_PIXELS_ID, total, start, next: start, kept: 0, repainted: 0, remade: 0, already: 0, sea: 0, outside: 0, errors: [] };
+          for (let k = start; k < total && out.kept + out.repainted + out.remade < count && Date.now() - began < budgetMs; k += 1) {
+            const tx = tx0 + (k % width), ty = ty0 + Math.floor(k / width), key = `${tx},${ty}`, was = pixels.get(key); out.next = k + 1;
             if (!regionFrameHasTile(frame, tx, ty)) { out.outside += 1; continue; }
-            if (have.has(`${tx},${ty}`)) { out.already += 1; continue; }
-            const made = await regionTilePicture(data, all, store, frame.id, tx, ty, "pixels", { read: false }); // the list above says it is not kept
-            if (made.sea) out.sea += 1; else if (made.source === "made and kept" || made.source === "store") out.kept += 1; else { out.errors.push(`${tx},${ty}: ${made.error ?? "not kept"}`); if (out.errors.length >= 3) break; }
+            if (was === REGION_PIXELS_ID) { out.already += 1; continue; }
+            // Stale, but its shapes are current: only the painting changed, so paint it again from the kept shapes.
+            if (was && shapes.get(key) === REGION_SHAPES_ID) { try { if (await repaintRegionTile(store, frame, tx, ty)) { out.repainted += 1; continue; } } catch (error) { out.errors.push(`${key}: ${error.message}`); if (out.errors.length >= 3) break; continue; } }
+            const made = await regionTilePicture(data, all, store, frame.id, tx, ty, "pixels", { read: false }); // the list above says it is not kept as it is now
+            if (made.sea) out.sea += 1; else if (made.source === "made and kept" || made.source === "store") out[was ? "remade" : "kept"] += 1; else { out.errors.push(`${key}: ${made.error ?? "not kept"}`); if (out.errors.length >= 3) break; }
           }
           return { ...out, done: out.next >= total, ms: Date.now() - began };
         }));
         return send(res, 200, report);
       }
       // TEMPORARY (0.25.2), to be removed once the layers' models settle: see webapp/README.md, "Purging old Region
-      // tiles". Deletes the stored files of a Region model older than this server's, from the two Region buckets
-      // only. Off unless the deployment sets EYM_REGION_PURGE=on; a dry run (counts only) unless confirm repeats the
-      // model's name; never the current model or a newer one. The table needs nothing: its rows are one per tile
-      // and already name the current model.
+      // tiles". Deletes the stored files of an old Region version (an older model, or this one made from other code
+      // or data), from the two Region buckets only. Off unless the deployment sets EYM_REGION_PURGE=on; a dry run
+      // (counts only) unless confirm repeats the folder's name; never the current shapes or pictures, nor a newer
+      // version. The table needs nothing: its rows are one per tile and name the version each was made under.
       if (req.method === "GET" && path === "/api/region/purge") {
         if (!purge) return send(res, 403, { error: "purging is off (set EYM_REGION_PURGE=on for the deployment to turn it on)" });
         if (!store) return send(res, 503, { error: "no store is set up (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)" });
         const model = url.searchParams.get("model") ?? "";
-        if (!olderRegionModel(model)) return send(res, 400, { error: `model must be an older Region model than ${REGION_MODEL}, such as eym-region-layer-v1` });
+        if (!purgeableRegionFolder(model)) return send(res, 400, { error: `model must name an older Region version than ${REGION_PIXELS_ID} (such as eym-region-layer-v1, or this version made from other code or data); never the current one` });
         const confirmed = url.searchParams.get("confirm") === model, folder = `region/${model}`;
         const report = await (queue = queue.then(async () => {
-          const out = { model, current: REGION_MODEL, dryRun: !confirmed, files: {}, deleted: {} };
+          const out = { model, current: { shapes: REGION_SHAPES_ID, pictures: REGION_PIXELS_ID }, dryRun: !confirmed, files: {}, deleted: {} };
           for (const bucket of [store.buckets.tiles, store.buckets.shapes]) {
             const paths = (await store.files(bucket, folder)).filter((p) => p.startsWith(`${folder}/`));
             out.files[bucket] = paths.length; out.deleted[bucket] = 0;
