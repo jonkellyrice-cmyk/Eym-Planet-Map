@@ -23,7 +23,7 @@ Part 1 retrofits work already done and comes next, before Stage 5; item 7 (owner
    - Explain the fitted history by that pattern: the old supercontinent assembled over a downwelling and rifted above upwelling. Added to the history text.
    - Optional, ask the owner first: dynamic topography (a few hundred metres of broad uplift and subsidence).
    - Caren stays exempt (shaped by the gods).
-4. *The sea floor in the ocean model* (Stage 2, item 2). Reason: Stage 1a built shelves, slopes, ridges, trenches and hotspots, but the current model does not use them, and on an ocean world with little land undersea ridges and plateaus are the main obstacles that steer the circumpolar flow.
+4. *The sea floor in the ocean model* (Stage 2, item 2; the steering of the currents and the upwelling at shelf breaks and over seamounts done in 0.26.0; storm surge, funnel-bay tides and the finer shelf bathymetry still to do). Reason: Stage 1a built shelves, slopes, ridges, trenches and hotspots, but the current model does not use them, and on an ocean world with little land undersea ridges and plateaus are the main obstacles that steer the circumpolar flow.
    - Check Stage 2a's currents again with the bathymetry: steering by ridges, plateaus and continental slopes. Report how the currents, sea temperatures and cyclone birthplaces change.
    - Upwelling at shelf breaks and over seamounts (cold water, fog, rich fisheries).
    - Storm surge from cyclones, scaled by shelf width and depth (for coastal battle maps and the history engine's hazards).

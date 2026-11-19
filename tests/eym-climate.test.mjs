@@ -64,3 +64,35 @@ test("tropical cyclones still come about fifty a year, born over warm sea", () =
   assert.ok(cyclones.length / years > 35 && cyclones.length / years < 80, `${cyclones.length / years} a year`);
   assert.ok(cyclones.every((s) => field.sstC(s.lat0, s.lon0, s.born * DAY_MS / 24) >= 25.5), "every one born over water of 25.5 °C or more");
 });
+
+test("the sea floor steers the currents and feeds upwelling at shelf breaks and over seamount chains", async () => {
+  const { bathymetry, landMask, solveSeason, STEERING } = await import("../tools/generate-eym-climate.mjs");
+  const { upwellingAt, fishingAt } = await import("../scripts/eym-climate.mjs");
+  const land = landMask(), floor = bathymetry(), N = land.length, sea = [...land.keys()].filter((i) => !land[i]);
+  // The floor is the one the cartography draws: an abyss some 4-5 km deep, shelves by the continents, seamount chains.
+  const depths = sea.map((i) => floor.depthM[i]).sort((a, b) => a - b), median = depths[depths.length >> 1];
+  assert.ok(median > 3800 && median < 4900 && depths[0] < 400 && depths.at(-1) > 5500, `depths ${depths[0]}..${median}..${depths.at(-1)}`);
+  assert.ok(sea.some((i) => floor.shelfBreak[i] > 0) && sea.some((i) => floor.seamount[i] > 0));
+  assert.ok(STEERING > 0 && STEERING < 1);
+  // Over a flat floor the model is exactly the one before (the beta effect alone).
+  const flat = { depthM: new Float64Array(N).fill(4000), shelfBreak: new Float64Array(N), seamount: new Float64Array(N) };
+  const plain = solveSeason(land, 0), same = solveSeason(land, 0, flat), steered = solveSeason(land, 0, floor);
+  assert.deepEqual(Array.from(same.u), Array.from(plain.u)); assert.deepEqual(Array.from(same.upwelling), Array.from(plain.upwelling));
+  // Over the real floor the great west-wind drifts no longer run straight: they turn north and south across the
+  // ridges (more than half as much again), and the floor's drag slows them.
+  const band = (s, key, f) => { let sum = 0, k = 0; for (const i of sea) { const lat = -90 + 2 * (Math.floor(i / 180) + 0.5); if (Math.abs(lat) > 40 && Math.abs(lat) < 60) { sum += f(s[key][i]); k += 1; } } return sum / k; };
+  assert.ok(band(steered, "v", Math.abs) > 1.5 * band(plain, "v", Math.abs), `${band(steered, "v", Math.abs)} against ${band(plain, "v", Math.abs)}`);
+  assert.ok(band(steered, "u", (x) => x) < band(plain, "u", (x) => x));
+  for (const i of sea) assert.ok(Number.isFinite(steered.u[i]) && Number.isFinite(steered.v[i]) && Math.hypot(steered.u[i], steered.v[i]) < 3);
+  // Water wells up where a current meets a slope or a seamount chain: more there than the wind alone gives.
+  const over = (s, mask) => { let sum = 0, k = 0; for (const i of sea) if (mask[i] > 0) { sum += s.upwelling[i]; k += 1; } return sum / k; };
+  assert.ok(over(steered, floor.seamount) > over(plain, floor.seamount) + 0.1, `seamounts ${over(steered, floor.seamount)} against ${over(plain, floor.seamount)}`);
+  assert.ok(over(steered, floor.shelfBreak) > over(plain, floor.shelfBreak) + 0.03);
+  // Read from the ocean file: upwelling and the fishing it feeds; nothing without the file.
+  const bare = { ...asset }; delete bare.ocean;
+  assert.equal(upwellingAt(bare, 0, 0, T0), null); assert.equal(fishingAt(bare, 0, 0, T0), null);
+  const withOcean = attachOcean({ ...bare }, JSON.parse(read(entry.ocean.path)));
+  let best = null; for (const i of sea) if (floor.seamount[i] >= 0.5 && (!best || steered.upwelling[i] > steered.upwelling[best])) best = i;
+  const at = [-90 + 2 * (Math.floor(best / 180) + 0.5), -180 + 2 * (best % 180 + 0.5)], rich = fishingAt(withOcean, at[0], at[1], T0), open = fishingAt(withOcean, 28, -150, T0);
+  assert.ok(rich.richness > open.richness + 0.2 && /fishing/.test(rich.words), `${JSON.stringify(rich)} against ${JSON.stringify(open)} at ${at}`);
+});

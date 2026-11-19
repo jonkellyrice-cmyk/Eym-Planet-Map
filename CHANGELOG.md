@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.26.0 (2026-11-19)
+
+Part 1 of the owner's consolidated addenda, item 2 (first half): the sea floor in the ocean model.
+
+- The sea floor steers the currents (`tools/generate-eym-climate.mjs`, model `eym-climate-v2`): the circulation follows the lines of f/h, not f alone, so ridges, plateaus and continental slopes turn the flow. The upper ocean feels 30% of the floor's shape (`STEERING`). The west-wind drifts now meander across the ridges and are slowed by them (mean speed 0.26 to 0.24 m/s). Over a flat floor the model is exactly the one before.
+- The sea floor's shape is stated once (`scripts/eym-seafloor.mjs`), for the cartography that draws it and the ocean model it steers. The drawn sea floor is unchanged, byte for byte.
+- Upwelling at shelf breaks (a current running along a continental slope, most with the shallows on its right in the north) and over the seamount chains, added to the wind's. It cools the sea by how much colder the deep water is (fully in the tropics, not at all in the far north and south), brings sea fog through the weather's existing rule, and feeds the fishing: `upwellingAt` and `fishingAt` in `scripts/eym-climate.mjs` (not yet shown in the app).
+- How the world changes: sea temperatures by 0.2 °C typically (one cell in eight by more than 0.5 °C, at most 2.7 °C); sea warm enough for cyclones to form shrinks by about 3%. A cold current is steered around Khohalis, whose seas go from slightly warm to 1-2 °C cold: 36 of its 165 cells change (taiga to tundra, more mountain ice). Demani 16 of 136 (colder), Garyk 10 of 201 (rainforest to seasonal forest in the south), Gaffa 7 of 229, Caren 3 of 180. Coastlines, heights, rivers and drainage are unchanged. Renders were shown to the owner, who accepted them.
+- Every stored Region tile is stale once and is made again.
+- Still to come for item 2: storm surge, tides in funnel-shaped bays, finer depths on Caren's and Garyk's shelves, and the fishing in the sea readout.
+- Tests: `tests/eym-climate.test.mjs` gains a test of the steering, the flat-floor identity and the upwelling. Updated: `tests/cartography-acceptance.test.mjs` re-pins the canonical CSV deliberately, because Eventide's fingerprint covers the ocean climate (nothing loosened); `tests/release-package.test.mjs` updated for 0.26.0.
+
 ## 0.25.5 (2026-11-19)
 
 Map names on the planet that can be read on a phone, revealed by zoom (owner, 19 November 2026).

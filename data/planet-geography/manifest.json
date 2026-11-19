@@ -36,7 +36,7 @@
       "system": "Abydos",
       "body": "Eventide",
       "seed": "741343188e552de0",
-      "inputFingerprint": "765c321e48c852d9c842",
+      "inputFingerprint": "856212ce91ed88b15007",
       "path": "data/planet-geography/abydos/eventide.json",
       "summary": {
         "waterFraction": 0.98587,
@@ -47,11 +47,10 @@
         "settlements": 3,
         "biomes": {
           "sea-ice": 600,
-          "open-ocean": 714,
+          "open-ocean": 722,
           "ice-cap": 1,
-          "tundra": 5,
-          "temperate-forest": 1,
-          "tropical-ocean": 467,
+          "tundra": 7,
+          "tropical-ocean": 458,
           "seasonal-forest": 6,
           "tropical-rainforest": 4,
           "savanna": 2
