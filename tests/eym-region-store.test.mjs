@@ -17,7 +17,7 @@ const ENV = { SUPABASE_URL: "https://example.supabase.co/", SUPABASE_SERVICE_ROL
 
 /** A stand-in for Supabase: remembers what is written, answers as the real service does. */
 function fakeSupabase() {
-  const files = new Map(), rows = new Map(), calls = [];
+  const files = new Map(), rows = new Map(), calls = [], tableWrites = [];
   const fetchImpl = async (address, init = {}) => {
     const url = new URL(address), method = init.method ?? "GET", headers = init.headers ?? {}; calls.push({ method, path: url.pathname, headers });
     const answer = (status, body = "") => ({ status, ok: status >= 200 && status < 300, text: async () => (typeof body === "string" ? body : JSON.stringify(body)), json: async () => body, arrayBuffer: async () => { const b = Buffer.from(body); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength); } });
@@ -39,11 +39,11 @@ function fakeSupabase() {
     }
     const obj = /^\/storage\/v1\/object\/([^/]+)\/(.+)$/.exec(url.pathname);
     if (obj && method === "POST") { files.set(`${obj[1]}/${obj[2]}`, Buffer.from(init.body)); return answer(200, {}); }
-    if (url.pathname === "/rest/v1/eym_tiles" && method === "POST") { const row = JSON.parse(init.body); rows.set([row.layer, row.kind, row.z, row.x, row.y].join("|"), row); return answer(201); }
+    if (url.pathname === "/rest/v1/eym_tiles" && method === "POST") { for (const row of [JSON.parse(init.body)].flat()) rows.set([row.layer, row.kind, row.z, row.x, row.y].join("|"), row); tableWrites.push(url.search); return answer(201); }
     if (url.pathname === "/rest/v1/eym_tiles") { const want = (k) => url.searchParams.get(k).slice(3), all = [...rows.values()].filter((r) => r.layer === want("layer") && r.kind === want("kind") && String(r.z) === want("z") && (!url.searchParams.has("rules_version") || r.rules_version === want("rules_version"))), from = Number(url.searchParams.get("offset")); return answer(200, all.slice(from, from + 1000).map((r) => ({ x: r.x, y: r.y, rules_version: r.rules_version }))); }
     return answer(404, "?");
   };
-  return { files, rows, calls, fetchImpl };
+  return { files, rows, calls, tableWrites, fetchImpl };
 }
 
 test("there is no store without the project's address and key", () => {
@@ -178,4 +178,37 @@ test("a tile's shapes file holds everything needed to draw it again", () => {
   const tile = { model: REGION_MODEL, frame: "caren", tx: 1, ty: 2, cells: 256, pad: 2, sea: false, cover: new Uint8Array([1, 2, 3]), elevation: new Int16Array([-5, 300]), shade: new Uint8Array([75]), coastKm: new Uint8Array([9]), rivers: [], roads: [], settlements: [] };
   const back = JSON.parse(gunzipSync(regionShapesFile(tile))); assert.deepEqual([...Buffer.from(back.cover, "base64")], [1, 2, 3]);
   const heights = Buffer.from(back.elevationInt16, "base64"); assert.deepEqual([heights.readInt16LE(0), heights.readInt16LE(2)], [-5, 300]);
+});
+
+test("tiles filled several at once are byte for byte the tiles made one at a time, and each request writes the table once", async () => {
+  const width = caren.tiles.tx1 - caren.tiles.tx0 + 1, at = (home.ty - caren.tiles.ty0) * width + (home.tx - caren.tiles.tx0), from = at - 2, to = at + 4;
+  const withServer = async (work) => {
+    const fake = fakeSupabase(), cacheDir = mkdtempSync(join(tmpdir(), "eym-region-")), server = createMapServer({ asset, cacheDir, store: regionStore(ENV, fake.fetchImpl) });
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve)); const base = `http://127.0.0.1:${server.address().port}`;
+    try { await work(async (query) => (await fetch(`${base}/api/region/fill?frame=caren&${query}`)).json(), fake); } finally { await new Promise((resolve) => server.close(resolve)); rmSync(cacheDir, { recursive: true, force: true }); }
+    return fake;
+  };
+  // One at a time, as each tile is made when the map asks for it.
+  const single = fakeSupabase(), singleStore = regionStore(ENV, single.fetchImpl);
+  for (let k = from; k < to; k += 1) await regionTilePicture(asset, frames, singleStore, "caren", caren.tiles.tx0 + (k % width), caren.tiles.ty0 + Math.floor(k / width));
+  // One request, one upload in flight.
+  const calm = await withServer(async (fill, fake) => {
+    const r = await fill(`start=${from}&end=${to}&inflight=1`); assert.equal(r.done, true); assert.equal(r.next, to); assert.deepEqual(r.errors, []); assert.equal(r.kept, single.files.size / 2);
+    assert.equal(fake.tableWrites.length, 1); assert.equal(r.timing.tiles, r.kept); assert.equal(r.timing.uploads, 2 * r.kept); assert.ok(r.timing.computeMs > 0);
+    // Asked again, nothing is made or written: every tile is found current.
+    const again = await fill(`start=${from}&end=${to}`); assert.equal(again.already, r.kept); assert.equal(again.kept + again.remade + again.repainted, 0); assert.equal(fake.tableWrites.length, 1);
+    // Forced, every tile is made and stored again: the same bytes (compared with the one-at-a-time tiles below).
+    const forced = await fill(`start=${from}&end=${to}&force=1`); assert.equal(forced.remade, r.kept); assert.equal(forced.kept + forced.repainted + forced.already, 0); assert.equal(fake.tableWrites.length, 2);
+  });
+  // Three requests at once over separate ranges, many uploads in flight.
+  const busy = await withServer(async (fill, fake) => {
+    const parts = await Promise.all([[from, from + 2], [from + 2, from + 4], [from + 4, to]].map(([a, b]) => fill(`start=${a}&end=${b}&inflight=12`)));
+    for (const r of parts) { assert.equal(r.done, true); assert.deepEqual(r.errors, []); }
+    assert.equal(parts.reduce((n, r) => n + r.kept, 0), single.files.size / 2); assert.ok(fake.tableWrites.length <= 3);
+  });
+  assert.ok(single.files.size >= 6, "the range holds land tiles");
+  const stored = (fake) => [...fake.files].sort(([a], [b]) => a.localeCompare(b)).map(([name, bytes]) => [name, sha256(bytes)]);
+  const noted = (fake) => [...fake.rows].sort(([a], [b]) => a.localeCompare(b)).map(([key, { made_at, ...row }]) => [key, row]);
+  assert.deepEqual(stored(calm), stored(single)); assert.deepEqual(stored(busy), stored(single));
+  assert.deepEqual(noted(calm), noted(single)); assert.deepEqual(noted(busy), noted(single));
 });

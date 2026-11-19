@@ -5,7 +5,7 @@ import { compareWorlds, FIXED_COASTS, loadWorld, LOOK_AT, summarizeWorld, treeRe
 import { managedPinsOf, readPins, worldChecks } from "../tools/world-checks.mjs";
 import { worldPictures } from "../tools/world-maps.mjs";
 import { reportMarkdown } from "../tools/world.mjs";
-import { refreshRegionTiles } from "../tools/refresh-region-tiles.mjs";
+import { describeRefresh, refreshRegionTiles } from "../tools/refresh-region-tiles.mjs";
 
 const root = new URL("../", import.meta.url), read = (path) => readFileSync(new URL(path, root), "utf8");
 const world = loadWorld(treeReader()), summary = summarizeWorld(world);
@@ -131,4 +131,28 @@ test("the change report covers the survey of the coasts: a tide that changes is 
   assert.ok(section.lines.some((l) => /funnel gain changed by more than 0\.3 at 5 coast points/.test(l)), section.lines.join(" | "));
   assert.ok(result.flags.some((f) => /tides changed at 5 coast points/.test(f)));
   assert.equal(compareWorlds(summary, summary).sections.find((s) => /^Coasts/.test(s.title)).lines[0], "No change.");
+});
+
+test("the post-release step fills separate ranges of the frames at once, tries a refused request again, and accounts for the run", async () => {
+  const tiles = { caren: 50, sea: 7 }, seen = { caren: new Set(), sea: new Set() }, ranges = []; let active = 0, most = 0, refused = false;
+  const get = async (path) => {
+    const url = new URL(path, "http://x"), q = url.searchParams;
+    if (url.pathname === "/api/region/stale") return { status: 200, picturesVersion: "v", frames: Object.keys(tiles).map((frame) => ({ frame, current: seen[frame].size, repaint: 0, remake: tiles[frame] - seen[frame].size })), superseded: [] };
+    const frame = q.get("frame"), start = Number(q.get("start")), end = Math.min(tiles[frame], Number(q.get("end")));
+    // One request is refused once (as a busy server would); it must be asked again.
+    if (frame === "caren" && start === 20 && !refused) { refused = true; return { status: 503, error: "busy" }; }
+    active += 1; most = Math.max(most, active); await new Promise((resolve) => setTimeout(resolve, 5)); active -= 1;
+    // Each request does at most 7 tiles of its range (as one that ran out of time would), so some ranges take two.
+    const next = Math.min(end, start + 7); for (let k = start; k < next; k += 1) { assert.ok(!seen[frame].has(k), `tile ${k} of ${frame} is looked at once`); seen[frame].add(k); } ranges.push([frame, start, next]);
+    return { status: 200, frame, total: tiles[frame], start, end, next, kept: 0, repainted: 1, remade: next - start - 1, already: 0, sea: 0, outside: 0, errors: [], done: next >= end, ms: 100, timing: { listMs: 10, computeMs: 70, firstTileMs: 20, pictureUploadMs: 30, shapesUploadMs: 40, tableMs: 5, tiles: next - start - 1, uploads: 2 * (next - start - 1) } };
+  };
+  const result = await refreshRegionTiles({ get, concurrency: 4, chunk: 10, wait: async () => {} });
+  assert.equal(result.ok, true); assert.deepEqual(result.errors, []); assert.equal(result.stale, 0);
+  assert.equal(seen.caren.size, 50); assert.equal(seen.sea.size, 7); assert.ok(most > 1 && most <= 4, `several at once, never more than asked (${most})`);
+  const r = result.report; assert.equal(r.examined, 57); assert.equal(r.refusals, 1); assert.equal(r.calls, ranges.length + 1); assert.equal(r.repainted, ranges.length); assert.equal(r.remade, 57 - ranges.length);
+  assert.equal(r.uploads, 2 * r.remade); assert.equal(r.timing.computeMs, 70 * ranges.length); assert.equal(r.serverMs, 100 * ranges.length);
+  const words = describeRefresh(r).join("\n"); assert.match(words, /Tiles examined: 57/); assert.match(words, /Made again: \d+/); assert.match(words, /1 refused and tried again/); assert.match(words, /table writes/);
+  // A server that keeps refusing: the frame is given up with an error, the others still finish.
+  const down = await refreshRegionTiles({ get: async (path) => (path.includes("frame=sea") ? { status: 500 } : get(path)), onlyFrame: "sea", concurrency: 4, chunk: 10, wait: async () => {} });
+  assert.equal(down.ok, false); assert.ok(down.errors.some((e) => /sea at 0: the server answered 500 four times/.test(e)));
 });

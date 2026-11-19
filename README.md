@@ -178,6 +178,8 @@ npm run tiles:refresh -- --purge   # refill every frame on the map server, check
 
 (The purge works only while the deployment has `EYM_REGION_PURGE=on`; see `webapp/README.md`.)
 
+The refresh sends several requests at once, each working on its own range of a frame's tiles (`--concurrency`, 8 unless told otherwise; `--chunk`, 24 tiles a range), tries a refused request again after a growing wait, and ends with an account of the run: tiles examined, already current, repainted, made again, uploads, the time taken and where the servers' time went (making tiles, the first tile's warm-up, uploads, table writes). `--force` makes and stores again the tiles that are already current, the same bytes under the same names: for timing a full refresh.
+
 ### Adding a system to the world
 
 A new system that makes derived data joins the same chain, so that it follows every later change by itself. `tests/world-tooling.test.mjs` fails until it does all of these:

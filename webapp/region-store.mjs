@@ -41,6 +41,13 @@ export function regionStore(env = process.env, fetchImpl = globalThis.fetch) {
       const r = await call("/rest/v1/eym_tiles?on_conflict=layer,kind,z,x,y", { method: "POST", headers: { "content-type": "application/json", prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ ...row, made_at: new Date().toISOString() }) });
       if (!r.ok) throw await fail("Recording the tile", r);
     },
+    /** Note many tiles in the table in one request (each replacing its earlier note), 500 at a time. */
+    async recordMany(rows) {
+      for (let k = 0; k < rows.length; k += 500) {
+        const r = await call("/rest/v1/eym_tiles?on_conflict=layer,kind,z,x,y", { method: "POST", headers: { "content-type": "application/json", prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(rows.slice(k, k + 500).map((row) => ({ ...row, made_at: new Date().toISOString() }))) });
+        if (!r.ok) throw await fail("Recording the tiles", r);
+      }
+    },
     /** The tiles of a layer, kind and frame already made (under these rules, when `rulesVersion` is given), as a set of "x,y". */
     async listed(layer, kind, z, rulesVersion = null) {
       const made = new Set();
