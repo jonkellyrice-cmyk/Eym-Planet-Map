@@ -197,7 +197,7 @@ const piecewise = (points, value) => {
  * One placed region of the surface (a continent with its islands, or an
  * archipelago) with a local land/water/elevation raster.
  */
-function buildFrame({ id, continent, origin, center, rings, waterRings = [], relief = null, ridges = [], peakM, cellKm, noise }) {
+function buildFrame({ id, continent, origin, center, rings, waterRings = [], relief = null, ridges = [], rifts = [], interior = false, peakM, cellKm, noise }) {
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (const ring of rings) for (const [x, y] of ring) { minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
   const margin = cellKm * 3, grid = { x0: minX - margin, y0: maxY + margin, cellKm };
@@ -232,6 +232,14 @@ function buildFrame({ id, continent, origin, center, rings, waterRings = [], rel
       ridgeM = Math.max(ridgeM, ridge.heightM * Math.exp(-((best / ridge.widthKm) ** 2)) * Math.min(1, coast / 90) * (0.8 + 0.3 * (noise(x / 60 + 40, y / 60) + 1) / 2));
     }
     e += ridgeM;
+    // A continent tens of millions of km² across has old high country far from the sea (plateaus and shields), and
+    // rift valleys where plates part beneath it.
+    if (interior) e += 1100 * Math.max(0, noise(x / 1500 + 3, y / 1500 - 8)) ** 1.3 * Math.min(1, coast / 500) + 260 * Math.max(0, noise(x / 420 - 9, y / 420 + 2)) * Math.min(1, coast / 250);
+    for (const rift of rifts) {
+      let best = Infinity;
+      for (let k = 0; k + 1 < rift.points.length; k += 1) { const [ax, ay] = rift.points[k], [bx, by] = rift.points[k + 1], dx = bx - ax, dy = by - ay, t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy))); best = Math.min(best, Math.hypot(x - ax - t * dx, y - ay - t * dy)); }
+      if (best < 3 * rift.widthKm) e = e * (1 - 0.75 * Math.exp(-((best / rift.widthKm) ** 2))) + 600 * Math.exp(-(((best - 1.6 * rift.widthKm) / (0.5 * rift.widthKm)) ** 2)) * Math.min(1, coast / 200);
+    }
     if (!relief) e += 380 * Math.max(0, noise(x / 300 - 20, y / 300 + 7)) * Math.min(1, coast / 200);
     elevation[i] = water[i] ? Math.max(5, e - 25) : Math.max(1, e);
   }
@@ -261,12 +269,49 @@ function minGapKm(ringsA, ringsB, step = 4) {
  * Build Eym's surface from the traced continents and the layout. Returns the
  * serializable surface (rings in [lat, lon]) and a sampler over it.
  */
-export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null) {
+/**
+ * A closed [lat, lon] ring cut where it crosses the map's seam (the meridian at 180°), into rings that each lie on
+ * one side of it, closed along the seam. A ring that does not cross comes back alone. Everything that reads coasts
+ * as latitude and longitude (areas, what lies inside, distances, drawing) can then treat each ring plainly: no edge
+ * runs from one side of the map to the other. (A ring round a pole is not handled: no coast of Eym is one.)
+ */
+export function splitAtSeam(ring) {
+  const n = ring.length, crosses = (a, b) => Math.abs(a[1] - b[1]) > 180;
+  let first = -1; for (let i = 0; i < n; i += 1) if (crosses(ring[i], ring[(i + 1) % n])) { first = i; break; }
+  if (first < 0) return [ring];
+  // Chains of the ring between crossings, each ending on the seam at the latitude where the edge meets it.
+  const chains = []; let chain = null;
+  for (let k = 1; k <= n; k += 1) {
+    const a = ring[(first + k) % n], b = ring[(first + k + 1) % n];
+    if (!chain) { const p = ring[(first + k - 1 + n) % n], side = a[1] > 0 ? 180 : -180; chain = { side, points: [[seamLat(p, a), side]] }; }
+    chain.points.push(a);
+    if (crosses(a, b)) { chain.points.push([seamLat(a, b), chain.side]); chains.push(chain); chain = null; }
+  }
+  // On each side, the chains' ends along the seam pair up in order of latitude: join each chain to the one whose
+  // start is the next end above or below its own end, until the ring closes.
+  const out = [];
+  for (const side of [180, -180]) {
+    const mine = chains.filter((c) => c.side === side), ends = mine.flatMap((c, k) => [{ lat: c.points[0][0], chain: k, start: true }, { lat: c.points[c.points.length - 1][0], chain: k, start: false }]).sort((p, q) => p.lat - q.lat);
+    const partner = new Map(); for (let k = 0; k + 1 < ends.length; k += 2) { partner.set(ends[k], ends[k + 1]); partner.set(ends[k + 1], ends[k]); }
+    const used = new Set();
+    for (let k = 0; k < mine.length; k += 1) {
+      if (used.has(k)) continue; const points = []; let at = k;
+      while (!used.has(at)) { used.add(at); points.push(...mine[at].points); const end = ends.find((e) => e.chain === at && !e.start), next = partner.get(end); if (!next || !next.start) break; at = next.chain; }
+      if (points.length >= 4) out.push(points);
+    }
+  }
+  return out;
+}
+/** The latitude at which the edge between two points on opposite sides of the seam meets it. */
+function seamLat(a, b) { const la = a[1] > 0 ? a[1] : a[1] + 360, lb = b[1] > 0 ? b[1] : b[1] + 360, t = (180 - la) / (lb - la || 1); return round3(a[0] + (b[0] - a[0]) * Math.max(0, Math.min(1, t))); }
+
+export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null, growth = null) {
   const rng = createRng(`${layout.seed}|shapes`), noise = valueNoise2(`${layout.seed}|relief`);
   const frames = [], continents = [], coasts = [], inlandWater = [];
   const addCoasts = (frame, ringsKm, kinds, areas) => ringsKm.forEach((ring, index) => {
-    const points = toLatLonRing(frame.center, ring);
-    coasts.push({ id: `${frame.id}-${kinds[index]}-${index + 1}`, continent: frame.continent, origin: frame.origin, kind: kinds[index], areaKm2: Math.round(areas[index]), points });
+    // (A coast that crosses the map's seam is given as one ring on each side of it, the area shared between them.)
+    const pieces = splitAtSeam(toLatLonRing(frame.center, ring)), shares = pieces.map((p) => sphericalRingAreaKm2(p)), whole = shares.reduce((a, v) => a + v, 0) || 1;
+    pieces.forEach((points, k) => coasts.push({ id: `${frame.id}-${kinds[index]}-${index + 1}${pieces.length > 1 ? `-${k + 1}` : ""}`, continent: frame.continent, origin: frame.origin, kind: kinds[index], areaKm2: Math.round(pieces.length > 1 ? areas[index] * shares[k] / whole : areas[index]), ...(pieces.length > 1 ? { seam: true } : {}), points }));
   });
 
   // Authored continents: Caren on the equator, Garyk north-north-west of it.
@@ -300,7 +345,8 @@ export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null) {
   // Gaffa, Khohalis and Demani: from the tectonic history (data/eym/tectonics.json) when it is given, else
   // the old seeded shapes.
   for (const spec of layout.seeded) {
-    const fitted = tectonics?.continents?.[spec.id];
+    // (Grown to its canon size, data/eym/growth.json, when that is given: the fitted continent is then its core.)
+    const grown = growth?.continents?.[spec.id], fitted = grown ?? tectonics?.continents?.[spec.id];
     let rings, kinds, areas, ridges;
     if (fitted) {
       rings = fitted.rings; kinds = fitted.kinds; areas = rings.map((ring) => ringAreaKm2(ring)); ridges = fitted.ridges.map(({ heightM, widthKm, points }) => ({ heightM, widthKm, points }));
@@ -325,7 +371,10 @@ export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null) {
         return { heightM, widthKm: 70 + shapeRng() * 50, points };
       });
     }
-    const frame = buildFrame({ id: spec.id, continent: spec.name, origin: "seeded", center: spec.center, rings, ridges, cellKm: 10, noise });
+    // A grown continent is tens of millions of km²: its flat frame is coarser, and its area is measured on the sphere
+    // (a flat frame stretches what lies far from its centre).
+    if (grown) areas = rings.map((ring, index) => (index === 0 ? grown.areaKm2 : sphericalRingAreaKm2(toLatLonRing(spec.center, ring))));
+    const frame = buildFrame({ id: spec.id, continent: spec.name, origin: "seeded", center: spec.center, rings, ridges, rifts: grown?.rifts ?? [], interior: Boolean(grown), cellKm: grown ? 25 : 10, noise });
     frames.push(frame); addCoasts(frame, rings, kinds, areas);
     continents.push({ id: spec.id, name: spec.name, origin: "seeded", center: spec.center, mainlandAreaKm2: Math.round(areas[0]), islands: rings.length - 1 });
   }
@@ -359,6 +408,9 @@ export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null) {
       const ring = seededRing(archRng, { areaKm2: area, elongation: 1 + archRng() * 2, orientationDeg: archRng() * 180, vertices: 18, subdivisions: 2, lobes: 1 }).map(([x, y]) => [x + cx, y + cy]);
       rings.push(ring); kinds.push("island"); areas.push(ringAreaKm2(ring));
     }
+    // (An island chain the grown land has taken in is part of that continent now: its draws are still made, so the
+    // other chains keep their shapes, and its islands are not placed.)
+    if (growth?.accreted?.some((a) => a.archipelago === clusterIndex + 1)) return;
     const frame = buildFrame({ id: `archipelago-${clusterIndex + 1}`, continent: null, origin: "seeded", center, rings, cellKm: 4, noise });
     frames.push(frame); addCoasts(frame, rings, kinds, areas);
   });

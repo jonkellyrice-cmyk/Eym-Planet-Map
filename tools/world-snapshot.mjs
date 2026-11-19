@@ -15,7 +15,7 @@ const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 const ASSET = "data/planet-cartography/abydos/eventide";
 /** The files a world is read from (the registry CSV carries Eventide's input fingerprint). */
 export const WORLD_FILES = Object.freeze({
-  tectonics: "data/eym/tectonics.json", climate: "data/eym/climate.json", asset: `${ASSET}.json`, geology: `${ASSET}-geology.json`, ocean: `${ASSET}-ocean.json`,
+  tectonics: "data/eym/tectonics.json", growth: "data/eym/growth.json", climate: "data/eym/climate.json", asset: `${ASSET}.json`, geology: `${ASSET}-geology.json`, ocean: `${ASSET}-ocean.json`,
   drainage: `${ASSET}-drainage.json`, wind: `${ASSET}-wind.json`, flow: `${ASSET}-flow.json`, coasts: `${ASSET}-coasts.json`, regionFingerprint: "data/eym/region-fingerprint.json", registry: "docs/system-orbital-distances.csv", overrides: "data/eym/overrides.json",
 });
 
@@ -28,7 +28,7 @@ export const refReader = (ref, dir = repoRoot) => (path) => { try { return execF
 export function loadWorld(read) {
   const text = Object.fromEntries(Object.entries(WORLD_FILES).map(([key, path]) => [key, read(path)]));
   const json = (key) => (text[key] ? JSON.parse(text[key]) : null);
-  return { text, tectonics: json("tectonics"), climate: json("climate"), asset: json("asset"), geology: json("geology"), ocean: json("ocean"), drainage: json("drainage"), wind: json("wind"), flow: json("flow"), coasts: json("coasts"), regionFingerprint: json("regionFingerprint"), registry: text.registry, overrides: json("overrides") };
+  return { text, tectonics: json("tectonics"), growth: json("growth"), climate: json("climate"), asset: json("asset"), geology: json("geology"), ocean: json("ocean"), drainage: json("drainage"), wind: json("wind"), flow: json("flow"), coasts: json("coasts"), regionFingerprint: json("regionFingerprint"), registry: text.registry, overrides: json("overrides") };
 }
 
 // ---------------------------------------------------------------- decoding

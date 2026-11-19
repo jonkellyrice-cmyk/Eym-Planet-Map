@@ -19,6 +19,8 @@ const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartogr
 export const DRAINAGE_MODEL = "eym-drainage-v1";
 /** What the drainage is made from: this tool, the local detail's surface, and the cartography it reads. */
 export const DRAINAGE_SOURCES = ["tools/generate-eym-drainage.mjs", "scripts/eym-local-detail.mjs", "data/planet-cartography/abydos/eventide.json"];
+/** The continents drawn in detail: the only ones drained on the fine lattice. */
+export const DETAILED = ["Caren", "Garyk"];
 export const drainageSourcesSha256 = () => { const h = createHash("sha256"); for (const p of DRAINAGE_SOURCES) h.update(readFileSync(new URL(p, root))); return h.digest("hex"); };
 /** The smallest catchment kept (km²): a stream big enough to have cut a valley worth drawing at 300 m. */
 export const MIN_AREA_KM2 = 800;
@@ -87,7 +89,8 @@ export function buildDrainage(asset) {
   }
   const nearRiver = (lat, lon) => riverNodes.has(`${Math.round(lat / LATTICE_DEG)},${Math.round(lon / LATTICE_DEG)}`);
   const channels = [];
-  for (const coast of asset.terrain.coastlines.filter((c) => c.kind === "mainland")) channels.push(...drainLand(ctx, coast.points, nearRiver));
+  // (Caren and Garyk only: the three far continents are outside the detailed scope, canon of 19 November 2026.)
+  for (const coast of asset.terrain.coastlines.filter((c) => c.kind === "mainland" && DETAILED.includes(c.continent))) channels.push(...drainLand(ctx, coast.points, nearRiver));
   // Packed: every point as three little-endian 16-bit numbers (row, column, area ÷ 10), and each channel's length.
   const points = channels.flat(), view = new DataView(new ArrayBuffer(points.length * 6));
   points.forEach(([i, j, a], k) => { view.setInt16(k * 6, i, true); view.setInt16(k * 6 + 2, j, true); view.setUint16(k * 6 + 4, a, true); });

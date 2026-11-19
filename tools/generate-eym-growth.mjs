@@ -27,6 +27,9 @@ export const GROWTH_SOURCES = ["tools/generate-eym-growth.mjs", "scripts/eym-sur
 export const GROWTH_INPUTS = ["layout", "growth"];
 export const growthSourcesSha256 = () => { const h = createHash("sha256"); for (const p of GROWTH_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...GROWTH_INPUTS)); return h.digest("hex"); };
 
+/** A hash of the tectonic history itself: the file without its stamp of sources (which moves when a tool's text does). */
+export const tectonicContentSha256 = ({ sourcesSha256, ...history }) => createHash("sha256").update(JSON.stringify(history)).digest("hex");
+
 const G = WORLD_INPUTS.growth, DEG = Math.PI / 180, EYM_KM2 = 4 * Math.PI * EYM_RADIUS_KM ** 2;
 const smooth = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t)), round1 = (v) => Math.round(v * 10) / 10;
 const insideRing = (ring, x, y) => { let inside = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [xi, yi] = ring[i], [xj, yj] = ring[j]; if ((yi > y) !== (yj > y) && x < xi + (y - yi) / (yj - yi) * (xj - xi)) inside = !inside; } return inside; };
@@ -100,12 +103,31 @@ export function buildGrowth({ tectonics, traced, layout = EYM_LAYOUT, dials = G 
     const coast = main.filter((_, i) => i % 3 === 0).map(([x, y]) => fromLocal(spec.center, x, y));
     for (const [lat, lon] of coast) { clear.caren = Math.min(clear.caren, toCaren(lat, lon)); clear.garyk = Math.min(clear.garyk, toGaryk(lat, lon)); if (toOthers) clear.between = Math.min(clear.between, toOthers(lat, lon)); }
     grownPts.push(...coast);
+    // The plate boundaries that now lie inside the land (none of them moved): where plates meet, a suture range
+    // (higher where continents already collided, lower where an ocean floor went down under an arc now welded on);
+    // where they part, a rift. Chains of the tectonic history's own boundary points, in the continent's flat frame.
+    const within = ([lat, lon]) => { const [x, y] = toLocal(spec.center, lat, lon), c = Math.floor((x - x0) / cell), r = Math.floor((y0 - y) / cell); return c >= 0 && r >= 0 && c < n && r < n && seen[r * n + c] && !insideRing(core, x, y) ? [round1(x), round1(y)] : null; };
+    const chains = (points) => {
+      const left = points.map(within).filter(Boolean), out = [];
+      while (left.length) {
+        const line = [left.pop()];
+        for (const end of [1, 0]) for (;;) { const tip = end ? line[line.length - 1] : line[0]; let best = -1, km = 320; left.forEach((p, k) => { const d = Math.hypot(p[0] - tip[0], p[1] - tip[1]); if (d < km) { km = d; best = k; } }); if (best < 0) break; const [p] = left.splice(best, 1); if (end) line.push(p); else line.unshift(p); }
+        const spaced = line.filter((p, k) => k === 0 || k === line.length - 1 || k % 3 === 0);
+        if (spaced.length >= 3 && Math.hypot(line[0][0] - line[line.length - 1][0], line[0][1] - line[line.length - 1][1]) > 500) out.push(spaced);
+      }
+      return out.sort((a, b) => b.length - a.length);
+    };
+    const height = (line, base, more) => Math.round(base + more * (0.5 + 0.5 * noise(vec(fromLocal(spec.center, ...line[Math.floor(line.length / 2)])), 3, 2, 5)));
+    const sutures = [
+      ...chains(tectonics.boundaries.collisions).map((points) => ({ kind: "suture range", origin: "collision", heightM: height(points, 4300, 1500), widthKm: 120, points })),
+      ...chains(tectonics.boundaries.trenches).map((points) => ({ kind: "suture range", origin: "accretion", heightM: height(points, 2500, 1100), widthKm: 95, points })),
+    ], rifts = chains(tectonics.boundaries.ridges).map((points) => ({ kind: "rift", widthKm: 70, points }));
     continents[id] = {
       id, name: spec.name, center: spec.center, plate: fitted.plate, rings: [main], kinds: ["mainland"], coreAreaKm2: fitted.mainlandAreaKm2, areaKm2: Math.round(area), targetAreaKm2: target, level: Number(level.toFixed(3)),
       onOwnPlateKm2: Math.round(ownKm2), acrossBoundariesKm2: Object.fromEntries(Object.entries(off).map(([k, v]) => [k, Math.round(v)]).filter(([, v]) => v > 5000).sort((a, b) => b[1] - a[1])),
       latitudes: [Math.round(lats.reduce((a, b) => Math.min(a, b), 90)), Math.round(lats.reduce((a, b) => Math.max(a, b), -90))],
       clearanceKm: { caren: Math.round(clear.caren), garyk: Math.round(clear.garyk), ...(toOthers ? { between: Math.round(clear.between) } : {}) },
-      ridges: fitted.ridges,
+      ridges: [...fitted.ridges, ...sutures], rifts,
     };
   }
   // Islands of the open ocean that the new land has taken in (accreted, means b).
@@ -116,7 +138,8 @@ export function buildGrowth({ tectonics, traced, layout = EYM_LAYOUT, dials = G 
     schemaVersion: 1, model: GROWTH_MODEL, sourcesSha256: null, continents, accreted,
     oceanFraction: Number(oceanFraction.toFixed(4)), oceanFractionBefore: Number((1 - landBefore / EYM_KM2).toFixed(4)),
     // The measures of the change to the tectonic world (canon, item 6): it is read, never written.
-    tectonics: { sourcesSha256: tectonics.sourcesSha256, plateBoundariesMoved: 0, platePolesChanged: 0, plateSpeedsChanged: 0, hotspotsMoved: 0, historyStagesChanged: 0 },
+    // `contentSha256` names the history itself (everything in the file but the stamp of what it was made from).
+    tectonics: { contentSha256: tectonicContentSha256(tectonics), plateBoundariesMoved: 0, platePolesChanged: 0, plateSpeedsChanged: 0, hotspotsMoved: 0, historyStagesChanged: 0 },
   };
 }
 

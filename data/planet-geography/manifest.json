@@ -36,31 +36,36 @@
       "system": "Abydos",
       "body": "Eventide",
       "seed": "741343188e552de0",
-      "inputFingerprint": "9f6b55c63c811736ddcb",
+      "inputFingerprint": "d83ffaad4ccf832eb144",
       "path": "data/planet-geography/abydos/eventide.json",
       "summary": {
-        "waterFraction": 0.98587,
+        "waterFraction": 0.80021,
         "plates": 11,
         "coastSegments": 5,
         "rivers": 40,
         "lakes": 40,
         "settlements": 3,
         "biomes": {
-          "sea-ice": 600,
-          "open-ocean": 722,
-          "ice-cap": 1,
-          "tundra": 7,
-          "tropical-ocean": 458,
-          "seasonal-forest": 6,
-          "tropical-rainforest": 4,
-          "savanna": 2
+          "sea-ice": 542,
+          "tundra": 47,
+          "open-ocean": 589,
+          "ice-cap": 45,
+          "taiga": 25,
+          "temperate-forest": 38,
+          "steppe": 23,
+          "seasonal-forest": 72,
+          "savanna": 48,
+          "tropical-ocean": 351,
+          "tropical-rainforest": 19,
+          "cold-desert": 1
         },
         "resources": {
-          "marine-biological": 1612,
-          "hydrothermal-seafloor": 166,
-          "orogenic-metallic": 5,
-          "sedimentary-basin": 16,
-          "alluvial-agricultural": 1
+          "marine-biological": 1335,
+          "hydrothermal-seafloor": 144,
+          "sedimentary-basin": 295,
+          "alluvial-agricultural": 10,
+          "orogenic-metallic": 15,
+          "upland-mineral": 1
         }
       }
     },

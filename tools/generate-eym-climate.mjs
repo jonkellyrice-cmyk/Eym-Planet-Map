@@ -27,7 +27,7 @@ import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universa
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/climate.json", root);
 export const EYM_CLIMATE_MODEL = "eym-climate-v2";
 /** What the climate is made from: this tool, the surface (its land) and the seasons (base temperatures). */
-export const CLIMATE_SOURCES = ["tools/generate-eym-climate.mjs", "scripts/eym-surface.mjs", "scripts/eym-seafloor.mjs", "scripts/eym-seasons.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json"];
+export const CLIMATE_SOURCES = ["tools/generate-eym-climate.mjs", "scripts/eym-surface.mjs", "scripts/eym-seafloor.mjs", "scripts/eym-seasons.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json", "data/eym/growth.json"];
 /** The groups of dials (scripts/eym-world-inputs.mjs) the ocean climate follows. */
 export const CLIMATE_INPUTS = ["layout", "seaFloor", "ocean"];
 export const climateSourcesSha256 = () => { const h = createHash("sha256"); for (const p of CLIMATE_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...CLIMATE_INPUTS)); return h.digest("hex"); };
@@ -51,8 +51,8 @@ export function windStress(lat, declinationDeg) {
 /** Land fraction of each 2° cell (3×3 samples), from the surface. */
 export function landMask() {
   const traced = JSON.parse(readFileSync(new URL("data/eym/traced-continents.json", root), "utf8"));
-  const tectonics = JSON.parse(readFileSync(new URL("data/eym/tectonics.json", root), "utf8"));
-  const { sampler } = buildEymSurface(traced, EYM_LAYOUT, tectonics);
+  const tectonics = JSON.parse(readFileSync(new URL("data/eym/tectonics.json", root), "utf8")), growth = JSON.parse(readFileSync(new URL("data/eym/growth.json", root), "utf8"));
+  const { sampler } = buildEymSurface(traced, EYM_LAYOUT, tectonics, growth);
   const land = new Uint8Array(N);
   for (let r = 0; r < NLAT; r += 1) for (let c = 0; c < NLON; c += 1) {
     let k = 0; for (const dy of [-0.66, 0, 0.66]) for (const dx of [-0.66, 0, 0.66]) { const s = sampler(latOf(r) + dy, lonOf(c) + dx); if (s?.land && !s.inlandWater) k += 1; }
@@ -71,8 +71,8 @@ const idx = (r, c) => r * NLON + ((c % NLON) + NLON) % NLON;
  */
 export function bathymetry() {
   const traced = JSON.parse(readFileSync(new URL("data/eym/traced-continents.json", root), "utf8"));
-  const tectonics = JSON.parse(readFileSync(new URL("data/eym/tectonics.json", root), "utf8"));
-  const { sampler } = buildEymSurface(traced, EYM_LAYOUT, tectonics);
+  const tectonics = JSON.parse(readFileSync(new URL("data/eym/tectonics.json", root), "utf8")), growth = JSON.parse(readFileSync(new URL("data/eym/growth.json", root), "utf8"));
+  const { sampler } = buildEymSurface(traced, EYM_LAYOUT, tectonics, growth);
   const rows = 180, cols = 360, lat1 = (r) => -89.5 + r, lon1 = (c) => -179.5 + c, n = rows * cols, at = (r, c) => r * cols + ((c % cols) + cols) % cols;
   const land = new Uint8Array(n); for (let r = 0; r < rows; r += 1) for (let c = 0; c < cols; c += 1) { const s = sampler(lat1(r), lon1(c)); land[at(r, c)] = s?.land && !s.inlandWater ? 1 : 0; }
   // Distance to the nearest land cell (km), by sweeping until nothing shortens (eight neighbours).
