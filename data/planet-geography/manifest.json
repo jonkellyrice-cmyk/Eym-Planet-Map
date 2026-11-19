@@ -36,7 +36,7 @@
       "system": "Abydos",
       "body": "Eventide",
       "seed": "741343188e552de0",
-      "inputFingerprint": "5472c876fac70d694674",
+      "inputFingerprint": "765c321e48c852d9c842",
       "path": "data/planet-geography/abydos/eventide.json",
       "summary": {
         "waterFraction": 0.98587,
@@ -48,20 +48,19 @@
         "biomes": {
           "sea-ice": 600,
           "open-ocean": 714,
-          "ice-cap": 2,
-          "steppe": 1,
+          "ice-cap": 1,
+          "tundra": 5,
           "temperate-forest": 1,
           "tropical-ocean": 467,
           "seasonal-forest": 6,
           "tropical-rainforest": 4,
-          "savanna": 2,
-          "tundra": 3
+          "savanna": 2
         },
         "resources": {
-          "marine-biological": 1623,
-          "hydrothermal-seafloor": 154,
-          "orogenic-metallic": 7,
-          "sedimentary-basin": 15,
+          "marine-biological": 1612,
+          "hydrothermal-seafloor": 166,
+          "orogenic-metallic": 5,
+          "sedimentary-basin": 16,
           "alluvial-agricultural": 1
         }
       }
