@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { COVER, buildBattleSite, buildLocalTile, localDetailLayout, localDetailOverlaySvg, battleSiteSvg } from "../scripts/eym-local-detail.mjs";
+import { COVER, buildBattleSite, buildLocalTile, insideCoast, insideCoastPlain, insideRings, localContext, localDetailLayout, localDetailOverlaySvg, battleSiteSvg, ringSet } from "../scripts/eym-local-detail.mjs";
+import { pointInPlainRing, splitRingAtAntimeridian } from "../scripts/geo-wrap.mjs";
 import { battleMapSpec, atlasMapSpec } from "../scripts/eym-map-presets.mjs";
 import { buildReferenceMap } from "../scripts/eym-reference-map.mjs";
 import { fromLocal, toLocal } from "../scripts/eym-surface.mjs";
@@ -64,3 +65,34 @@ test("the atlas's local level gets a bounded tile laid over its frame", () => {
 });
 
 function read(path) { return readFileSync(new URL(`../${path}`, import.meta.url), "utf8"); }
+
+// ---------------------------------------------------------------- the indexed land test (land-growth scaling, Fix 2)
+
+const spread = (n, [la0, la1, lo0, lo1], each) => { for (let i = 0; i < n; i += 1) each(la0 + (la1 - la0) * ((i * 0.6180339887498949) % 1), lo0 + (lo1 - lo0) * ((i * 0.7548776662466927) % 1)); };
+
+test("the indexed land test gives the answers of trying every coast in turn", () => {
+  const ctx = localContext(asset); let differ = 0, land = 0;
+  for (const box of [[-12, 18, -8, 9], [0, 30, -95, -62], [-89, 89, -170, 170]]) spread(120000, box, (lat, lon) => { const a = insideCoast(ctx, lat, lon); if (a) land += 1; if (a !== insideCoastPlain(ctx, lat, lon)) differ += 1; });
+  // Along the coasts themselves, where a wrong cell or a missed edge would show: each coast point, nudged four ways.
+  for (const { points } of asset.terrain.coastlines) for (let i = 0; i < points.length; i += 7) for (const [dy, dx] of [[1e-4, 0], [-1e-4, 0], [0, 1e-4], [0, -1e-4]]) { const lat = points[i][0] + dy, lon = points[i][1] + dx; if (insideCoast(ctx, lat, lon) !== insideCoastPlain(ctx, lat, lon)) differ += 1; }
+  assert.equal(differ, 0);
+  assert.ok(land > 20000, "the sample holds land");
+});
+
+test("the land test is right on both sides of ±180° and round a pole", () => {
+  // An island astride the seam with a bay cut into it, a lake inside it (a ring within a ring), and a cap round the north pole.
+  const island = [[-10, 170], [-10, -170], [0, -165], [10, -170], [10, 170], [4, 175], [4, -176], [-2, -176], [-2, 175]];
+  const lake = [[-8, 178], [-8, -178], [-5, -178], [-5, 178]];
+  const cap = Array.from({ length: 36 }, (_, i) => [80 + 3 * Math.sin(i), -180 + i * 10]);
+  const rings = [island, lake, cap], set = ringSet(rings), pieces = rings.flatMap((ring) => splitRingAtAntimeridian(ring));
+  const truth = (lat, lon) => pieces.reduce((inside, piece) => inside !== pointInPlainRing(piece, lat, lon), false);
+  let differ = 0, inside = 0; const count = (lat, lon) => { const a = insideRings(set, lat, lon); if (a) inside += 1; if (a !== truth(lat, lon)) differ += 1; };
+  spread(60000, [-15, 15, 160, 179.999], count); spread(60000, [-15, 15, -179.999, -160], count); spread(60000, [70, 89.9, -179.999, 179.999], count);
+  assert.equal(differ, 0);
+  assert.ok(inside > 30000);
+  // Named places: land either side of the seam, the bay, the lake, the pole, and open sea.
+  for (const [lat, lon, want] of [[-9, 179.5, true], [-9, -179.5, true], [-9.5, -179.5, true], [8, -175, true], [1, 179, false], [1, -178, false], [-6.5, 179, false], [-6.5, -179, false], [89.5, 12, true], [89.5, -150, true], [70, 0, false], [0, 0, false], [0, -150, false]]) assert.equal(insideRings(set, lat, lon), want, `${lat}, ${lon}`);
+  // A longitude given past the seam is the same place.
+  assert.equal(insideRings(set, 8, 185), insideRings(set, 8, -175));
+  assert.equal(insideRings(set, -9.5, -181), insideRings(set, -9.5, 179));
+});
