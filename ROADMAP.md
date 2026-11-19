@@ -8,7 +8,7 @@ This section is the current plan. The sections below it are the earlier agreemen
 
 ### Consolidated addenda (owner, 18 November 2026)
 
-Part 1 retrofits work already done and comes next, before Stage 5; item 7 (owner, 19 November 2026) joins it. Part 2 is recorded in the sections below and is not started; its items D, F, G and H are superseded by the full record of the later programmes (owner, 19 November 2026). The usual rules hold: every change through Twig; renders shown first; no test weakened, skipped or deleted without the owner's yes; Caren's and Garyk's outlines are invariants. Stage 4 (rivers through the year) was already done when these were written (0.25.0); Stage 5 follows Part 1.
+Part 1 retrofits work already done and comes first; item 7 (owner, 19 November 2026) joins it. What follows the retrofits is in "Order of work after the Part 1 retrofits" below. Part 2 is recorded in the sections below and is not started; its items D, F, G and H are superseded by the full record of the later programmes (owner, 19 November 2026). The usual rules hold: every change through Twig; renders shown first; no test weakened, skipped or deleted without the owner's yes; Caren's and Garyk's outlines are invariants. Stage 4 (rivers through the year) was already done when these were written (0.25.0); Stage 5 follows Part 1.
 
 **Part 1, in the order it is done** (the order follows what feeds what: the store first, so that every later change refreshes the tiles it makes stale; the mantle before the sea floor, whose seamount chains it makes):
 
@@ -52,6 +52,60 @@ Part 1 retrofits work already done and comes next, before Stage 5; item 7 (owner
    - *Tests:* Dubos throughout; the main basin is drier than its ranges' outer slopes, and its drainage agrees with the traced rivers and lakes; seasons readouts for Caren places include a mild temperature cycle as well as wet and dry seasons; the weather changes are deterministic; the belts shift with the seasons; storm tracks follow the jet; blocking comes a few times a year per hemisphere; Caren's tropical weather is essentially unchanged by the jet and blocking except at its northern margin.
    - *Shown to the owner before submitting:* before-and-after biome and rainfall maps of Caren with the main basin and the smaller deserts marked; seasons readouts for a few Caren places, Dubos among them; a jet-stream and storm-track overlay for two contrasting seasons, with one blocking episode.
 
+### Order of work after the Part 1 retrofits (owner's decision, 19 November 2026)
+
+This is the order for everything after the Part 1 retrofits above, and it replaces any earlier order for that work (items 6 to 8 of the 17 November order below, and the order implied by the later programmes' record). The usual rules hold: each step its own pull request through Twig, with a release where the module changes; renders shown to the owner before submitting; no test weakened, skipped or deleted without the owner's yes; Caren's and Garyk's outlines are invariants.
+
+1. **Stage 6: the magnetic field and auroras** (first: small and already decided).
+   - Implement the canon in `docs/eym-canon.md`: an Earth-like dipole about 10° from the spin axis; the north magnetic pole toward about 100° E (option A); every coast of Caren and Garyk within about ±12° magnetic latitude; compass declination up to about 10–12° (Earth-normal); a slow deterministic drift bounded so that these hold in every century covered.
+   - Auroras only around the magnetic poles: an oval at about 65–75° magnetic latitude, reaching lower in strong storms; great storms down to about 20–25°, rarely. Drawn in the night sky's style.
+   - Test that Caren and Garyk never see an aurora, even in the greatest storms.
+   - A compass-declination readout by place and date; ask the owner before putting it in the panel.
+2. **Resources** (pulled forward from Human geography 2.1: the world's author says ores and coal matter to the campaign).
+   - Ore provinces from geology:
+     - copper, gold and silver at volcanic arcs;
+     - tin and tungsten in collision granites;
+     - iron in old continental cores, and bog iron in wetlands;
+     - lead and zinc in sedimentary basins;
+     - salt and other evaporites in evaporite basins, including Caren's enclosed desert basin;
+     - placer gold and gems in rivers below mountains, from Stage 3's erosion and the river courses.
+   - Coal in old swamp basins, placed with the plate history: basins that lay in wet tropical latitudes in the past. Oil and gas in suitable sedimentary basins if the world's author wants them.
+   - *Blocked on one answer from the world's author:* how long life has existed on Eym. Coal, oil and banded iron formations depend on life over deep time; if life was placed recently they are scarce or absent unless the gods placed them. Build everything else in this step now; place coal, oil and banded iron only after his answer.
+   - Individual deposits are deterministic draws within provinces (size, grade, depth, accessibility).
+   - Caren is god-shaped: its ores follow its stated geology, not tectonic rules. Ask the owner where Caren's geology is unspecified.
+   - A resources lens on the globe and a readout by place. Test that each province lies on the right geology.
+3. **Stage 5: ice ages and old sea levels** (before ecology: its glacial landforms, lakes and soils feed it).
+   - Cold periods timed by Eym's own orbital cycles already in its data (obliquity 22.1–24.5°, the precession and obliquity periods), Milankovitch-style.
+   - Small on Eym, per the aquaplanet addendum: mostly sea ice and mountain glaciers, little sea-level drop.
+   - Glacial landforms (valleys, lakes, moraines) at high latitudes and on high mountains; shelves exposed at low sea level, from the bathymetry; past coastlines by era, for lore.
+   - Show the glacial maximum's coastlines and sea-ice edge.
+4. **Visibility** (so that the owner can judge every later stage directly).
+   - The module reads and shows the stored Region tiles for Caren, Garyk and the strait corridor.
+   - The Continent layer at tier 2 for Caren and Garyk (two pictures; a new renderer, shapes first, pixel art after, kept in the store).
+   - Smooth zoom transitions at every layer boundary: in a narrow zoom band, morph the projection from the globe to the layer's flat frame and blend, tied to the gesture; complete to the nearer side within about 200–300 ms if the gesture stops mid-band; never rest mid-blend; prefetch tiles; check the frame rate on a phone.
+   - The basic science lenses on the globe: tectonics, oceans, weather, climate, resources, sky and fields (per the science-lens record). Tap-to-explain on features.
+5. **Ecology** (per the ecology record below).
+   - Habitat ranges for Earth species, including the wild ancestors of crops and livestock; placement "by habitat" as the provisional default until the world's author decides.
+   - Fire regimes (dry-season fuel, lightning; test that Caren's and Garyk's tropics are not uniformly forest).
+   - Vegetation coupled with erosion.
+   - Biological landforms (reefs, atolls, mangroves, salt marshes, peat bogs, beaver-style wetlands), never changing Caren's or Garyk's outlines.
+   - Iterate landforms → climate → vegetation → erosion until stable. Stored tiles refresh through their fingerprints.
+   - Optional, ask the owner first: Pathfinder creature habitats.
+6. **The tier side-by-side.**
+   - Continent, Region and Local samples (Dree, a coast, mountains, farmland, forest) at tier 2, on the ecology's real land cover. Profile and speed up the Local generator first.
+   - The owner judges each layer side by side and decides which need a higher tier. Then define and build only the higher tiers asked for.
+7. **Human geography** (the rest of the record below).
+   - Soils and crop and grazing suitability; settlement-site potential; disease ecology; hazards and exposure (tsunami, surge, floods, eruptions, earthquakes, landslides, fire, blizzards); fisheries and wrecks; the derived layers for history (carrying capacity, the travel-cost map, chokepoints, the shocks timeline).
+   - Lenses and almanac charts as their data arrives.
+8. **The history engine** (per the record below and its addenda).
+   - Starts only after the world's author answers its questions. Send him the questions early so that his answers are ready: peoples and ancestries, lifespans and growth rates, how common magic is, the gods' accord and active factions of powers, monster pressure, fixed history, the species placement rule.
+   - Population, faction and religion lenses and charts, with GM and player views.
+9. **The full Local render.**
+   - Caren and Garyk at the chosen tier, after re-estimating the time. Then battle maps toward their tier, polish, and verification in a live Foundry world and on a real phone.
+10. **The planar lenses** (last).
+
+Every new system built in these steps joins the world's propagation chain (README, "Adding a system to the world"): its dials in the inputs file, its data in the build, its changes in the report and its rules among the standing checks.
+
 ### Scope of detail (owner's decision, 17 November 2026)
 
 This overrides anything below that plans for all five continents.
@@ -75,9 +129,9 @@ These override anything below where they differ.
   3. *(Done, 17 November 2026: 392 Caren and 437 Garyk land tiles kept under `eym-region-layer-v2`, plus 40 coast and island tiles in the strait corridor; no errors.)* Render the 829 land tiles into the store and report what was kept.
   4. *(Done: 0.16.5, then tier 4–5 in 0.16.6.)* Night-sky legibility (a release), before any higher tier: text sized in screen pixels (about 12–13 px for star and body names, 11–12 px for constellations; on a phone the 900-unit chart is scaled to about 0.4×, so names now come out at 4–6 px); the lower-priority label hidden where two overlap; a darker, calmer sky with little or no dither in its middle, a higher minimum brightness for faint stars, solid brighter gold constellation lines and a softer Desna's Path; one art pixel at a constant on-screen size (about 2 CSS px) on every device, and clearly visible stars at least 2×2. Phone-sized renders shown before submitting.
   5. Globe fixes (owner 2026-11-17: folded into Stage 1 of the physical history and climate programme, item 6; not a release of their own): the vertical dotted streaks in the ocean around Caren at deep zoom; labels in the panel's serif, hidden where they would overlap (Gowain, Caren and Lyle pile up); the H and L pressure letters off by default, behind the weather toggle; sea ice and cloud in clearly different colours.
-  6. *Eym's physical history and climate*, Stages 1–6 (see that section below), each stage its own pull request, with renders shown before submitting. The globe fixes (item 5) go into Stage 1. This comes before the globe's tier-3 work and the side-by-side.
-  7. The Continent layer at tier 2 (Caren and Garyk, two pictures; no tier-2 renderer for it exists yet), then the Local layer at tier 2 for sample places only (Dree, a coast, mountains, farmland, forest), then the side-by-side for the owner's judgement.
-  8. Later, not started: the ecology, human geography, history engine and planar lens programmes (owner, 19 November 2026; see "Later programmes" below).
+  6. *(Stages 1–4 done. For what follows the Part 1 retrofits, see "Order of work after the Part 1 retrofits" above, which replaces this item and items 7 and 8: Stage 6, then resources, then Stage 5.)* *Eym's physical history and climate*, Stages 1–6 (see that section below), each stage its own pull request, with renders shown before submitting. The globe fixes (item 5) go into Stage 1. This comes before the globe's tier-3 work and the side-by-side.
+  7. *(Superseded by the 19 November order above: steps 4 and 6.)* The Continent layer at tier 2 (Caren and Garyk, two pictures; no tier-2 renderer for it exists yet), then the Local layer at tier 2 for sample places only (Dree, a coast, mountains, farmland, forest), then the side-by-side for the owner's judgement.
+  8. *(Superseded by the 19 November order above: steps 5, 7, 8 and 10.)* Later, not started: the ecology, human geography, history engine and planar lens programmes (owner, 19 November 2026; see "Later programmes" below).
 
 ### Done
 
@@ -353,7 +407,7 @@ Implements the canon in `docs/eym-canon.md` (owner and the world's author, 18 No
 
 ## Later programmes: ecology, human geography, the history engine and the planar lenses (owner, 19 November 2026)
 
-Agreed in the owner's planning conversations and written here in full; this record supersedes the partial sections made from the 18 November addenda (Part 2, items D, F, G and H). These are later work, after the physical-history programme (Stages 1–6) and the tier-2 layer work (the Continent layer, Local samples, the side-by-side). Not started.
+Agreed in the owner's planning conversations and written here in full; this record supersedes the partial sections made from the 18 November addenda (Part 2, items D, F, G and H). When each is done is set by "Order of work after the Part 1 retrofits" near the top of this roadmap (19 November 2026), which pulls resources forward from Human geography. Not started.
 
 ### Ground rules for all four
 
