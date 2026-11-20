@@ -11,6 +11,7 @@
 // accepted cartography, the geology (scripts/eym-geology.mjs) and the tides (scripts/eym-tides.mjs).
 
 import { geologyAt } from "./eym-geology.mjs";
+import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
 import { coastalResponse } from "./eym-tides.mjs";
 import { destination, nearestSea } from "./eym-sea.mjs";
 import { aeolianAt, bareOf, coastSea, landWindAt, loessAt, loessFertility, sandyOf, seaClimateNear, softOf, windClimate } from "./eym-aeolian.mjs";
@@ -28,7 +29,8 @@ const HARD_ROCK = new Set(["granite-gneiss", "godstone-granite", "godstone-quart
 const cache = new WeakMap();
 /**
  * The drainage channels of an asset (tools/generate-eym-drainage.mjs, attached as `asset.drainage`), unpacked:
- * [{ points: [[lat, lon], …], areasKm2: […] }]. Empty when the drainage is not attached.
+ * [{ points: [[lat, lon], …], areasKm2: […], runoffMm: […] | null }] (`runoffMm` is the mean yearly runoff of the
+ * land each point drains, where the file carries it). Empty when the drainage is not attached.
  */
 export function drainageChannels(asset) {
   const doc = asset?.drainage; if (!doc?.pointsInt16Base64) return [];
@@ -37,10 +39,11 @@ export function drainageChannels(asset) {
   // Each land mass's channels lie on its own lattice (`landMasses`: its lattice step and how many channels are its);
   // a file from before that has one step for all.
   const steps = doc.landMasses ? doc.landMasses.flatMap((m) => new Array(m.channels).fill(m.latticeDeg)) : null;
+  const runoff = doc.runoffMmUint16Base64 ? unpack16(doc.runoffMmUint16Base64) : null;
   doc.channelLengths.forEach((length, index) => {
-    const points = [], areasKm2 = [], step = steps ? steps[index] : doc.latticeDeg;
-    for (let m = 0; m < length; m += 1, k += 1) { points.push([view.getInt16(k * 6, true) * step, view.getInt16(k * 6 + 2, true) * step]); areasKm2.push(view.getUint16(k * 6 + 4, true) * 10); }
-    out.push(meander(points, areasKm2));
+    const points = [], areasKm2 = [], runoffMm = runoff ? [] : null, step = steps ? steps[index] : doc.latticeDeg;
+    for (let m = 0; m < length; m += 1, k += 1) { points.push([view.getInt16(k * 6, true) * step, view.getInt16(k * 6 + 2, true) * step]); areasKm2.push(view.getUint16(k * 6 + 4, true) * 10); runoffMm?.push(runoff[k]); }
+    out.push(meander(points, areasKm2, runoffMm));
   });
   return out;
 }
@@ -50,9 +53,9 @@ export function drainageChannels(asset) {
  * cutting) and set swinging from side to side, wider for a bigger channel, by a pattern keyed to the channel's
  * own source (so it is the same on every map that reads it).
  */
-function meander(points, areasKm2) {
-  let line = points.map((p, k) => [p[0], p[1], areasKm2[k]]);
-  for (let pass = 0; pass < 3; pass += 1) line = [line[0], ...line.slice(0, -1).flatMap((p, k) => { const q = line[k + 1]; return [[0.75 * p[0] + 0.25 * q[0], 0.75 * p[1] + 0.25 * q[1], p[2]], [0.25 * p[0] + 0.75 * q[0], 0.25 * p[1] + 0.75 * q[1], q[2]]]; }), line.at(-1)];
+function meander(points, areasKm2, runoffMm = null) {
+  let line = points.map((p, k) => [p[0], p[1], areasKm2[k], runoffMm ? runoffMm[k] : 0]);
+  for (let pass = 0; pass < 3; pass += 1) line = [line[0], ...line.slice(0, -1).flatMap((p, k) => { const q = line[k + 1]; return [[0.75 * p[0] + 0.25 * q[0], 0.75 * p[1] + 0.25 * q[1], p[2], p[3]], [0.25 * p[0] + 0.75 * q[0], 0.25 * p[1] + 0.75 * q[1], q[2], q[3]]]; }), line.at(-1)];
   const seed = Math.abs(Math.sin(points[0][0] * 12.9898 + points[0][1] * 78.233) * 43758.5453) % 1, phase = 2 * Math.PI * seed;
   let s = 0; const out = [line[0]];
   for (let k = 1; k < line.length - 1; k += 1) {
@@ -60,14 +63,34 @@ function meander(points, areasKm2) {
     s += Math.hypot((line[k][0] - line[k - 1][0]) * KM_PER_DEG, (line[k][1] - line[k - 1][1]) * KM_PER_DEG * cosLat);
     const dx = (b[1] - a[1]) * cosLat, dy = b[0] - a[0], len = Math.hypot(dx, dy) || 1, amplitudeKm = 0.7 + 0.35 * Math.log10(1 + line[k][2] / 100);
     const swing = amplitudeKm * (Math.sin(2 * Math.PI * s / 9 + phase) + 0.45 * Math.sin(2 * Math.PI * s / 3.7 + 2.3 * phase));
-    out.push([line[k][0] + (dx / len) * swing / KM_PER_DEG, line[k][1] - (dy / len) * swing / (KM_PER_DEG * cosLat), line[k][2]]);
+    out.push([line[k][0] + (dx / len) * swing / KM_PER_DEG, line[k][1] - (dy / len) * swing / (KM_PER_DEG * cosLat), line[k][2], line[k][3]]);
   }
   out.push(line.at(-1));
-  return { points: out.map(([lat, lon]) => [lat, lon]), areasKm2: out.map((p) => p[2]) };
+  return { points: out.map(([lat, lon]) => [lat, lon]), areasKm2: out.map((p) => p[2]), runoffMm: runoffMm ? out.map((p) => p[3]) : null };
 }
 
-/** The width (m) a drainage channel's valley is cut as: that of a river draining as much land (about 3 m × √km²). */
-export const channelWidthM = (areaKm2) => 3 * Math.sqrt(areaKm2);
+/**
+ * The width (m) a drainage channel's valley is cut as: that of a river carrying as much water. A river's bed grows
+ * with the square root of its flow: about 3 m × √km² for land with the reference runoff (the dial
+ * `riverReferenceRunoffMm`), wider where more of the rain runs off, and a thread where hardly any does. Without the
+ * runoff (an older file), by the land drained alone.
+ */
+export const channelWidthM = (areaKm2, runoffMm = null) => 3 * Math.sqrt(areaKm2 * (runoffMm == null ? 1 : clamp(runoffMm / WORLD_INPUTS.weather.riverReferenceRunoffMm, 0.02, 3)));
+
+const unpack16 = (b64) => { const bytes = typeof Buffer !== "undefined" ? Uint8Array.from(Buffer.from(b64, "base64")) : Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)); return Array.from({ length: bytes.length >> 1 }, (_, k) => bytes[2 * k] | (bytes[2 * k + 1] << 8)); };
+/**
+ * The known rivers' own catchments (tools/generate-eym-drainage.mjs): Map of river id → [{ k (the index along its
+ * course), areaKm2 (the land it truly drains there), runoffMm (that land's mean yearly runoff) }]. Empty when the
+ * drainage does not carry them.
+ */
+export function riverCatchments(asset) {
+  const doc = asset?.drainage?.rivers, out = new Map(); if (!doc?.ids) return out;
+  const v = unpack16(doc.atUint16Base64); let n = 0;
+  doc.ids.forEach((id, i) => { const at = []; for (let m = 0; m < doc.lengths[i]; m += 1, n += 1) at.push({ k: v[3 * n], areaKm2: v[3 * n + 1] * 10, runoffMm: v[3 * n + 2] }); out.set(id, at); });
+  return out;
+}
+/** A river's catchment at a place along its course (index `k`): the measured place at or just upstream of it. */
+const catchmentAt = (at, k) => { let best = at[0]; for (const p of at) if (p.k <= k) best = p; return best; };
 
 /**
  * The landforms context for a local-detail context (`ctx` from localContext: its asset, field and rivers),
@@ -78,9 +101,12 @@ export const channelWidthM = (areaKm2) => 3 * Math.sqrt(areaKm2);
 export function landformContext(ctx, coastKmAt, landAt = () => true, reliefAt = null) {
   const hit = cache.get(ctx); if (hit && hit.drainage === (ctx.asset.drainage ?? null) && hit.wind === (ctx.asset.wind ?? null)) return hit;
   const segments = [], buckets = new Map(), mouths = [];
-  for (const channel of drainageChannels(ctx.asset)) for (let k = 0; k + 1 < channel.points.length; k += 1) segments.push({ a: channel.points[k], b: channel.points[k + 1], widthM: channelWidthM(channel.areasKm2[k]), channel: true, ref: channel, k, areaKm2: channel.areasKm2[k] });
+  for (const channel of drainageChannels(ctx.asset)) for (let k = 0; k + 1 < channel.points.length; k += 1) segments.push({ a: channel.points[k], b: channel.points[k + 1], widthM: channelWidthM(channel.areasKm2[k], channel.runoffMm ? channel.runoffMm[k] : null), channel: true, ref: channel, k, areaKm2: channel.areasKm2[k], runoffMm: channel.runoffMm ? channel.runoffMm[k] : null });
+  // The known rivers drain the land the drainage found for them (their true catchments), where it measured them.
+  const catchments = riverCatchments(ctx.asset);
   for (const river of ctx.rivers) {
-    for (let k = 0; k + 1 < river.points.length; k += 1) segments.push({ a: river.points[k], b: river.points[k + 1], widthM: river.widthM, ref: river, k, areaKm2: river.areaKm2 ?? (river.widthM / 3) ** 2 });
+    const measured = river.id ? catchments.get(river.id) : null;
+    for (let k = 0; k + 1 < river.points.length; k += 1) { const c = measured ? catchmentAt(measured, k) : null; segments.push({ a: river.points[k], b: river.points[k + 1], widthM: river.widthM, ref: river, k, areaKm2: c?.areaKm2 || (river.areaKm2 ?? (river.widthM / 3) ** 2), runoffMm: c?.areaKm2 ? c.runoffMm : null }); }
     // The mouth: whichever end lies at the coast.
     const ends = [river.points[0], river.points.at(-1)].map((p) => ({ p, d: coastKmAt(p[0], p[1]) })).sort((x, y) => x.d - y.d);
     if (ends[0].d < 4) mouths.push({ at: ends[0].p, widthM: river.widthM });
@@ -104,7 +130,8 @@ export function landformContext(ctx, coastKmAt, landAt = () => true, reliefAt = 
 
 /**
  * The nearest river within valley reach of a place: { distKm, widthM, ref (the river or drainage channel), k (the
- * index of its point just upstream), areaKm2 (the land it drains there), channel (a drainage channel, not a named
+ * index of its point just upstream), areaKm2 (the land it drains there), runoffMm (that land's mean yearly runoff,
+ * or null where it is not measured), channel (a drainage channel, not a named
  * river) }, or null.
  */
 export function nearestRiver(lf, lat, lon) {
@@ -114,7 +141,7 @@ export function nearestRiver(lf, lat, lon) {
     const s = lf.segments[index], ax = (s.a[1] - lon) * KM_PER_DEG * k, ay = (s.a[0] - lat) * KM_PER_DEG, bx = (s.b[1] - lon) * KM_PER_DEG * k, by = (s.b[0] - lat) * KM_PER_DEG;
     const dx = bx - ax, dy = by - ay, t = clamp(-(ax * dx + ay * dy) / (dx * dx + dy * dy || 1), 0, 1), d = Math.hypot(ax + t * dx, ay + t * dy);
     // A wider river reaches further: compare by distance over the river's own reach.
-    if (d < VALLEY_REACH_KM && (!best || d / valleyHalfWidthKm(s.widthM, 0) < best.distKm / valleyHalfWidthKm(best.widthM, 0))) best = { distKm: d, widthM: s.widthM, ref: s.ref, k: s.k + t, areaKm2: s.areaKm2, channel: Boolean(s.channel) };
+    if (d < VALLEY_REACH_KM && (!best || d / valleyHalfWidthKm(s.widthM, 0) < best.distKm / valleyHalfWidthKm(best.widthM, 0))) best = { distKm: d, widthM: s.widthM, ref: s.ref, k: s.k + t, areaKm2: s.areaKm2, runoffMm: s.runoffMm ?? null, channel: Boolean(s.channel) };
   }
   return best;
 }

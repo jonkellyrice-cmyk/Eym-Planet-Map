@@ -72,8 +72,14 @@ if (readCoasts()?.sourcesSha256 !== coastSourcesSha256()) { run("tools/generate-
 const { magneticSourcesSha256 } = await import("./generate-eym-magnetic.mjs");
 const readMagnetic = () => { try { return JSON.parse(readFileSync(new URL("data/eym/magnetic.json", root), "utf8")); } catch { return null; } };
 if (readMagnetic()?.sourcesSha256 !== magneticSourcesSha256()) { run("tools/generate-eym-magnetic.mjs"); changed = true; }
-// Eym's drainage (tools/generate-eym-drainage.mjs) follows the cartography: made again (a quarter of a minute) when the
-// cartography or the local detail's surface changed.
+// The rivers' monthly climate (tools/generate-eym-flow.mjs) follows the rain, the weather and the land: made again
+// (a few seconds) when any changed. It comes before the drainage, which reads it: the water a channel carries is
+// the runoff of the land it drains.
+const { flowSourcesSha256 } = await import("./generate-eym-flow.mjs");
+const readFlow = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/mitkear/eym-flow.json", root), "utf8")); } catch { return null; } };
+if (readFlow()?.sourcesSha256 !== flowSourcesSha256()) { run("tools/generate-eym-flow.mjs"); changed = true; }
+// Eym's drainage (tools/generate-eym-drainage.mjs) follows the cartography and the rivers' climate: made again (a
+// quarter of a minute) when the cartography, the local detail's surface or the runoff changed.
 const { drainageSourcesSha256 } = await import("./generate-eym-drainage.mjs");
 const readDrainage = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/mitkear/eym-drainage.json", root), "utf8")); } catch { return null; } };
 if (readDrainage()?.sourcesSha256 !== drainageSourcesSha256()) { run("tools/generate-eym-drainage.mjs"); changed = true; }
@@ -82,11 +88,6 @@ if (readDrainage()?.sourcesSha256 !== drainageSourcesSha256()) { run("tools/gene
 const { windSourcesSha256 } = await import("./generate-eym-wind.mjs");
 const readWind = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/mitkear/eym-wind.json", root), "utf8")); } catch { return null; } };
 if (readWind()?.sourcesSha256 !== windSourcesSha256()) { run("tools/generate-eym-wind.mjs"); changed = true; }
-// The rivers' monthly climate (tools/generate-eym-flow.mjs) follows the weather and the land: made again (a few
-// seconds) when either changed.
-const { flowSourcesSha256 } = await import("./generate-eym-flow.mjs");
-const readFlow = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/mitkear/eym-flow.json", root), "utf8")); } catch { return null; } };
-if (readFlow()?.sourcesSha256 !== flowSourcesSha256()) { run("tools/generate-eym-flow.mjs"); changed = true; }
 // Last, the Region layer's fingerprint (tools/generate-region-fingerprint.mjs): the code and data its stored tiles
 // are made from, all of the above included. Written again whenever either fingerprint moved.
 const { REGION_FINGERPRINT_FILE, regionFingerprint } = await import("./generate-region-fingerprint.mjs");

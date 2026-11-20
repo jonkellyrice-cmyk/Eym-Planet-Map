@@ -253,7 +253,7 @@ export function terrainAt(ctx, lat, lon, shortKm = 0.02) {
  */
 export function riverHere(asset, lat, lon, timeMs, maxKm = 3) {
   const ctx = localContext(asset), near = nearestRiver(landformsOf(ctx), lat, lon); if (!near || near.distKm > maxKm || !near.ref) return null;
-  const year = riverYear(asset, ctx.field, near.ref, near.k, near.areaKm2, (a, b) => coarseAt(ctx, a, b).elevationM); if (!year) return null;
+  const year = riverYear(asset, ctx.field, near.ref, near.k, near.areaKm2, (a, b) => coarseAt(ctx, a, b).elevationM, near.runoffMm); if (!year) return null;
   const wet = yearWetness(asset, near.ref.points.at(-1), timeMs), stage = riverStage(year, near.widthM, timeMs, wet);
   return { ...stage, distKm: near.distKm, bedWidthM: near.widthM, channel: near.channel, areaKm2: near.areaKm2, wet, year, untilFordableDays: stage.fordable ? 0 : daysUntilFordable(year, near.widthM, timeMs, wet) };
 }

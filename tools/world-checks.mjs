@@ -12,6 +12,8 @@ import { readFileSync } from "node:fs";
 import { WORLD_FILES, cellContinents, heights, sha256, summarizeWorld } from "./world-snapshot.mjs";
 import { overrideProblems } from "../scripts/eym-overrides.mjs";
 import { tectonicContentSha256 } from "./generate-eym-growth.mjs";
+import { riverCourses } from "../scripts/eym-river-courses.mjs";
+import { riverCatchments } from "../scripts/eym-landforms.mjs";
 
 const PINS = new URL("world-pins.json", import.meta.url);
 export const readPins = () => JSON.parse(readFileSync(PINS, "utf8"));
@@ -147,6 +149,19 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
     rule("rain-budget", "the rain file holds every land square, with deserts and wet coasts and no square over 9,000 mm; the tropics' land is wetter than the dry belts'", s.landSquares > 10000 && s.wettest.mm < 9000 && s.driest.mm < 100 && Math.min(...tropics.map((b) => b.meanMm)) > Math.min(...dry.map((b) => b.meanMm)), `${s.landSquares} land squares; wettest ${s.wettest.mm} mm, driest ${s.driest.mm} mm; land between 20° S and 20° N ${tropics.map((b) => b.meanMm).join(", ")} mm by ten degrees`);
   }
 
+  // Rivers carry the climate (owner, 20 November 2026): the drainage measures the land each drawn river truly drains
+  // and its runoff. The drawn rivers stay as drawn; one whose modelled flow is far below what its drawn bed would
+  // carry is reported, for the owner to weigh.
+  if (world.drainage?.rivers && world.asset) {
+    const asset = { ...world.asset, drainage: world.drainage }, catchments = riverCatchments(asset), ref = WORLD_INPUTS.weather.riverReferenceRunoffMm, flowM3s = (areaKm2, mm) => areaKm2 * 1e6 * mm / 1000 / 31_557_600;
+    const rows = riverCourses(world.asset).filter((r) => !/estuary$/.test(r.id)).map((r) => { const at = catchments.get(r.id), most = at?.reduce((a, b) => (b.areaKm2 * b.runoffMm > a.areaKm2 * a.runoffMm ? b : a)); return { id: r.id, widthM: Math.round(r.widthM), flow: most ? flowM3s(most.areaKm2, most.runoffMm) : null, bedFlow: flowM3s((r.widthM / 3) ** 2, ref) }; });
+    // (The maps draw the great rivers kilometres wide, wider than their water needs, so a bed's width is no measure
+    // of its flow; what is asked is that a drawn river carries a river's water at all.)
+    const measured = rows.filter((r) => r.flow != null), low = measured.filter((r) => r.flow < (r.widthM >= 2000 ? 100 : 10)).sort((a, b) => a.flow - b.flow);
+    rule("rivers-measured", "the drainage measures the land most drawn rivers truly drain", measured.length >= 0.8 * rows.length, `${measured.length} of ${rows.length} drawn river courses`);
+    rule("rivers-flow", "every drawn river carries a river's water: at least 10 m³/s in the mean, and 100 m³/s where it is drawn two kilometres wide or more", low.length === 0, `${low.length} of ${measured.length} do not (the land's modelled heights send their water elsewhere, or their country is too dry): ` + low.slice(0, 14).map((r) => `${r.id} (drawn ${r.widthM} m wide) ${r.flow < 10 ? r.flow.toFixed(1) : Math.round(r.flow)} m³/s`).join("; ") + (low.length > 14 ? `; and ${low.length - 14} more` : ""), "should");
+  }
+
   // Caren's climate is measured, not assumed (canon of 20 November 2026): the survey says of each thing the canon
   // expects whether the physics gives it. What is not found is for the owner and the world's author to weigh; it is
   // a warning here, never hidden and never forced.
@@ -155,6 +170,8 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
     rule("caren-sea", "a tongue of cold water reaches Caren's west coast, colder still over the islands' ridge", k.sea.coldTongueC <= -0.3 && k.sea.overTheRidgeC <= k.sea.coldTongueC, `${k.sea.coldTongueC} °C west of Caren, ${k.sea.overTheRidgeC} °C over the ridge`);
     rule("caren-seasons", "south Caren has wet and dry seasons, and snow lies all year only above the snow line", k.parts.south.dryMonths >= 3 && k.byHeight.find((h) => h.heightM === 0).snow === "none" && k.byHeight.find((h) => h.heightM === 4800).snow === "all year", `the south ${k.parts.south.annualMm} mm with ${k.parts.south.dryMonths} dry months`);
     rule("caren-climate-measured", "the survey says of each of the canon's expectations whether the physics gives it", k.expectations.length >= 10 && k.expectations.every((e) => typeof e.found === "boolean" && e.measure), `${k.expectations.length - missing.length} of ${k.expectations.length} found`);
+    const m = k.mapAgainstRain;
+    if (m) rule("caren-map-against-rain", "Caren's map and its rain agree: no forest drawn in dry country, no open land in very wet country, no tan dry ground in wet country", m.forestInDryCountry.disagree.length + m.openInVeryWetCountry.disagree.length + m.tanInWetCountry.disagree.length === 0, `of ${m.squares} squares: ${m.forestInDryCountry.disagree.length} of ${m.forestInDryCountry.squares} mostly forest have under ${m.forestInDryCountry.underMm} mm; ${m.openInVeryWetCountry.disagree.length} of ${m.openInVeryWetCountry.squares} mostly open have over ${m.openInVeryWetCountry.overMm} mm; ${m.tanInWetCountry.disagree.length} of ${m.tanInWetCountry.squares} mostly tan have over ${m.tanInWetCountry.overMm} mm`, "should");
     rule("caren-climate-found", "the physics gives everything the canon expects of Caren's climate", missing.length === 0, missing.map((e) => `${e.expected}: ${e.measure}`).join(" | "), "should");
   }
 

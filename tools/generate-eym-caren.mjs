@@ -17,11 +17,13 @@ import { CAREN_RELIEF_MODEL, carenRelief } from "../scripts/eym-caren-relief.mjs
 import { inputsFingerprint, WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 import { carenClimate, monthDeclinationDeg } from "../scripts/eym-caren-climate.mjs";
 import { eymRain } from "./generate-eym-rain.mjs";
+import { rainReader } from "../scripts/eym-rain.mjs";
+import { existsSync } from "node:fs";
 import { rainBeltLat, seaLevelTemperatureC } from "../scripts/eym-seasons.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/caren.json", root);
 /** What the survey is made from: this tool, the relief rule, the surface, the traced map and its labels (and the dials, below). */
-export const CAREN_SOURCES = ["tools/generate-eym-caren.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-caren-climate.mjs", "scripts/eym-rain.mjs", "scripts/eym-land-atmosphere.mjs", "tools/generate-eym-rain.mjs", "scripts/eym-surface.mjs", "scripts/eym-seasons.mjs", "data/eym/traced-continents.json", "data/eym/caren-labels.json", "data/eym/climate.json"];
+export const CAREN_SOURCES = ["tools/generate-eym-caren.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-caren-climate.mjs", "scripts/eym-rain.mjs", "scripts/eym-land-atmosphere.mjs", "tools/generate-eym-rain.mjs", "data/eym/rain.json", "scripts/eym-surface.mjs", "scripts/eym-seasons.mjs", "data/eym/traced-continents.json", "data/eym/caren-labels.json", "data/eym/climate.json"];
 /** The groups of dials (scripts/eym-world-inputs.mjs) the survey follows. */
 export const CAREN_INPUTS = ["layout", "caren", "carenClimate", "rain", "weather"];
 export const carenSourcesSha256 = () => { const h = createHash("sha256"); for (const p of CAREN_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...CAREN_INPUTS)); return h.digest("hex"); };
@@ -49,7 +51,7 @@ export function buildCaren(dials = WORLD_INPUTS.caren) {
   for (let r = 0; r < g.rows; r += 1) for (let c = 0; c < g.cols; c += 1) {
     const i = r * g.cols + c; if (!frame.outline[i]) continue;
     const [lat, lon] = fromLocal(center, g.x0 + (c + 0.5) * g.cellKm, g.y0 - (r + 0.5) * g.cellKm), relief = frame.reliefValue[i];
-    cells.push({ lat, lon, m: frame.elevation[i], coastKm: frame.seaKm[i], relief, water: Boolean(frame.water[i]), feature: rule.featureAt(lat, lon), lift: rule.swellM(lat, lon, frame.seaKm[i]), open: Math.abs(rule.groundM(lat, lon, frame.seaKm[i]) - rule.surfaceM(lat, lon, frame.seaKm[i])) < 1 });
+    cells.push({ lat, lon, m: frame.elevation[i], coastKm: frame.seaKm[i], relief, forest: Boolean(frame.forest[i]), water: Boolean(frame.water[i]), feature: rule.featureAt(lat, lon), lift: rule.swellM(lat, lon, frame.seaKm[i]), open: Math.abs(rule.groundM(lat, lon, frame.seaKm[i]) - rule.surfaceM(lat, lon, frame.seaKm[i])) < 1 });
   }
   const land = cells.filter((c) => !c.water), lats = cells.map((c) => c.lat);
 
@@ -142,6 +144,15 @@ function surveyClimate({ source, labels, placeOf, sampler, land, peaks, km }) {
   const spread = (v) => { const s = [...v].sort((x, y) => x - y); return s.length ? [s[0], s[Math.floor(s.length / 2)], s.at(-1)] : null; };
   const molkath = (era) => { const rows = tan.map((c) => ({ ...c, y: yearAt(era, c.lat, c.lon) })).filter((c) => c.y), of = (list) => ({ places: list.length, annualMm: spread(list.map((c) => c.y.annualMm)), dryMonths: list.length ? r1(mean(list.map((c) => c.y.dryMonths))) : null, aridShare: list.length ? Math.round(list.filter((c) => c.y.annualMm <= 250).length / list.length * 100) / 100 : null }); return { ...of(rows), sides: Object.fromEntries(["west", "east", "north", "south"].map((side) => [side, of(rows.filter((c) => c.side === side))])) }; };
   const molkathNow = molkath(now), molkathBefore = molkath(before), target = [100, 250];
+  // The map against the rain (the rain file's squares, by the degree): where the map draws forest in dry country,
+  // open land in very wet country, or its tan dry ground in wet country. Reported; neither is overridden.
+  const rainUrl = new URL("data/eym/rain.json", root), rainOf = existsSync(rainUrl) ? rainReader(JSON.parse(readFileSync(rainUrl, "utf8"))) : null, squares = new Map();
+  for (const c of land) { const key = `${Math.floor(c.lat)}|${Math.floor(c.lon)}`, s = squares.get(key) ?? { lat: Math.floor(c.lat) + 0.5, lon: Math.floor(c.lon) + 0.5, n: 0, forest: 0, tan: 0, open: 0 }; s.n += 1; if (c.relief >= 1.6) { /* mountain */ } else if (c.forest) s.forest += 1; else if (c.relief >= 0.6) s.tan += 1; else s.open += 1; squares.set(key, s); }
+  const against = rainOf && (() => {
+    const full = Math.max(...[...squares.values()].map((s) => s.n)), list = [...squares.values()].filter((s) => s.n >= 0.5 * full).map((s) => ({ ...s, mm: rainOf.landYear(Math.floor(s.lat + 90), Math.floor(s.lon + 180))?.annualMm ?? null })).filter((s) => s.mm != null).sort((a, b) => b.lat - a.lat || a.lon - b.lon);
+    const tag = (s) => ({ at: [s.lat, s.lon], annualMm: s.mm }), of = (kind, share, test) => { const mine = list.filter((s) => s[kind] / s.n >= share), mm = mine.map((s) => s.mm).sort((a, b) => a - b); return { squares: mine.length, middleMm: mm.length ? mm[Math.floor(mm.length / 2)] : null, disagree: mine.filter(test).map(tag) }; };
+    return { squares: list.length, forestInDryCountry: { underMm: 900, ...of("forest", 0.6, (s) => s.mm < 900) }, openInVeryWetCountry: { overMm: 2500, ...of("open", 0.6, (s) => s.mm > 2500) }, tanInWetCountry: { overMm: 1000, ...of("tan", 0.5, (s) => s.mm > 1000) } };
+  })();
   const north = part((c) => c.lat >= 4.5), centre = part((c) => c.lat > -4 && c.lat < 4.5), south = part((c) => c.lat <= -4), northWest = part((c) => c.lat >= 4.5 && c.lon < -2), northEast = part((c) => c.lat >= 4.5 && c.lon > 2);
   const plateauPlaces = land.filter((c, k) => k % 9 === 0 && c.lat >= NORTHERN_COAST_LAT && c.open && c.relief < 0.5 && c.m >= 1300).map((c) => yearAt(now, c.lat, c.lon)).filter(Boolean);
   const plateau = { places: plateauPlaces.length, annualMm: Math.round(mean(plateauPlaces.map((y) => y.annualMm))), meanC: r1(mean(plateauPlaces.map((y) => y.meanC))), swingC: r1(mean(plateauPlaces.map((y) => y.swingC))), coldestNightC: r1(Math.min(...plateauPlaces.map((y) => y.coldestNightC))), wetMonths: r1(mean(plateauPlaces.map((y) => y.wetMonths))), dryMonths: r1(mean(plateauPlaces.map((y) => y.dryMonths))), groundFrostMonths: r1(mean(plateauPlaces.map((y) => y.frostMonths))) };
@@ -172,6 +183,7 @@ function surveyClimate({ source, labels, placeOf, sampler, land, peaks, km }) {
     parts: { north, northWest, northEast, centre, south },
     plateau, byHeight, rainShadows,
     towns: ["Folo", "Bostain", "Rach", "Aren", "Menera", "Plangi", "Dubos", "Geniv", "Lyla", "Dree", "Ewash"].map(town),
+    mapAgainstRain: against ?? null,
     molkath: { box, targetMm: target, today: molkathNow, beforeTheFall: molkathBefore, wall: D.wallBeforeTheFall,
       reached,
       why: "The trades blow from the east off a warm sea. The remnant's lee (its west side) is dry; its windward side (the east) is wet, with only low ground between it and the sea the rain comes from. A range across the wind to the east of it, or a far colder sea there, would dry the east side; the map shows neither." },
