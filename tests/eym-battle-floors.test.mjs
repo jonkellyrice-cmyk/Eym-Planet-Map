@@ -8,7 +8,7 @@ import { battleMapSpec } from "../scripts/eym-map-presets.mjs";
 import { fromLocal } from "../scripts/eym-surface.mjs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
+const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
 const lyle = (() => { const s = asset.settlements.find((x) => x.properName === "Lyle"); return fromLocal([s.lat, s.lon], 0.2, 0.15); })();
 const map = buildBattleMap(asset, { center: lyle, spec: battleMapSpec() }), interiors = buildInteriors(map);
 const images = { ground: "g.png", roofs: { 0: "r0.png", 1: "r1.png" }, floors: { 1: "f1.png", "-1": "b.png" } };

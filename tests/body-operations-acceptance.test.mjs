@@ -12,12 +12,12 @@ test("all accepted assets regenerate byte-for-byte from the current canonical re
   for (const { row } of targets) assert.equal(readFileSync(new URL(bodyOperationAssetPath(row.system, row.object), root), "utf8"), serializeAsset(generateBodyOperationAsset(row)), `${row.system}/${row.object}`);
 });
 
-// Synthetic (non-canon) rows keep the generic structure families that Abydos does not contain under test.
-const synthetic = (object, type) => generateBodyOperationAsset({ system: "Abydos", object, type, parent: "Abydos" });
+// Synthetic (non-canon) rows keep the generic structure families that Mitkear does not contain under test.
+const synthetic = (object, type) => generateBodyOperationAsset({ system: "Mitkear", object, type, parent: "Mitkear" });
 
 test("gas giants keep an atmospheric survey with no solid-surface routes", () => {
-  // Tribune is the canonical gas giant; Abydos has no ice/gas giant, so a synthetic row keeps that type under test.
-  const giants = { Tribune: assetFor("Tribune"), "Synthetic Ice Giant": synthetic("Synthetic Ice Giant", "ice/gas giant") };
+  // Iarn is the canonical gas giant; Mitkear has no ice/gas giant, so a synthetic row keeps that type under test.
+  const giants = { Iarn: assetFor("Iarn"), "Synthetic Ice Giant": synthetic("Synthetic Ice Giant", "ice/gas giant") };
   for (const [body, giant] of Object.entries(giants)) {
     assert.equal(giant.operationalKind, "giant", body);
     assert.ok(giant.features.some((feature) => feature.layer === "storms"), body);
@@ -38,7 +38,7 @@ test("an anomaly region stays an uncertain, non-dockable observation volume and 
   assert.equal(yard.operationalKind, "shipyard"); assert.ok(yard.features.some((feature) => feature.type === "gantry")); assert.ok(yard.features.some((feature) => feature.type === "berth"));
 });
 
-test("Abydos uses its own naming culture without apostrophe-heavy fantasy names", () => {
-  assert.deepEqual(new Set(targets.map(({ row }) => row.system)), new Set(["Abydos"]));
+test("Mitkear uses its own naming culture without apostrophe-heavy fantasy names", () => {
+  assert.deepEqual(new Set(targets.map(({ row }) => row.system)), new Set(["Mitkear"]));
   for (const { row } of targets) { const asset = assetFor(row.object); assert.ok(asset.namingProfile); assert.ok(asset.features.every((feature) => (feature.name.match(/[’']/g) ?? []).length <= 1)); }
 });

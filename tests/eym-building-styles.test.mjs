@@ -10,7 +10,7 @@ import { battleMapSpec } from "../scripts/eym-map-presets.mjs";
 import { renderBattleLayers } from "../webapp/render/render-battle.mjs";
 import { parseRequest } from "../webapp/server.mjs";
 
-const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
+const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/mitkear/eym.json", import.meta.url), "utf8"));
 const dree = asset.settlements.find((s) => s.properName === "Dree");
 const spec = battleMapSpec({ size: "custom", columns: 16, rows: 12, density: "custom", gridPx: 70 });
 const map = buildBattleMap(asset, { center: [dree.lat, dree.lon], spec, setting: "urban" }), interiors = buildInteriors(map);

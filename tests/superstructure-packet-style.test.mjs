@@ -41,7 +41,7 @@ test("the committed bundle has no superstructures and none of its 8 entries leak
 // Synthetic (non-canon) superstructure, shaped like the entries data/superstructure-identities.json carries, keeps the
 // normalized technical-atlas style contract under test now that the setting has no artificial bodies.
 test("a superstructure identity carries the normalized technical-atlas style contract and a plain station does not", () => {
-  const row = { system: "Synthetic", object: "Synthetic Anchorage", type: "major station", parent: "Synthetic", owner_faction: "Eventide" };
+  const row = { system: "Synthetic", object: "Synthetic Anchorage", type: "major station", parent: "Synthetic", owner_faction: "Eym" };
   const asset = generateBodyOperationAsset(row);
   const sourceText = serializeAsset(asset);
   const grammar = FACTION_GRAMMARS.frontier;

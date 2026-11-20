@@ -1,6 +1,7 @@
-// System → naming culture. Only Abydos remains; the other cultures stay available for new systems.
+import { seedWord } from "./seed-words.mjs";
+// System → naming culture. Only Mitkear remains; the other cultures stay available for new systems.
 const SYSTEM_PROFILE = Object.freeze({
-  Abydos: "vadan",
+  Mitkear: "vadan",
 });
 
 const PROFILES = Object.freeze({
@@ -27,7 +28,7 @@ const PROFILES = Object.freeze({
   },
   vadan: {
     language: "Vadan", basis: "Colonial/Union-descended mixed local language with established Earth-derived place-name latitude",
-    roots: ["Vada", "Ramses", "Kandar", "Thraxi", "Eilean", "Volna", "Orison", "Mariner", "Caldera", "Aster", "Nacre", "Sundown", "Pelagic", "Vesper", "Halcyon", "Tide"],
+    roots: ["Vada", "Bruthi", "Kandar", "Thraxi", "Eilean", "Volna", "Orison", "Mariner", "Caldera", "Aster", "Nacre", "Sundown", "Pelagic", "Vesper", "Halcyon", "Tide"],
     endings: ["reach", "fall", "haven", "mere", "sound", "ward", "strand", "deep", "rise", "gate", "light", "run"],
     terms: { capital: "Crown", city: "Haven", port: "Anchorage", ocean: "Deep", sea: "Sea", river: "Flow", lake: "Mere", mountain: "Crest", range: "Rampart", continent: "Reach", island: "Cay", desert: "Waste", forest: "Green", wetland: "Wash", glacier: "Ice", strait: "Passage", road: "Way", landmark: "Beacon" },
     order: "root-first",
@@ -52,7 +53,7 @@ export function namingProfileForSystem(system) {
 export function generateToponym({ system, world, seed, featureClass, ordinal = 0, nonce = 0 }) {
   const profile = namingProfileForSystem(system), term = profile.terms[featureClass];
   if (!term) throw new RangeError(`Unsupported named feature class: ${featureClass}`);
-  const identity = `${seed}/${system}/${world}/${featureClass}/${ordinal}/${nonce}`;
+  const identity = `${seed}/${seedWord(system)}/${seedWord(world)}/${featureClass}/${ordinal}/${nonce}`;
   const root = profile.roots[hash(`${identity}/root`) % profile.roots.length];
   const ending = profile.endings[hash(`${identity}/ending`) % profile.endings.length];
   const fused = titleCase(`${root}${root.toLowerCase().endsWith(ending[0].toLowerCase()) ? ending.slice(1) : ending}`);

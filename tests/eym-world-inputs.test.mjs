@@ -75,7 +75,7 @@ test("an override changes the cells it names and nothing else; climate overrides
 
   // On the real world: drying a box of Caren turns its cells to drier biomes and leaves every other cell alone.
   const traced = json("data/eym/traced-continents.json"), tectonics = json("data/eym/tectonics.json"), climate = json("data/eym/climate.json");
-  const labels = { caren: json("data/eym/caren-labels.json"), garyk: json("data/eym/garyk-markers.json") }, row = parseCsv(read("docs/system-orbital-distances.csv")).find((r) => r.object === "Eventide");
+  const labels = { caren: json("data/eym/caren-labels.json"), garyk: json("data/eym/garyk-markers.json") }, row = parseCsv(read("docs/system-orbital-distances.csv")).find((r) => r.object === "Eym");
   const build = (overrides) => buildEymGeography({ ...buildEymSurface(traced, EYM_LAYOUT, tectonics), traced, labels, row, fingerprint: eymFingerprintFromRepo(), tectonics, climate, overrides });
   const area = { south: -4, north: 6, west: -3, east: 3 }, plain = build(null), dried = build({ overrides: [{ id: "caren-dry-test", note: "a test: most of Caren dried", layer: "precipitationMm", scale: 0.1, box: area }] });
   const inside = (c) => c.lat >= area.south && c.lat <= area.north && c.lon >= area.west && c.lon <= area.east && c.landCovered;

@@ -9,10 +9,10 @@ import { geologyAt } from "../scripts/eym-geology.mjs";
 import { windSourcesSha256 } from "../tools/generate-eym-wind.mjs";
 
 const root = new URL("../", import.meta.url), read = (path) => JSON.parse(readFileSync(new URL(path, root), "utf8"));
-const asset = read("data/planet-cartography/abydos/eventide.json");
-attachGeology(asset, read(`data/planet-cartography/abydos/${asset.geologyFile}`));
-attachDrainage(asset, read("data/planet-cartography/abydos/eventide-drainage.json"));
-const windPath = `data/planet-cartography/abydos/${windFileName("eventide.json")}`;
+const asset = read("data/planet-cartography/mitkear/eym.json");
+attachGeology(asset, read(`data/planet-cartography/mitkear/${asset.geologyFile}`));
+attachDrainage(asset, read("data/planet-cartography/mitkear/eym-drainage.json"));
+const windPath = `data/planet-cartography/mitkear/${windFileName("eym.json")}`;
 attachWind(asset, read(windPath));
 const ctx = localContext(asset), lf = landformsOf(ctx), climate = windClimate(asset);
 const coastAt = (lat, lon) => coastCharacter(lf, lat, lon, coarseAt(ctx, lat, lon).relief);

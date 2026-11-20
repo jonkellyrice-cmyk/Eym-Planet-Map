@@ -12,7 +12,7 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf
 const rows = parseCsv(read("docs/system-orbital-distances.csv"));
 const orientations = JSON.parse(read("data/astronomy/epoch-orientations.json")).orientations;
 const sky = JSON.parse(read("data/stellar/constellations.json"));
-const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json")), field = environmentField(asset);
+const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json")), field = environmentField(asset);
 const clock = createTideClock({ rows, orientations, sky });
 const HOUR_MS = DAY_MS / 24, T0 = CAMPAIGN_START_MS;
 const pouk = asset.settlements.find((s) => s.properName === "Pouk"), garykPort = asset.settlements.find((s) => s.id === "garyk-settlement-48");

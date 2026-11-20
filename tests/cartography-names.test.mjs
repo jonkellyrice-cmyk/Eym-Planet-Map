@@ -15,8 +15,8 @@ function build(body) {
   const result = { coarse, terrain, hydrology, regions, names: buildNamedGeography({ coarse, terrain, hydrology, regions }) }; cache.set(body, result); return result;
 }
 
-test("the controlling Vadan culture governs every Abydos world's permanent physical-feature names", () => {
-  const expected = { Ramses: ["vadan", "Vadan"], Eventide: ["vadan", "Vadan"], Thraximundus: ["vadan", "Vadan"], Kandahar: ["vadan", "Vadan"] };
+test("the controlling Vadan culture governs every Mitkear world's permanent physical-feature names", () => {
+  const expected = { Bruthi: ["vadan", "Vadan"], Eym: ["vadan", "Vadan"], Esonth: ["vadan", "Vadan"], Lilta: ["vadan", "Vadan"] };
   for (const [body, [profile, language]] of Object.entries(expected)) {
     const { names } = build(body);
     assert.equal(names.namingProfile, profile, body);
@@ -26,7 +26,7 @@ test("the controlling Vadan culture governs every Abydos world's permanent physi
 });
 
 test("gazetteer identities and names are stable, unique and tied to literal geometry", () => {
-  const first = build("Ramses"), second = buildNamedGeography(first);
+  const first = build("Bruthi"), second = buildNamedGeography(first);
   assert.deepEqual(first.names, second);
   assert.equal(new Set(first.names.features.map((feature) => feature.properName)).size, first.names.features.length);
   assert.ok(first.names.features.every((feature) => feature.at?.length === 2 && feature.at.every(Number.isFinite)));
@@ -34,7 +34,7 @@ test("gazetteer identities and names are stable, unique and tied to literal geom
 });
 
 test("major physical layers receive proper names without renaming scientific identities", () => {
-  const { names } = build("Thraximundus");
+  const { names } = build("Esonth");
   const classes = new Set(names.features.map((feature) => feature.featureClass));
   for (const required of ["continent", "island", "ocean", "sea", "river", "lake", "wetland", "glacier", "mountain", "desert", "forest"]) assert.ok(classes.has(required), required);
   assert.ok(names.features.every((feature) => !feature.id.startsWith("plate-")));
@@ -42,11 +42,11 @@ test("major physical layers receive proper names without renaming scientific ide
 });
 
 test("generic naming names the oceans of a generated world", () => {
-  const { names } = build("Thraximundus");
+  const { names } = build("Esonth");
   assert.ok(names.features.some((feature) => feature.featureClass === "ocean"));
 });
 
 test("wrong-world geometry is rejected before names can become canon", () => {
-  const eventide = build("Eventide"), ramses = build("Ramses");
-  assert.throws(() => buildNamedGeography({ coarse: eventide.coarse, terrain: ramses.terrain, hydrology: eventide.hydrology, regions: eventide.regions }), /does not match/);
+  const eym = build("Eym"), bruthi = build("Bruthi");
+  assert.throws(() => buildNamedGeography({ coarse: eym.coarse, terrain: bruthi.terrain, hydrology: eym.hydrology, regions: eym.regions }), /does not match/);
 });

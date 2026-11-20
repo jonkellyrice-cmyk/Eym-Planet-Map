@@ -4,11 +4,11 @@
   "status": "accepted-working-canon",
   "worlds": [
     {
-      "system": "Abydos",
-      "body": "Ramses",
+      "system": "Mitkear",
+      "body": "Bruthi",
       "seed": "8dfaf7db71502f6e",
       "inputFingerprint": "98728c83432208985073",
-      "path": "data/planet-geography/abydos/ramses.json",
+      "path": "data/planet-geography/mitkear/bruthi.json",
       "summary": {
         "waterFraction": 0.1806,
         "plates": 12,
@@ -33,11 +33,11 @@
       }
     },
     {
-      "system": "Abydos",
-      "body": "Eventide",
+      "system": "Mitkear",
+      "body": "Eym",
       "seed": "741343188e552de0",
-      "inputFingerprint": "ae00dc683c340a8fef92",
-      "path": "data/planet-geography/abydos/eventide.json",
+      "inputFingerprint": "4389f7a52b766aab03a0",
+      "path": "data/planet-geography/mitkear/eym.json",
       "summary": {
         "waterFraction": 0.7986,
         "plates": 11,
@@ -71,11 +71,11 @@
       }
     },
     {
-      "system": "Abydos",
-      "body": "Thraximundus",
+      "system": "Mitkear",
+      "body": "Esonth",
       "seed": "f54bfd702ebbc1db",
       "inputFingerprint": "bc3ccd2812370dfd00ba",
-      "path": "data/planet-geography/abydos/thraximundus.json",
+      "path": "data/planet-geography/mitkear/esonth.json",
       "summary": {
         "waterFraction": 0.52,
         "plates": 13,
@@ -106,11 +106,11 @@
       }
     },
     {
-      "system": "Abydos",
-      "body": "Kandahar",
+      "system": "Mitkear",
+      "body": "Lilta",
       "seed": "58705906c91fcc27",
       "inputFingerprint": "ee54e5961815f5811ff1",
-      "path": "data/planet-geography/abydos/kandahar.json",
+      "path": "data/planet-geography/mitkear/lilta.json",
       "summary": {
         "waterFraction": 0.2406,
         "plates": 12,

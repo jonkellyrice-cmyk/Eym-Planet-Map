@@ -14,9 +14,9 @@ const row = (system, object) => rows.find((item) => item.system === system && it
 const asset = (path) => JSON.parse(fs.readFileSync(path, "utf8"));
 
 test("natural-solid reference renders a complete deterministic surface survey", () => {
-  const path = "data/body-operations/abydos/red-moon.json";
+  const path = "data/body-operations/mitkear/red-moon.json";
   const source = fs.readFileSync(path, "utf8"), operations = JSON.parse(source);
-  const snapshot = snapshotOperationalRich(operations, buildNaturalBodyModel(row("Abydos", "Red Moon")), path, source);
+  const snapshot = snapshotOperationalRich(operations, buildNaturalBodyModel(row("Mitkear", "Red Moon")), path, source);
   assert.match(snapshot.referenceSvg, /surface survey chart/);
   assert.match(snapshot.referenceSvg, /surface-bg/);
   assert.match(snapshot.referenceSvg, /Crater Mariner Rise/);
@@ -25,9 +25,9 @@ test("natural-solid reference renders a complete deterministic surface survey", 
 });
 
 test("giant reference renders atmospheric bands and canonical visual profile", () => {
-  const path = "data/body-operations/abydos/tribune.json";
+  const path = "data/body-operations/mitkear/iarn.json";
   const source = fs.readFileSync(path, "utf8"), operations = JSON.parse(source);
-  const snapshot = snapshotOperationalRich(operations, buildNaturalBodyModel(row("Abydos", "Tribune")), path, source);
+  const snapshot = snapshotOperationalRich(operations, buildNaturalBodyModel(row("Mitkear", "Iarn")), path, source);
   assert.match(snapshot.referenceSvg, /atmospheric survey chart/);
   assert.match(snapshot.referenceSvg, /stroke-width=/);
   assert.match(snapshot.informationPacket, /cream \/ tan \/ rust bands/);
@@ -36,7 +36,7 @@ test("giant reference renders atmospheric bands and canonical visual profile", (
 // The setting has no stations; a synthetic (non-canon) distributed watch array, with an identity shaped like the entries
 // data/superstructure-identities.json carries, keeps the station/superstructure reference path under test.
 test("station reference combines canonical structure model with operational geometry", () => {
-  const stationRow = { system: "Synthetic", object: "Synthetic Watch Array", type: "installation array", parent: "Synthetic", owner_faction: "Eventide", structure_class: "distributed watch/sensor-defense array", dimensions_estimate: "individual nodes ~1-3 km; network spans millions of km", population_crew_scale: "~1,000-10,000 distributed", primary_function: "sensor coverage, navigation warning, border watch, likely defensive support", strategic_role: "monitors approaches to a synthetic anomaly", visual_archetype: "sparse chain of watch stations", visual_palette: "weathered metal / pale neutral / blue-green accents" };
+  const stationRow = { system: "Synthetic", object: "Synthetic Watch Array", type: "installation array", parent: "Synthetic", owner_faction: "Eym", structure_class: "distributed watch/sensor-defense array", dimensions_estimate: "individual nodes ~1-3 km; network spans millions of km", population_crew_scale: "~1,000-10,000 distributed", primary_function: "sensor coverage, navigation warning, border watch, likely defensive support", strategic_role: "monitors approaches to a synthetic anomaly", visual_archetype: "sparse chain of watch stations", visual_palette: "weathered metal / pale neutral / blue-green accents" };
   const operations = generateBodyOperationAsset(stationRow);
   const path = "synthetic/synthetic-watch-array.json", source = serializeAsset(operations);
   const grammar = FACTION_GRAMMARS.frontier;

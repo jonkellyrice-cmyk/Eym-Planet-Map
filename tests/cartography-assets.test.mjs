@@ -25,7 +25,7 @@ test("every asset preserves its accepted seed and coarse fingerprint", () => {
     const asset = load(entry), source = coarseByKey.get(`${entry.system}/${entry.body}`);
     assert.equal(asset.sourceSeed, source.seed, entry.body);
     assert.equal(asset.sourceFingerprint, source.inputFingerprint, entry.body);
-    assert.equal(asset.modelVersion, entry.body === "Eventide" ? "eym-surface-v1" : manifest.modelVersion, entry.body);
+    assert.equal(asset.modelVersion, entry.body === "Eym" ? "eym-surface-v1" : manifest.modelVersion, entry.body);
   }
 });
 
@@ -34,7 +34,7 @@ test("compact two-degree rasters and vector products fit the mobile loading budg
     const asset = load(entry), count = asset.grid.latCount * asset.grid.lonCount;
     // Eym's cartography is held to the data budget set when its land grew (1.5 times its 1,468,861 bytes before:
     // tools/world-pins.json, checked file by file in tests/eym-far-land.test.mjs); the other worlds to the old limit.
-    assert.ok(entry.bytes <= (entry.body === "Eventide" ? 2_203_292 : 1_750_000), `${entry.body}: ${entry.bytes}`);
+    assert.ok(entry.bytes <= (entry.body === "Eym" ? 2_203_292 : 1_750_000), `${entry.body}: ${entry.bytes}`);
     assert.equal(elevationGrid(asset).length, count);
     assert.equal(Buffer.from(asset.raster.oceanMaskBase64, "base64").length, count);
     for (const field of ["biome", "soil", "resource"]) assert.equal(Buffer.from(asset.raster[field].valuesBase64, "base64").length, count);
@@ -44,7 +44,7 @@ test("compact two-degree rasters and vector products fit the mobile loading budg
 
 test("Eym's geology is its own file, loaded on demand, within its own budget; the height grid is packed", () => {
   const withGeology = manifest.worlds.filter((entry) => entry.geology);
-  assert.deepEqual(withGeology.map((entry) => entry.body), ["Eventide"]);
+  assert.deepEqual(withGeology.map((entry) => entry.body), ["Eym"]);
   for (const entry of withGeology) {
     const text = readFileSync(new URL(entry.geology.path, root), "utf8"), asset = load(entry), document = JSON.parse(text);
     assert.equal(createHash("sha256").update(text).digest("hex"), entry.geology.sha256);
@@ -60,14 +60,14 @@ test("materialized gazetteers and civilization networks have literal geometry", 
   for (const entry of manifest.worlds) {
     const asset = load(entry);
     assert.ok(asset.gazetteer.every((feature) => feature.properName && feature.at.every(Number.isFinite)), entry.body);
-    if (entry.body === "Eventide") assert.ok(asset.settlements.some((site) => site.kind === "capital"), entry.body);
+    if (entry.body === "Eym") assert.ok(asset.settlements.some((site) => site.kind === "capital"), entry.body);
     else assert.equal(asset.settlements.filter((site) => site.kind === "capital").length, 1, entry.body);
     assert.ok(asset.transportRoutes.every((route) => route.properName && route.points.length >= 2), entry.body);
   }
 });
 
 test("Eym materializes with vector coastlines for its five continents and their islands", () => {
-  const eym = load(manifest.worlds.find((world) => world.body === "Eventide"));
+  const eym = load(manifest.worlds.find((world) => world.body === "Eym"));
   assert.equal(eym.terrain.coastlineSource, "vector");
   assert.equal(eym.terrain.coastlines.filter((coast) => coast.kind === "mainland").length, 5);
   assert.ok(eym.terrain.coastlines.filter((coast) => coast.kind === "island").length >= 100);

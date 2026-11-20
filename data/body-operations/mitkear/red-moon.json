@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "system": "Abydos",
-  "body": "White Moon",
+  "system": "Mitkear",
+  "body": "Red Moon",
   "canonicalType": "moon",
   "operationalKind": "natural-solid",
-  "permanentOperationalSeed": "64b3df9196e7910c",
+  "permanentOperationalSeed": "5aa1bc9f65f477a6",
   "operationalModelVersion": "orphaned-sun-body-operations-v1",
-  "canonicalSourceFingerprint": "a89717135309f0423ff4",
+  "canonicalSourceFingerprint": "35a0fa4c9a3597e9d151",
   "acceptedCanonStatus": "accepted-generated-canon",
   "coordinateFrame": {
     "id": "body-fixed-spherical",
@@ -57,14 +57,14 @@
       "id": "natural-solid-crater-01",
       "type": "crater",
       "layer": "landmarks",
-      "name": "Crater Mariner Reach",
+      "name": "Crater Mariner",
       "position": {
-        "lat": 5.09,
-        "lon": -90.514,
-        "elevation": 0.29
+        "lat": 41.524,
+        "lon": 33.198,
+        "elevation": -0.09
       },
       "dimensions": {
-        "radius": 33.87,
+        "radius": 4.85,
         "unit": "km"
       },
       "operationalRole": "major retained impact landmark",
@@ -79,14 +79,14 @@
       "id": "natural-solid-crater-02",
       "type": "crater",
       "layer": "landmarks",
-      "name": "Crater Sundown Rise",
+      "name": "Crater Mariner Rise",
       "position": {
-        "lat": -55.225,
-        "lon": 35.636,
-        "elevation": 0.73
+        "lat": -21.726,
+        "lon": -169.567,
+        "elevation": -0.01
       },
       "dimensions": {
-        "radius": 61.57,
+        "radius": 19.82,
         "unit": "km"
       },
       "operationalRole": "major retained impact landmark",
@@ -101,14 +101,14 @@
       "id": "natural-solid-crater-03",
       "type": "crater",
       "layer": "landmarks",
-      "name": "Crater Nacre Reach",
+      "name": "Crater Sundown Rise",
       "position": {
-        "lat": -28.909,
-        "lon": -173.035,
-        "elevation": -0.38
+        "lat": -22.634,
+        "lon": -48.85,
+        "elevation": -0.29
       },
       "dimensions": {
-        "radius": 23.41,
+        "radius": 18.48,
         "unit": "km"
       },
       "operationalRole": "regional retained impact landmark",
@@ -123,14 +123,14 @@
       "id": "natural-solid-crater-04",
       "type": "crater",
       "layer": "landmarks",
-      "name": "Crater Kandar Ward",
+      "name": "Crater Vada Ward",
       "position": {
-        "lat": -12.255,
-        "lon": -48.302,
-        "elevation": 0.5
+        "lat": -26.574,
+        "lon": 103.869,
+        "elevation": -0.24
       },
       "dimensions": {
-        "radius": 33.99,
+        "radius": 22.25,
         "unit": "km"
       },
       "operationalRole": "regional retained impact landmark",
@@ -145,14 +145,14 @@
       "id": "natural-solid-crater-05",
       "type": "crater",
       "layer": "landmarks",
-      "name": "Crater Nacre",
+      "name": "Crater Mariner Crown",
       "position": {
-        "lat": 32.203,
-        "lon": 94.977,
-        "elevation": 0.25
+        "lat": -14.716,
+        "lon": -120.6,
+        "elevation": -0.28
       },
       "dimensions": {
-        "radius": 41.69,
+        "radius": 3.53,
         "unit": "km"
       },
       "operationalRole": "regional retained impact landmark",
@@ -167,14 +167,14 @@
       "id": "natural-solid-crater-06",
       "type": "crater",
       "layer": "landmarks",
-      "name": "Crater Eventide Reach",
+      "name": "Crater Sundown Ward",
       "position": {
-        "lat": -19.403,
-        "lon": -120.6,
-        "elevation": -0.01
+        "lat": 43.66,
+        "lon": 0.419,
+        "elevation": 0.19
       },
       "dimensions": {
-        "radius": 15.44,
+        "radius": 16.97,
         "unit": "km"
       },
       "operationalRole": "regional retained impact landmark",
@@ -189,14 +189,14 @@
       "id": "natural-solid-basin-07",
       "type": "basin",
       "layer": "landmarks",
-      "name": "Basin Tide",
+      "name": "Basin Halcyon Crown",
       "position": {
-        "lat": -26.086,
-        "lon": 5.321,
-        "elevation": -0.21
+        "lat": -14.48,
+        "lon": 152.127,
+        "elevation": -0.24
       },
       "dimensions": {
-        "radius": 99.29,
+        "radius": 67.83,
         "unit": "km"
       },
       "operationalRole": "major impact basin / regional datum",
@@ -211,14 +211,14 @@
       "id": "natural-solid-basin-08",
       "type": "basin",
       "layer": "landmarks",
-      "name": "Basin Kandar Ward",
+      "name": "Basin Orison",
       "position": {
-        "lat": 50.015,
-        "lon": 155.833,
-        "elevation": -0.42
+        "lat": 37.157,
+        "lon": -65.493,
+        "elevation": -0.27
       },
       "dimensions": {
-        "radius": 140.4,
+        "radius": 29.4,
         "unit": "km"
       },
       "operationalRole": "major impact basin / regional datum",
@@ -233,14 +233,14 @@
       "id": "natural-solid-ridge-09",
       "type": "ridge",
       "layer": "terrain",
-      "name": "Ridge Orison Rise",
+      "name": "Ridge Eym Rise",
       "position": {
-        "lat": 9.913,
-        "lon": -75.435,
-        "elevation": -0.7
+        "lat": 38.667,
+        "lon": 69.875,
+        "elevation": 0.09
       },
       "dimensions": {
-        "radius": 120.43,
+        "radius": 97.21,
         "unit": "km"
       },
       "operationalRole": "major relief / traverse landmark",
@@ -255,14 +255,14 @@
       "id": "natural-solid-scarp-10",
       "type": "scarp",
       "layer": "terrain",
-      "name": "Scarp Sundown Ward",
+      "name": "Scarp Halcyon Rise",
       "position": {
-        "lat": -19.931,
-        "lon": 67.377,
-        "elevation": 0.47
+        "lat": -51.444,
+        "lon": -163.032,
+        "elevation": 0.11
       },
       "dimensions": {
-        "radius": 184.4,
+        "radius": 45.04,
         "unit": "km"
       },
       "operationalRole": "regional fault/impact scarp",
@@ -279,16 +279,16 @@
       "layer": "resources",
       "name": "Province 11",
       "position": {
-        "lat": 46.649,
-        "lon": -157.467,
-        "elevation": -0.19
+        "lat": 5.109,
+        "lon": -31.445,
+        "elevation": -0.23
       },
       "dimensions": {
-        "radius": 72.4,
+        "radius": 40.06,
         "unit": "km"
       },
       "operationalRole": "surveyed resource-bearing province",
-      "resource": "silicates; anorthite",
+      "resource": "silicates; iron oxides",
       "hazard": null,
       "refs": [],
       "lodPriority": 1,

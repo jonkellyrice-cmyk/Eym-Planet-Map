@@ -16,7 +16,7 @@ import { buildSystemModel, vectorFromOrbit } from "./system-data.mjs";
 import { DAY_MS, DAYS_PER_YEAR, makeUniversalTimeMs, universalTimeParts } from "./universal-time.mjs";
 
 /** The registry's names: the system, the home world and its four wanderers (inmost first). */
-export const ALMANAC_SYSTEM = "Abydos", ALMANAC_HOME = "Eventide", WANDERERS = Object.freeze(["Ramses", "Thraximundus", "Kandahar", "Tribune"]);
+export const ALMANAC_SYSTEM = "Mitkear", ALMANAC_HOME = "Eym", WANDERERS = Object.freeze(["Bruthi", "Esonth", "Lilta", "Iarn"]);
 /** How close a meeting must be (degrees, by how many wanderers meet), and how far from Mitkear each must stand. */
 export const MEETING_LIMIT_DEG = Object.freeze({ 2: 1, 3: 3, 4: 10 }), MEETING_MIN_ELONGATION_DEG = 20;
 /** How nearly in line (degrees of longitude round Mitkear) worlds must be to count as a true line; and the far-side world of a Lesser Alignment. */

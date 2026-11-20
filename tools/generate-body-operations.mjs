@@ -7,10 +7,10 @@ import { BODY_OPERATIONS_MODEL_VERSION, BODY_OPERATIONS_SCHEMA_VERSION, BODY_OPE
 import { NATURAL_SOLID_SURVEY_MODEL_VERSION, NATURAL_SOLID_SURVEY_PROVENANCE, naturalSolidFeaturePlan } from "../scripts/natural-solid-cartography.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-// System → naming culture. Only Abydos remains; the other cultures stay available for new systems.
-const PROFILE = Object.freeze({ Abydos: "vadan" });
+// System → naming culture. Only Mitkear remains; the other cultures stay available for new systems.
+const PROFILE = Object.freeze({ Mitkear: "vadan" });
 const NAMES = Object.freeze({
-  vadan: ["Vada","Mariner","Vesper","Thorn","Halcyon","Sundown","Orison","Tide","Eventide","Kandar","Nacre","Caldera"],
+  vadan: ["Vada","Mariner","Vesper","Thorn","Halcyon","Sundown","Orison","Tide","Eym","Kandar","Nacre","Caldera"],
   vostrann: ["Brae","Dun","Cairn","Muir","Skye","Moroz","Volna","Vost","Gannet","Blackwake","Kras","Glen"],
   aurethic: ["Aureth","Beth","Qedem","Seraph","Melek","Hierava","Kedron","Elyon","Theon","Galil","Kyri","Lumen"],
   xuanhari: ["Tian","Qing","Long","Shan","Jin","Yue","Ling","Varun","Chandra","Rudra","Nava","Jyoti"],

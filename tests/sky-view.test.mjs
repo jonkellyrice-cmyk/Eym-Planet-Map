@@ -23,7 +23,7 @@ test("sky colour runs from blue day through twilight to night, and darkens at to
 
 test("the app offers the ground view from Eym's surface and follows the campaign clock", () => {
   const app = source("scripts/cluster-map-app.mjs"), template = source("templates/cluster-map.hbs");
-  assert.match(app, /root\.classList\.toggle\("can-look-up", object\.name === "Eventide" && Boolean\(geography\)\)/);
+  assert.match(app, /root\.classList\.toggle\("can-look-up", object\.name === "Eym" && Boolean\(geography\)\)/);
   assert.match(app, /new SkyView\(svg, \{ snapshot, sky, starfield/);
   assert.match(app, /groundSky\(\{ model, sky, starfield, latDeg: this\.lookUp\.latDeg, lonDeg: this\.lookUp\.lonDeg \}\)/);
   assert.match(app, /void this\.#refreshSky\(\)/);

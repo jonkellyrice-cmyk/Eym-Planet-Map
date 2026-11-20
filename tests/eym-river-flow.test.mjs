@@ -11,11 +11,11 @@ import { flowSourcesSha256 } from "../tools/generate-eym-flow.mjs";
 import { DAY_MS, makeUniversalTimeMs } from "../scripts/universal-time.mjs";
 
 const root = new URL("../", import.meta.url), read = (path) => JSON.parse(readFileSync(new URL(path, root), "utf8"));
-const asset = read("data/planet-cartography/abydos/eventide.json");
-attachGeology(asset, read(`data/planet-cartography/abydos/${asset.geologyFile}`));
-attachDrainage(asset, read("data/planet-cartography/abydos/eventide-drainage.json"));
-attachWind(asset, read("data/planet-cartography/abydos/eventide-wind.json"));
-const flowPath = `data/planet-cartography/abydos/${flowFileName("eventide.json")}`;
+const asset = read("data/planet-cartography/mitkear/eym.json");
+attachGeology(asset, read(`data/planet-cartography/mitkear/${asset.geologyFile}`));
+attachDrainage(asset, read("data/planet-cartography/mitkear/eym-drainage.json"));
+attachWind(asset, read("data/planet-cartography/mitkear/eym-wind.json"));
+const flowPath = `data/planet-cartography/mitkear/${flowFileName("eym.json")}`;
 attachFlow(asset, read(flowPath));
 const YEAR54 = makeUniversalTimeMs({ year: 54, month: 1, day: 1 }), DELTA = [14.25, -86.16];
 

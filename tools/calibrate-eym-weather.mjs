@@ -9,7 +9,7 @@ import { landAtmosphere } from "../scripts/eym-land-atmosphere.mjs";
 import { DAY_MS, NORTHWARD_EQUINOX_MS } from "../scripts/universal-time.mjs";
 import { zonalPrecipitationMm } from "../scripts/eym-seasons.mjs";
 
-const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
+const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/mitkear/eym.json", import.meta.url), "utf8"));
 const field = environmentField(asset), HOUR_MS = DAY_MS / 24, isOcean = (lat, lon) => field.cellAt(lat, lon).ocean;
 const BANDS = RAIN_NORMALIZATION.length, WIDTH = 180 / BANDS;
 const sums = new Float64Array(BANDS), counts = new Float64Array(BANDS);

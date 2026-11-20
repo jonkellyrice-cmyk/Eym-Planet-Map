@@ -1,8 +1,8 @@
 # Eym Planet Map
 
-A Foundry VTT v14 module (v13 also supported): an interactive three-dimensional SVG map of a single star system (currently the **Abydos** system), with orbital, planetary-surface and local operational views. It is a single-system edition of the Orphaned Sun Cluster Map, being retooled for a fantasy campaign.
+A Foundry VTT v14 module (v13 also supported): an interactive three-dimensional SVG map of a single star system (currently the **Mitkear** system), with orbital, planetary-surface and local operational views. It is a single-system edition of the Orphaned Sun Cluster Map, being retooled for a fantasy campaign.
 
-On screen the star is **Mitkear**, Eventide is **Eym**, its moons are **Austarm** (white) and **Chatarm** (red), and the four wandering planets, largest to smallest, are **Iarn**, **Esonth**, **Bruthi** and **Lilta**. These display names live in `scripts/display-names.mjs`. The registry keeps the old canonical names (Abydos, Eventide, White Moon, Red Moon, Tribune, Thraximundus, Ramses, Kandahar) because data files and seeds are keyed by them.
+The star is **Mitkear**, the world is **Eym**, its moons are **Austarm** (white) and **Chatarm** (red), and the four wandering planets, largest to smallest, are **Iarn**, **Esonth**, **Bruthi** and **Lilta**. The registry (`docs/system-orbital-distances.csv`), the code and the data files use these same names (since 20 November 2026; before that they carried working names). Only the two moons still have a registry key of their own (White Moon, Red Moon), shown as Austarm and Chatarm through `scripts/display-names.mjs`. Seeds that were first drawn from the working names are frozen (`scripts/seed-words.mjs`), so nothing drawn changed with the names.
 
 The module id is `eym-planet-map`, so it installs alongside the original Orphaned Sun Cluster Map without conflict.
 
@@ -63,7 +63,7 @@ The module id is `eym-planet-map`, so it installs alongside the original Orphane
 - Eym's five continents (see below), drawn from vector coastlines with forest, mountain and peak overlays; zoom in to 30× to read Caren's towns.
 - Three other terrestrial worlds (Bruthi, Esonth, Lilta) with accepted deterministic 2° cartography: coastlines, elevation/contours, hydrology, ecoregions, soils, resources, settlements, permanent cultural gazetteers, and transport geometry.
 - Four non-cartographic natural bodies with accepted deterministic local surveys (the three moons and the gas giant Iarn).
-- Culture-aware permanent names (Vadan for Abydos; the Aurethic, Vostrann, Xuānhari and Union naming cultures remain available for new systems).
+- Culture-aware permanent names (Vadan for Mitkear; the Aurethic, Vostrann, Xuānhari and Union naming cultures remain available for new systems).
 - Zoom-dependent SVG level of detail keeps orbital, regional, and close inspection useful on desktop and mobile without unbounded DOM growth.
 - Desktop: drag to rotate, mouse wheel to zoom, double-click empty space to reset the camera. Mobile/touch: one-finger drag rotates; pinch zooms.
 - One campaign clock in Eym's calendar (play/pause, step, set date and time). System views resolve deterministic Keplerian planet/moon positions and body rotations from it on demand; no frame-by-frame astronomy simulation runs.

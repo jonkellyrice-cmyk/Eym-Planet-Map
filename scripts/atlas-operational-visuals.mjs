@@ -1,3 +1,4 @@
+import { seedWord } from "./seed-words.mjs";
 import { naturalSolidProfileLines, renderNaturalSolidSurvey } from "./natural-solid-atlas-visuals.mjs";
 
 const xml = (value) => String(value ?? "")
@@ -45,7 +46,7 @@ function grid(x, y, width, height, spherical = false) {
 
 function naturalSurfaceTexture(asset, model, x, y, width, height) {
   const colors = paletteFor(model, "solid");
-  const seed = asset.permanentOperationalSeed ?? `${asset.system}/${asset.body}`;
+  const seed = asset.permanentOperationalSeed ?? `${seedWord(asset.system)}/${seedWord(asset.body)}`;
   const shapes = [];
   for (let i = 0; i < 42; i += 1) {
     const cx = x + hashUnit(`${seed}/province/x/${i}`) * width;

@@ -9,7 +9,7 @@ import { REGION_PALETTE, flatRegionTile, renderRegionTile } from "../scripts/eym
 import { REGION_FINGERPRINT_FILE, moduleClosure, regionFingerprint } from "../tools/generate-region-fingerprint.mjs";
 import { attachCoasts, attachDrainage, attachFlow, attachGeology, attachWind, coastsFileName, drainageFileName, flowFileName, geologyFileName, windFileName } from "../scripts/cartography-asset.mjs";
 
-const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
+const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/mitkear/eym.json", import.meta.url), "utf8"));
 const frames = regionFrames(asset), caren = frames.find((f) => f.id === "caren"), DREE = [-6.79, 0.412];
 const home = regionTileAt(caren, ...DREE), tile = buildRegionTile(asset, caren, home.tx, home.ty), N = REGION_TILE_CELLS, at = (t, c, r) => (r + t.pad) * (N + 2 * t.pad) + c + t.pad;
 
@@ -107,7 +107,7 @@ test("the Region layer's fingerprint is current, covers its code and data, and k
   const kept = JSON.parse(readFileSync(new URL(`../${REGION_FINGERPRINT_FILE}`, import.meta.url), "utf8")), now = regionFingerprint();
   assert.equal(kept.shapes, now.shapes, "npm run build would make it again"); assert.equal(kept.paint, now.paint, "npm run build would make it again");
   // The shapes' fingerprint follows the generator's imports, however deep, and the data the map server attaches.
-  for (const f of ["scripts/eym-region-layer.mjs", "scripts/eym-local-detail.mjs", "scripts/eym-landforms.mjs", "scripts/eym-river-flow.mjs", "scripts/eym-geology.mjs", "data/planet-cartography/abydos/eventide.json", "data/planet-cartography/abydos/eventide-drainage.json", "data/planet-cartography/abydos/eventide-wind.json", "data/planet-cartography/abydos/eventide-flow.json", "data/planet-cartography/abydos/eventide-geology.json"]) assert.ok(now.shapesFiles.includes(f), f);
+  for (const f of ["scripts/eym-region-layer.mjs", "scripts/eym-local-detail.mjs", "scripts/eym-landforms.mjs", "scripts/eym-river-flow.mjs", "scripts/eym-geology.mjs", "data/planet-cartography/mitkear/eym.json", "data/planet-cartography/mitkear/eym-drainage.json", "data/planet-cartography/mitkear/eym-wind.json", "data/planet-cartography/mitkear/eym-flow.json", "data/planet-cartography/mitkear/eym-geology.json"]) assert.ok(now.shapesFiles.includes(f), f);
   // The painting depends on itself and the shared cover classes only, so a change to it alone repaints the kept shapes.
   assert.deepEqual(now.paintFiles, ["scripts/eym-cover.mjs", "scripts/eym-region-paint.mjs"]);
   assert.ok(!now.shapesFiles.includes("scripts/eym-region-paint.mjs"));
@@ -119,8 +119,8 @@ test("a tile is the same whichever tiles were made before it", () => {
   // several ranges at once): each must come out the same alone, after its neighbours, and in the opposite order.
   const garyk = frames.find((f) => f.id === "garyk"), wanted = [["caren", -5, 2], ["caren", -5, 3], ["garyk", 7, 1], ["garyk", 8, 1], ["garyk", 7, 2], ["garyk", 8, 2]];
   // The world as the map server holds it: with its geology, drainage, wind, river flow and coasts attached.
-  const part = (name) => JSON.parse(readFileSync(new URL(`../data/planet-cartography/abydos/${name}`, import.meta.url), "utf8"));
-  const whole = () => { const copy = structuredClone(asset); attachGeology(copy, part(geologyFileName("eventide.json"))); attachDrainage(copy, part(drainageFileName("eventide.json"))); attachWind(copy, part(windFileName("eventide.json"))); attachFlow(copy, part(flowFileName("eventide.json"))); attachCoasts(copy, part(coastsFileName("eventide.json"))); return copy; };
+  const part = (name) => JSON.parse(readFileSync(new URL(`../data/planet-cartography/mitkear/${name}`, import.meta.url), "utf8"));
+  const whole = () => { const copy = structuredClone(asset); attachGeology(copy, part(geologyFileName("eym.json"))); attachDrainage(copy, part(drainageFileName("eym.json"))); attachWind(copy, part(windFileName("eym.json"))); attachFlow(copy, part(flowFileName("eym.json"))); attachCoasts(copy, part(coastsFileName("eym.json"))); return copy; };
   const fresh = () => { const copy = whole(), own = regionFrames(copy); return (id, tx, ty) => buildRegionTile(copy, own.find((f) => f.id === id), tx, ty); };
   const digest = (t) => [t.cover, t.elevation, t.shade, t.coastKm].map((a) => Buffer.from(a.buffer, a.byteOffset, a.byteLength).toString("base64")).join("|") + JSON.stringify([t.rivers, t.roads, t.settlements]);
   const forward = fresh(), backward = fresh(), a = new Map(), b = new Map();

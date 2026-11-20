@@ -7,7 +7,7 @@ import { mapPacket } from "../scripts/eym-map-packet.mjs";
 import { MAP_SETTING_KEYS, registerMapPresetSettings, savedMapDefaults } from "../scripts/eym-map-settings.mjs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
+const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
 const bostain = asset.settlements.find((s) => s.properName === "Bostain");
 
 test("battle-map presets follow published standards and resolve to exact sizes", () => {

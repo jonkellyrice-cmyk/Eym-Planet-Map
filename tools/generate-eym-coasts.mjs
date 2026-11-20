@@ -1,5 +1,5 @@
 // Surveys the coasts of Eym's mapped continents (the second half of the sea floor in the ocean model) and writes
-// data/planet-cartography/abydos/eventide-coasts.json: a point every 25 km along the coastlines of Caren and
+// data/planet-cartography/mitkear/eym-coasts.json: a point every 25 km along the coastlines of Caren and
 // Garyk (the dials name them), each with the way out to sea, the shelf in front of it (width and mean depth, from
 // the fine sea floor), the bay it lies in if any (how shut in by land, how long, how much it narrows) and the gain that
 // bay's funnel gives the tide. The tide report and the storm surge read it (scripts/eym-shelf-seas.mjs).
@@ -17,9 +17,9 @@ import { bearingDeg, destination, distanceKm } from "../scripts/eym-sea.mjs";
 import { bayFunnel, EYM_COASTS_MODEL, fineSeaFloor, SHELF_SEAS, shelfOff } from "../scripts/eym-shelf-seas.mjs";
 import { inputsFingerprint } from "../scripts/eym-world-inputs.mjs";
 
-const root = new URL("../", import.meta.url), DIR = "data/planet-cartography/abydos", OUT = new URL(`${DIR}/eventide-coasts.json`, root);
+const root = new URL("../", import.meta.url), DIR = "data/planet-cartography/mitkear", OUT = new URL(`${DIR}/eym-coasts.json`, root);
 /** What the survey is made from: this tool, the shelf-sea rules, the sea floor's shape, the asset and its geology (and its dials, below). */
-export const COAST_SOURCES = ["tools/generate-eym-coasts.mjs", "scripts/eym-shelf-seas.mjs", "scripts/eym-seafloor.mjs", `${DIR}/eventide.json`, `${DIR}/eventide-geology.json`];
+export const COAST_SOURCES = ["tools/generate-eym-coasts.mjs", "scripts/eym-shelf-seas.mjs", "scripts/eym-seafloor.mjs", `${DIR}/eym.json`, `${DIR}/eym-geology.json`];
 /** The groups of dials (scripts/eym-world-inputs.mjs) the survey follows. */
 export const COAST_INPUTS = ["seaFloor", "shelfSeas"];
 export const coastSourcesSha256 = () => { const h = createHash("sha256"); for (const p of COAST_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...COAST_INPUTS)); return h.digest("hex"); };
@@ -29,7 +29,7 @@ export const COAST_FIELDS = Object.freeze(["continent", "lat", "lon", "seawardDe
 /** Survey the coasts; returns the whole document. */
 export function buildCoasts() {
   const json = (path) => JSON.parse(readFileSync(new URL(path, root), "utf8"));
-  const asset = attachGeology(json(`${DIR}/eventide.json`), json(`${DIR}/eventide-geology.json`)), ctx = localContext(asset);
+  const asset = attachGeology(json(`${DIR}/eym.json`), json(`${DIR}/eym-geology.json`)), ctx = localContext(asset);
   const landAt = (lat, lon) => coarseAt(ctx, lat, lon).land, floorAt = fineSeaFloor(asset, (lat, lon) => coastDistanceKm(ctx, lat, lon));
   const r = (x, k = 100) => Math.round(x * k) / k, samples = [];
   for (const coast of asset.terrain.coastlines) {
@@ -53,8 +53,8 @@ export function buildCoasts() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const began = Date.now(), data = buildCoasts(), text = `${JSON.stringify(data)}\n`;
-  if (process.argv.includes("--check")) { const same = readFileSync(OUT, "utf8") === text; console.log(same ? "eventide-coasts.json is up to date" : "eventide-coasts.json differs"); process.exit(same ? 0 : 1); }
+  if (process.argv.includes("--check")) { const same = readFileSync(OUT, "utf8") === text; console.log(same ? "eym-coasts.json is up to date" : "eym-coasts.json differs"); process.exit(same ? 0 : 1); }
   writeFileSync(OUT, text);
   const gain = data.samples.map((s) => s[11]), bays = data.samples.filter((s) => s[6]).length;
-  console.log(`eventide-coasts.json: ${data.samples.length} coast points, ${bays} in bays, ${gain.filter((g) => g > 1.2).length} with a funnel gain over 1.2 (largest ${Math.max(...gain)}), ${text.length} bytes, ${((Date.now() - began) / 1000).toFixed(1)} s`);
+  console.log(`eym-coasts.json: ${data.samples.length} coast points, ${bays} in bays, ${gain.filter((g) => g > 1.2).length} with a funnel gain over 1.2 (largest ${Math.max(...gain)}), ${text.length} bytes, ${((Date.now() - began) / 1000).toFixed(1)} s`);
 }

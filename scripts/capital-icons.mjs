@@ -7,7 +7,7 @@ function svgElement(name, attrs = {}) {
 }
 
 export const FACTION_PRESENTATIONS = Object.freeze({
-  eventide: Object.freeze({ factionId: "eventide", factionName: "Eventide", emblem: "eventide" }),
+  eym: Object.freeze({ factionId: "eym", factionName: "Eym", emblem: "eym" }),
   mandate: Object.freeze({ factionId: "mandate", factionName: "XUANJIA Mandate", emblem: "mandate" }),
   conclave: Object.freeze({ factionId: "conclave", factionName: "Adainian Conclave", emblem: "conclave" }),
   accords: Object.freeze({ factionId: "accords", factionName: "Signatories of the Accords Paramount", emblem: "accords" }),
@@ -17,7 +17,7 @@ export const FACTION_PRESENTATIONS = Object.freeze({
 /** Resolve canonical CSV ownership names to the existing faction-emblem contract. */
 export function factionPresentationForOwner(ownerFaction) {
   const owner = String(ownerFaction ?? "").trim().toLowerCase();
-  if (owner.includes("eventide")) return FACTION_PRESENTATIONS.eventide;
+  if (owner.includes("eym")) return FACTION_PRESENTATIONS.eym;
   if (owner.includes("accords")) return FACTION_PRESENTATIONS.accords;
   if (owner.includes("mandate")) return FACTION_PRESENTATIONS.mandate;
   if (owner.includes("conclave")) return FACTION_PRESENTATIONS.conclave;
@@ -48,7 +48,7 @@ function addBadge(group, { fill, stroke, radius = 17 }) {
   }));
 }
 
-function drawEventide(group) {
+function drawEym(group) {
   const gold = "#f1b83a";
   addBadge(group, { fill: "#08275d", stroke: gold });
   group.append(svgElement("line", { x1: -11, y1: 5, x2: 11, y2: 5, stroke: gold, "stroke-width": 1.8 }));
@@ -134,7 +134,7 @@ function drawUnion(group) {
 }
 
 function drawEmblem(group, emblem) {
-  if (emblem === "eventide") return drawEventide(group);
+  if (emblem === "eym") return drawEym(group);
   if (emblem === "mandate") return drawMandate(group);
   if (emblem === "conclave") return drawConclave(group);
   if (emblem === "accords") return drawAccords(group);

@@ -5,11 +5,11 @@ import { readFileSync } from "node:fs";
 
 const root = new URL("../", import.meta.url), manifest = JSON.parse(readFileSync(new URL("data/planet-cartography/manifest.json", root), "utf8"));
 const load = (entry) => JSON.parse(readFileSync(new URL(entry.path, root), "utf8"));
-const expectedProfile = { Abydos: "vadan" };
+const expectedProfile = { Mitkear: "vadan" };
 // Eym's surface is authored (Caren, Garyk) and seeded (eym-surface-v1); the other worlds use the generic pipeline.
 const isEym = (world) => world.modelVersion === "eym-surface-v1";
 
-test("all 4 Abydos refined surfaces and hashes are explicitly accepted as working canon", () => {
+test("all 4 Mitkear refined surfaces and hashes are explicitly accepted as working canon", () => {
   assert.equal(manifest.status, "accepted-working-canon");
   assert.equal(manifest.worlds.length, 4);
   for (const entry of manifest.worlds) {
@@ -48,7 +48,7 @@ test("accepted names follow controlling culture and remain collision-free per wo
 });
 
 test("canonical CSV is pinned to the world as accepted (a managed pin)", () => {
-  // The registry file carries Eventide's input fingerprint, which covers everything Eym's surface is made from
+  // The registry file carries Eym's input fingerprint, which covers everything Eym's surface is made from
   // (the traced continents, the labels, the layout, the tectonic history, the ocean climate). So any accepted change
   // to the world moves this hash. Until 0.26.1 the hash was written here and re-pinned by hand each time (eight
   // times, from the Earth-twin edit to the sea floor in the ocean model). It is now a managed pin in
@@ -62,7 +62,7 @@ test("canonical CSV is pinned to the world as accepted (a managed pin)", () => {
 });
 
 test("Eym's accepted canon has five continents in an ocean that covers about four fifths of it", () => {
-  const eym = load(manifest.worlds.find((world) => world.body === "Eventide"));
+  const eym = load(manifest.worlds.find((world) => world.body === "Eym"));
   // Canon of 19 November 2026: about 80% water (it was 98.6% before Gaffa, Khohalis and Demani were grown).
   assert.ok(eym.terrain.realizedWaterFraction >= .79 && eym.terrain.realizedWaterFraction <= .81, String(eym.terrain.realizedWaterFraction));
   const continents = eym.gazetteer.filter((feature) => feature.featureClass === "continent");

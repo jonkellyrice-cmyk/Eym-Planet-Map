@@ -1,5 +1,5 @@
 // Fits Eym's drainage (Stage 3 of the physical history and climate programme) and writes
-// data/planet-cartography/abydos/eventide-drainage.json: the valleys the land's own water has cut, beyond the
+// data/planet-cartography/mitkear/eym-drainage.json: the valleys the land's own water has cut, beyond the
 // known rivers. Over each continent, water is routed downhill across the pinned 0.02° lattice of the local
 // detail (its coarse surface, broken by world-keyed noise so that flats drain in branching patterns rather
 // than in straight lines), hollows are filled from the sea, and every channel that drains at least 800 km² is
@@ -24,10 +24,10 @@ import { Worker, isMainThread, parentPort, workerData } from "node:worker_thread
 import { LATTICE_DEG, globeNoise, latticeNode, localContext } from "../scripts/eym-local-detail.mjs";
 import { bboxWrap, lonInExtent, lonOffset, normLon } from "../scripts/geo-wrap.mjs";
 
-const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartography/abydos/eventide-drainage.json", root), ASSET = new URL("data/planet-cartography/abydos/eventide.json", root);
+const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartography/mitkear/eym-drainage.json", root), ASSET = new URL("data/planet-cartography/mitkear/eym.json", root);
 export const DRAINAGE_MODEL = "eym-drainage-v1";
 /** What the drainage is made from: this tool, the local detail's surface, and the cartography it reads. */
-export const DRAINAGE_SOURCES = ["tools/generate-eym-drainage.mjs", "scripts/eym-local-detail.mjs", "scripts/geo-wrap.mjs", "data/planet-cartography/abydos/eventide.json"];
+export const DRAINAGE_SOURCES = ["tools/generate-eym-drainage.mjs", "scripts/eym-local-detail.mjs", "scripts/geo-wrap.mjs", "data/planet-cartography/mitkear/eym.json"];
 export const drainageSourcesSha256 = () => { const h = createHash("sha256"); for (const p of DRAINAGE_SOURCES) h.update(readFileSync(new URL(p, root))); return h.digest("hex"); };
 /** The smallest catchment kept (km²): a stream big enough to have cut a valley worth drawing at 300 m. */
 export const MIN_AREA_KM2 = 800;
@@ -192,7 +192,7 @@ if (!isMainThread) {
   const t0 = Date.now(), report = [], args = process.argv.slice(2);
   const data = args.includes("--serial") ? buildDrainage(JSON.parse(readFileSync(ASSET, "utf8")), report) : await buildDrainageParallel({ cache: !args.includes("--no-cache"), report }), text = `${JSON.stringify(data)}\n`;
   for (const r of report) console.log(`  ${r.continent}: ${r.rows} x ${r.cols} = ${r.nodes} nodes, ${r.landNodes} land, ${r.seconds.toFixed(1)} s, ${r.rssMb} MB${r.cached ? " (kept from an earlier run)" : ""}`);
-  if (args.includes("--check")) { const same = readFileSync(OUT, "utf8") === text; console.log(same ? "eventide-drainage.json is up to date" : "eventide-drainage.json differs"); process.exit(same ? 0 : 1); }
+  if (args.includes("--check")) { const same = readFileSync(OUT, "utf8") === text; console.log(same ? "eym-drainage.json is up to date" : "eym-drainage.json differs"); process.exit(same ? 0 : 1); }
   writeFileSync(OUT, text);
-  console.log(`eventide-drainage.json: ${data.channelLengths.length} channels, ${data.channelLengths.reduce((s, c) => s + c, 0)} points, ${text.length} bytes, ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+  console.log(`eym-drainage.json: ${data.channelLengths.length} channels, ${data.channelLengths.reduce((s, c) => s + c, 0)} points, ${text.length} bytes, ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 }

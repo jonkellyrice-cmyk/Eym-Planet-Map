@@ -6,7 +6,7 @@ import { buildSystemModel, displayPosition, parseCsv, physicalDistanceAu } from 
 import { systemSprite } from "../scripts/system-sprites.mjs";
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
-const model = buildSystemModel(parseCsv(read("docs/system-orbital-distances.csv")), "Abydos"), by = (name) => model.byName.get(name);
+const model = buildSystemModel(parseCsv(read("docs/system-orbital-distances.csv")), "Mitkear"), by = (name) => model.byName.get(name);
 const span = (a, b) => { const p = displayPosition(a, model), q = displayPosition(b, model); return Math.hypot(p.x - q.x, p.y - q.y, p.z - q.z); };
 
 test("no badge of ownership floats above any body, in the system view or over a globe", () => {
@@ -16,27 +16,27 @@ test("no badge of ownership floats above any body, in the system view or over a 
 });
 
 test("what the scholars know: the Sun, the world, two moons and four wandering stars; only the world opens", () => {
-  assert.equal(scholarEntry(by("Eventide")).openable, true);
-  for (const name of ["Abydos", "White Moon", "Red Moon", "Tribune", "Thraximundus", "Ramses", "Kandahar"]) assert.equal(scholarEntry(by(name)).openable, false, name);
-  for (const name of ["Tribune", "Thraximundus", "Ramses", "Kandahar"]) assert.equal(scholarEntry(by(name)).label, "wandering star");
+  assert.equal(scholarEntry(by("Eym")).openable, true);
+  for (const name of ["Mitkear", "White Moon", "Red Moon", "Iarn", "Esonth", "Bruthi", "Lilta"]) assert.equal(scholarEntry(by(name)).openable, false, name);
+  for (const name of ["Iarn", "Esonth", "Bruthi", "Lilta"]) assert.equal(scholarEntry(by(name)).label, "wandering star");
   assert.equal(scholarEntry(by("Enoch")).hidden, true, "a wandering star's moon cannot be seen without a glass");
   assert.equal(knownCount(model.objects), 8);
   // The truth stays in the registry for the calendar, sky and tides.
-  assert.ok(by("Tribune").radiusRe > 5); assert.ok(by("Ramses").geography_seed);
+  assert.ok(by("Iarn").radiusRe > 5); assert.ok(by("Bruthi").geography_seed);
 });
 
 test("the model's rings are evenly spaced in the true order, whatever the true distances", () => {
-  const order = ["Ramses", "Eventide", "Thraximundus", "Kandahar", "Tribune"].map(by), radii = order.map((o) => span(o, by("Abydos")));
+  const order = ["Bruthi", "Eym", "Esonth", "Lilta", "Iarn"].map(by), radii = order.map((o) => span(o, by("Mitkear")));
   for (const [k, r] of radii.entries()) assert.ok(Math.abs(r - (ORRERY.firstRing + ORRERY.ringStep * k)) < 1e-9, order[k].name);
   assert.ok(order.every((o, k) => !k || o.distanceAu > order[k - 1].distanceAu), "nearest the Sun first");
-  assert.ok(Math.abs(span(by("Red Moon"), by("Eventide")) - ORRERY.firstMoonRing) < 1e-9);
-  assert.ok(Math.abs(span(by("White Moon"), by("Eventide")) - (ORRERY.firstMoonRing + ORRERY.moonRingStep)) < 1e-9);
+  assert.ok(Math.abs(span(by("Red Moon"), by("Eym")) - ORRERY.firstMoonRing) < 1e-9);
+  assert.ok(Math.abs(span(by("White Moon"), by("Eym")) - (ORRERY.firstMoonRing + ORRERY.moonRingStep)) < 1e-9);
   assert.ok(ORRERY.firstMoonRing + ORRERY.moonRingStep < ORRERY.ringStep, "a world's moons stay inside its own ring's spacing");
-  assert.equal(ringRadius(by("Ramses"), model.objects), ORRERY.firstRing);
+  assert.equal(ringRadius(by("Bruthi"), model.objects), ORRERY.firstRing);
   // Each body keeps its true direction from what it circles, and the physical model is untouched.
-  const eym = by("Eventide"), shown = displayPosition(eym, model), k = ORRERY.firstRing + ORRERY.ringStep;
+  const eym = by("Eym"), shown = displayPosition(eym, model), k = ORRERY.firstRing + ORRERY.ringStep;
   assert.ok(Math.abs(shown.x / k - eym.physical.x / Math.hypot(eym.physical.x, eym.physical.y, eym.physical.z)) < 1e-6);
-  assert.ok(Math.abs(physicalDistanceAu(by("Abydos"), by("Tribune")) - by("Tribune").orbitalState.radiusAu) < 1e-9);
+  assert.ok(Math.abs(physicalDistanceAu(by("Mitkear"), by("Iarn")) - by("Iarn").orbitalState.radiusAu) < 1e-9);
 });
 
 test("the sprites are pixel art drawn by rule: the same every time, small, with few colours", () => {

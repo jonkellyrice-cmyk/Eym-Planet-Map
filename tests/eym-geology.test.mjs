@@ -12,9 +12,9 @@ import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universa
 import { attachGeology } from "../scripts/cartography-asset.mjs";
 
 const root = new URL("../", import.meta.url), read = (path) => readFileSync(new URL(path, root), "utf8");
-const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
+const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
 // Eym's geology is its own file beside the asset (scripts/cartography-asset.mjs).
-attachGeology(asset, JSON.parse(read(`data/planet-cartography/abydos/${asset.geologyFile}`)));
+attachGeology(asset, JSON.parse(read(`data/planet-cartography/mitkear/${asset.geologyFile}`)));
 const YEAR_MS = DAYS_PER_YEAR * DAY_MS, T0 = NORTHWARD_EQUINOX_MS;
 const decode = (field) => [...Buffer.from(asset.raster[field].valuesBase64, "base64")].map((i) => asset.raster[field].categories[i]);
 const bedrock = decode("bedrock"), soil = decode("soil"), ocean = [...Buffer.from(asset.raster.oceanMaskBase64, "base64")];

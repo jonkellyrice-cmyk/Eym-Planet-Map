@@ -10,9 +10,9 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf
 const rows = parseCsv(read("docs/system-orbital-distances.csv"));
 const orientations = JSON.parse(read("data/astronomy/epoch-orientations.json")).orientations;
 const sky = JSON.parse(read("data/stellar/constellations.json"));
-const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
+const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
 const field = environmentField(asset);
-const sunAt = (t) => subsolarPoint(buildSystemModel(rows, "Abydos", { referenceTimestampMs: t, orientations }), sky);
+const sunAt = (t) => subsolarPoint(buildSystemModel(rows, "Mitkear", { referenceTimestampMs: t, orientations }), sky);
 const QUARTER = 87.5 * DAY_MS;
 
 test("Mitkear stands over the equator at the equinoxes and over the tropics at the solstices", () => {

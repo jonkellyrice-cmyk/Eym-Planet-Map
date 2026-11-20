@@ -15,7 +15,7 @@ import { inFootprint, pixelPlan, renderBattleLayers } from "../webapp/render/ren
 import { createMapServer, parseRequest } from "../webapp/server.mjs";
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
-const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
+const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
 const lyle = asset.settlements.find((s) => s.properName === "Lyle"), center = fromLocal([lyle.lat, lyle.lon], 0.2, 0.15);
 const spec = battleMapSpec({ size: "custom", columns: 15, rows: 24, density: "custom", gridPx: 70 });
 const map = buildBattleMap(asset, { center, spec }), interiors = buildInteriors(map);
@@ -130,7 +130,7 @@ test("module preview: the server serves the module's own files at Foundry's path
     const manifest = await (await get("/modules/eym-planet-map/module.json")).json();
     assert.equal(manifest.id, "eym-planet-map");
     // Everything the manifest loads, the template and the data the module fetches are there, byte for byte.
-    for (const path of [...manifest.esmodules, ...manifest.styles, "templates/cluster-map.hbs", "docs/system-orbital-distances.csv", "data/planet-cartography/abydos/eventide.json"]) {
+    for (const path of [...manifest.esmodules, ...manifest.styles, "templates/cluster-map.hbs", "docs/system-orbital-distances.csv", "data/planet-cartography/mitkear/eym.json"]) {
       const res = await get(`/modules/eym-planet-map/${path}`); assert.equal(res.status, 200, path);
       assert.equal(await res.text(), read(path), `${path} is the module's own file`);
     }

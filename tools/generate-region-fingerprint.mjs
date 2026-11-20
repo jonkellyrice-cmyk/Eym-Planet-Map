@@ -18,7 +18,7 @@ import { drainageFileName, flowFileName, windFileName } from "../scripts/cartogr
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const REGION_FINGERPRINT_FILE = "data/eym/region-fingerprint.json";
-const ASSET = "data/planet-cartography/abydos/eventide.json";
+const ASSET = "data/planet-cartography/mitkear/eym.json";
 // Static and dynamic imports of the repository's own files ("./x.mjs", "../y.json").
 const IMPORTS = /\b(?:import|export)\b[^;]*?\bfrom\s*["'](\.{1,2}\/[^"']+)["']|\bimport\(\s*["'](\.{1,2}\/[^"']+)["']\s*\)/g;
 
@@ -37,7 +37,7 @@ export function moduleClosure(entry) {
 /** The data files the Region layer's shapes are made from: the asset and what the map server attaches to it. */
 export function regionDataFiles() {
   const asset = JSON.parse(readFileSync(resolve(root, ASSET), "utf8")), dir = dirname(ASSET);
-  return [ASSET, `${dir}/${asset.geologyFile}`, `${dir}/${drainageFileName("eventide.json")}`, `${dir}/${windFileName("eventide.json")}`, `${dir}/${flowFileName("eventide.json")}`]
+  return [ASSET, `${dir}/${asset.geologyFile}`, `${dir}/${drainageFileName("eym.json")}`, `${dir}/${windFileName("eym.json")}`, `${dir}/${flowFileName("eym.json")}`]
     .filter((p) => existsSync(resolve(root, p))).sort();
 }
 

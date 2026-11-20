@@ -86,7 +86,7 @@ test("materialized natural-solid assets expose the Phase 2 survey contract", () 
 test("canonical registry does not promote prospecting language into established industry", () => {
   const targetRows = solidRows.filter((row) => row.current_exploitation || row.infrastructure_profile);
   const established = targetRows.filter((row) => deriveNaturalSolidProfile(row).exploitationIndex > 0);
-  // Abydos has no map-established surface industry: its prospecting body (Enoch) and Eym's moons must stay unexploited.
+  // Mitkear has no map-established surface industry: its prospecting body (Enoch) and Eym's moons must stay unexploited.
   assert.deepEqual(targetRows.map((row) => row.object).sort(), ["Enoch", "Red Moon", "White Moon"]);
   assert.equal(established.length, 0);
   // Positive control (synthetic): genuinely established extraction does raise the index.

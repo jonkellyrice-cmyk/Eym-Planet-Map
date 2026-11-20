@@ -63,7 +63,7 @@ export function seasonalTemperature({ annualMeanC, latDeg, continentality = 0, o
 // ---------------------------------------------------------------- the Sun
 
 /** Where Mitkear stands overhead on Eym, and its declination, at the model's moment. */
-export function subsolarPoint(model, sky, planet = "Eventide") {
+export function subsolarPoint(model, sky, planet = "Eym") {
   const home = model.byName.get(planet);
   const body = bodyFrame(sky.celestialPole, sky.sunPathPole, home.rotationState?.primeMeridianAngleDeg ?? 0);
   const sun = normalize([-home.physical.x, -home.physical.y, -home.physical.z]);

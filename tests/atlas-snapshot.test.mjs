@@ -6,10 +6,10 @@ import { createAtlasBundle, snapshotOperational, snapshotPlanet } from "../scrip
 import { generateBodyOperationAsset, serializeAsset } from "../tools/generate-body-operations.mjs";
 
 test("planet snapshot serializes existing materialized coordinates without regeneration", () => {
-  const sourcePath = "data/planet-cartography/abydos/eventide.json";
+  const sourcePath = "data/planet-cartography/mitkear/eym.json";
   const source = fs.readFileSync(sourcePath, "utf8");
   const snapshot = snapshotPlanet(JSON.parse(source), sourcePath, source);
-  assert.equal(snapshot.name, "Eventide");
+  assert.equal(snapshot.name, "Eym");
   assert.match(snapshot.referenceSvg, /Bostain/);
   assert.match(snapshot.informationPacket, /\*\*Caren\*\*/);
   assert.match(snapshot.informationPacket, /Sondel Range/);

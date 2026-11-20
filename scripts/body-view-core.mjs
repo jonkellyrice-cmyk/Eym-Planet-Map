@@ -1,3 +1,4 @@
+import { seedWord } from "./seed-words.mjs";
 const SVG_NS = "http://www.w3.org/2000/svg";
 import { buildBodyLayers } from "./body-layers.mjs";
 import { orthographicGeoPoint, projectGeoPath, selectCartographyLabels } from "./body-cartography.mjs";
@@ -333,8 +334,8 @@ export class BodyView {
     this.structure.classList.add("is-asteroid-field");
     const points = seededPoints(this.model, profile.count, "asteroid");
     points.forEach((point, index) => {
-      const distance = 45 + hashUnit(`${this.model.body}/distance/${index}`) * 235, angle = hashUnit(`${this.model.body}/angle/${index}`) * Math.PI * 2;
-      const size = 4 + point.size * 10, rough = .72 + hashUnit(`${this.model.body}/rough/${index}`) * .35;
+      const distance = 45 + hashUnit(`${seedWord(this.model.body)}/distance/${index}`) * 235, angle = hashUnit(`${seedWord(this.model.body)}/angle/${index}`) * Math.PI * 2;
+      const size = 4 + point.size * 10, rough = .72 + hashUnit(`${seedWord(this.model.body)}/rough/${index}`) * .35;
       const rock = svg("path", { class: `oscm-asteroid-rock mineral-${index % 4}`, d: `M ${-size} ${-size * .25} L ${-size * .45} ${-size * rough} L ${size * .4} ${-size * .7} L ${size} ${-size * .05} L ${size * .58} ${size * .8} L ${-size * .36} ${size} Z`, transform: `translate(${Math.cos(angle) * distance} ${Math.sin(angle) * distance * .72}) rotate(${index * 37})` });
       rock.addEventListener("click", () => this.onFeatureSelected({ id: `asteroid-${index + 1}`, type: "mapped belt body", resource: this.model.resourceProfile })); this.structure.append(rock);
     });

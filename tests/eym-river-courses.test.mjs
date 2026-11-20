@@ -5,7 +5,7 @@ import { channelCourses, riverCourses } from "../scripts/eym-river-courses.mjs";
 import { coarseAt, localContext } from "../scripts/eym-local-detail.mjs";
 import { toLocal } from "../scripts/eym-surface.mjs";
 
-const read = () => JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
+const read = () => JSON.parse(readFileSync(new URL("../data/planet-cartography/mitkear/eym.json", import.meta.url), "utf8"));
 const asset = read(), channels = asset.hydrology.lakes.filter((l) => l.waterKind === "river-channel"), courses = riverCourses(asset);
 const town = (name) => { const s = asset.settlements.find((x) => x.properName === name); return [s.lat, s.lon]; };
 const distanceKm = (place, course) => {

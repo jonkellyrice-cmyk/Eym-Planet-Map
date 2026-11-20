@@ -13,13 +13,13 @@ test("release workflow packages the registry, cartography, operational, astronom
   const required = [
     "docs/system-orbital-distances.csv",
     "data/planet-geography/manifest.json",
-    "data/planet-geography/abydos/eventide.json",
+    "data/planet-geography/mitkear/eym.json",
     "data/planet-cartography/manifest.json",
-    "data/planet-cartography/abydos/eventide.json",
-    "data/planet-cartography/abydos/ramses.json",
+    "data/planet-cartography/mitkear/eym.json",
+    "data/planet-cartography/mitkear/bruthi.json",
     "data/body-operations/manifest.json",
-    "data/body-operations/abydos/tribune.json",
-    "data/body-operations/abydos/white-moon.json",
+    "data/body-operations/mitkear/iarn.json",
+    "data/body-operations/mitkear/white-moon.json",
     "data/astronomy/epoch-orientations.json",
     "data/stellar/starfield.json",
     "data/stellar/constellations.json",
@@ -36,15 +36,15 @@ test("release workflow packages the registry, cartography, operational, astronom
   }
 });
 
-test("Foundry and package versions agree on the v0.31.0 eym-planet-map release archive", () => {
+test("Foundry and package versions agree on the v0.32.0 eym-planet-map release archive", () => {
   const manifest = JSON.parse(readFileSync(new URL("module.json", root), "utf8"));
   const packageJson = JSON.parse(readFileSync(new URL("package.json", root), "utf8"));
   assert.equal(manifest.id, "eym-planet-map");
   assert.equal(packageJson.name, manifest.id);
   assert.equal(manifest.version, packageJson.version);
-  assert.equal(manifest.version, "0.31.0");
+  assert.equal(manifest.version, "0.32.0");
   assert.equal(manifest.url, "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map");
   assert.equal(manifest.manifest, "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map/releases/latest/download/module.json");
-  assert.equal(manifest.download, "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map/releases/download/v0.31.0/eym-planet-map-v0.31.0.zip");
+  assert.equal(manifest.download, "https://github.com/jonkellyrice-cmyk/Eym-Planet-Map/releases/download/v0.32.0/eym-planet-map-v0.32.0.zip");
   if (workflow) assert.match(workflow, /ARCHIVE="eym-planet-map-v\$\{VERSION\}\.zip"/);
 });

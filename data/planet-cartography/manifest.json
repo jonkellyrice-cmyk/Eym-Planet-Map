@@ -5,48 +5,48 @@
   "sourceManifest": "data/planet-geography/manifest.json",
   "worlds": [
     {
-      "system": "Abydos",
-      "body": "Ramses",
-      "path": "data/planet-cartography/abydos/ramses.json",
-      "sha256": "d3301ad7d4bc3a7a838db6741ad5ee7dda650dae29509cb5c53cc84dba010e21",
-      "bytes": 966646,
+      "system": "Mitkear",
+      "body": "Bruthi",
+      "path": "data/planet-cartography/mitkear/bruthi.json",
+      "sha256": "456c8c6da530b81f6393da1921f4982e67f76f789e30285b276e0e9525860464",
+      "bytes": 966791,
       "sourceSeed": "8dfaf7db71502f6e",
       "sourceFingerprint": "98728c83432208985073"
     },
     {
-      "system": "Abydos",
-      "body": "Eventide",
-      "path": "data/planet-cartography/abydos/eventide.json",
-      "sha256": "cb9de5c3b45daee5a2d2ec2b4fafa4f8ce61c58214c7c931c6871ec3873121c7",
-      "bytes": 2119329,
+      "system": "Mitkear",
+      "body": "Eym",
+      "path": "data/planet-cartography/mitkear/eym.json",
+      "sha256": "f2d420487e55f9962dfac3801a81bb27c939765ad9f60451aabc1e92bceb7268",
+      "bytes": 2119305,
       "geology": {
-        "path": "data/planet-cartography/abydos/eventide-geology.json",
-        "sha256": "cd1cf2054c6f3eb7af50cf9246df7a2184036fa97a1398d9db5afe632bbe498a",
-        "bytes": 125616
+        "path": "data/planet-cartography/mitkear/eym-geology.json",
+        "sha256": "36b593a594458e42f061f91f0957385041e404006e775f49a22072d7f55c4999",
+        "bytes": 125612
       },
       "ocean": {
-        "path": "data/planet-cartography/abydos/eventide-ocean.json",
-        "sha256": "8c2ee416cbd766d514a37536718ae93ba91fab47e79b8d6c4a1f66d1babc8dee",
-        "bytes": 65251
+        "path": "data/planet-cartography/mitkear/eym-ocean.json",
+        "sha256": "577983edabe767a583aa1bcc0dd6bf24be4fed42c086af006a87f8808fe4341d",
+        "bytes": 65247
       },
       "sourceSeed": "741343188e552de0",
-      "sourceFingerprint": "ae00dc683c340a8fef92"
+      "sourceFingerprint": "4389f7a52b766aab03a0"
     },
     {
-      "system": "Abydos",
-      "body": "Thraximundus",
-      "path": "data/planet-cartography/abydos/thraximundus.json",
-      "sha256": "bc105b8a5698782f36ed88fa2aa01e0873cd45d9976a7a5693aa24ee7d3a92e8",
-      "bytes": 937288,
+      "system": "Mitkear",
+      "body": "Esonth",
+      "path": "data/planet-cartography/mitkear/esonth.json",
+      "sha256": "ac862a936deac505e60609bb2e0db3f7cc8ff50f4c87fda96a3f54704105f584",
+      "bytes": 936482,
       "sourceSeed": "f54bfd702ebbc1db",
       "sourceFingerprint": "bc3ccd2812370dfd00ba"
     },
     {
-      "system": "Abydos",
-      "body": "Kandahar",
-      "path": "data/planet-cartography/abydos/kandahar.json",
-      "sha256": "39558683a641f4d0b56c514607c2695d1877089448a960d974ddb2a5fc3dd328",
-      "bytes": 832992,
+      "system": "Mitkear",
+      "body": "Lilta",
+      "path": "data/planet-cartography/mitkear/lilta.json",
+      "sha256": "50bf7f741f7c72837e29e25985ee6a1ce765ba30e7a796eba2ee8b4b6cd83509",
+      "bytes": 832695,
       "sourceSeed": "58705906c91fcc27",
       "sourceFingerprint": "ee54e5961815f5811ff1"
     }

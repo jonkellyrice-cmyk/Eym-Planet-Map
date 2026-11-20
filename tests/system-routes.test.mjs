@@ -7,8 +7,8 @@ import { calculateTransit, formatDuration } from "../scripts/relativity.mjs";
 const rows = parseCsv(readFileSync(new URL("../docs/system-orbital-distances.csv", import.meta.url), "utf8"));
 
 test("system routes feed physical distance into the existing relativistic solver", () => {
-  const model = buildSystemModel(rows, "Abydos");
-  const distance = physicalDistanceLy(model.byName.get("Eventide"), model.byName.get("White Moon"));
+  const model = buildSystemModel(rows, "Mitkear");
+  const distance = physicalDistanceLy(model.byName.get("Eym"), model.byName.get("White Moon"));
   const transit = calculateTransit(distance, { accelerationG: 200, cruiseBeta: .995 });
   assert.equal(transit.reachesCruise, false);
   assert.ok(transit.clusterYears > 0);

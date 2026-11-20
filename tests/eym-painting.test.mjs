@@ -8,7 +8,7 @@ import { atlasMapSpec } from "../scripts/eym-map-presets.mjs";
 import { buildReferenceMap } from "../scripts/eym-reference-map.mjs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
+const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
 const bostain = asset.settlements.find((s) => s.properName === "Bostain"), at = [bostain.lat, bostain.lon];
 const png = new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" });
 

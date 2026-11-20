@@ -8,7 +8,7 @@ import { battleSceneData } from "../scripts/eym-battle-render.mjs";
 import { EYE_HEIGHT_FT, battleOccluders, occluderOutline, occluderWalls, shadowingOccluders } from "../scripts/eym-battle-occluders.mjs";
 import { battleMapSpec } from "../scripts/eym-map-presets.mjs";
 
-const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
+const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/mitkear/eym.json", import.meta.url), "utf8"));
 const s = asset.settlements.find((x) => x.properName);
 const spec = battleMapSpec({ size: "custom", columns: 30, rows: 24, density: "custom", gridPx: 140 });
 const make = (setting) => { const map = buildBattleMap(asset, { center: [s.lat, s.lon], spec, setting, extras: [] }), interiors = buildInteriors(map); return { map, interiors, plan: battleScenePlan(map, interiors, { name: "t", images: { ground: "g.png", roofs: {}, floors: {} } }) }; };

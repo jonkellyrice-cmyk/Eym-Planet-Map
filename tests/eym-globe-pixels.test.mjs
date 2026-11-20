@@ -5,7 +5,7 @@ import { CLOUD_AT, CLOUD_VEIL_ZOOM, GLOBE_PALETTE, PIXEL_GLOBE_MAX_ZOOM, THICK_A
 import { plainRingAreaDeg2, splitRingAtAntimeridian } from "../scripts/geo-wrap.mjs";
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
-const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json")), raster = buildSurfaceRaster(asset);
+const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json")), raster = buildSurfaceRaster(asset);
 const DEG = Math.PI / 180, unit = (lat, lon) => [Math.cos(lat * DEG) * Math.sin(lon * DEG), Math.sin(lat * DEG), Math.cos(lat * DEG) * Math.cos(lon * DEG)];
 const DREE = [-6.79, 0.412];
 const frame = (extra = {}) => renderGlobe({ raster, width: 120, height: 90, cx: 60, cy: 45, radius: 40, yaw: -DREE[1] * DEG, pitch: DREE[0] * DEG, ...extra });

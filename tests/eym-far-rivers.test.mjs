@@ -7,7 +7,7 @@ import { buildEymSurface, buildSphereFrame, destination, EYM_LAYOUT, frameEastSc
 import { frameCoarseWater, frameHydrology } from "../scripts/eym-cartography.mjs";
 
 const read = (path) => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), "utf8"));
-const asset = read("data/planet-cartography/abydos/eventide.json");
+const asset = read("data/planet-cartography/mitkear/eym.json");
 
 test("the routed rivers are the ones in the accepted cartography, point for point", () => {
   // (The grown continents, data/eym/growth.json, are on grids of the sphere and routed coarsely by the farLand dials.)

@@ -2,7 +2,7 @@
 // such readings, layer by layer. The change report (tools/world.mjs) and the standing checks
 // (tools/world-checks.mjs) are built on this; nothing here writes anything.
 //
-// A "world" is the parsed derived data: the tectonic history, the ocean climate and Eventide's cartography asset
+// A "world" is the parsed derived data: the tectonic history, the ocean climate and Eym's cartography asset
 // with its companion files. A "summary" is the numbers worth comparing; "compareWorlds" sets two side by side and
 // flags what a person should look at.
 
@@ -13,8 +13,8 @@ import { fileURLToPath } from "node:url";
 import { splitRingAtAntimeridian } from "../scripts/geo-wrap.mjs";
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
-const ASSET = "data/planet-cartography/abydos/eventide";
-/** The files a world is read from (the registry CSV carries Eventide's input fingerprint). */
+const ASSET = "data/planet-cartography/mitkear/eym";
+/** The files a world is read from (the registry CSV carries Eym's input fingerprint). */
 export const WORLD_FILES = Object.freeze({
   tectonics: "data/eym/tectonics.json", growth: "data/eym/growth.json", climate: "data/eym/climate.json", asset: `${ASSET}.json`, geology: `${ASSET}-geology.json`, ocean: `${ASSET}-ocean.json`,
   drainage: `${ASSET}-drainage.json`, wind: `${ASSET}-wind.json`, flow: `${ASSET}-flow.json`, coasts: `${ASSET}-coasts.json`, magnetic: "data/eym/magnetic.json", regionFingerprint: "data/eym/region-fingerprint.json", registry: "docs/system-orbital-distances.csv", overrides: "data/eym/overrides.json",

@@ -9,7 +9,7 @@ import { LOOP_STEPS, MAGNETIC_INPUTS, buildMagnetic, magneticSourcesSha256 } fro
 import { renderAurora } from "../scripts/eym-sky-pixels.mjs";
 
 const read = (path) => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), "utf8"));
-const asset = read("data/planet-cartography/abydos/eventide.json"), YEAR_MS = DAYS_PER_YEAR * DAY_MS, E = NORTHWARD_EQUINOX_MS;
+const asset = read("data/planet-cartography/mitkear/eym.json"), YEAR_MS = DAYS_PER_YEAR * DAY_MS, E = NORTHWARD_EQUINOX_MS;
 const coastsOf = (name) => asset.terrain.coastlines.filter((c) => c.continent === name).flatMap((c) => c.points);
 
 test("the north magnetic pole stays in its box of open sea in every century, moving 10 to 50 km a year", () => {

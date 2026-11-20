@@ -9,16 +9,16 @@ const load = (body) => JSON.parse(readFileSync(new URL(manifest.worlds.find((wor
 const build = (body) => { const coarse = load(body); return buildRefinedHydrology(coarse, buildRefinedTerrain(coarse)); };
 
 test("refined hydrology is deterministic and remains bound to accepted geography", () => {
-  const coarse = load("Ramses"), terrain = buildRefinedTerrain(coarse);
+  const coarse = load("Bruthi"), terrain = buildRefinedTerrain(coarse);
   const first = buildRefinedHydrology(coarse, terrain), second = buildRefinedHydrology(coarse, terrain);
   assert.deepEqual(first, second);
   assert.equal(first.sourceSeed, coarse.seed);
   assert.equal(first.sourceFingerprint, coarse.inputFingerprint);
-  assert.throws(() => buildRefinedHydrology(load("Eventide"), terrain), /does not match/);
+  assert.throws(() => buildRefinedHydrology(load("Eym"), terrain), /does not match/);
 });
 
 test("elevation mesh and contour geometry are finite and renderer-ready", () => {
-  const world = build("Thraximundus");
+  const world = build("Esonth");
   assert.equal(world.elevationMesh.resolutionDeg, 4);
   assert.ok(world.elevationMesh.vertices.length >= 4_000);
   assert.ok(world.elevationMesh.triangles.length >= 7_000);
@@ -28,7 +28,7 @@ test("elevation mesh and contour geometry are finite and renderer-ready", () => 
 });
 
 test("river centerlines follow decreasing relief to an ocean or a registered lake", () => {
-  for (const body of ["Ramses", "Thraximundus", "Kandahar"]) {
+  for (const body of ["Bruthi", "Esonth", "Lilta"]) {
     const world = build(body);
     assert.ok(world.rivers.length > 0, body);
     for (const river of world.rivers) {
@@ -40,7 +40,7 @@ test("river centerlines follow decreasing relief to an ocean or a registered lak
 });
 
 test("lakes, wetlands and glaciers obey their physical classification", () => {
-  const wet = build("Thraximundus"), cold = build("Kandahar");
+  const wet = build("Esonth"), cold = build("Lilta");
   assert.ok(wet.wetlands.length > 0);
   for (const wetland of wet.wetlands) {
     const cell = wet.cells[wetland.cellId];
@@ -57,11 +57,11 @@ test("lakes, wetlands and glaciers obey their physical classification", () => {
   for (const lake of wet.lakes) assert.deepEqual(lake.polygon[0], lake.polygon.at(-1));
 });
 
-test("ocean-rich Eventide receives routed island hydrology without a synthetic continent", () => {
+test("ocean-rich Eym receives routed island hydrology without a synthetic continent", () => {
   // Eym's rivers are routed by its own pipeline (scripts/eym-cartography.mjs) and kept in its coarse world; the
   // generic router, run here on that coarse 6° world, still runs and keeps its rivers short.
-  assert.ok(load("Eventide").rivers.length > 0);
-  const world = build("Eventide");
+  assert.ok(load("Eym").rivers.length > 0);
+  const world = build("Eym");
   // (About four fifths of Eym is ocean since the canon of 19 November 2026; it was 98.6%.)
   assert.ok(world.cells.filter((cell) => cell.ocean).length / world.cells.length >= .75);
   assert.ok(world.rivers.every((river) => river.points.length < 100));

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "system": "Abydos",
-  "body": "Tribune",
+  "system": "Mitkear",
+  "body": "Iarn",
   "canonicalType": "gas giant",
   "operationalKind": "giant",
   "permanentOperationalSeed": "6da71cef11d5534a",
   "operationalModelVersion": "orphaned-sun-body-operations-v1",
-  "canonicalSourceFingerprint": "24ce4e4c891ef043f8fa",
+  "canonicalSourceFingerprint": "049e60a4679ba5a3dd53",
   "acceptedCanonStatus": "accepted-generated-canon",
   "coordinateFrame": {
     "id": "atmospheric-spherical",
@@ -63,7 +63,7 @@
       "hazard": null,
       "refs": [],
       "lodPriority": 1,
-      "description": "named atmospheric circulation band. Accepted operational survey feature for Tribune.",
+      "description": "named atmospheric circulation band. Accepted operational survey feature for Iarn.",
       "provenance": "accepted-generated-canon"
     },
     {
@@ -86,7 +86,7 @@
       "hazard": null,
       "refs": [],
       "lodPriority": 1,
-      "description": "named atmospheric circulation band. Accepted operational survey feature for Tribune.",
+      "description": "named atmospheric circulation band. Accepted operational survey feature for Iarn.",
       "provenance": "accepted-generated-canon"
     },
     {
@@ -109,7 +109,7 @@
       "hazard": null,
       "refs": [],
       "lodPriority": 1,
-      "description": "named atmospheric circulation band. Accepted operational survey feature for Tribune.",
+      "description": "named atmospheric circulation band. Accepted operational survey feature for Iarn.",
       "provenance": "accepted-generated-canon"
     },
     {
@@ -132,7 +132,7 @@
       "hazard": null,
       "refs": [],
       "lodPriority": 2,
-      "description": "named atmospheric circulation band. Accepted operational survey feature for Tribune.",
+      "description": "named atmospheric circulation band. Accepted operational survey feature for Iarn.",
       "provenance": "accepted-generated-canon"
     },
     {
@@ -155,7 +155,7 @@
       "hazard": null,
       "refs": [],
       "lodPriority": 2,
-      "description": "named atmospheric circulation band. Accepted operational survey feature for Tribune.",
+      "description": "named atmospheric circulation band. Accepted operational survey feature for Iarn.",
       "provenance": "accepted-generated-canon"
     },
     {
@@ -178,7 +178,7 @@
       "hazard": null,
       "refs": [],
       "lodPriority": 2,
-      "description": "named atmospheric circulation band. Accepted operational survey feature for Tribune.",
+      "description": "named atmospheric circulation band. Accepted operational survey feature for Iarn.",
       "provenance": "accepted-generated-canon"
     },
     {
@@ -201,7 +201,7 @@
       "hazard": "extreme winds and pressure gradients",
       "refs": [],
       "lodPriority": 1,
-      "description": "persistent major atmospheric system. Accepted operational survey feature for Tribune.",
+      "description": "persistent major atmospheric system. Accepted operational survey feature for Iarn.",
       "provenance": "accepted-generated-canon"
     },
     {
@@ -224,7 +224,7 @@
       "hazard": "extreme winds and pressure gradients",
       "refs": [],
       "lodPriority": 1,
-      "description": "persistent major atmospheric system. Accepted operational survey feature for Tribune.",
+      "description": "persistent major atmospheric system. Accepted operational survey feature for Iarn.",
       "provenance": "accepted-generated-canon"
     },
     {
@@ -247,7 +247,7 @@
       "hazard": "extreme winds and pressure gradients",
       "refs": [],
       "lodPriority": 2,
-      "description": "persistent major atmospheric system. Accepted operational survey feature for Tribune.",
+      "description": "persistent major atmospheric system. Accepted operational survey feature for Iarn.",
       "provenance": "accepted-generated-canon"
     },
     {
@@ -270,7 +270,7 @@
       "hazard": "extreme winds and pressure gradients",
       "refs": [],
       "lodPriority": 2,
-      "description": "persistent major atmospheric system. Accepted operational survey feature for Tribune.",
+      "description": "persistent major atmospheric system. Accepted operational survey feature for Iarn.",
       "provenance": "accepted-generated-canon"
     },
     {
@@ -290,7 +290,7 @@
       "hazard": "magnetospheric particle flux",
       "refs": [],
       "lodPriority": 1,
-      "description": "inner radiation exclusion latitude band. Accepted operational survey feature for Tribune.",
+      "description": "inner radiation exclusion latitude band. Accepted operational survey feature for Iarn.",
       "provenance": "accepted-generated-canon"
     },
     {
@@ -310,7 +310,7 @@
       "hazard": "weather-dependent access",
       "refs": [],
       "lodPriority": 1,
-      "description": "robotic atmospheric sampling corridor. Accepted operational survey feature for Tribune.",
+      "description": "robotic atmospheric sampling corridor. Accepted operational survey feature for Iarn.",
       "provenance": "accepted-generated-canon"
     },
     {

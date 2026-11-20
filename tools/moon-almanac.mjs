@@ -22,7 +22,7 @@ const rows = parseCsv(readFileSync(resolve(ROOT, "docs/system-orbital-distances.
 const sky = JSON.parse(readFileSync(resolve(ROOT, "data/stellar/constellations.json"), "utf8"));
 const eph = createEphemeris(rows);
 const events = findMoonEvents(eph, makeUniversalTimeMs({ year: from, month: 1, day: 1 }), makeUniversalTimeMs({ year: to + 1, month: 1, day: 1 }));
-const moon = (name) => displayNameFor("Abydos", name);
+const moon = (name) => displayNameFor("Mitkear", name);
 const describe = (e) => {
   switch (e.type) {
     case "new": case "full": case "first-quarter": case "last-quarter": return `${moon(e.moon)}: ${e.type.replace("-", " ")}`;

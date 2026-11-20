@@ -6,8 +6,8 @@ import { buildSystemModel, classifySystemObject, displayPosition, parseCsv, phys
 const rows = parseCsv(readFileSync(new URL("../docs/system-orbital-distances.csv", import.meta.url), "utf8"));
 const systems = [...new Set(rows.map((row) => row.system))];
 
-test("the Abydos system model resolves every parent hierarchy to finite coordinates", () => {
-  assert.deepEqual(systems, ["Abydos"]);
+test("the Mitkear system model resolves every parent hierarchy to finite coordinates", () => {
+  assert.deepEqual(systems, ["Mitkear"]);
   for (const system of systems) {
     const model = buildSystemModel(rows, system);
     for (const object of model.objects) {
@@ -18,12 +18,12 @@ test("the Abydos system model resolves every parent hierarchy to finite coordina
   }
 });
 
-test("the Abydos registry exposes exactly its schematic object families", () => {
+test("the Mitkear registry exposes exactly its schematic object families", () => {
   const classes = new Set(systems.flatMap((system) => buildSystemModel(rows, system).objects.map((object) => object.objectClass)));
   assert.deepEqual(classes, new Set(["star", "planet", "moon", "giant"]));
 });
 
-test("the classifier still maps every schematic family, including ones Abydos lacks", () => {
+test("the classifier still maps every schematic family, including ones Mitkear lacks", () => {
   const cases = {
     "K2V star": "star", barycenter: "barycenter", "rocky planet": "planet", moon: "moon", "gas giant": "giant",
     "major station": "installation", shipyard: "installation", blinkgate: "installation", "carrier/fleet group": "vessel",
@@ -32,7 +32,7 @@ test("the classifier still maps every schematic family, including ones Abydos la
   for (const [type, objectClass] of Object.entries(cases)) assert.equal(classifySystemObject(type), objectClass, type);
 });
 
-test("non-selectable regions remain visible but unavailable as route endpoints (synthetic; Abydos has none)", () => {
+test("non-selectable regions remain visible but unavailable as route endpoints (synthetic; Mitkear has none)", () => {
   const real = systems.flatMap((system) => buildSystemModel(rows, system).objects).filter((object) => ["belt", "anomaly"].includes(object.objectClass));
   assert.deepEqual(real, []);
   const synthetic = [

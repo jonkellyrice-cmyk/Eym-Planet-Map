@@ -8,8 +8,8 @@ import { battleTide } from "../scripts/eym-tides.mjs";
 import { WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 import { COAST_FIELDS, COAST_INPUTS, coastSourcesSha256 } from "../tools/generate-eym-coasts.mjs";
 
-const root = new URL("../", import.meta.url), json = (path) => JSON.parse(readFileSync(new URL(path, root), "utf8")), DIR = "data/planet-cartography/abydos";
-const asset = attachGeology(json(`${DIR}/eventide.json`), json(`${DIR}/eventide-geology.json`)), doc = json(`${DIR}/${coastsFileName("eventide.json")}`);
+const root = new URL("../", import.meta.url), json = (path) => JSON.parse(readFileSync(new URL(path, root), "utf8")), DIR = "data/planet-cartography/mitkear";
+const asset = attachGeology(json(`${DIR}/eym.json`), json(`${DIR}/eym-geology.json`)), doc = json(`${DIR}/${coastsFileName("eym.json")}`);
 attachCoasts(asset, doc);
 const samples = coastSamples(doc);
 
@@ -25,7 +25,7 @@ test("the survey of the coasts is up to date, covers the continents the dials na
   // Shelves differ: some coasts have deep water close in, others a wide shelf.
   const shelves = samples.map((s) => s.shelfKm).sort((a, b) => a - b);
   assert.ok(shelves[Math.floor(shelves.length * 0.1)] <= 40 && shelves[Math.floor(shelves.length * 0.9)] >= 150);
-  assert.ok(readFileSync(new URL(`${DIR}/${coastsFileName("eventide.json")}`, root)).length < 120_000, "the survey stays small");
+  assert.ok(readFileSync(new URL(`${DIR}/${coastsFileName("eym.json")}`, root)).length < 120_000, "the survey stays small");
   // Read by place: the nearest surveyed point by a Caren shore; nothing off an unsurveyed continent or far inland.
   const one = samples.find((s) => s.continent === "Caren");
   assert.equal(nearestCoast(asset, one.lat, one.lon).km, 0); assert.equal(nearestCoast(asset, 5, 161), null); assert.equal(nearestCoast({}, one.lat, one.lon), null);

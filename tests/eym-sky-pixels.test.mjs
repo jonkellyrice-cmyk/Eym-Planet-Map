@@ -8,7 +8,7 @@ import { LINE_LOOK, SKY_PALETTE, moonRadius, renderSkyBackground, renderSkyPixel
 
 const source = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8"), json = (path) => JSON.parse(source(path));
 const rows = parseCsv(source("docs/system-orbital-distances.csv")), orientations = json("data/astronomy/epoch-orientations.json").orientations, sky = json("data/stellar/constellations.json"), starfield = json("data/stellar/starfield.json");
-const snapshotAt = (t) => groundSky({ model: buildSystemModel(rows, "Abydos", { referenceTimestampMs: t, orientations }), sky, starfield, latDeg: 11.4, lonDeg: 64.6 });
+const snapshotAt = (t) => groundSky({ model: buildSystemModel(rows, "Mitkear", { referenceTimestampMs: t, orientations }), sky, starfield, latDeg: 11.4, lonDeg: 64.6 });
 const HOUR = 3600000, find = (want) => { for (let h = 0; h < 60; h += 0.5) { const s = snapshotAt(h * HOUR); if (want(s)) return s; } throw new Error("no such sky in sixty hours"); };
 const night = find((s) => s.sun.altDeg < -25), day = find((s) => s.sun.altDeg > 30);
 const W = 240, H = 200, frame = { cx: 120, cy: 100, radius: 90 };

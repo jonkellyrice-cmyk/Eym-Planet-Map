@@ -9,7 +9,7 @@ import { battleArtDirection, battleReferenceSvg, battleSceneData } from "../scri
 import { battleMapSpec } from "../scripts/eym-map-presets.mjs";
 import { fromLocal } from "../scripts/eym-surface.mjs";
 
-const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
+const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/mitkear/eym.json", import.meta.url), "utf8"));
 const bostain = (() => { const s = asset.settlements.find((x) => x.properName === "Bostain"); return fromLocal([s.lat, s.lon], -2.2, -1.8); })();
 const spec = battleMapSpec();
 

@@ -7,7 +7,7 @@ const root = new URL("../", import.meta.url), manifest = JSON.parse(readFileSync
 const load = (body) => JSON.parse(readFileSync(new URL(manifest.worlds.find((world) => world.body === body).path, root), "utf8"));
 
 test("compact canonical raster decodes every two-degree surface cell", () => {
-  const eventide = load("Eventide"), raster = decodeCartographyRaster(eventide), count = eventide.grid.latCount * eventide.grid.lonCount;
+  const eym = load("Eym"), raster = decodeCartographyRaster(eym), count = eym.grid.latCount * eym.grid.lonCount;
   assert.equal(raster.count, count);
   assert.equal(raster.elevationM.length, count);
   assert.equal(raster.ocean.length, count);
@@ -30,7 +30,7 @@ test("geographic vectors project to smooth limb-clipped SVG paths", () => {
 });
 
 test("mobile render plans retain essential layers within a bounded DOM budget", () => {
-  for (const body of ["Ramses", "Eventide", "Thraximundus", "Kandahar"]) {
+  for (const body of ["Bruthi", "Eym", "Esonth", "Lilta"]) {
     const world = load(body), orbital = buildCartographyRenderPlan(world, .8, true), surface = buildCartographyRenderPlan(world, 3, true);
     assert.ok(orbital.coastlines.length && orbital.rivers.length && orbital.settlements.length, body);
     assert.ok(surface.ecoregions.length >= orbital.ecoregions.length, body);
@@ -44,11 +44,11 @@ test("mobile render plans retain essential layers within a bounded DOM budget", 
 });
 
 test("orbital labels prioritize permanent capital, ocean and continental names", () => {
-  for (const body of ["Ramses", "Eventide", "Thraximundus", "Kandahar"]) {
+  for (const body of ["Bruthi", "Eym", "Esonth", "Lilta"]) {
     const labels = selectCartographyLabels(load(body), .8, true);
     assert.ok(labels.some((feature) => feature.featureClass === "capital"), body);
     // Eym's oceans are not yet named; its five continents are.
-    if (body === "Eventide") assert.ok(["Caren", "Garyk"].every((name) => labels.some((feature) => feature.featureClass === "continent" && feature.properName === name)), body);
+    if (body === "Eym") assert.ok(["Caren", "Garyk"].every((name) => labels.some((feature) => feature.featureClass === "continent" && feature.properName === name)), body);
     else assert.ok(labels.some((feature) => feature.featureClass === "ocean"), body);
     assert.ok(labels.every((feature) => feature.properName), body);
     assert.equal(new Set(labels.map((feature) => feature.properName)).size, labels.length, body);
