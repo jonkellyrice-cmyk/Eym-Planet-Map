@@ -140,6 +140,17 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
     rule("caren-rivers", "the great rivers of the north are tidal in their lowest reach and climb gently above it (no falls)", c.rivers.length >= 3 && c.rivers.every((r) => r.tidalKm >= 50 && r.tidalKm <= 100 && r.gradientMPerKm <= 0.5), c.rivers.map((r) => `${r.id.replace("caren-water-", "water ")}: ${r.lengthKm} km, ${r.headM} m at its head`).join("; "));
   }
 
+  // Caren's climate is measured, not assumed (canon of 20 November 2026): the survey says of each thing the canon
+  // expects whether the physics gives it. What is not found is for the owner and the world's author to weigh; it is
+  // a warning here, never hidden and never forced.
+  if (world.caren?.climate) {
+    const k = world.caren.climate, missing = k.expectations.filter((e) => !e.found);
+    rule("caren-sea", "a tongue of cold water reaches Caren's west coast, colder still over the islands' ridge", k.sea.coldTongueC <= -0.3 && k.sea.overTheRidgeC <= k.sea.coldTongueC, `${k.sea.coldTongueC} °C west of Caren, ${k.sea.overTheRidgeC} °C over the ridge`);
+    rule("caren-seasons", "south Caren has wet and dry seasons, and snow lies all year only above the snow line", k.parts.south.dryMonths >= 3 && k.byHeight.find((h) => h.heightM === 0).snow === "none" && k.byHeight.find((h) => h.heightM === 4800).snow === "all year", `the south ${k.parts.south.annualMm} mm with ${k.parts.south.dryMonths} dry months`);
+    rule("caren-climate-measured", "the survey says of each of the canon's expectations whether the physics gives it", k.expectations.length >= 10 && k.expectations.every((e) => typeof e.found === "boolean" && e.measure), `${k.expectations.length - missing.length} of ${k.expectations.length} found`);
+    rule("caren-climate-found", "the physics gives everything the canon expects of Caren's climate", missing.length === 0, missing.map((e) => `${e.expected}: ${e.measure}`).join(" | "), "should");
+  }
+
   // Everything derived is up to date with what it is made from (the working tree only).
   if (current) {
     const [{ tectonicSourcesSha256 }, { climateSourcesSha256 }, { drainageSourcesSha256 }, { windSourcesSha256 }, { flowSourcesSha256 }, { eymFingerprintFromRepo }, { regionFingerprint }, { coastSourcesSha256 }] = await Promise.all([

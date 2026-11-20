@@ -10,6 +10,8 @@ const BIOME_WORDS = Object.freeze({
   "temperate-forest": "temperate and montane forest", "temperate-rainforest": "temperate rainforest", taiga: "conifer forest", tundra: "tundra and alpine meadow",
   "ice-cap": "snowfields and glaciers", "cold-desert": "cold desert", "hot-desert": "hot desert",
 });
+/** A biome in words. Between the tropics a forest of the temperate kind is cool by its height, not its latitude: highland forest. */
+const wordsFor = (biome, lat) => (biome === "temperate-forest" && Math.abs(lat) < 23.5 ? "highland (montane) forest, cool by its height" : BIOME_WORDS[biome] ?? biome);
 const LEVEL_WORDS = Object.freeze({ planet: "the whole world, in an equirectangular projection", continent: "a whole continent", region: "a region", local: "a town or city and the country around it" });
 
 function place(x, y, W, H) {
@@ -28,7 +30,7 @@ function landCover(asset, frame) {
   }
   if (!counts.size) { const cell = field.cellAt(...frame.center); counts.set(cell.biome, 1); }
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
-  return [...counts].sort((a, b) => b[1] - a[1]).map(([biome, n]) => ({ biome, words: BIOME_WORDS[biome] ?? biome, share: n / total }));
+  return [...counts].sort((a, b) => b[1] - a[1]).map(([biome, n]) => ({ biome, words: wordsFor(biome, frame.center[0]), share: n / total }));
 }
 
 /** The bedrock under the land in the frame, by share (empty for a world without geology). */

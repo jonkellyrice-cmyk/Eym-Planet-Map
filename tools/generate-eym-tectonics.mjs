@@ -31,7 +31,8 @@ const r1 = (v) => Math.round(v * 10) / 10, r3 = (v) => Math.round(v * 1000) / 10
 /** The fixed inputs: Caren and Garyk as placed by the surface, Garyk's high ground, the three targets. */
 export function tectonicInputs() {
   const traced = JSON.parse(readFileSync(new URL("data/eym/traced-continents.json", root), "utf8"));
-  const { surface } = buildEymSurface(traced, { ...EYM_LAYOUT, seeded: [] });
+  // (The fit is made on the world without the island cluster west of Caren, which no part of the fit depends on.)
+  const { surface } = buildEymSurface(traced, { ...EYM_LAYOUT, seeded: [], hotspotCluster: null });
   const main = (id) => surface.coasts.find((c) => c.id.startsWith(`${id}-mainland`)).points;
   const garykCenter = surface.layout.garyk.center, g = traced.continents.garyk, relief = Buffer.from(g.relief.reliefBase64, "base64"), range = [];
   for (let r = 0; r < g.relief.rows; r += 1) for (let c = 0; c < g.relief.cols; c += 1) if (relief[r * g.relief.cols + c] >= 2) range.push(fromLocal(garykCenter, g.relief.northWestKm[0] + (c + 0.5) * g.relief.cellKm, g.relief.northWestKm[1] - (r + 0.5) * g.relief.cellKm));
@@ -249,6 +250,10 @@ function globalPicture(state) {
   const mantle = mantleUpwellings(state.archipelagoCenters ?? [], latLon(state.first.S));
   const hotspots = mantle.hotspots.map((ll, i) => ({ at: ll, kind: "hotspot", setting: "hotspot", plate: plates[plateOf(vec(ll))].id, ageMyr: r1(0.01 + vrng() * 2), activity: i === 0 ? "active" : vrng() < 0.6 ? "active" : "dormant", heightM: Math.round(2500 + vrng() * 1800) }));
   const chains = hotspots.map((h) => ({ hotspot: h.at, plate: h.plate, seamounts: hotspotChain(plates, plateOf, h.at) }));
+  // The plume under the islands west of Caren (canon of 20 November 2026): a natural outlier, far from the
+  // upwellings' margins. Its plate is so slow that its older volcanoes lie close together and have sunk into one
+  // ridge, not a long chain. It has draws of its own and is written last, so nothing before it changes.
+  const outliers = (state.outlierHotspots ?? []).map((spot) => { const orng = createRng(`${seed}|hotspot|${spot.id}`), at = spot.center.map(r3); return { volcano: { at, kind: "hotspot", setting: "hotspot", plate: plates[plateOf(vec(at))].id, ageMyr: r1(0.01 + orng() * 2), activity: "active", heightM: Math.round(2500 + orng() * 1800), outlier: spot.id }, chain: { hotspot: at, plate: plates[plateOf(vec(at))].id, seamounts: hotspotChain(plates, plateOf, at), outlier: spot.id } }; });
 
   // Coarse rasters at 1°: plate, distance to the nearest ridge and trench (in 10 km steps), and margin side.
   const R = 1, C = 360, Rw = 180, plateRaster = new Uint8Array(C * Rw), ridgeKm = new Uint8Array(C * Rw).fill(255), trenchKm = new Uint8Array(C * Rw).fill(255), collideKm = new Uint8Array(C * Rw).fill(255);
@@ -262,7 +267,7 @@ function globalPicture(state) {
     ridgeKm[r * C + c] = near(ridges); trenchKm[r * C + c] = near(trenches); collideKm[r * C + c] = near(collisions);
   }
   const typed = (type) => boundary.filter((e) => e.type === type).length;
-  return { boundary, volcanoes: [...volcanoes, ...hotspots, ...carenArcs], mantle: { upwellings: mantle.upwellings, radiusDeg: mantle.radiusDeg, chains }, rasters: { resolutionDeg: 1, plate: b64(plateRaster), ridgeDistance10Km: b64(ridgeKm), trenchDistance10Km: b64(trenchKm), collisionDistance10Km: b64(collideKm) }, counts: { convergent: typed("convergent"), divergent: typed("divergent"), transform: typed("transform") }, lines: { ridges, trenches, collisions } };
+  return { boundary, volcanoes: [...volcanoes, ...hotspots, ...carenArcs, ...outliers.map((o) => o.volcano)], mantle: { upwellings: mantle.upwellings, radiusDeg: mantle.radiusDeg, chains: [...chains, ...outliers.map((o) => o.chain)] }, rasters: { resolutionDeg: 1, plate: b64(plateRaster), ridgeDistance10Km: b64(ridgeKm), trenchDistance10Km: b64(trenchKm), collisionDistance10Km: b64(collideKm) }, counts: { convergent: typed("convergent"), divergent: typed("divergent"), transform: typed("transform") }, lines: { ridges, trenches, collisions } };
 }
 
 // ---------------------------------------------------------------- ranges
@@ -297,7 +302,7 @@ function rangesFor(state, cont) {
  * (seed -> failures) so a run can pick up where an earlier one stopped; `budget()` is asked before each new seed
  * and, when it says no, the run stops and returns { incomplete: true, tried } instead.
  */
-export function buildTectonics({ seeds = TECTONIC_SEEDS, inputs = tectonicInputs(), archipelagoCenters = [], log = () => {}, known = {}, budget = () => true } = {}) {
+export function buildTectonics({ seeds = TECTONIC_SEEDS, inputs = tectonicInputs(), archipelagoCenters = [], outlierHotspots = EYM_LAYOUT.hotspotCluster ? [EYM_LAYOUT.hotspotCluster] : [], log = () => {}, known = {}, budget = () => true } = {}) {
   const tried = [];
   for (const seed of seeds) {
     if (known[seed]) { tried.push({ seed, ok: false, failures: known[seed] }); log(`${seed}: ${known[seed].join("; ")} (from an earlier run)`); continue; }
@@ -306,7 +311,7 @@ export function buildTectonics({ seeds = TECTONIC_SEEDS, inputs = tectonicInputs
     tried.push({ seed, ok: result.ok, failures: result.failures });
     log(`${seed}: ${result.ok ? "meets every target" : result.failures.join("; ")}`);
     if (!result.ok) continue;
-    const state = { ...result.state, archipelagoCenters };
+    const state = { ...result.state, archipelagoCenters, outlierHotspots };
     const world = globalPicture(state);
     const continents = Object.fromEntries(state.continents.map((cont) => {
       const t = cont.piece.target, main = simplify(cont.main.ring, 1.5).map(([x, y]) => [r1(x), r1(y)]);
@@ -345,6 +350,7 @@ export function buildTectonics({ seeds = TECTONIC_SEEDS, inputs = tectonicInputs
       { stage: "drift", myrAgo: [MYR - 20, 0], text: "Gaffa, Khohalis and Demani break away from Garyk's side and drift together to the far side of the world, some twelve thousand kilometres, each turning about its own pole; Garyk stays behind." },
       { stage: "accretion", myrAgo: [120, 0], text: "Leading edges override sinking sea floor: coastal ranges, volcanoes and island arcs grow along them. The sea floor that still trails a sinking slab is pulled fast; Gaffa, Khohalis and Demani, whose slabs are gone and whose edges now ride over the sea floor ahead, have slowed to a few centimetres a year." },
       { stage: "hotspots", myrAgo: [80, 0], text: "Plumes rising from the upwellings' margins build the open-sea archipelagos; each plate carries the older volcanoes away along its motion, where they sink into lines of seamounts, oldest farthest from the plume." },
+      ...(outlierHotspots.length ? [{ stage: "the western isles", myrAgo: [80, 0], text: "A plume far from the upwellings' margins rises under the slow Caren Plate west of Caren. The plate moves so little that its volcanoes pile up close together: the old ones have sunk into a shallow ridge, and the young ones stand on it as a cluster of islands." }] : []),
       { stage: "collision", myrAgo: [60, 0], text: "The Northern Garyk Sea Plate closes on Garyk; its northern ranges rise along the seam." },
       { stage: "erosion", myrAgo: [320, 0], text: "Wear and the slow rebound of the crust soften the old belts to rounded hills and lower the young ranges." },
       { stage: "Caren", myrAgo: [MYR, 0], text: `Caren, an old core with an ancient mountain belt from the assembly along it, is split off from the First Land's rim as a fragment and rides the Caren Plate some ${Math.round(origin.driftKm / 100) * 100} km to where it lies today. Its plate has no sinking slab left to pull it and has slowed to about a centimetre a year.` },

@@ -14,6 +14,7 @@
 import { ensoIndex } from "./eym-climate.mjs";
 import { yearFraction } from "./eym-seasons.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "./universal-time.mjs";
+import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
 
 export const RIVER_FLOW_MODEL = "eym-river-flow-v1";
 const MONTHS = 12, LAPSE = 0.0065, SOIL_MM = 150, GROUND_MONTHS = 4, SECONDS_PER_MONTH = DAYS_PER_YEAR * DAY_MS / 1000 / MONTHS;
@@ -199,11 +200,13 @@ export function runoffAlongMm(asset, field, points) {
   return n ? sum / n : null;
 }
 
-/** The middle yearly runoff (mm) of Caren's and Garyk's land: the yardstick a river's width is measured against. */
+/**
+ * The yearly runoff (mm) a river's width is measured against: a fixed yardstick (the dial `riverReferenceRunoffMm`).
+ * It was the middle runoff of Caren's and Garyk's land together, worked out afresh each time, so that a change to
+ * one continent's climate changed the other's rivers; it is fixed at what that middle was (20 November 2026).
+ */
 export function referenceRunoffMm(asset) {
-  const climate = flowClimate(asset); if (!climate) return null;
-  if (climate.reference == null) { const all = [...climate.cells.entries()].map(([id, c]) => cellBalance(climate, id, c.elevationM).runoffMm.reduce((a, b) => a + b, 0)).sort((a, b) => a - b); climate.reference = all[Math.floor(all.length / 2)]; }
-  return climate.reference;
+  return flowClimate(asset) ? WORLD_INPUTS.weather.riverReferenceRunoffMm : null;
 }
 
 /**

@@ -20,12 +20,14 @@ test("Caren, Garyk and the open-ocean archipelagos keep their coasts byte for by
   // The coasts as they were before the tectonic history (eym-surface-v1): authored, traced and seeded once.
   assert.equal(sha(asset.terrain.coastlines.filter((c) => c.continent === "Caren")), "6200884021edf3166e8c7cb6b209431b188bd6dd9a5706412f2504815c43bb5f");
   assert.equal(sha(asset.terrain.coastlines.filter((c) => c.continent === "Garyk")), "953d7b92cd342baab154888dcddb499306d0d2e91380f1da52b43f0dc1d837e0");
+  // (The islands west of Caren, canon of 20 November 2026, are new land with draws of their own: they are left out
+  // here and tested in tests/eym-caren-climate.test.mjs. The ten archipelagos are what they were.)
   // Eight of the ten ocean archipelagos are unchanged since eym-surface-v1. The sixth moved on 17 November 2026
   // (the owner's decision), from 8.8°N 152.4°E, where Gaffa now stands, to 8.8°N 39°E: same islands, new place.
   // The fourth (36.4°N 115.2°E) lies where Khohalis grew to (canon of 19 November 2026: Eym about 80% water) and is
   // part of that continent now: its five islands are no longer coasts of their own. The hash below is of the other
   // eight, and is the same in the world before the growth (where, with the fourth, they hashed to f527012d…).
-  const archipelagos = asset.terrain.coastlines.filter((c) => !c.continent), sixth = (c) => c.id.startsWith("archipelago-6-");
+  const archipelagos = asset.terrain.coastlines.filter((c) => !c.continent && !c.id.startsWith("western-isles")), sixth = (c) => c.id.startsWith("archipelago-6-");
   assert.equal(archipelagos.filter((c) => c.id.startsWith("archipelago-4-")).length, 0);
   assert.deepEqual(JSON.parse(read("data/eym/growth.json")).accreted.map((a) => [a.archipelago, a.into]), [[4, "Khohalis"]]);
   assert.equal(sha(archipelagos.filter((c) => !sixth(c))), "14f9038579aa196822c036396695d85f126dcd21ec552fd23bb909c71532189c");
@@ -96,7 +98,9 @@ test("volcanoes stand at subduction margins and hotspots, each with an age and a
   const carenArcs = tect.volcanoes.filter((v) => v.setting === "subduction" && v.plate === "caren");
   assert.ok(carenArcs.length >= 10, `${carenArcs.length} arc volcanoes on the Caren Plate's edges`);
   assert.equal(sha(tect.volcanoes.slice(0, 128)), "8c832e27e9717b6db5d5b4f2203bd5b933d9f6a4f43a0f40394a8d6ca670de02", "the first 128 volcanoes are the ones drawn before");
-  assert.deepEqual(tect.volcanoes.slice(128), carenArcs);
+  // (After them, last of all, the plume under the islands west of Caren: a documented outlier.)
+  assert.deepEqual(tect.volcanoes.slice(128).filter((v) => !v.outlier), carenArcs);
+  assert.deepEqual(tect.volcanoes.filter((v) => v.outlier).map((v) => v.outlier), ["western-isles"]); assert.equal(tect.volcanoes.at(-1).outlier, "western-isles");
   // None on Caren itself (a hotspot may stand on the sea floor of its plate, far from its coast).
   const carenCoast = asset.terrain.coastlines.filter((c) => c.continent === "Caren").flatMap((c) => c.points.filter((_, i) => i % 10 === 0));
   assert.ok(tect.volcanoes.every((v) => nearestKm(v.at, carenCoast) > 300));
@@ -107,7 +111,7 @@ test("volcanoes stand at subduction margins and hotspots, each with an age and a
 test("Caren is in the plate record: a fragment of the First Land riding its plate, with nothing of the plates changed", () => {
   // The plates, their poles and speeds, the boundaries, the continents, the rasters and the mantle are what they
   // were before Caren was given its history (canon of 20 November 2026): pinned as they stood on main.
-  assert.equal(sha({ plates: tect.plates.map(({ driver, ...p }) => p), boundaries: tect.boundaries, continents: tect.continents, rasters: tect.rasters, mantle: tect.mantle, firstLand: tect.firstLand, garyk: tect.garyk }), "f25a5c410e24cdbeaaf421981897b3f674d0772059b28b183015b6a7bbc0050b");
+  assert.equal(sha({ plates: tect.plates.map(({ driver, ...p }) => p), boundaries: tect.boundaries, continents: tect.continents, rasters: tect.rasters, mantle: { ...tect.mantle, chains: tect.mantle.chains.filter((c) => !c.outlier) }, firstLand: tect.firstLand, garyk: tect.garyk }), "f25a5c410e24cdbeaaf421981897b3f674d0772059b28b183015b6a7bbc0050b");
   // Turned back whole, it sat on the First Land's rim, clear of the other pieces by a rift's width, and has drifted
   // to today no faster than they did; today it rides the Caren Plate at about a centimetre a year.
   const o = tect.caren.origin, plate = tect.plates.find((p) => p.id === "caren");
@@ -164,12 +168,14 @@ test("the mantle: plate speeds follow their drivers; plumes rise on the upwellin
   const fromAxis = (ll) => { const d = greatCircleKm(ll, a) / 111.195; return Math.min(d, 180 - d); };
   assert.ok(fromAxis(tect.firstLand.centre) <= R - 8, "the First Land rifted above an upwelling");
   // Every hotspot stands on an upwelling's margin, at an open-sea archipelago, both upwellings having some.
-  const hotspots = tect.volcanoes.filter((v) => v.setting === "hotspot"), archipelagos = EYM_LAYOUT.archipelagos.centers;
+  // (The plume under the islands west of Caren is the one documented exception to "plumes rise at the upwellings'
+  // margins": canon of 20 November 2026. It is tested with the islands, in tests/eym-caren-climate.test.mjs.)
+  const allHotspots = tect.volcanoes.filter((v) => v.setting === "hotspot"), hotspots = allHotspots.filter((v) => !v.outlier), archipelagos = EYM_LAYOUT.archipelagos.centers;
   assert.ok(hotspots.length >= 3);
   for (const h of hotspots) { assert.ok(Math.abs(fromAxis(h.at) - R) <= 7, `hotspot ${h.at} is ${fromAxis(h.at).toFixed(1)}° from the axis`); assert.ok(archipelagos.some((c) => c[0] === h.at[0] && c[1] === h.at[1])); }
   assert.equal(new Set(hotspots.map((h) => greatCircleKm(h.at, a) < greatCircleKm(h.at, b))).size, 2);
   // Each chain runs away from its plume, older and deeper the farther it goes.
-  assert.equal(tect.mantle.chains.length, hotspots.length);
+  assert.equal(tect.mantle.chains.length, allHotspots.length); assert.equal(tect.mantle.chains.filter((c) => !c.outlier).length, hotspots.length);
   for (const c of tect.mantle.chains) {
     assert.ok(c.seamounts.length >= 3, `chain at ${c.hotspot}`);
     for (let i = 1; i < c.seamounts.length; i += 1) {
@@ -179,7 +185,7 @@ test("the mantle: plate speeds follow their drivers; plumes rise on the upwellin
   }
   // The history says why; the asset carries the chains, and the sea floor rises over them.
   for (const stage of ["mantle", "hotspots"]) assert.ok(asset.geology.history.some((h) => h.stage === stage), stage);
-  assert.equal(asset.geology.mantle.chains.length, hotspots.length);
+  assert.equal(asset.geology.mantle.chains.length, allHotspots.length);
 });
 
 test("the sea floor: trenches deeper than the abyss, ridges shallower, shelves wider on rifted coasts", () => {

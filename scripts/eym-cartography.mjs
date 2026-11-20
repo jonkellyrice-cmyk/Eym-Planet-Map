@@ -13,6 +13,8 @@ import { EYM_LAYOUT, EYM_SURFACE_MODEL, frameEastScale, frameToLatLon, fromLocal
 import { normLon, unwrapRing } from "./geo-wrap.mjs";
 import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
 import { carenRelief } from "./eym-caren-relief.mjs";
+import { carenClimateFor } from "./eym-caren-climate.mjs";
+import { rainBeltLat } from "./eym-seasons.mjs";
 import { seaLevelTemperatureC, zonalPrecipitationMm } from "./eym-seasons.mjs";
 import { soilFromRock } from "./eym-geology.mjs";
 import { prepareOverrides } from "./eym-overrides.mjs";
@@ -37,13 +39,22 @@ export { seaLevelTemperatureC, zonalPrecipitationMm };
 /** Prevailing wind comes from the east in the tropics and polar belts, from the west in the mid-latitudes. */
 const upwindStep = (lat) => (Math.abs(lat) < 30 || Math.abs(lat) > 60 ? 1 : -1);
 
-function landBiome({ lat, temperatureC: t, precipitationMm: p, forestShare, relief, origin }) {
+function landBiome({ lat, temperatureC: t, precipitationMm: p, forestShare, relief, origin, driestMm = null }) {
   if (t < -7) return "ice-cap";
   if (t < 2) return p > 450 ? "tundra" : "cold-desert";
   if (origin === "authored" && relief !== null) {
     // Caren's map shows its forests, grasslands and dry tablelands; follow it.
-    if (forestShare >= 0.35) return t > 20 && p > 1400 ? "tropical-rainforest" : t > 14 ? "seasonal-forest" : "temperate-forest";
+    // (Where the months are known, a hot, wet forest is rainforest only if its dry season is short or absent, as the
+    // climates of Earth are told apart: the driest month at least 60 mm, or at least 100 mm less a twenty-fifth of
+    // the year's rain. With a long dry season it is seasonal forest: tropical wet and dry.)
+    const evergreen = driestMm == null || driestMm >= 60 || driestMm >= 100 - p / 25;
+    if (forestShare >= 0.35) return t > 20 && p > 1400 && evergreen ? "tropical-rainforest" : t > 14 ? "seasonal-forest" : "temperate-forest";
     if (relief >= 0.6 && relief < 1.6) return t > 18 ? "savanna" : "steppe";
+    // Where the map draws neither forest nor dry tableland the country is open, whatever the rain (the map is the
+    // authority for Caren's forests): savanna where the dry season is long (tropical wet and dry), woodland and
+    // grassland where it is short.
+    // (Country too dry for either, under 600 mm a year, is left to the rules for dry land below.)
+    if (driestMm != null && relief < 0.6 && p >= 600) return !evergreen ? (t > 18 ? "savanna" : "steppe") : t > 14 ? "seasonal-forest" : "temperate-forest";
   }
   // Tropical and subtropical mountains are cool by height, not latitude: montane forest, not taiga.
   if (Math.abs(lat) < 35 && t < 14) return p < 400 ? "steppe" : "temperate-forest";
@@ -395,6 +406,9 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
   // climate (data/eym/climate.json), the sea's yearly anomaly warms or cools the coasts and wets or dries them:
   // warm water offshore, wetter; cold water offshore, drier and foggier. Its reach inland fades over ~600 km.
   const annualAnomaly = climate ? climateAnnualAnomaly(climate) : null;
+  // Caren's rain follows the air month by month (scripts/eym-caren-climate.mjs; canon of 20 November 2026): the rain
+  // belt, the trades' direction, the mountains crossed and climbed, the sea upwind and the wind's channels.
+  const carenAir = climate && WORLD_INPUTS.carenClimate ? carenClimateFor({ dials: WORLD_INPUTS.carenClimate, sampler, climate, seaLevelC: seaLevelTemperatureC, beltLat: rainBeltLat }) : null;
   for (const cell of cells) {
     const surfaceM = cell.landCovered ? Math.max(0, cell.landElevationM) : 0;
     const reach = annualAnomaly ? (cell.ocean ? 1 : Math.exp(-(cell.coastKm ?? 0) / 600)) : 0, anomalyC = annualAnomaly ? annualAnomaly(cell.lat, cell.lon) * reach : 0;
@@ -408,6 +422,7 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
       if (cell.coastKm > 500) p *= 0.8;
     }
     cell.precipitationMm = Math.round(clamp(p, 60, 4200));
+    if (carenAir && cell.landCovered && cell.continent === "Caren") { const year = carenAir.cellYear(cell.lat, cell.lon, cell.coastKm); if (year) { cell.precipitationMm = clamp(year.annualMm, 60, 4200); cell.driestMm = Math.min(...year.monthsMm); } }
   }
 
   // Seeded continents get routed rivers and basin lakes; Caren and Garyk keep their authored water.
@@ -431,9 +446,10 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
     cell.riverAccumulation = Number((riverCells.get(cell.id) ?? 0).toFixed(2));
     cell.river = riverCells.has(cell.id) && !cell.ocean;
     cell.lake = false;
-    exceptions.climate(cell);
+    // (A hand-authored change to a cell's rain changes its driest month in the same measure.)
+    const rainBefore = cell.precipitationMm; exceptions.climate(cell); if (cell.driestMm != null && rainBefore > 0 && cell.precipitationMm !== rainBefore) cell.driestMm *= cell.precipitationMm / rainBefore;
     cell.biome = cell.landCovered
-      ? landBiome({ lat: cell.lat, temperatureC: cell.temperatureC, precipitationMm: cell.precipitationMm, forestShare: cell.forestShare, relief: cell.relief, origin: cell.origin })
+      ? landBiome({ lat: cell.lat, temperatureC: cell.temperatureC, precipitationMm: cell.precipitationMm, forestShare: cell.forestShare, relief: cell.relief, origin: cell.origin, driestMm: cell.driestMm ?? null })
       : cell.temperatureC < -1 ? "sea-ice" : cell.temperatureC > 23 ? "tropical-ocean" : "open-ocean";
     if (tect && cell.landCovered) { cell.arcKm = rangeKm(cell, "subduction"); cell.sutureKm = rangeKm(cell, "suture"); }
     cell.bedrock = tect ? bedrockFor(cell) : null;
