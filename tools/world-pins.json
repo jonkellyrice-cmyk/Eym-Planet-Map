@@ -25,8 +25,8 @@
   },
   "managed": {
     "registryCsvSha256": {
-      "value": "423bd3ab922076db453163fa1f40937f7e4d8832d4ba86430a79be9b52e4fe25",
-      "note": "Rain as a budget of the air's water (eym-rain-v1): the planet's rain, biomes and everything downstream made again"
+      "value": "7e80a91e9014d7c9a7abe0ef814fc0ce4a8ebc2b70e504cb1abc40947a5e10fb",
+      "note": "Rivers carry the climate: the rivers' monthly rain is the budget's, the drainage measures each channel's and each drawn river's runoff"
     }
   }
 }

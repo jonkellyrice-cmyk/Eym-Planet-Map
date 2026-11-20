@@ -1,7 +1,7 @@
 {
  "schemaVersion": 1,
  "model": "eym-caren-relief-v1",
- "sourcesSha256": "3a8b803ce86a94c93c7782aaa408ec1ddc0a180810532bcd13630d50be02bc31",
+ "sourcesSha256": "37b38ca6933063c5e47f593617e031c6d99b784184f294f84ccc953675cf9e3b",
  "climate": {
   "model": "eym-caren-climate-v2",
   "rainModel": "eym-rain-v1",
@@ -591,6 +591,218 @@
     "groundFrostMonths": 0
    }
   ],
+  "mapAgainstRain": {
+   "squares": 120,
+   "forestInDryCountry": {
+    "underMm": 900,
+    "squares": 24,
+    "middleMm": 2376,
+    "disagree": []
+   },
+   "openInVeryWetCountry": {
+    "overMm": 2500,
+    "squares": 50,
+    "middleMm": 1732,
+    "disagree": [
+     {
+      "at": [
+       5.5,
+       -2.5
+      ],
+      "annualMm": 2556
+     },
+     {
+      "at": [
+       5.5,
+       3.5
+      ],
+      "annualMm": 3594
+     },
+     {
+      "at": [
+       4.5,
+       3.5
+      ],
+      "annualMm": 3436
+     },
+     {
+      "at": [
+       3.5,
+       2.5
+      ],
+      "annualMm": 3762
+     },
+     {
+      "at": [
+       3.5,
+       3.5
+      ],
+      "annualMm": 3178
+     },
+     {
+      "at": [
+       2.5,
+       2.5
+      ],
+      "annualMm": 3100
+     },
+     {
+      "at": [
+       0.5,
+       2.5
+      ],
+      "annualMm": 3602
+     },
+     {
+      "at": [
+       0.5,
+       3.5
+      ],
+      "annualMm": 3236
+     },
+     {
+      "at": [
+       0.5,
+       4.5
+      ],
+      "annualMm": 3060
+     },
+     {
+      "at": [
+       -0.5,
+       2.5
+      ],
+      "annualMm": 3654
+     },
+     {
+      "at": [
+       -0.5,
+       3.5
+      ],
+      "annualMm": 3210
+     },
+     {
+      "at": [
+       -0.5,
+       4.5
+      ],
+      "annualMm": 2940
+     },
+     {
+      "at": [
+       -1.5,
+       2.5
+      ],
+      "annualMm": 3238
+     },
+     {
+      "at": [
+       -1.5,
+       3.5
+      ],
+      "annualMm": 2862
+     },
+     {
+      "at": [
+       -2.5,
+       3.5
+      ],
+      "annualMm": 2680
+     },
+     {
+      "at": [
+       -3.5,
+       3.5
+      ],
+      "annualMm": 2574
+     }
+    ]
+   },
+   "tanInWetCountry": {
+    "overMm": 1000,
+    "squares": 11,
+    "middleMm": 2222,
+    "disagree": [
+     {
+      "at": [
+       3.5,
+       -0.5
+      ],
+      "annualMm": 2052
+     },
+     {
+      "at": [
+       2.5,
+       -1.5
+      ],
+      "annualMm": 1022
+     },
+     {
+      "at": [
+       2.5,
+       1.5
+      ],
+      "annualMm": 3626
+     },
+     {
+      "at": [
+       1.5,
+       1.5
+      ],
+      "annualMm": 4628
+     },
+     {
+      "at": [
+       -0.5,
+       -0.5
+      ],
+      "annualMm": 1986
+     },
+     {
+      "at": [
+       -0.5,
+       1.5
+      ],
+      "annualMm": 5758
+     },
+     {
+      "at": [
+       -1.5,
+       -0.5
+      ],
+      "annualMm": 1806
+     },
+     {
+      "at": [
+       -1.5,
+       0.5
+      ],
+      "annualMm": 3938
+     },
+     {
+      "at": [
+       -1.5,
+       1.5
+      ],
+      "annualMm": 4502
+     },
+     {
+      "at": [
+       -5.5,
+       -1.5
+      ],
+      "annualMm": 1840
+     },
+     {
+      "at": [
+       -5.5,
+       1.5
+      ],
+      "annualMm": 2222
+     }
+    ]
+   }
+  },
   "molkath": {
    "box": {
     "latDeg": [

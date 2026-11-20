@@ -23,11 +23,13 @@ import { pathToFileURL } from "node:url";
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
 import { LATTICE_DEG, globeNoise, latticeNode, localContext } from "../scripts/eym-local-detail.mjs";
 import { bboxWrap, lonInExtent, lonOffset, normLon } from "../scripts/geo-wrap.mjs";
+import { yearRunoffMm } from "../scripts/eym-river-flow.mjs";
+import { WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 
-const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartography/mitkear/eym-drainage.json", root), ASSET = new URL("data/planet-cartography/mitkear/eym.json", root);
-export const DRAINAGE_MODEL = "eym-drainage-v1";
+const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartography/mitkear/eym-drainage.json", root), ASSET = new URL("data/planet-cartography/mitkear/eym.json", root), FLOW = new URL("data/planet-cartography/mitkear/eym-flow.json", root);
+export const DRAINAGE_MODEL = "eym-drainage-v2";
 /** What the drainage is made from: this tool, the local detail's surface, and the cartography it reads. */
-export const DRAINAGE_SOURCES = ["tools/generate-eym-drainage.mjs", "scripts/eym-local-detail.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-world-inputs.mjs", "scripts/geo-wrap.mjs", "data/planet-cartography/mitkear/eym.json"];
+export const DRAINAGE_SOURCES = ["tools/generate-eym-drainage.mjs", "scripts/eym-river-flow.mjs", "data/planet-cartography/mitkear/eym-flow.json", "scripts/eym-local-detail.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-world-inputs.mjs", "scripts/geo-wrap.mjs", "data/planet-cartography/mitkear/eym.json"];
 export const drainageSourcesSha256 = () => { const h = createHash("sha256"); for (const p of DRAINAGE_SOURCES) h.update(readFileSync(new URL(p, root))); return h.digest("hex"); };
 /** The smallest catchment kept (km²): a stream big enough to have cut a valley worth drawing at 300 m. */
 export const MIN_AREA_KM2 = 800;
@@ -51,10 +53,17 @@ export class MinHeap {
 }
 
 /**
+ * How much of the water coming down to a place is passed on across `stepKm` of ground whose own yearly runoff is
+ * `ownMm`: all of it where the land itself sheds water (`aridMm` or more), and up to `aridLossPer100Km` less for
+ * each 100 km where it sheds none (lost to the air and the bed).
+ */
+export const waterKept = (ownMm, stepKm, dials = WORLD_INPUTS.weather.rivers) => (ownMm >= dials.aridMm ? 1 : Math.max(0, 1 - dials.aridLossPer100Km * (1 - ownMm / dials.aridMm) * stepKm / 100));
+
+/**
  * The channels of one land mass (its outline's box, with a margin of sea). `stats`, when given, is filled with what
  * was done: the box and how many of its nodes were land.
  */
-export function drainLand(ctx, outline, nearRiver, stats = null) {
+export function drainLand(ctx, outline, nearRiver, stats = null, runoffAt = null, courses = []) {
   // Its box, the longitudes as the shortest arc that holds it (scripts/geo-wrap.mjs): west to east, the columns
   // running on past 180° for a land mass that crosses the map's seam.
   const { minLat, maxLat, lonExtent } = bboxWrap(outline), minLon = lonExtent.westLon, maxLon = lonExtent.westLon <= lonExtent.eastLon ? lonExtent.eastLon : lonExtent.eastLon + 360;
@@ -96,21 +105,48 @@ export function drainLand(ctx, outline, nearRiver, stats = null) {
   }
   const area = new Float64Array(n);
   for (let k = ordered - 1; k >= 0; k -= 1) { const i = order[k]; if (!land[i]) continue; area[i] += CELL_KM * CELL_KM * Math.cos(((i0 + ((i / cols) | 0)) * LATTICE_DEG) * DEG); if (receiver[i] >= 0 && land[receiver[i]]) area[receiver[i]] += area[i]; }
+  // The water each node passes on (km² × mm a year): its own runoff (what the rain leaves after soil and plant, by
+  // its climate and height) and what comes down to it. Crossing arid ground (runoff under `aridMm`) a stream loses
+  // water to the air and its bed: up to `aridLossPer100Km` of it for each 100 km, so a river can dwindle and die.
+  const water = new Float64Array(n), W = WORLD_INPUTS.weather.rivers;
+  if (runoffAt) for (let k = ordered - 1; k >= 0; k -= 1) {
+    const i = order[k]; if (!land[i]) continue; const r = (i / cols) | 0, own = runoffAt((i0 + r) * LATTICE_DEG, (j0 + (i - r * cols)) * LATTICE_DEG, z[i]) ?? 0;
+    const kept = waterKept(own, CELL_KM, W);
+    water[i] = water[i] * kept + CELL_KM * CELL_KM * Math.cos(((i0 + r) * LATTICE_DEG) * DEG) * own; if (receiver[i] >= 0 && land[receiver[i]]) water[receiver[i]] += water[i];
+  }
+  /** The mean yearly runoff (mm) of the land a node drains, as it reaches the node. */
+  const runoffOf = (i) => (runoffAt && area[i] > 0 ? Math.min(65535, Math.round(water[i] / area[i])) : 0);
   // Channels: from each head down to the sea, a lake, a known river or a channel already traced.
   const channel = (i) => land[i] && area[i] >= MIN_AREA_KM2 && !river[i], upstream = new Uint8Array(n);
   for (let i = 0; i < n; i += 1) if (channel(i) && receiver[i] >= 0 && channel(receiver[i])) upstream[receiver[i]] = 1;
   // A point: its lattice row and column, and the area it drains in tens of km².
-  const seen = new Uint8Array(n), out = [], point = (i) => [i0 + Math.floor(i / cols), j0 + (i % cols), Math.min(65535, Math.round(area[i] / 10))];
+  const seen = new Uint8Array(n), out = [], point = (i) => [i0 + Math.floor(i / cols), j0 + (i % cols), Math.min(65535, Math.round(area[i] / 10)), runoffOf(i)];
   for (let i = 0; i < n; i += 1) {
     if (!channel(i) || upstream[i]) continue;
     const line = []; let k = i;
     while (k >= 0) { line.push(point(k)); if (!channel(k) || seen[k]) break; seen[k] = 1; k = receiver[k]; }
     // The end is the sea, a lake or a known river: it carries at least the water that reaches it, not the sea cell's own nothing.
-    if (line.length >= 2) line.at(-1)[2] = Math.max(line.at(-1)[2], line.at(-2)[2]);
+    if (line.length >= 2) { if (line.at(-1)[2] < line.at(-2)[2]) line.at(-1)[3] = line.at(-2)[3]; line.at(-1)[2] = Math.max(line.at(-1)[2], line.at(-2)[2]); }
     // Every other point (the channel steps across 2.2 km nodes; its ends and junction are kept).
     if (line.length >= 3) out.push(line.filter((p, k) => k % 2 === 0 || k === line.length - 1));
   }
   if (stats) Object.assign(stats, { rows, cols, nodes: n, landNodes });
+  // The known rivers: the land each truly drains and its runoff, at up to forty places along its course (the node
+  // of its valley that carries the most water, within a node of the course).
+  const rivers = [];
+  if (runoffAt) for (const course of courses) {
+    const stepBy = Math.max(1, Math.ceil(course.points.length / 40)), at = [];
+    for (let k = 0; k < course.points.length; k += stepBy) {
+      const r0 = Math.round(course.points[k][0] / LATTICE_DEG) - i0, c0 = Math.round(course.points[k][1] / LATTICE_DEG) - j0; let best = -1;
+      for (let dr = -1; dr <= 1; dr += 1) for (let dc = -1; dc <= 1; dc += 1) { const rr = r0 + dr, cc = c0 + dc; if (rr < 0 || cc < 0 || rr >= rows || cc >= cols) continue; const j = rr * cols + cc; if (land[j] && (best < 0 || water[j] > water[best])) best = j; }
+      at.push(best < 0 ? [k, 0, 0] : [k, Math.min(65535, Math.round(area[best] / 10)), runoffOf(best)]);
+    }
+    // (A river does not carry less land's water farther down: where the course strays off the valley's node that
+    // carries it, the measure upstream stands.)
+    for (let m = 1; m < at.length; m += 1) if (at[m - 1][1] * at[m - 1][2] > at[m][1] * at[m][2]) { at[m][1] = at[m - 1][1]; at[m][2] = at[m - 1][2]; }
+    if (at.some((p) => p[1] > 0)) rivers.push({ id: course.id, at });
+  }
+  out.rivers = rivers;
   return out;
 }
 
@@ -137,7 +173,8 @@ export const landMassesOf = (asset) => asset.terrain.coastlines.filter((c) => c.
 export function landMassFingerprint(asset, coast) {
   const box = bboxWrap(coast.points), near = (points) => points.some(([lat, lon]) => lat >= box.minLat - 3 && lat <= box.maxLat + 3 && lonInExtent(lon, box.lonExtent, 3));
   const h = createHash("sha256");
-  for (const p of ["tools/generate-eym-drainage.mjs", "scripts/eym-local-detail.mjs", "scripts/geo-wrap.mjs", "scripts/eym-river-courses.mjs", "scripts/eym-surface.mjs", "scripts/eym-seasons.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-world-inputs.mjs"]) h.update(readFileSync(new URL(p, root)));
+  if (existsSync(FLOW)) h.update(readFileSync(FLOW));
+  for (const p of ["tools/generate-eym-drainage.mjs", "scripts/eym-river-flow.mjs", "scripts/eym-local-detail.mjs", "scripts/geo-wrap.mjs", "scripts/eym-river-courses.mjs", "scripts/eym-surface.mjs", "scripts/eym-seasons.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-world-inputs.mjs"]) h.update(readFileSync(new URL(p, root)));
   h.update(JSON.stringify([
     coast.points, asset.terrain.coastlines.filter((c) => near(c.points)).map((c) => [c.kind, c.continent, c.points]),
     asset.hydrology.lakes.filter((l) => near(l.polygon)), (asset.terrain.detail ?? []).map((d) => [d.kind, d.rings.filter(near)]),
@@ -148,8 +185,17 @@ export function landMassFingerprint(asset, coast) {
 
 /** One land mass drained: { continent, latticeDeg, channels, stats }. */
 function drainOne(asset, ctx, coast) {
-  const started = Date.now(), stats = {}, channels = drainLand(ctx, coast.points, riverTest(ctx), stats);
-  return { continent: coast.continent, latticeDeg: LATTICE_DEG, channels, stats: { ...stats, seconds: (Date.now() - started) / 1000, rssMb: Math.round(process.memoryUsage().rss / 1e6) } };
+  // The runoff is read from the rivers' monthly climate (data/planet-cartography/mitkear/eym-flow.json) through a
+  // copy of the asset: the local detail the water is routed over is built without it, as it always was.
+  const wet = existsSync(FLOW) ? { ...asset, flow: JSON.parse(readFileSync(FLOW, "utf8")) } : null;
+  // (A square the rivers' climate does not hold, a sliver of coast, takes the mean of the squares beside it that it does.)
+  const beside = new Map(), runoffAt = wet ? (lat, lon, elevationM) => {
+    const own = yearRunoffMm(wet, ctx.field.cellAt(lat, lon).id, Math.max(0, elevationM)); if (own != null) return own;
+    const key = `${Math.floor(lat)}|${Math.floor(lon)}`; if (!beside.has(key)) { const near = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]].map(([a, b]) => yearRunoffMm(wet, ctx.field.cellAt(lat + a, lon + b).id, Math.max(0, elevationM))).filter((v) => v != null); beside.set(key, near.length ? near.reduce((s, v) => s + v, 0) / near.length : null); }
+    return beside.get(key);
+  } : null;
+  const started = Date.now(), stats = {}, channels = drainLand(ctx, coast.points, riverTest(ctx), stats, runoffAt, ctx.rivers), rivers = channels.rivers ?? [];
+  return { continent: coast.continent, latticeDeg: LATTICE_DEG, channels: [...channels], rivers, stats: { ...stats, seconds: (Date.now() - started) / 1000, rssMb: Math.round(process.memoryUsage().rss / 1e6) } };
 }
 
 /** The drainage document from the land masses' channels, in order. */
@@ -157,11 +203,18 @@ function pack(parts) {
   const channels = parts.flatMap((p) => p.channels), points = channels.flat(), view = new DataView(new ArrayBuffer(points.length * 6));
   // Packed: every point as three little-endian 16-bit numbers (row, column, area ÷ 10), and each channel's length.
   points.forEach(([i, j, a], k) => { view.setInt16(k * 6, i, true); view.setInt16(k * 6 + 2, j, true); view.setUint16(k * 6 + 4, a, true); });
+  const u16 = (values) => { const b = Buffer.alloc(values.length * 2); values.forEach((v, k) => b.writeUInt16LE(v, k * 2)); return b.toString("base64"); };
+  // The known rivers' own catchments: each river's id, how many places along it are measured, and for each place
+  // its index along the course, the land it drains (÷ 10 km²) and that land's mean yearly runoff (mm).
+  const rivers = parts.flatMap((p) => p.rivers ?? []).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   return {
     schemaVersion: 1, model: DRAINAGE_MODEL, sourcesSha256: drainageSourcesSha256(), minAreaKm2: MIN_AREA_KM2,
     // Each land mass's lattice step (degrees) and how many of the channels, in order, are its.
     landMasses: parts.map((p) => ({ continent: p.continent, latticeDeg: p.latticeDeg, channels: p.channels.length })),
     channelLengths: channels.map((c) => c.length), pointsInt16Base64: Buffer.from(view.buffer).toString("base64"),
+    // Beside each channel point, in the same order: the mean yearly runoff (mm) of the land it drains.
+    runoffMmUint16Base64: u16(points.map((p) => p[3] ?? 0)),
+    rivers: { ids: rivers.map((r) => r.id), lengths: rivers.map((r) => r.at.length), atUint16Base64: u16(rivers.flatMap((r) => r.at.flat())) },
   };
 }
 

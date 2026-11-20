@@ -281,6 +281,10 @@ export const WORLD_INPUTS = deepFreeze({
     // gives wider rivers, drier narrower (scripts/eym-river-flow.mjs). Fixed, so that one land's climate never
     // changes another land's rivers.
     riverReferenceRunoffMm: 1000,
+    // A stream crossing arid ground (where the land's own yearly runoff is under `aridMm`) loses water to the air
+    // and its bed: up to `aridLossPer100Km` of what it carries for each 100 km (as the Nile does in the Sudd and
+    // the Okavango in its delta), so a river can dwindle and die in a dry basin.
+    rivers: { aridMm: 25, aridLossPer100Km: 0.2 },
     /**
      * The land's hand on the large-scale atmosphere (scripts/eym-land-atmosphere.mjs; owner, 20 November 2026).
      */

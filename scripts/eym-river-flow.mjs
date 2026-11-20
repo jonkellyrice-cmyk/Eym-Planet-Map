@@ -78,6 +78,12 @@ function cellBalance(climate, cellId, elevationM) {
   return hit;
 }
 
+/** The year's runoff (mm) of a climate cell at a height (m): what its rain leaves to the streams after soil and plant. Null without the climate or the cell. */
+export function yearRunoffMm(asset, cellId, elevationM) {
+  const climate = flowClimate(asset); if (!climate) return null;
+  const balance = cellBalance(climate, cellId, elevationM); return balance ? balance.runoffMm.reduce((a, b) => a + b, 0) : null;
+}
+
 // ---------------------------------------------------------------- a river's year
 
 const regimes = new WeakMap();
@@ -85,14 +91,16 @@ const regimes = new WeakMap();
 /**
  * A river's year at one place along it: `river` is { points: [[lat, lon], …] from source to mouth } and `k` the
  * index of the point; the land upstream (points 0…k) sets the climate it drains, at the height of each point
- * (`elevationAt(lat, lon)`), and `areaKm2` the land it drains. Returns { flowM3s[12], meanM3s, bankfullM3s,
+ * (`elevationAt(lat, lon)`), and `areaKm2` the land it drains. `upstreamRunoffMm`, when the drainage measured it,
+ * is the mean yearly runoff of all that land (not only of the ground along the river): the year's water is then
+ * that, shared among the months as the land along the river shares it. Returns { flowM3s[12], meanM3s, bankfullM3s,
  * snowFed (the share of the year's water that fell as snow), months }.
  */
-export function riverYear(asset, field, river, k, areaKm2, elevationAt) {
+export function riverYear(asset, field, river, k, areaKm2, elevationAt, upstreamRunoffMm = null) {
   const climate = flowClimate(asset); if (!climate || !river?.points?.length) return null;
   const upto = clamp(Math.round(k), 0, river.points.length - 1), bucket = Math.round(upto / Math.max(1, river.points.length - 1) * 20);
   let memo = regimes.get(river); if (!memo) regimes.set(river, (memo = new Map()));
-  const key = `${bucket}|${Math.round(areaKm2)}`; if (memo.has(key)) return memo.get(key);
+  const key = `${bucket}|${Math.round(areaKm2)}|${upstreamRunoffMm == null ? "" : Math.round(upstreamRunoffMm)}`; if (memo.has(key)) return memo.get(key);
   // The upstream land: up to 40 points spread from the source to here.
   const last = Math.round(bucket / 20 * (river.points.length - 1)), step = Math.max(1, Math.ceil((last + 1) / 40));
   const runoff = new Array(MONTHS).fill(0); let n = 0, melt = 0, total = 0;
@@ -103,7 +111,8 @@ export function riverYear(asset, field, river, k, areaKm2, elevationAt) {
   if (!n) { memo.set(key, null); return null; }
   // Flow (m³/s) from the land's runoff, then smoothed and delayed by the river's size (a linear store of
   // some days for a brook, a month or more for a great river).
-  const inflow = runoff.map((mm) => areaKm2 * 1e6 * (mm / n) / 1000 / SECONDS_PER_MONTH), lag = clamp(0.15 + Math.log10(1 + areaKm2) / 7, 0.15, 1.2);
+  const whole = upstreamRunoffMm != null && total > 0 ? upstreamRunoffMm / (total / n) : 1;
+  const inflow = runoff.map((mm) => areaKm2 * 1e6 * (mm / n) * whole / 1000 / SECONDS_PER_MONTH), lag = clamp(0.15 + Math.log10(1 + areaKm2) / 7, 0.15, 1.2);
   const flow = new Array(MONTHS).fill(inflow.reduce((a, b) => a + b, 0) / MONTHS);
   for (let pass = 0; pass < 4; pass += 1) for (let m = 0; m < MONTHS; m += 1) { const prev = flow[(m + MONTHS - 1) % MONTHS]; flow[m] = prev + (inflow[m] - prev) / (1 + lag); }
   // The bed is cut to the flood most years bring: a little below the peak month's flow, so a river overtops its banks
