@@ -153,6 +153,19 @@ Expectation checks for the rebuild after the growth (owner, 19 November 2026). T
 - *Jets:* more meandering and more frequent blocking, especially in the northern hemisphere.
 - *Stage 5:* Khohalis at high northern latitudes allows land ice sheets: expect much larger ice ages than the aquaplanet addendum assumed, with sea-level drops of tens of metres exposing shelves around Caren and Garyk. Stage 5's expectations are revised accordingly.
 
+Weather model: the land drives the large-scale atmosphere (owner, 20 November 2026). After the land-growth fixes and before or alongside the full rebuild. The far continents' coarse data (a land mask at about 1° to 2°, the coarse heights of the major ranges and plateaus) is enough; the gap is that parts of the atmosphere ignore it.
+
+Findings on main: the ocean climate (`tools/generate-eym-climate.mjs`) already uses the land mask (coasts as walls) and places the El Niño-like pattern over the widest equatorial ocean from the land: keep. `rainBeltLat` (`scripts/eym-seasons.mjs`, used in `scripts/eym-weather.mjs`) depends only on the season, not on longitude or land: no monsoons. `jetLatAt` (`scripts/eym-weather.mjs`) draws meanders and blocking from the clock and noise only, independent of continents and mountains. `seasonalTemperature` (`scripts/eym-seasons.mjs`) uses continentality with coefficients reduced for a near-aquaplanet.
+
+1. *Monsoons: a land-aware rain belt.* The rain belt's latitude becomes a function of longitude and season. Over and near large land it follows the summer sun much farther, driven by the land fraction and the land's heating along that band of longitude; over open ocean it shifts less, as now. Monsoon winds reverse over and beside large continents (Gaffa first). Everything from the coarse land mask and heights; deterministic.
+2. *Stationary jet waves and blocking.* Each jet's meander is split into a stationary part anchored by the continents and major ranges (troughs and ridges in fixed places: downstream of large mountain belts and plateaus, and along the continents' eastern coasts in winter) and the travelling waves there are now. Blocking is more frequent where the stationary ridges sit. Deterministic from the land and the clock.
+3. *Continentality.* The seasonal-swing coefficients are recalibrated for Earth-like continents (as in the land-growth rebuild block), checked against Earth's climate at comparable latitudes and continent sizes.
+4. *Stage 5.* Ice-sheet extent and surface brightness feed back on regional temperatures there (no feedback is modelled until Stage 5).
+5. *Report the effect on Caren and Garyk:* the shift in their rainfall, trade winds and seasonal timing from the monsoon's pull, and any change in cyclone tracks. Confirm that the world's author's Caren canon still holds (tropical Dubos, mild seasons, forested, the enclosed desert basin).
+6. *Tests:* the rain belt reaches farther poleward over large summer-hemisphere land than over open ocean; jet troughs and ridges recur at the same longitudes across years; blocking concentrates where the stationary ridges sit; determinism; Caren's and Garyk's outputs change only through these documented mechanisms.
+
+Where it sits in the work: the land-driven atmosphere is built on the grown world, so it comes after the growth is reworked onto main and its outlines and relief are shown (step 1), and before the revised climate is shown (step 3), so that the climate the owner sees already has monsoons, anchored jets and Earth-like seasons in it. Items 1 to 3 and 5 to 6 are that work; item 4 waits for Stage 5.
+
 ### Scope of detail (owner's decision, 17 November 2026)
 
 This overrides anything below that plans for all five continents.
