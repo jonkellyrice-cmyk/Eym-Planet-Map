@@ -154,13 +154,19 @@ const keyedNoise = (key, t) => {
  * the eastern side of its basin in a warm year and less to the western side, most in the tropics; and the rest of
  * the year-to-year swing (some ±15%), smooth from year to year and the same for every river in a 5° region.
  */
+/** How far beyond each end of the oscillation's basin its shores share in it, as a share of the basin's width. */
+export const ENSO_SHORE = 0.15;
 export function yearWetness(asset, mouth, timeMs) {
   if (!mouth) return 1;
   const basin = asset?.climate?.enso?.basin, years = (timeMs - NORTHWARD_EQUINOX_MS) / (DAYS_PER_YEAR * DAY_MS);
   let enso = 0;
   if (basin) {
-    const across = ((((mouth[1] - basin.westLon) % 360) + 360) % 360) / basin.widthDeg; // 0 at the west side, 1 at the east
-    const side = across <= 1.15 ? clamp(2 * across - 1, -1, 1) : 0, tropics = Math.exp(-((mouth[0] / 25) ** 2));
+    // Where the mouth lies across the basin: 0 at its west side, 1 at its east. The lands that shut the basin in
+    // are its shores and share in the side they stand on, for `ENSO_SHORE` of its width beyond each end (so Caren,
+    // the land the warm water piles against, is the western shore: dry years when the basin warms, as with the
+    // lands west of Earth's Pacific; owner and world's author, 20 November 2026). Farther off there is no share.
+    const beyond = (360 - basin.widthDeg) / 2, east = ((((mouth[1] - basin.westLon + beyond) % 360) + 360) % 360) - beyond, across = east / basin.widthDeg;
+    const side = across >= -ENSO_SHORE && across <= 1 + ENSO_SHORE ? clamp(2 * across - 1, -1, 1) : 0, tropics = Math.exp(-((mouth[0] / 25) ** 2));
     enso = 0.25 * ensoIndex(timeMs, asset.climate.enso) * side * tropics;
   }
   const swing = 0.15 * keyedNoise(`${RIVER_FLOW_MODEL}|year|${Math.floor(mouth[0] / 5)}|${Math.floor(mouth[1] / 5)}`, years);
