@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { COVER, localContext, roadsNear } from "../scripts/eym-local-detail.mjs";
 import { toLocal } from "../scripts/eym-surface.mjs";
-import { REGION_CELL_KM, REGION_TILE_CELLS, REGION_TILE_KM, buildRegionTile, regionFrameHasTile, regionFrames, regionTileAt } from "../scripts/eym-region-layer.mjs";
+import { REGION_CELL_KM, REGION_TILE_CELLS, REGION_TILE_KM, buildRegionTile, regionFrameFor, regionFrameHasTile, regionFrames, regionTileAt } from "../scripts/eym-region-layer.mjs";
+import { destination, greatCircleKm } from "../scripts/eym-surface.mjs";
 import { REGION_PALETTE, flatRegionTile, renderRegionTile } from "../scripts/eym-region-paint.mjs";
 import { REGION_FINGERPRINT_FILE, moduleClosure, regionFingerprint } from "../tools/generate-region-fingerprint.mjs";
 import { attachCoasts, attachDrainage, attachFlow, attachGeology, attachWind, coastsFileName, drainageFileName, flowFileName, geologyFileName, windFileName } from "../scripts/cartography-asset.mjs";
@@ -129,4 +130,31 @@ test("a tile is the same whichever tiles were made before it", () => {
   // And alone, in a world that has made nothing else.
   for (const w of [wanted[1], wanted[3]]) assert.equal(digest(fresh()(...w)), a.get(w.join()), `${w.join(" ")} alone`);
   assert.ok(garyk);
+});
+
+// ---------------------------------------------------------------- frames across ±180° and out of scope (land-growth scaling, Fix 6)
+
+test("a detailed land that lay across ±180° would get a frame about its true middle, and tiles that join across the seam", () => {
+  // Caren's name on a land 1,000 km across that straddles the date line, with an island beyond it.
+  const center = [12, -179.4], round = (at, km) => Array.from({ length: 90 }, (_, i) => destination(at, i * 4, km));
+  const world = { terrain: { coastlines: [{ continent: "Caren", kind: "mainland", points: round(center, 500) }, { continent: "Caren", kind: "island", points: round(destination(center, 90, 700), 60) }] } };
+  const frame = regionFrameFor(world, { name: "Caren", store: 1 });
+  assert.ok(greatCircleKm(frame.center, center) < 15, `its centre ${frame.center} is the middle of the land`);
+  const { tx0, tx1, ty0, ty1 } = frame.tiles;
+  // 1,000 km of mainland and an island 760 km east of its middle: some 16 tiles by 14, not a band round the world.
+  assert.ok(tx0 >= -8 && tx0 <= -6 && tx1 >= 9 && tx1 <= 11 && ty0 >= -8 && ty0 <= -6 && ty1 >= 6 && ty1 <= 8, JSON.stringify(frame.tiles));
+  // Two places 20 km apart on either side of the seam fall in the same or neighbouring tiles, the right way round.
+  const west = regionTileAt(frame, 12, 179.95), east = regionTileAt(frame, 12, -179.87);
+  assert.ok(east.tx - west.tx >= 0 && east.tx - west.tx <= 1 && east.ty === west.ty);
+  assert.ok(Math.abs((east.tx - west.tx) * REGION_TILE_CELLS + east.px - west.px - 19.6 / REGION_CELL_KM) < 2, "20 km apart on the frame too");
+});
+
+test("the Region layer refuses a frame for land outside the detailed scope, by name and by size", () => {
+  assert.throws(() => regionFrameFor(asset, { name: "Gaffa", store: 9 }), /Caren and Garyk and the sea between them only: Gaffa is outside it/);
+  // Caren's name on a land the size the far continents are to become: no flat frame holds it.
+  const huge = { terrain: { coastlines: [{ continent: "Caren", kind: "mainland", points: Array.from({ length: 180 }, (_, i) => destination([10, 40], i * 2, 3200)) }] } };
+  assert.throws(() => regionFrameFor(huge, { name: "Caren", store: 1 }), /too large for the Region layer/);
+  // Today's frames are well inside the limit and are what they were.
+  assert.deepEqual(frames.map((f) => f.id), ["caren", "garyk", "caren-garyk-sea"]);
+  assert.deepEqual(regionFrameFor(asset, { name: "Caren", store: 1 }), caren);
 });

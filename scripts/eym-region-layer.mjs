@@ -9,7 +9,7 @@
 // storage here.
 
 import { bboxWrap } from "./geo-wrap.mjs";
-import { fromLocal, greatCircleKm, toLocal } from "./eym-surface.mjs";
+import { FRAME_STRETCH_LIMIT, frameStretch, fromLocal, greatCircleKm, toLocal } from "./eym-surface.mjs";
 import { annualMeanTemperatureC } from "./eym-seasons.mjs";
 import { COVER, coarseAt, coastDistanceKm, globeNoise, hashUnit, landformsOf, localContext, roadsNear } from "./eym-local-detail.mjs";
 import { blendedShoreAt, cliffLiftM, nearestRiver, valleyAt, windWorkAt } from "./eym-landforms.mjs";
@@ -58,12 +58,18 @@ const segmentDistance = ([ax, ay], [bx, by], x, y) => {
 
 /** A continent's frame: centred on its mainland, holding its mainland and its own islands, nothing else. */
 function continentFrame(asset, { name, store }) {
+  // The layer is for the detailed lands only (Caren, Garyk and the sea between): 300 m squares on a flat frame.
+  // Anything else is refused here, by name and by size, before a frame that could never be filled is laid out.
+  if (!DETAILED_CONTINENTS.some((c) => c.name === name)) throw new Error(`The Region layer is laid out for ${DETAILED_CONTINENTS.map((c) => c.name).join(" and ")} and the sea between them only: ${name} is outside it (it is drawn from the coarse world).`);
   const own = asset.terrain.coastlines.filter((c) => c.continent === name), mainland = own.find((c) => c.kind === "mainland");
   // The middle of its box, the longitudes taken as the shortest arc that holds it (scripts/geo-wrap.mjs).
   const { minLat, maxLat, lonExtent } = bboxWrap(mainland.points);
   const center = [Math.round((minLat + maxLat) / 2 * 100) / 100, Math.round(lonExtent.centerLon * 100) / 100];
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (const c of own) for (const [lat, lon] of c.points) { const [x, y] = toLocal(center, lat, lon); minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
+  // A flat frame is true only near its centre (scripts/eym-surface.mjs): a land that reaches past the limit cannot have one.
+  const reachKm = Math.max(Math.hypot(minX, minY), Math.hypot(minX, maxY), Math.hypot(maxX, minY), Math.hypot(maxX, maxY));
+  if (frameStretch(reachKm) > FRAME_STRETCH_LIMIT) throw new Error(`${name} reaches ${Math.round(reachKm)} km from the middle of its frame, where a flat frame is stretched ${(frameStretch(reachKm) * 100).toFixed(1)}% (the limit is ${FRAME_STRETCH_LIMIT * 100}%): it is too large for the Region layer.`);
   return { id: slug(name), name, store, center, tiles: { tx0: Math.floor(minX / REGION_TILE_KM), tx1: Math.floor(maxX / REGION_TILE_KM), ty0: Math.floor(-maxY / REGION_TILE_KM), ty1: Math.floor(-minY / REGION_TILE_KM) } };
 }
 
@@ -94,6 +100,9 @@ function inCorridor(corridor, tx, ty) {
  * them. Each has its centre, its number in the store, and the range of tiles that holds it: tile (tx, ty)
  * covers x from tx·76.8 km eastward and y from −ty·76.8 km southward of the centre.
  */
+/** One land's frame, as `regionFrames` lays it out; it refuses a land outside the detailed scope. For tests and tools. */
+export const regionFrameFor = (asset, land) => continentFrame(asset, land);
+
 export function regionFrames(asset) {
   return [...DETAILED_CONTINENTS.map((c) => continentFrame(asset, c)), straitFrame(asset)];
 }
