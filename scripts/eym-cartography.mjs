@@ -11,6 +11,7 @@ import { buildElevationMesh, circlePolygon, smoothOpen } from "./planet-cartogra
 import { polygonize } from "./cartography-regions.mjs";
 import { EYM_LAYOUT, EYM_SURFACE_MODEL, frameEastScale, frameToLatLon, fromLocal, greatCircleKm } from "./eym-surface.mjs";
 import { normLon, unwrapRing } from "./geo-wrap.mjs";
+import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
 import { seaLevelTemperatureC, zonalPrecipitationMm } from "./eym-seasons.mjs";
 import { soilFromRock } from "./eym-geology.mjs";
 import { prepareOverrides } from "./eym-overrides.mjs";
@@ -96,7 +97,7 @@ class MinHeap {
  * queue sifts step for step as the array heap it replaces did, so squares of equal height leave it in the same
  * order and today's rivers are, point for point, what they were.
  */
-function seededHydrology(frame, { riverAreaKm2 = 18_000, lakeDepthM = 25, lakeMinCells = 5 } = {}, stats = null) {
+function seededHydrology(frame, { riverAreaKm2 = 18_000, lakeDepthM = 25, lakeMinCells = 5, thinKm = 0 } = {}, stats = null) {
   const { grid, outline, elevation } = frame, { cols, rows, cellKm } = grid, n = cols * rows;
   const filled = new Float32Array(n), receiver = new Int32Array(n).fill(-1), done = new Uint8Array(n);
   let land = 0; for (let i = 0; i < n; i += 1) land += outline[i];
@@ -145,7 +146,10 @@ function seededHydrology(frame, { riverAreaKm2 = 18_000, lakeDepthM = 25, lakeMi
     }
     if (path.length < 4) continue;
     const points = path.filter((_, k) => k % 2 === 0 || k === path.length - 1).map((index) => place(...local(index)).map(round3));
-    rivers.push({ points: smoothCourse(points), dischargeKm2: Math.round(acc[path.at(-2) ?? path[0]]), mouth, elevationsM: path.filter((_, k) => k % 2 === 0 || k === path.length - 1).map((index) => Math.round(outline[index] ? elevation[index] : 0)) });
+    const heights = path.filter((_, k) => k % 2 === 0 || k === path.length - 1).map((index) => Math.round(outline[index] ? elevation[index] : 0));
+    // A coarse continent's course is thinned, and its heights with it (one for each point kept, the two ends always).
+    const course = thinKm > 0 ? thinLine(smoothCourse(points), thinKm) : smoothCourse(points);
+    rivers.push({ points: course, dischargeKm2: Math.round(acc[path.at(-2) ?? path[0]]), mouth, elevationsM: thinKm > 0 ? course.map((_, k) => heights[Math.round(k * (heights.length - 1) / Math.max(1, course.length - 1))]) : heights });
   }
   // Lakes fill the deeper closed basins.
   const lakeCell = (i) => outline[i] && filled[i] - elevation[i] > lakeDepthM, seen = new Uint8Array(n), lakes = [];
@@ -176,6 +180,46 @@ function smoothCourse(points) {
   if (!crosses) return smoothOpen(points, 1).map((p) => p.map(round3));
   return smoothOpen(unwrapRing(points), 1).map(([lat, lon]) => [lat, normLon(lon)].map(round3));
 }
+
+// ---------------------------------------------------------------- coarse writing of land too large for a flat frame
+
+const unitOf = ([lat, lon]) => { const p = lat * Math.PI / 180, l = lon * Math.PI / 180; return [Math.cos(p) * Math.cos(l), Math.cos(p) * Math.sin(l), Math.sin(p)]; };
+/** Distance (km) from a place to the great-circle arc between two others, all as unit vectors. */
+function arcDistanceKm(v, a, b) {
+  const n = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], length = Math.hypot(n[0], n[1], n[2]), dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2], angle = (p, q) => Math.acos(Math.max(-1, Math.min(1, dot(p, q))));
+  const av = [a[1] * v[2] - a[2] * v[1], a[2] * v[0] - a[0] * v[2], a[0] * v[1] - a[1] * v[0]], vb = [v[1] * b[2] - v[2] * b[1], v[2] * b[0] - v[0] * b[2], v[0] * b[1] - v[1] * b[0]];
+  if (length > 1e-12 && dot(av, n) >= 0 && dot(vb, n) >= 0) return 6371 * Math.abs(Math.asin(Math.max(-1, Math.min(1, dot(v, n) / length))));
+  return 6371 * Math.min(angle(v, a), angle(v, b));
+}
+/**
+ * A line of [lat, lon] points thinned (Douglas–Peucker) so that no point dropped lies more than `tolKm` from the
+ * line kept, measured on the sphere, so it is the same across ±180° and near a pole as anywhere. The two ends are
+ * always kept. For a closed ring (its last point its first again) the ring is cut at the point farthest from its
+ * start, so that it cannot collapse to nothing, and at least a triangle is kept.
+ */
+function thinLine(points, tolKm) {
+  const n = points.length; if (n < 3 || !(tolKm > 0)) return points;
+  const v = points.map(unitOf), keep = new Uint8Array(n), stack = [];
+  const closed = points[0][0] === points[n - 1][0] && points[0][1] === points[n - 1][1];
+  keep[0] = keep[n - 1] = 1;
+  if (closed) { let far = 0, best = -1; for (let i = 1; i < n - 1; i += 1) { const d = v[0][0] * v[i][0] + v[0][1] * v[i][1] + v[0][2] * v[i][2]; if (best < 0 || d < best) { best = d; far = i; } } keep[far] = 1; stack.push([0, far], [far, n - 1]); } else stack.push([0, n - 1]);
+  while (stack.length) {
+    const [a, b] = stack.pop(); let worst = -1, at = -1;
+    for (let i = a + 1; i < b; i += 1) { const d = arcDistanceKm(v[i], v[a], v[b]); if (d > worst) { worst = d; at = i; } }
+    if (worst > tolKm) { keep[at] = 1; stack.push([a, at], [at, b]); }
+  }
+  let kept = points.filter((_, i) => keep[i]);
+  if (closed && kept.length < 4) { const third = Math.floor(n / 3); kept = [points[0], points[third], points[2 * third], points[n - 1]]; }
+  return kept;
+}
+/** How a continent on a sphere grid is routed and written, from the `farLand` dials; undefined for one on a flat frame. */
+function coarseWater(frame, dials = WORLD_INPUTS.layout.farLand) {
+  if (!frame.sphere) return undefined;
+  const { grid } = frame; let landKm2 = 0;
+  for (let r = 0; r < grid.rows; r += 1) { let n = 0; for (let c = 0; c < grid.cols; c += 1) n += frame.land[r * grid.cols + c]; landKm2 += n * grid.cellKm * grid.cellKm * frameEastScale(frame, grid.y0 - (r + 0.5) * grid.cellKm); }
+  return { riverAreaKm2: Math.max(18_000, landKm2 / dials.riverLandShare), lakeMinCells: dials.lakeMinSquares, thinKm: dials.courseThinKm };
+}
+export { thinLine, coarseWater as frameCoarseWater };
 
 /** The routing itself, for tests and measurements: `seededHydrology(frame, options, stats)`. */
 export { seededHydrology as frameHydrology };
@@ -368,7 +412,7 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
   // Seeded continents get routed rivers and basin lakes; Caren and Garyk keep their authored water.
   const generatedRivers = [], generatedLakes = [];
   for (const frame of frames.filter((f) => f.origin === "seeded" && f.continent)) {
-    const { rivers, lakes } = seededHydrology(frame);
+    const { rivers, lakes } = seededHydrology(frame, coarseWater(frame));
     for (const river of rivers) generatedRivers.push({ ...river, continent: frame.continent });
     for (const lake of lakes) generatedLakes.push({ ...lake, continent: frame.continent });
   }
@@ -402,7 +446,11 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
 
   // ---------------------------------------------------------------- vector layers
   const centers = Object.fromEntries(surface.continents.map((c) => [c.id, c.center]));
-  const coastlines = surface.coasts.map((coast) => ({ id: coast.id, continent: coast.continent, origin: coast.origin, kind: coast.kind, closed: true, areaKm2: coast.areaKm2, areaDeg2: Number((coast.areaKm2 / KM_PER_DEG ** 2).toFixed(2)), points: [...coast.points, coast.points[0]] }))
+  // Continents on a sphere grid are written coarsely (the `farLand` dials): their coasts thinned, and below their soil
+  // and resource regions drawn by their corners only. No continent of today's world is one.
+  const coarseLand = new Set(frames.filter((f) => f.sphere && f.continent).map((f) => f.continent));
+  const coarseRegion = coarseLand.size ? (component) => component.every((cell) => coarseLand.has(cell.continent)) : null;
+  const coastlines = surface.coasts.map((coast) => ({ id: coast.id, continent: coast.continent, origin: coast.origin, kind: coast.kind, closed: true, areaKm2: coast.areaKm2, areaDeg2: Number((coast.areaKm2 / KM_PER_DEG ** 2).toFixed(2)), points: coarseLand.has(coast.continent) ? thinLine([...coast.points, coast.points[0]], WORLD_INPUTS.layout.farLand.coastThinKm) : [...coast.points, coast.points[0]] }))
     .sort((a, b) => b.areaKm2 - a.areaKm2 || a.id.localeCompare(b.id));
   const cellIdAt = ([lat, lon]) => at(clamp(Math.floor((lat + 90) / res), 0, latCount - 1), Math.floor((lon + 180) / res)).id;
   const lakes = [
@@ -419,15 +467,16 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
   // ---------------------------------------------------------------- regions
   const grid = { latCount, lonCount };
   // Land biome patches are 1° cells; round their staircase outlines into natural shapes.
-  const smoothRing = (ring) => {
+  const smoothRing = (ring, passes = 2) => {
     let points = ring.slice(0, -1).filter((p, i, all) => { const a = all[(i - 1 + all.length) % all.length], b = all[(i + 1) % all.length]; return (a[0] - p[0]) * (b[1] - p[1]) !== (a[1] - p[1]) * (b[0] - p[0]); });
-    for (let pass = 0; pass < 2; pass += 1) points = points.flatMap((p, i) => { const q = points[(i + 1) % points.length]; return [[p[0] * 0.75 + q[0] * 0.25, p[1] * 0.75 + q[1] * 0.25], [p[0] * 0.25 + q[0] * 0.75, p[1] * 0.25 + q[1] * 0.75]]; });
+    for (let pass = 0; pass < passes; pass += 1) points = points.flatMap((p, i) => { const q = points[(i + 1) % points.length]; return [[p[0] * 0.75 + q[0] * 0.25, p[1] * 0.75 + q[1] * 0.25], [p[0] * 0.25 + q[0] * 0.75, p[1] * 0.25 + q[1] * 0.75]]; });
     points = points.map((p) => p.map(round3));
     return [...points, points[0]];
   };
-  const ecoregions = polygonize(cells, "biome", res, grid).map((region) => (/ocean|sea-ice/.test(region.category) ? region : { ...region, polygons: region.polygons.map(smoothRing) }));
-  const soilRegions = polygonize(cells.filter((cell) => cell.landCovered), "soil", res, grid);
-  const resourceProvinces = polygonize(cells, "resource", res, grid);
+  // (A coarse continent's biome regions have their corners rounded once, not twice: half the points.)
+  const ecoregions = polygonize(cells, "biome", res, grid, coarseRegion).map((region) => (/ocean|sea-ice/.test(region.category) ? region : { ...region, polygons: region.polygons.map((ring) => smoothRing(ring, region.compact ? 1 : 2)) }));
+  const soilRegions = polygonize(cells.filter((cell) => cell.landCovered), "soil", res, grid, coarseRegion);
+  const resourceProvinces = polygonize(cells, "resource", res, grid, coarseRegion);
 
   // ---------------------------------------------------------------- names and settlements
   const tracedCaren = traced.continents.caren, tracedGaryk = traced.continents.garyk;

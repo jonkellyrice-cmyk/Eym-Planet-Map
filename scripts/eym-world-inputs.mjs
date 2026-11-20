@@ -37,6 +37,23 @@ export const WORLD_INPUTS = deepFreeze({
     // moved to 8.8°N 39°E, the open ocean Gaffa left; its islands keep their shape around the new centre.)
     archipelagos: { count: 10, islands: [5, 14], spreadKm: 420, minCoastClearanceKm: 900, areaKm2: [60, 18_000], placementDraws: 36,
       centers: [[-33.425, 154.562], [-15.44, -64.333], [-13.744, 60.808], [36.419, 115.164], [12.415, 95.444], [8.836, 39], [-21.136, -115.839], [20.432, -131.434], [-20.699, -163.072], [-16.488, 19.933]] },
+
+    /**
+     * How coarsely a continent too large for a flat frame is written into the shipped cartography
+     * (scripts/eym-cartography.mjs). Such a continent is known only coarsely (22 km squares, no Region tiles), and
+     * every kilobyte of it is loaded by the module, on phones too; so it is kept to what a whole-world or
+     * whole-continent map can show. Nothing here touches Caren, Garyk or any land on a flat frame.
+     */
+    farLand: {
+      // A river is drawn where it drains at least one part in `riverLandShare` of its continent (and never less than
+      // the 18,000 km² that holds everywhere): about two hundred rivers on the largest continent, not eight hundred.
+      riverLandShare: 800,
+      // A lake is kept from this many squares (about 5,900 km²) instead of five.
+      lakeMinSquares: 12,
+      // Courses and coasts are thinned (Douglas–Peucker, measured on the sphere) so that no point dropped lies
+      // farther than this from the line kept: a quarter of a square for rivers and for coasts.
+      courseThinKm: 6, coastThinKm: 5,
+    },
   },
 
   /** The plate fit (tools/generate-eym-tectonics.mjs). */
@@ -93,4 +110,5 @@ export const WORLD_INPUTS = deepFreeze({
     // across the shelf; no surge is reported below `surgeMinM` metres or allowed above `surgeMaxM`.
     surgeDragCoefficient: 0.0025, surgeMinM: 0.3, surgeMaxM: 9,
   },
+
 });

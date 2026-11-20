@@ -4,12 +4,27 @@
     "coastSha256": {
       "Caren": "6200884021edf3166e8c7cb6b209431b188bd6dd9a5706412f2504815c43bb5f",
       "Garyk": "953d7b92cd342baab154888dcddb499306d0d2e91380f1da52b43f0dc1d837e0"
+    },
+    "dataBudget": {
+      "note": "The shipped data files as they were before the land grew (commit 306c3a7, 19 November 2026), in bytes. No file may pass `factor` times its size here, nor all of them together `factor` times their sum (2,824,693).",
+      "factor": 1.5,
+      "preGrowthBytes": {
+        "tectonics": 427831,
+        "climate": 284417,
+        "asset": 1468861,
+        "geology": 125616,
+        "ocean": 65251,
+        "drainage": 313441,
+        "wind": 37135,
+        "flow": 17823,
+        "coasts": 84318
+      }
     }
   },
   "managed": {
     "registryCsvSha256": {
-      "value": "d217cd2306669e16a068eb85ef25a9f00bf1974f7e56e01a59255f159128cd11",
-      "note": "Land-growth scaling, Fix 4: the surface and tectonics tools changed (sphere grid for land too large for a flat frame; wrap-aware box in the tectonics tool), so Eym's input fingerprint in the registry changed. The plate history was fitted again and every derived file has the same content; only source stamps and fingerprints differ."
+      "value": "a5ef765c161456b0ec1a2037609a17783f77637ecb53e8c8593af9d67f7d71db",
+      "note": "Land-growth scaling, Fix 7: the layout dials gained the farLand group (how a continent on a sphere grid is written), so Eym's input fingerprint in the registry changed. The plate history was fitted again and every derived file has the same content; only source stamps and fingerprints differ."
     }
   }
 }
