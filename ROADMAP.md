@@ -63,6 +63,7 @@ This is the order for everything after the Part 1 retrofits above, and it replac
    - Auroras only around the magnetic poles: an oval at about 65–75° magnetic latitude, reaching lower in strong storms; great storms down to about 20–25°, rarely. Drawn in the night sky's style.
    - Test that Caren and Garyk never see an aurora, even in the greatest storms.
    - A compass-declination readout by place and date; ask the owner before putting it in the panel.
+   - **Done** (20 November 2026): the field and the auroras (`scripts/eym-magnetic.mjs`), their dials, the survey against the canon in the propagation chain (`tools/generate-eym-magnetic.mjs`, `data/eym/magnetic.json`, four standing checks), the aurora in the night sky and its line in the sky's panel (shown only where an aurora can ever be seen). The compass's declination, dip and the field's strength are worked out for any place and date (`magneticAt`) but shown nowhere: the owner decided against a readout (20 November 2026: declination does not matter where the campaign plays). Finding: since Khohalis was grown its coast is 277 km from the pole's loop (it was 2,670 km); the pole is still over open sea, and the owner accepts that.
 2. **Resources** (pulled forward from Human geography 2.1: the world's author says ores and coal matter to the campaign).
    - Ore provinces from geology:
      - copper, gold and silver at volcanic arcs;

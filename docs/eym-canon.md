@@ -29,8 +29,10 @@ islands:
 | The crossing (great circle between their centres) | | | 9.9° |
 
 Declination of about 10° is ordinary on Earth and a navigator corrects for it; at Garyk it is under 3°. The pole lies
-over open ocean: there is no land between 77° and 82° N from 75° to 105° E, and the nearest coast (Khohalis) is about
-2,670 km away.
+over open ocean: there is no land between 77° and 82° N from 75° to 105° E. (When this was written the nearest coast,
+Khohalis, was about 2,670 km away. Since Khohalis was grown, 20 November 2026, its north-west coast near 79° N, 112° E
+is the nearest land: 277 km from the eastern end of the pole's loop. The pole is still over open sea, with less to
+spare; the world's checks hold it to at least 150 km, and the owner accepts the 277 km.)
 
 *Drift:* the pole wanders slowly and deterministically, 10–50 km a year, always inside the box **79°–80° N,
 80°–100° E** (about 405 km long and 110 km wide; it moves back and forth along the box rather than freely, because the
@@ -47,12 +49,22 @@ auroras below), so there are no auroras over either, ever. Checked at 451 pole p
 a limit.
 
 *Auroras* (Stage 6): only around the magnetic poles, in an oval at about 65°–75° magnetic latitude, lower in strong
-storms; great storms reach about 20°–25°, rarely. A compass-declination readout by place and date is planned; the
-owner is to be asked before it goes into the panel.
+storms; great storms reach about 20°–25°, rarely. A compass-declination readout by place and date was planned; the
+owner decided against it (20 November 2026): declination does not matter where the campaign plays.
 
 *Implementation:* Stage 6 of the physical history and climate programme (`ROADMAP.md`). Its tests check that the
 pole stays in the box, that Caren's and Garyk's coasts stay within the magnetic latitudes above, and that neither
 ever sees an aurora.
+
+*As built (Stage 6, 20 November 2026; `scripts/eym-magnetic.mjs`, dials in `scripts/eym-world-inputs.mjs`):* the pole
+goes once round a long, narrow loop inside the box (79.05°–79.95° N, 81°–99° E) every 26 years, at 12 to 46 km a
+year. Surveyed at 72 places round the loop over every coast point (`data/eym/magnetic.json`): Caren's coasts lie at
+magnetic latitudes −11.6° to +10.1° and its compass is off by at most 11.1°; Garyk's at −3.0° to +11.6° and 5.8°.
+The south magnetic pole (the antipode, near 79.5° S, 90° W) is 2,376 km from the nearest land (Demani). The night's
+activity runs from 0 (quiet) to 9 (a severe storm) by rule from the date, a storm on about one night in twenty,
+oftener near the top of an 11-year cycle; the oval lies at 65°–75° of magnetic latitude when quiet and its edge moves
+2° toward the equator with each level; a great storm comes about three times a century, lasts one to three days and
+is seen down to 20°–25°, never below 20°. Caren and Garyk are at least 8° clear of that.
 
 ## Caren (from the world's author, 18 November 2026)
 

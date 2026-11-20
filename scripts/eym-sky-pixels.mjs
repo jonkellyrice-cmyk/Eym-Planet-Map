@@ -194,6 +194,47 @@ export function renderSkyVeil({ width, height, cx, cy, radius, snapshot, cloud =
   return out;
 }
 
+// ---------------------------------------------------------------- the aurora
+
+/** The aurora's colours: the green of its curtains, the red of their tops, and the violet hem of a strong one. */
+export const AURORA_PALETTE = Object.freeze({ green: hex("#6dfb9c"), red: hex("#e2475f"), violet: hex("#9a6bff") });
+// The heights (km) the light is gathered at, and how much green and red each gives.
+const AURORA_LAYERS = Object.freeze([[100, 0.5, 0, 0.5], [112, 1, 0, 0], [130, 0.85, 0.05, 0], [160, 0.45, 0.2, 0], [210, 0.12, 0.6, 0], [270, 0, 0.8, 0], [340, 0, 0.5, 0]]);
+
+/**
+ * The aurora over the dome (RGBA, to lay over the background and under the stars), or null when there is none to
+ * see. `aurora` is scripts/eym-magnetic.mjs auroraAt: where its oval lies from here (how many degrees of magnetic
+ * latitude toward the magnetic pole, and that pole's bearing), how wide and how strong. Each pixel's line of
+ * sight is followed up to the heights where the light is made; curtains hang along the oval and their rays run
+ * with the height, so they stand upright low in the sky and fan out overhead. Daylight, twilight and cloud hide it.
+ */
+export function renderAurora({ width, height, cx, cy, radius, rotationDeg = 0, snapshot, aurora, cloud = 0 }) {
+  if (!aurora || aurora.seen === "none" || !(aurora.strength > 0)) return null;
+  const dark = smooth(6, 14, -snapshot.sun.altDeg) * (1 - 0.9 * clamp(cloud, 0, 1)), power = aurora.strength * dark; if (power <= 0.02) return null;
+  const out = new Uint8ClampedArray(width * height * 4), Re = 6371, toward = aurora.towardDeg * DEG, half = Math.max(1.5, aurora.widthDeg / 2), phase = aurora.phase ?? 0, great = aurora.great ? 1 : 0;
+  const { green, red, violet } = AURORA_PALETTE;
+  for (let y = Math.max(0, Math.floor(cy - radius)); y <= Math.min(height - 1, Math.ceil(cy + radius)); y += 1) for (let x = Math.max(0, Math.floor(cx - radius)); x <= Math.min(width - 1, Math.ceil(cx + radius)); x += 1) {
+    const dx = x + 0.5 - cx, dy = y + 0.5 - cy, dist = Math.hypot(dx, dy); if (dist > radius + 0.5) continue;
+    const alt = (90 - Math.min(1, dist / radius) * 90) * DEG, az = Math.atan2(-dx, -dy) - rotationDeg * DEG, rel = az - toward, ca = Math.cos(alt);
+    // (Low in the sky the arcs crowd together beyond what a pixel can show: there they merge into one glow.)
+    let g = 0, r = 0, v = 0; const fine = smooth(5, 24, alt / DEG);
+    for (const [h, wg, wr, wv] of AURORA_LAYERS) {
+      // How far along the ground (degrees) the line of sight meets this height, and where that is across and along the oval.
+      const reach = (Math.acos(Re * ca / (Re + h)) - alt) / DEG, across = reach * Math.cos(rel) - aurora.offsetDeg, along = reach * Math.sin(rel);
+      const band = Math.exp(-((across / half) ** 2)); if (band < 0.01) continue;
+      // Arcs within the oval, each a curtain that wavers along its length and is made of rays.
+      const waver = (fbm(along * 0.22, phase * 0.05, 3.1) - 0.5) * 2.4, arcs = 0.5 + 0.5 * Math.sin((across + waver) * (2 * Math.PI / 3.2) + 6 * fbm(along * 0.08, 7.7, phase * 0.03));
+      const rays = 0.35 + 0.65 * fbm(along * 2.6 + 40, (across + waver) * 0.5, phase * 0.2), light = band * (0.25 + 0.75 * (0.3 + (arcs ** 3 - 0.3) * fine)) * (0.67 + (rays - 0.67) * (0.4 + 0.6 * fine));
+      g += wg * light * (1 - 0.55 * great); r += wr * light * (0.55 + 1.6 * great + 0.25 * aurora.strength); v += wv * light * aurora.strength;
+    }
+    const thin = smooth(0, 7, alt / DEG), a = clamp(power * thin * (g + r + v) * 0.42, 0, 0.92); if (a < 0.012) continue;
+    const sum = g + r + v || 1, o = (y * width + x) * 4;
+    out[o] = (green[0] * g + red[0] * r + violet[0] * v) / sum; out[o + 1] = (green[1] * g + red[1] * r + violet[1] * v) / sum; out[o + 2] = (green[2] * g + red[2] * r + violet[2] * v) / sum;
+    out[o + 3] = Math.round(a * clamp(radius + 0.5 - dist, 0, 1) * 255);
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- the marks on the dome
 
 /**
@@ -267,8 +308,10 @@ export const LINE_LOOK = Object.freeze({ muted: 0.48, bright: 0.95, width: 1, br
  * whether or not the rest are shown; `cloud` (0..1) veils the sky. `scale` (how much closer than the whole sky
  * the view is) spreads the stars and changes nothing else.
  */
-export function renderSkyPixels({ width, height, cx, cy, radius, rotationDeg = 0, snapshot, sky, starfield, colors, lines = false, highlight = null, cloud = 0, density = 1 }) {
+export function renderSkyPixels({ width, height, cx, cy, radius, rotationDeg = 0, snapshot, sky, starfield, colors, lines = false, highlight = null, cloud = 0, density = 1, aurora = null }) {
   const out = renderSkyBackground({ width, height, cx, cy, radius, rotationDeg, snapshot, starfield, colors });
+  const lights = renderAurora({ width, height, cx, cy, radius, rotationDeg, snapshot, aurora, cloud });
+  if (lights) for (let o = 0; o < out.length; o += 4) { const a = lights[o + 3] / 255; if (!a || !out[o + 3]) continue; out[o] += (lights[o] - out[o]) * a; out[o + 1] += (lights[o + 1] - out[o + 1]) * a; out[o + 2] += (lights[o + 2] - out[o + 2]) * a; }
   const marks = skyMarks({ cx, cy, radius, rotationDeg, snapshot, sky, lines, highlight, density }), darkness = clamp((snapshot.limitingMagnitude + 1) / 6.6, 0, 1), sprites = new Map();
   for (const l of marks.lines) strokeSoft(out, width, height, l, l.bright ? SKY_PALETTE.lineBright : SKY_PALETTE.line, l.bright ? LINE_LOOK.bright : LINE_LOOK.muted * (0.5 + 0.5 * darkness), (l.bright ? LINE_LOOK.brightWidth : LINE_LOOK.width) * density);
   const sprite = (key, make) => { if (!sprites.has(key)) sprites.set(key, make()); return sprites.get(key); };

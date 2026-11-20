@@ -51,6 +51,12 @@ if (row.geography_input_fingerprint !== fingerprint) {
 const { coastSourcesSha256 } = await import("./generate-eym-coasts.mjs");
 const readCoasts = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/abydos/eventide-coasts.json", root), "utf8")); } catch { return null; } };
 if (readCoasts()?.sourcesSha256 !== coastSourcesSha256()) { run("tools/generate-eym-coasts.mjs"); changed = true; }
+// The survey of the magnetic field against its canon (tools/generate-eym-magnetic.mjs: the pole's loop, the coasts'
+// magnetic latitudes, the open sea round the poles) follows the cartography and the field's dials: made again (under a
+// second) when either changed.
+const { magneticSourcesSha256 } = await import("./generate-eym-magnetic.mjs");
+const readMagnetic = () => { try { return JSON.parse(readFileSync(new URL("data/eym/magnetic.json", root), "utf8")); } catch { return null; } };
+if (readMagnetic()?.sourcesSha256 !== magneticSourcesSha256()) { run("tools/generate-eym-magnetic.mjs"); changed = true; }
 // Eym's drainage (tools/generate-eym-drainage.mjs) follows the cartography: made again (a quarter of a minute) when the
 // cartography or the local detail's surface changed.
 const { drainageSourcesSha256 } = await import("./generate-eym-drainage.mjs");

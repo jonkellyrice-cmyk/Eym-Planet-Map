@@ -116,6 +116,16 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
     rule("coasts-covered", "every continent the dials name is surveyed", SHELF_SEAS.continents.every((c) => d.samples.some((s) => s[col("continent")] === c)), d.continents.join(", "));
   }
 
+  // The magnetic field keeps its canon (docs/eym-canon.md): the pole in its box of open sea, moving slowly; the
+  // protected continents near the magnetic equator, where no aurora is ever seen.
+  if (world.magnetic) {
+    const m = world.magnetic, d = WORLD_INPUTS.magnetic, lands = Object.entries(m.continents);
+    rule("magnetic-pole", "the north magnetic pole stays inside its box and moves at the canon's pace", m.poleLatDeg[0] >= d.poleBox.latDeg[0] && m.poleLatDeg[1] <= d.poleBox.latDeg[1] && m.poleLonDeg[0] >= d.poleBox.lonDeg[0] && m.poleLonDeg[1] <= d.poleBox.lonDeg[1] && m.driftKmYr[0] >= d.driftKmYr[0] && m.driftKmYr[1] <= d.driftKmYr[1], `${m.poleLatDeg.join("–")}° N, ${m.poleLonDeg.join("–")}° E; ${m.driftKmYr.join(" to ")} km a year`);
+    rule("magnetic-open-sea", `the north magnetic pole lies over open sea, at least ${d.openSeaKm} km from any land`, m.nearestLand.north.km >= d.openSeaKm, `${m.nearestLand.north.km} km to ${m.nearestLand.north.continent}`);
+    rule("magnetic-coasts", `every coast of ${d.continents.join(" and ")} lies within ${d.coastLatDeg}° of the magnetic equator`, d.continents.every((c) => m.continents[c]) && lands.every(([, c]) => Math.max(Math.abs(c.coastMagneticLatDeg[0]), Math.abs(c.coastMagneticLatDeg[1])) <= d.coastLatDeg), lands.map(([name, c]) => `${name} ${c.coastMagneticLatDeg.join(" to ")}°`).join("; "));
+    rule("magnetic-no-aurora", `no aurora is ever seen from ${d.continents.join(" or ")}, however great the storm`, m.auroraNeverBelowDeg === d.aurora.greatStormDeg[0] && lands.every(([, c]) => c.auroraMarginDeg > 0), lands.map(([name, c]) => `${name} ${c.auroraMarginDeg}° clear`).join("; "));
+  }
+
   // Everything derived is up to date with what it is made from (the working tree only).
   if (current) {
     const [{ tectonicSourcesSha256 }, { climateSourcesSha256 }, { drainageSourcesSha256 }, { windSourcesSha256 }, { flowSourcesSha256 }, { eymFingerprintFromRepo }, { regionFingerprint }, { coastSourcesSha256 }] = await Promise.all([
@@ -129,6 +139,7 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
     if (world.wind?.sourcesSha256 !== windSourcesSha256()) stale.push("wind");
     if (world.flow?.sourcesSha256 !== flowSourcesSha256()) stale.push("river flow");
     if (world.coasts?.sourcesSha256 !== coastSourcesSha256()) stale.push("coast survey");
+    const { magneticSourcesSha256 } = await import("./generate-eym-magnetic.mjs"); if (world.magnetic?.sourcesSha256 !== magneticSourcesSha256()) stale.push("magnetic survey");
     const fp = regionFingerprint(); if (world.regionFingerprint?.shapes !== fp.shapes || world.regionFingerprint?.paint !== fp.paint) stale.push("Region fingerprint");
     rule("up-to-date", "every derived file is up to date with what it is made from", stale.length === 0, stale.length ? `stale: ${stale.join(", ")} (run npm run world)` : "");
     const managed = managedPinsOf(world), moved = Object.keys(managed).filter((k) => pins.managed[k]?.value !== managed[k]);

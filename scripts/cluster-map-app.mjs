@@ -52,6 +52,7 @@ import { crossingPassage, nearestSea, placeSea } from "./eym-sea.mjs";
 import { battleTide, coastalResponse, createTideClock, tideReport } from "./eym-tides.mjs";
 import { describeGround, describeStone, geologyAt, localStonePrompt } from "./eym-geology.mjs";
 import { describeTremors, tremorsAt } from "./eym-quakes.mjs";
+import { auroraAt, auroraEverSeen, describeAurora } from "./eym-magnetic.mjs";
 import { attachCoasts, attachDrainage, attachFlow, attachGeology, attachOcean, attachWind, coastsFileName, drainageFileName, flowFileName, windFileName } from "./cartography-asset.mjs";
 import { describeSurge, funnelledResponse, nearestCoast, stormSurgeM } from "./eym-shelf-seas.mjs";
 import { fishingAt } from "./eym-climate.mjs";
@@ -1023,6 +1024,11 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
         this._clusterView?.setCloud?.(cloud);
       }
     }
+    // The aurora (Stage 6): drawn where one can be seen, and named in the panel only where one ever can be.
+    const aurora = this._sun ? auroraAt(latDeg, lonDeg, this._sun.t) : null, auroraRow = root.querySelector('[data-sky-row="aurora"]');
+    this._clusterView?.setAurora?.(aurora);
+    if (auroraRow) { auroraRow.hidden = !(aurora && auroraEverSeen(aurora.magneticLatDeg)); auroraRow.style.display = auroraRow.hidden ? "none" : ""; }
+    if (aurora) extra.aurora = describeAurora(aurora, { sunAltDeg: snapshot.sun.altDeg, cloud });
     const visiblePlanets = snapshot.planets.filter((p) => p.visible).map((p) => displayNameFor(HOME_SYSTEM.name, p.name));
     const values = {
       place: `${Math.abs(latDeg).toFixed(1)}°${latDeg >= 0 ? "N" : "S"}, ${Math.abs(lonDeg).toFixed(1)}°${lonDeg >= 0 ? "E" : "W"}`,
