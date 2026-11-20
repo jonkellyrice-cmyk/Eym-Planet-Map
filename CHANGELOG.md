@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.32.1 (2026-11-20)
+
+The clock's date is chosen from menus (owner, 20 November 2026). In the campaign clock's "Set date / time", the month, the day and the year are now menus like the time's picker, in place of typed numbers: the month by name (Year's End is the thirteenth), the day from that month's own days (fourteen in Year's End), and the year from the hundred years before to the hundred and fifty after the year shown. Setting the time works as before. A new test holds the menus' choices; no existing test is changed.
+
 ## 0.32.0 (2026-11-20)
 
 The registry, the code and the data take the names people use (owner, 20 November 2026). The star and its system are **Mitkear** (the working name was Abydos), the world is **Eym** (Eventide), and the wanderers are **Bruthi** (Ramses), **Esonth** (Thraximundus), **Lilta** (Kandahar) and **Iarn** (Tribune). The two moons keep their registry keys (White Moon, Red Moon), shown as Austarm and Chatarm. Entries below this one are left as written and use the working names.
