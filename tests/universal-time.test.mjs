@@ -1,4 +1,5 @@
 import test from "node:test";
+// (The clock's date menus are tested at the end of this file.)
 import assert from "node:assert/strict";
 import {
   DAY_MS,
@@ -94,4 +95,21 @@ test("calendar round-trips every day of a year, including times before the epoch
       assert.deepEqual([parts.year, parts.month, parts.day, parts.hour, parts.minute, parts.second], [year, month, day, 6, 7, 8]);
     }
   }
+});
+
+test("the clock's date is chosen from menus: thirteen months by name, the month's own days, and the years round the year shown", async () => {
+  const { CLOCK_YEARS_AFTER, CLOCK_YEARS_BEFORE, clockDateChoices } = await import("../scripts/universal-time.mjs");
+  const june = clockDateChoices({ month: 6, year: 50 });
+  assert.deepEqual(june.months.map(([value]) => value), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+  assert.deepEqual(june.months[5], [6, "June"]); assert.deepEqual(june.months[12], [13, "Year's End"]);
+  assert.equal(june.days.length, 28); assert.deepEqual(june.days[0], [1, "1"]); assert.deepEqual(june.days.at(-1), [28, "28"]);
+  // Year's End has fourteen days.
+  assert.equal(clockDateChoices({ month: 13, year: 50 }).days.length, 14);
+  // The years never go below year 1 and always hold the year shown.
+  assert.equal(june.years[0][0], 1); assert.equal(june.years.at(-1)[0], 50 + CLOCK_YEARS_AFTER); assert.ok(june.years.some(([value]) => value === 50));
+  const late = clockDateChoices({ month: 1, year: 5016 }); assert.equal(late.years[0][0], 5016 - CLOCK_YEARS_BEFORE); assert.equal(late.years.length, CLOCK_YEARS_BEFORE + CLOCK_YEARS_AFTER + 1);
+  // The panel offers menus, not typed numbers, for the date.
+  const { readFileSync } = await import("node:fs"), template = readFileSync(new URL("../templates/cluster-map.hbs", import.meta.url), "utf8");
+  for (const name of ["universalMonth", "universalDay", "universalYear"]) assert.match(template, new RegExp(`<select name="${name}"></select>`));
+  assert.ok(!/name="universal(Month|Day|Year)" type="number"/.test(template));
 });
