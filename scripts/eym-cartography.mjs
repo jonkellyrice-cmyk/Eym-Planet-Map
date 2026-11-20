@@ -9,7 +9,8 @@ import { createHash } from "node:crypto";
 import { createRng, generatePlateModel } from "./planet-geography.mjs";
 import { buildElevationMesh, circlePolygon, smoothOpen } from "./planet-cartography.mjs";
 import { polygonize } from "./cartography-regions.mjs";
-import { EYM_LAYOUT, EYM_SURFACE_MODEL, frameToLatLon, fromLocal, greatCircleKm } from "./eym-surface.mjs";
+import { EYM_LAYOUT, EYM_SURFACE_MODEL, frameEastScale, frameToLatLon, fromLocal, greatCircleKm } from "./eym-surface.mjs";
+import { normLon, unwrapRing } from "./geo-wrap.mjs";
 import { seaLevelTemperatureC, zonalPrecipitationMm } from "./eym-seasons.mjs";
 import { soilFromRock } from "./eym-geology.mjs";
 import { prepareOverrides } from "./eym-overrides.mjs";
@@ -84,25 +85,55 @@ class MinHeap {
 
 // ---------------------------------------------------------------- seeded hydrology
 
-/** Rivers and lakes for a seeded continent, routed over its 10-km relief with priority flood. */
-function seededHydrology(frame, { riverAreaKm2 = 18_000, lakeDepthM = 25, lakeMinCells = 5 } = {}) {
+/**
+ * Rivers and lakes for a seeded continent, routed over its relief with priority flood: on its flat frame of 10 km
+ * squares, or on its grid of the sphere when it is too large for one (scripts/eym-surface.mjs).
+ *
+ * The flood only asks which neighbour is lower, so it is the same on either kind of grid. What differs is measure:
+ * on a sphere grid a square is narrower east to west by the cosine of its turned latitude, so its area (which the
+ * catchments and lakes are summed from) is taken row by row, and places are read back through the frame.
+ * Nothing is allocated while the flood runs: the queue, the order and the neighbour steps are arrays made once. The
+ * queue sifts step for step as the array heap it replaces did, so squares of equal height leave it in the same
+ * order and today's rivers are, point for point, what they were.
+ */
+function seededHydrology(frame, { riverAreaKm2 = 18_000, lakeDepthM = 25, lakeMinCells = 5 } = {}, stats = null) {
   const { grid, outline, elevation } = frame, { cols, rows, cellKm } = grid, n = cols * rows;
-  const filled = new Float32Array(n), receiver = new Int32Array(n).fill(-1), done = new Uint8Array(n), order = [];
-  const heap = new MinHeap(filled);
-  const neighbors = (i) => { const r = Math.floor(i / cols), c = i % cols, out = []; for (let dr = -1; dr <= 1; dr += 1) for (let dc = -1; dc <= 1; dc += 1) { if (!dr && !dc) continue; const rr = r + dr, cc = c + dc; if (rr >= 0 && rr < rows && cc >= 0 && cc < cols) out.push(rr * cols + cc); } return out; };
-  for (let i = 0; i < n; i += 1) if (!outline[i] && neighbors(i).some((j) => outline[j])) { filled[i] = 0; done[i] = 1; heap.push(i); }
-  while (heap.size) {
-    const i = heap.pop(); if (outline[i]) order.push(i);
-    for (const j of neighbors(i)) { if (done[j] || !outline[j]) continue; done[j] = 1; filled[j] = Math.max(elevation[j], filled[i] + 0.01); receiver[j] = i; heap.push(j); }
+  const filled = new Float32Array(n), receiver = new Int32Array(n).fill(-1), done = new Uint8Array(n);
+  let land = 0; for (let i = 0; i < n; i += 1) land += outline[i];
+  const order = new Int32Array(land), heap = new Int32Array(n); let ordered = 0, size = 0;
+  const push = (index) => { let i = size; heap[size++] = index; while (i > 0) { const p = (i - 1) >> 1; if (filled[heap[p]] <= filled[heap[i]]) break; const t = heap[p]; heap[p] = heap[i]; heap[i] = t; i = p; } };
+  const pop = () => {
+    const top = heap[0], last = heap[--size];
+    if (size) { heap[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < size && filled[heap[l]] < filled[heap[m]]) m = l; if (r < size && filled[heap[r]] < filled[heap[m]]) m = r; if (m === i) break; const t = heap[m]; heap[m] = heap[i]; heap[i] = t; i = m; } }
+    return top;
+  };
+  // The eight neighbours, in the order they have always been taken: row above, own row, row below, west to east.
+  const DR = [-1, -1, -1, 0, 0, 1, 1, 1], DC = [-1, 0, 1, -1, 1, -1, 0, 1];
+  for (let r = 0; r < rows; r += 1) for (let c = 0; c < cols; c += 1) {
+    const i = r * cols + c; if (outline[i]) continue; let shore = false;
+    for (let k = 0; k < 8 && !shore; k += 1) { const rr = r + DR[k], cc = c + DC[k]; if (rr >= 0 && rr < rows && cc >= 0 && cc < cols && outline[rr * cols + cc]) shore = true; }
+    if (shore) { filled[i] = 0; done[i] = 1; push(i); }
   }
+  while (size) {
+    const i = pop(), r = Math.floor(i / cols), c = i % cols; if (outline[i]) order[ordered++] = i;
+    for (let k = 0; k < 8; k += 1) {
+      const rr = r + DR[k], cc = c + DC[k]; if (rr < 0 || rr >= rows || cc < 0 || cc >= cols) continue;
+      const j = rr * cols + cc; if (done[j] || !outline[j]) continue;
+      done[j] = 1; filled[j] = Math.max(elevation[j], filled[i] + 0.01); receiver[j] = i; push(j);
+    }
+  }
+  // Each square's own area: the same everywhere on a flat frame, less by its row's narrowing on a sphere grid.
+  const squareKm2 = frame.sphere ? Float64Array.from({ length: rows }, (_, r) => cellKm * cellKm * frameEastScale(frame, grid.y0 - (r + 0.5) * cellKm)) : null;
+  const areaOf = (i) => (squareKm2 ? squareKm2[Math.floor(i / cols)] : cellKm * cellKm);
   const acc = new Float32Array(n);
-  for (let k = order.length - 1; k >= 0; k -= 1) { const i = order[k]; acc[i] += cellKm * cellKm; if (receiver[i] >= 0 && outline[receiver[i]]) acc[receiver[i]] += acc[i]; }
+  for (let k = ordered - 1; k >= 0; k -= 1) { const i = order[k]; acc[i] += areaOf(i); if (receiver[i] >= 0 && outline[receiver[i]]) acc[receiver[i]] += acc[i]; }
   const isRiver = (i) => outline[i] && acc[i] >= riverAreaKm2;
   const upstreamRivers = new Int32Array(n);
   for (let i = 0; i < n; i += 1) if (isRiver(i) && receiver[i] >= 0 && isRiver(receiver[i])) upstreamRivers[receiver[i]] += 1;
   const heads = []; for (let i = 0; i < n; i += 1) if (isRiver(i) && !upstreamRivers[i]) heads.push(i);
   heads.sort((a, b) => acc[b] - acc[a] || a - b);
   const traced = new Uint8Array(n), local = (i) => [grid.x0 + (i % cols + 0.5) * cellKm, grid.y0 - (Math.floor(i / cols) + 0.5) * cellKm];
+  const place = (x, y) => (frame.sphere ? frameToLatLon(frame, x, y) : fromLocal(frame.center, x, y));
   const rivers = [];
   for (const head of heads) {
     const path = []; let i = head, mouth = "ocean";
@@ -113,22 +144,41 @@ function seededHydrology(frame, { riverAreaKm2 = 18_000, lakeDepthM = 25, lakeMi
       traced[i] = 1; i = receiver[i];
     }
     if (path.length < 4) continue;
-    const points = path.filter((_, k) => k % 2 === 0 || k === path.length - 1).map((index) => fromLocal(frame.center, ...local(index)).map(round3));
-    rivers.push({ points: smoothOpen(points, 1).map((p) => p.map(round3)), dischargeKm2: Math.round(acc[path.at(-2) ?? path[0]]), mouth, elevationsM: path.filter((_, k) => k % 2 === 0 || k === path.length - 1).map((index) => Math.round(outline[index] ? elevation[index] : 0)) });
+    const points = path.filter((_, k) => k % 2 === 0 || k === path.length - 1).map((index) => place(...local(index)).map(round3));
+    rivers.push({ points: smoothCourse(points), dischargeKm2: Math.round(acc[path.at(-2) ?? path[0]]), mouth, elevationsM: path.filter((_, k) => k % 2 === 0 || k === path.length - 1).map((index) => Math.round(outline[index] ? elevation[index] : 0)) });
   }
   // Lakes fill the deeper closed basins.
   const lakeCell = (i) => outline[i] && filled[i] - elevation[i] > lakeDepthM, seen = new Uint8Array(n), lakes = [];
   for (let i = 0; i < n; i += 1) {
     if (seen[i] || !lakeCell(i)) continue;
     const stack = [i], members = []; seen[i] = 1;
-    while (stack.length) { const j = stack.pop(); members.push(j); for (const k of neighbors(j)) if (!seen[k] && lakeCell(k)) { seen[k] = 1; stack.push(k); } }
+    while (stack.length) {
+      const j = stack.pop(), r = Math.floor(j / cols), c = j % cols; members.push(j);
+      for (let k = 0; k < 8; k += 1) { const rr = r + DR[k], cc = c + DC[k]; if (rr < 0 || rr >= rows || cc < 0 || cc >= cols) continue; const m = rr * cols + cc; if (!seen[m] && lakeCell(m)) { seen[m] = 1; stack.push(m); } }
+    }
     if (members.length < lakeMinCells) continue;
     const [sx, sy] = members.reduce(([ax, ay], j) => { const [x, y] = local(j); return [ax + x, ay + y]; }, [0, 0]);
-    const center = fromLocal(frame.center, sx / members.length, sy / members.length);
-    lakes.push({ center, areaKm2: Math.round(members.length * cellKm * cellKm), catchmentKm2: Math.round(Math.max(...members.map((j) => acc[j]))) });
+    const center = place(sx / members.length, sy / members.length);
+    let catchment = -Infinity; for (const j of members) if (acc[j] > catchment) catchment = acc[j];
+    lakes.push({ center, areaKm2: Math.round(squareKm2 ? members.reduce((sum, j) => sum + areaOf(j), 0) : members.length * cellKm * cellKm), catchmentKm2: Math.round(catchment) });
   }
+  if (stats) Object.assign(stats, { squares: n, land, rivers: rivers.length, lakes: lakes.length });
   return { rivers, lakes };
 }
+
+/**
+ * A river's course rounded off. The rounding averages neighbouring points, which for a course that crosses ±180°
+ * would average 179° with −179° and put a point on the far side of the world: such a course is run on past the
+ * seam first (scripts/geo-wrap.mjs) and brought back after. A course that does not cross is rounded as it always was.
+ */
+function smoothCourse(points) {
+  let crosses = false; for (let k = 1; k < points.length && !crosses; k += 1) if (Math.abs(points[k][1] - points[k - 1][1]) > 180) crosses = true;
+  if (!crosses) return smoothOpen(points, 1).map((p) => p.map(round3));
+  return smoothOpen(unwrapRing(points), 1).map(([lat, lon]) => [lat, normLon(lon)].map(round3));
+}
+
+/** The routing itself, for tests and measurements: `seededHydrology(frame, options, stats)`. */
+export { seededHydrology as frameHydrology };
 
 // ---------------------------------------------------------------- labels
 
