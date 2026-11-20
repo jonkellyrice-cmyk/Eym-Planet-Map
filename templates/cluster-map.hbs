@@ -209,11 +209,13 @@
       </div>
       <p class="oscm-muted">Click a place on the map to use it, or type coordinates.</p>
       <button class="oscm-apply" type="button" data-action="look-up"><i class="fa-solid fa-star"></i> Look up from here</button>
+      <button type="button" data-action="open-moon-calendar"><i class="fa-solid fa-moon"></i> The moons' calendar</button>
     </section>
 
     <section class="oscm-card oscm-sky-card">
       <div class="oscm-card-title">The sky overhead</div>
       <div class="oscm-sky-readout">
+        <div data-sky-row="chosen" hidden><span>Shown at</span><strong><span data-sky-field="chosen">—</span> <button type="button" data-action="sky-now">Back to the clock</button></strong></div>
         <div><span>Place</span><strong data-sky-field="place">—</strong></div>
         <div><span>Local time</span><strong data-sky-field="localTime">—</strong></div>
         <div><span>Mitkear</span><strong data-sky-field="sun">—</strong></div>
@@ -228,6 +230,7 @@
         <div><span>This year's sky</span><strong data-sky-field="almanac">—</strong></div>
         <div data-sky-row="aurora" hidden><span>Aurora</span><strong data-sky-field="aurora">—</strong></div>
       </div>
+      <button type="button" data-action="open-moon-calendar"><i class="fa-solid fa-moon"></i> The moons' calendar</button>
       <label><input type="checkbox" data-sky-layer="lines"> Constellation lines</label>
       <label><input type="checkbox" data-sky-layer="names"> All names</label>
     </section>
