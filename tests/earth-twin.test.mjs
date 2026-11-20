@@ -37,11 +37,15 @@ test("one Eym second is 1.0435 SI seconds, so Earth's year holds exactly 350 Eym
   assert.ok(Math.abs(350 * 86400 * EYM_SECOND_SI / 86400 - 365.2422) < 1e-9);
 });
 
-test("the rest of the system keeps its architecture: every heliocentric orbit scaled by 1/0.68, periods from Kepler", () => {
-  const before = { Ramses: 0.52, Thraximundus: 0.82, Kandahar: 1.04, Tribune: 1.95 };
-  for (const [name, old] of Object.entries(before)) {
-    const a = num(name, "distance_from_parent");
-    assert.ok(Math.abs(a - old / 0.68) < 1e-4, name);
+test("the rest of the system keeps its architecture: every heliocentric orbit scaled by 1/0.68, then set on its resonant period; periods from Kepler", () => {
+  // (Canon of 20 November 2026: each wanderer's period was set to a whole-number ratio of Eym's year and its
+  // distance moved with it by Kepler's third law. Before that the distance was the scaled one, to four decimals,
+  // with the period that went with it.)
+  const before = { Ramses: [0.52, 234.051], Thraximundus: [0.82, 463.474], Kandahar: [1.04, 661.995], Tribune: [1.95, 1699.639] };
+  for (const [name, [old, period]] of Object.entries(before)) {
+    const a = num(name, "distance_from_parent"), scaled = Number((old / 0.68).toFixed(4));
+    assert.ok(Math.abs(a - scaled * (num(name, "orbital_period_days") / period) ** (2 / 3)) < 1e-9, name);
+    assert.ok(Math.abs(a / scaled - 1) < 5e-3, `${name} is where it was to half a percent`);
     // Distances are stored to 4 decimals, so compare periods to 1 part in 10,000.
     assert.ok(Math.abs(num(name, "orbital_period_days") / (350 * a ** 1.5) - 1) < 1e-4, `${name} period`);
   }

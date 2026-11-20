@@ -20,7 +20,7 @@ import { artificialBodyKind, buildArtificialBodyModel } from "./artificial-body-
 import { inspectSurfaceFeature } from "./body-layers.mjs";
 import { loadBodyOperationAsset } from "./body-operations.mjs";
 import { AstronomySnapshotCache, loadAstronomyOrientations } from "./astronomy.mjs";
-import { CAMPAIGN_START_MS, DAY_MS, formatUniversalClock, formatUniversalDate } from "./universal-time.mjs";
+import { CAMPAIGN_START_MS, DAY_MS, formatUniversalClock, formatUniversalDate, monthName, universalTimeParts } from "./universal-time.mjs";
 import { coverRings, environmentField, placeReport, seasonalCover, subsolarPoint } from "./eym-seasons.mjs";
 import { buildWeatherState, globeWeather, placeWeatherNow, STEP_HOURS, weatherReport } from "./eym-weather.mjs";
 import { ATLAS_IMAGE_PRESETS, ATLAS_LEVELS, atlasMapSpec } from "./eym-map-presets.mjs";
@@ -53,6 +53,7 @@ import { battleTide, coastalResponse, createTideClock, tideReport } from "./eym-
 import { describeGround, describeStone, geologyAt, localStonePrompt } from "./eym-geology.mjs";
 import { describeTremors, tremorsAt } from "./eym-quakes.mjs";
 import { auroraAt, auroraEverSeen, describeAurora } from "./eym-magnetic.mjs";
+import { almanacForYear, almanacLines } from "./eym-almanac.mjs";
 import { attachCoasts, attachDrainage, attachFlow, attachGeology, attachOcean, attachWind, coastsFileName, drainageFileName, flowFileName, windFileName } from "./cartography-asset.mjs";
 import { describeSurge, funnelledResponse, nearestCoast, stormSurgeM } from "./eym-shelf-seas.mjs";
 import { fishingAt } from "./eym-climate.mjs";
@@ -282,6 +283,9 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     if (!starfield) throw new Error("The star catalogue is unavailable.");
     const model = buildSystemModel(rows, HOME_SYSTEM.name, { referenceTimestampMs: t, orientations: orientationDocument.orientations });
     this._sun = { t, subsolar: subsolarPoint(model, sky) };
+    // The year's almanac (the wanderers' meetings and true lines), worked out once a year.
+    const almanacYear = universalTimeParts(t).year;
+    if (this._almanac?.year !== almanacYear) { const lines = almanacLines(almanacForYear(rows, almanacYear), (name) => displayNameFor(HOME_SYSTEM.name, name), monthName); this._almanac = { year: almanacYear, text: lines.length ? lines.join("; ") : "nothing of note this year" }; }
     return { snapshot: groundSky({ model, sky, starfield, latDeg: this.lookUp.latDeg, lonDeg: this.lookUp.lonDeg }), sky, starfield };
   }
 
@@ -1029,6 +1033,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     this._clusterView?.setAurora?.(aurora);
     if (auroraRow) { auroraRow.hidden = !(aurora && auroraEverSeen(aurora.magneticLatDeg)); auroraRow.style.display = auroraRow.hidden ? "none" : ""; }
     if (aurora) extra.aurora = describeAurora(aurora, { sunAltDeg: snapshot.sun.altDeg, cloud });
+    if (this._almanac) extra.almanac = this._almanac.text;
     const visiblePlanets = snapshot.planets.filter((p) => p.visible).map((p) => displayNameFor(HOME_SYSTEM.name, p.name));
     const values = {
       place: `${Math.abs(latDeg).toFixed(1)}°${latDeg >= 0 ? "N" : "S"}, ${Math.abs(lonDeg).toFixed(1)}°${lonDeg >= 0 ? "E" : "W"}`,

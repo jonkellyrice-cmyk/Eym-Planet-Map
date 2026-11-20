@@ -24,8 +24,8 @@
   },
   "managed": {
     "registryCsvSha256": {
-      "value": "987d010d0a75077c7f7e41a821c0e80575709721e67fcd6e7e2702394fa7809b",
-      "note": "The land drives the large-scale atmosphere (owner's addendum of 20 November 2026): the weather dials gained the land's and the continentality's, so Eym's input fingerprint in the registry changed."
+      "value": "814352102dffb2612c7d0d99fb4980c8a715b455363159a074514cd02a500fe8",
+      "note": "Canon change of 20 November 2026 (Dave): the four wanderers' rows hold the resonant orbits (the Great Alignment every 68 years), so the registry file's hash changed. Eym's own row is untouched."
     }
   }
 }

@@ -45,8 +45,8 @@
       "seedBasis": "ESTABLISHED: geography_seed"
     },
     "abydos-tribune": {
-      "spinPhaseAtEpochDeg": 293.50101239,
-      "axialSeasonPhaseAtEpochDeg": 312.189860428,
+      "spinPhaseAtEpochDeg": 275.313325636,
+      "axialSeasonPhaseAtEpochDeg": 78.383050086,
       "spinPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + rotation-epoch-phase-v1",
       "axialSeasonPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + axial-season-phase-v1",
       "seedBasis": "DERIVED: immutable canonical identity fingerprint"

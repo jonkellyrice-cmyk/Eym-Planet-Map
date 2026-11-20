@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.30.0 (2026-11-20)
+
+Canon change from the world's author (20 November 2026): the wanderers move in resonant orbits, and every 68 Eym years all five worlds stand in one line with Mitkear, the Great Alignment (14 March of years 0, 68, 136). Eym's own orbit, year, calendar, seasons, moons, eclipses and tides are unchanged, and so is everything on its surface.
+
+- The registry (`docs/system-orbital-distances.csv`), the four wanderers' rows only: periods of 700/3, 1400/3, 350 × 17/9 and 1700 Eym days (Bruthi, Esonth, Lilta, Iarn), distances from the old ones by Kepler's third law (0.763136, 1.211432, 1.528038, 2.868006 AU), new phases at the epoch (112.6743°, 52.5336°, 79.5207°, 70.0205°), and the nearest and farthest distances and mean speeds that follow. Eccentricities and inclinations are as they were; nothing precesses. The registry file's pinned hash is recorded anew (`tools/world-pins.json`).
+- A new module, `scripts/eym-almanac.mjs`: for any year, the true lines (the Esonth opposition line every fourth year, the Lesser Alignment in years 34, 102, 170, the Great Alignment) and the close meetings of wanderers in Eym's sky (two within 1°, three within 3°, four within 10°, each at least 20° from Mitkear, in three dimensions), found from the orbits. The names of the lines are working names.
+- The ground view of the sky shows the wanderers where the new orbits put them, and its panel gains a line, "This year's sky", with the year's almanac.
+- The canon notes (`docs/eym-canon.md`) record the orbits, the physics (Bruthi : Eym : Esonth is a 2 : 3 : 4 resonance chain; the model is Keplerian, so the repeat is exact) and what is seen.
+- Two things measured that differ a little from the brief, both recorded in the canon notes. On the alignment day Lilta and Iarn stand within 1° of the point opposite Mitkear but Esonth is 1.2° from it (its orbit's tilt). And Bruthi, which passes 0.86° clear of Mitkear when it passes in front (even years: no transit, ever), passes behind Mitkear's disc itself in odd years (0.19° from the centre, on 12 March), which is not a transit and cannot be seen.
+- Tests (`tests/eym-almanac.test.mjs`, six): the registry's rows and what follows from them; 68 years a whole number of orbits for all five; the five within 0.5° on 14 March of years 0, 68 and 136 and never within 10° otherwise (every six hours for 136 years); the outer three opposite Mitkear that day; Bruthi in front in even years and behind in odd, never across Mitkear's face; the Lesser Alignment; the almanac's lines and meetings. One existing test is changed (`tests/earth-twin.test.mjs`, the wanderers' orbits): it held each distance to the old scaled value to four decimals, and now holds it, to nine, to that value moved by Kepler's third law to the new period (and to within half a percent of where it was). The tests of Eym's year, calendar, seasons, moons, eclipses and tides pass unmodified.
+- The gas giant's stored survey (`data/body-operations`) carries its registry row's fingerprint, which moved; nothing else in it changed.
+- Iarn's turning at the epoch (`data/astronomy/epoch-orientations.json`: its spin phase and the phase of its seasons) is seeded from its registry row and so is drawn anew; the other seven bodies' are unchanged.
+
 ## 0.29.0 (2026-11-20)
 
 Stage 6: the magnetic field and the auroras (canon: `docs/eym-canon.md`). Caren's and Garyk's coasts, relief and every stored tile's content are unchanged; the Region layer's fingerprint moves (its dials' file gained a group), so the stored tiles are made again under the new fingerprint with the same pixels.
