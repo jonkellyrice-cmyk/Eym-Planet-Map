@@ -22,7 +22,7 @@ import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
 import { LATTICE_DEG, globeNoise, latticeNode, localContext } from "../scripts/eym-local-detail.mjs";
-import { bboxWrap, lonInExtent } from "../scripts/geo-wrap.mjs";
+import { bboxWrap, lonInExtent, lonOffset, normLon } from "../scripts/geo-wrap.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartography/abydos/eventide-drainage.json", root), ASSET = new URL("data/planet-cartography/abydos/eventide.json", root);
 export const DRAINAGE_MODEL = "eym-drainage-v1";
@@ -118,8 +118,10 @@ export function drainLand(ctx, outline, nearRiver, stats = null) {
 function riverTest(ctx) {
   const riverNodes = new Set();
   for (const r of ctx.rivers) for (let k = 0; k + 1 < r.points.length; k += 1) {
-    const [a, b] = [r.points[k], r.points[k + 1]], steps = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / (LATTICE_DEG / 2)));
-    for (let s = 0; s <= steps; s += 1) { const lat = a[0] + (b[0] - a[0]) * s / steps, lon = a[1] + (b[1] - a[1]) * s / steps; for (let di = -1; di <= 1; di += 1) for (let dj = -1; dj <= 1; dj += 1) riverNodes.add(`${Math.round(lat / LATTICE_DEG) + di},${Math.round(lon / LATTICE_DEG) + dj}`); }
+    // (A stretch that crosses ±180° is walked the short way across it, not right round the world: scripts/geo-wrap.mjs.
+    // Away from the seam the offset is the plain difference, so nothing changes there.)
+    const [a, b] = [r.points[k], r.points[k + 1]], seam = Math.abs(b[1] - a[1]) > 180, east = seam ? lonOffset(b[1], a[1]) : b[1] - a[1], steps = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], east) / (LATTICE_DEG / 2)));
+    for (let s = 0; s <= steps; s += 1) { const lat = a[0] + (b[0] - a[0]) * s / steps, lon = seam ? normLon(a[1] + east * s / steps) : a[1] + (b[1] - a[1]) * s / steps; for (let di = -1; di <= 1; di += 1) for (let dj = -1; dj <= 1; dj += 1) riverNodes.add(`${Math.round(lat / LATTICE_DEG) + di},${Math.round(lon / LATTICE_DEG) + dj}`); }
   }
   return (lat, lon) => riverNodes.has(`${Math.round(lat / LATTICE_DEG)},${Math.round(lon / LATTICE_DEG)}`);
 }

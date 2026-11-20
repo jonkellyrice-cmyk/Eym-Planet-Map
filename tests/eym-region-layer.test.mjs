@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { COVER, localContext, roadsNear } from "../scripts/eym-local-detail.mjs";
+import { COVER, insideCoast, localContext, roadsNear } from "../scripts/eym-local-detail.mjs";
 import { toLocal } from "../scripts/eym-surface.mjs";
 import { REGION_CELL_KM, REGION_TILE_CELLS, REGION_TILE_KM, buildRegionTile, regionFrameFor, regionFrameHasTile, regionFrames, regionTileAt } from "../scripts/eym-region-layer.mjs";
 import { destination, greatCircleKm } from "../scripts/eym-surface.mjs";
@@ -157,4 +157,17 @@ test("the Region layer refuses a frame for land outside the detailed scope, by n
   // Today's frames are well inside the limit and are what they were.
   assert.deepEqual(frames.map((f) => f.id), ["caren", "garyk", "caren-garyk-sea"]);
   assert.deepEqual(regionFrameFor(asset, { name: "Caren", store: 1 }), caren);
+});
+
+// ---------------------------------------------------------------- lands on the far side of the world (the rebuild after the growth)
+
+test("a continent that covers the point opposite a frame's centre is not drawn round the frame", () => {
+  // Since the canon of 19 November 2026 Gaffa is 65 million km² and holds the points opposite Caren's middle and the
+  // strait's. On a flat frame the far side of the world is the rim, so Gaffa's outline, laid on Caren's frame, went
+  // right round it and every square of Caren counted as inside two lands: as sea.
+  const ctx = localContext(asset), strait = frames.find((f) => f.id === "caren-garyk-sea");
+  for (const frame of [caren, strait]) assert.ok(insideCoast(ctx, -frame.center[0], frame.center[1] > 0 ? frame.center[1] - 180 : frame.center[1] + 180), `${frame.id}: the opposite point is on land`);
+  const middle = buildRegionTile(asset, caren, 0, 0); assert.ok(!middle.sea, "the middle of Caren is land");
+  let land = 0; for (const v of middle.cover) if (v !== COVER.sea) land += 1; assert.ok(land > middle.cover.length * 0.9, `${land} squares of land`);
+  const open = buildRegionTile(asset, strait, 0, 0); assert.ok(open.sea, "the middle of the strait is sea");
 });

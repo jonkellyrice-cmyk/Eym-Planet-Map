@@ -87,6 +87,9 @@ export function landformContext(ctx, coastKmAt, landAt = () => true, reliefAt = 
   }
   // Each segment goes in every bucket within its valley's reach, so a point's candidates are one bucket's list.
   segments.forEach((s, index) => {
+    // (A stretch that crosses ±180° is left out of the buckets: taken as it stands it would lie right round the
+    // world. Only a far continent's river can be one, and no valley is cut for those.)
+    if (Math.abs(s.a[1] - s.b[1]) > 180) return;
     const reachLat = Math.min(VALLEY_REACH_KM, Math.max(valleyHalfWidthKm(s.widthM, 0), valleyHalfWidthKm(s.widthM, 3)) + 0.5) / KM_PER_DEG;
     const lat0 = Math.min(s.a[0], s.b[0]) - reachLat, lat1 = Math.max(s.a[0], s.b[0]) + reachLat, reachLon = reachLat / Math.max(0.2, Math.cos(s.a[0] * DEG));
     const lon0 = Math.min(s.a[1], s.b[1]) - reachLon, lon1 = Math.max(s.a[1], s.b[1]) + reachLon;

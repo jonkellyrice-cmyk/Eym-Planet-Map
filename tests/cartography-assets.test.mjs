@@ -32,7 +32,9 @@ test("every asset preserves its accepted seed and coarse fingerprint", () => {
 test("compact two-degree rasters and vector products fit the mobile loading budget", () => {
   for (const entry of manifest.worlds) {
     const asset = load(entry), count = asset.grid.latCount * asset.grid.lonCount;
-    assert.ok(entry.bytes <= 1_750_000, `${entry.body}: ${entry.bytes}`);
+    // Eym's cartography is held to the data budget set when its land grew (1.5 times its 1,468,861 bytes before:
+    // tools/world-pins.json, checked file by file in tests/eym-far-land.test.mjs); the other worlds to the old limit.
+    assert.ok(entry.bytes <= (entry.body === "Eventide" ? 2_203_292 : 1_750_000), `${entry.body}: ${entry.bytes}`);
     assert.equal(elevationGrid(asset).length, count);
     assert.equal(Buffer.from(asset.raster.oceanMaskBase64, "base64").length, count);
     for (const field of ["biome", "soil", "resource"]) assert.equal(Buffer.from(asset.raster[field].valuesBase64, "base64").length, count);

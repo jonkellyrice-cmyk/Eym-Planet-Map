@@ -1,19 +1,20 @@
-// Rivers of the continents that are routed, not traced (land-growth scaling, Fix 5): on today's flat frames they are
-// what they were, and on a grid of the sphere they are measured truly and run unbroken across ±180°.
+// Rivers of the continents that are routed, not traced (land-growth scaling, Fix 5): the routing gives the rivers
+// the cartography holds, and on a grid of the sphere they are measured truly and run unbroken across ±180°.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { buildEymSurface, buildSphereFrame, destination, EYM_LAYOUT, frameEastScale, greatCircleKm } from "../scripts/eym-surface.mjs";
-import { frameHydrology } from "../scripts/eym-cartography.mjs";
+import { frameCoarseWater, frameHydrology } from "../scripts/eym-cartography.mjs";
 
 const read = (path) => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), "utf8"));
 const asset = read("data/planet-cartography/abydos/eventide.json");
 
-test("today's routed rivers are the ones in the accepted cartography, point for point", () => {
-  const { frames } = buildEymSurface(read("data/eym/traced-continents.json"), EYM_LAYOUT, read("data/eym/tectonics.json"));
+test("the routed rivers are the ones in the accepted cartography, point for point", () => {
+  // (The grown continents, data/eym/growth.json, are on grids of the sphere and routed coarsely by the farLand dials.)
+  const { frames } = buildEymSurface(read("data/eym/traced-continents.json"), EYM_LAYOUT, read("data/eym/tectonics.json"), read("data/eym/growth.json"));
   let rivers = 0;
   for (const frame of frames.filter((f) => f.origin === "seeded" && f.continent)) {
-    const stats = {}, routed = frameHydrology(frame, {}, stats), shipped = asset.hydrology.rivers.filter((river) => river.continent === frame.continent);
+    const stats = {}, routed = frameHydrology(frame, frameCoarseWater(frame), stats), shipped = asset.hydrology.rivers.filter((river) => river.continent === frame.continent);
     assert.equal(routed.rivers.length, shipped.length, frame.continent); assert.equal(stats.rivers, shipped.length); assert.ok(stats.land > 5000 && stats.land < stats.squares);
     const courses = new Set(shipped.map((river) => JSON.stringify(river.points)));
     for (const river of routed.rivers) { assert.ok(courses.has(JSON.stringify(river.points)), `${frame.continent}: a course that is not in the cartography`); rivers += 1; }

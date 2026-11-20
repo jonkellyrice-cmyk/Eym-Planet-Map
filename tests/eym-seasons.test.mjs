@@ -1,4 +1,5 @@
 import test from "node:test";
+import { coverMask } from "../scripts/eym-globe-pixels.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { buildSystemModel, parseCsv } from "../scripts/system-data.mjs";
@@ -55,7 +56,9 @@ test("temperature swings more inland and far from the equator, peaks after midsu
 
 test("snow and sea ice come and go with the seasons", () => {
   const north = seasonalCover(field, NORTHWARD_EQUINOX_MS + 3 * QUARTER + 30 * DAY_MS), south = seasonalCover(field, NORTHWARD_EQUINOX_MS + QUARTER + 30 * DAY_MS);
-  const northernSnow = (cover) => cover.snow.flat().filter(([lat]) => lat > 40).length;
+  // How much of the north (beyond 40°) lies under snow: the snow's rings filled on a half-degree map and summed by
+  // area. (The count of the rings' points, used before, measured how ragged the snow line was, not how much snow.)
+  const northernSnow = (cover) => { const mask = coverMask(cover.snow); let area = 0; for (let y = 0; y < 100; y += 1) for (let x = 0; x < mask.W; x += 1) area += mask.data[y * mask.W + x] * Math.cos((90 - (y + 0.5) / 2) * Math.PI / 180); return area; };
   assert.ok(northernSnow(north) > northernSnow(south), "more snow in the north (Khohalis) in its winter");
   assert.ok(north.snowShare > 0 && north.ice.length > 0);
   for (const ring of [...north.snow, ...north.ice]) assert.deepEqual(ring[0], ring.at(-1));
