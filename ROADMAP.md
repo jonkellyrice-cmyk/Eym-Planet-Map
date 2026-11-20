@@ -57,7 +57,7 @@ Part 1 retrofits work already done and comes first; item 7 (owner, 19 November 2
 
 This is the order for everything after the Part 1 retrofits above, and it replaces any earlier order for that work (items 6 to 8 of the 17 November order below, and the order implied by the later programmes' record). The usual rules hold: each step its own pull request through Twig, with a release where the module changes; renders shown to the owner before submitting; no test weakened, skipped or deleted without the owner's yes; Caren's and Garyk's outlines are invariants.
 
-0. **Eym about 80% water** (canon change from the world's author, 19 November 2026; before Stage 6 by the owner's instruction, and before Resources). The three far continents are enlarged (Gaffa about 65 million km², Khohalis about 19, Demani about 15; ocean about 80%) with the least possible change to the present tectonic world, by the order of means in `docs/eym-canon.md`: flooded margins, accreted arcs and terranes, land extended along existing geology, and only then changes to the plates. Caren and Garyk, their crossing and the strait corridor are unchanged. Measure the change (boundaries moved, speeds and poles, the sea-floor grid, currents, sea temperatures, rainfall and seasons near Caren and Garyk). Run every downstream stage again and revise the aquaplanet addendum (basin gyres, monsoons, continental interiors, larger ice ages, the El Niño-like pattern moved); check the weather's calibration and the cyclone counts. Check Caren's canon still holds; if not, report before going on. Show the owner the new globe, the before-and-after outlines, the measures and before-and-after climate maps for Caren and Garyk before submitting. First finding: Gaffa's plate (29.5 million km²) cannot hold Gaffa. Decided (owner, 19 November 2026): Gaffa is a composite continent lying across existing plate boundaries, none moved; the growth leans (Khohalis west, Gaffa and Demani east) with at least 1,800 km of sea between the three, 3,500 km from Garyk, and Caren far clear; the work is shown in three steps (outlines and relief; sea floor and currents with the check of Caren's canon; the revised climate). The world's author approved the first outlines. The land-growth scaling fixes below come first.
+0. **Eym about 80% water** (canon change from the world's author, 19 November 2026; before Stage 6 by the owner's instruction, and before Resources). The three far continents are enlarged (Gaffa about 65 million km², Khohalis about 19, Demani about 15; ocean about 80%) with the least possible change to the present tectonic world, by the order of means in `docs/eym-canon.md`: flooded margins, accreted arcs and terranes, land extended along existing geology, and only then changes to the plates. Caren and Garyk, their crossing and the strait corridor are unchanged. Measure the change (boundaries moved, speeds and poles, the sea-floor grid, currents, sea temperatures, rainfall and seasons near Caren and Garyk). Run every downstream stage again and revise the aquaplanet addendum (basin gyres, monsoons, continental interiors, larger ice ages, the El Niño-like pattern moved); check the weather's calibration and the cyclone counts. Check Caren's canon still holds; if not, report before going on. Show the owner the new globe, the before-and-after outlines, the measures and before-and-after climate maps for Caren and Garyk before submitting. First finding: Gaffa's plate (29.5 million km²) cannot hold Gaffa. Decided (owner, 19 November 2026): Gaffa is a composite continent lying across existing plate boundaries, none moved; the growth leans (Khohalis west, Gaffa and Demani east) with at least 1,800 km of sea between the three, 3,500 km from Garyk, and Caren far clear; the work is shown in three steps (outlines and relief; sea floor and currents with the check of Caren's canon; the revised climate). The world's author approved the first outlines. The land-growth scaling fixes below come first. **Done** (20 November 2026): the world was rebuilt (ocean 79.86%; Gaffa 65.1, Khohalis 19.7 and Demani 15.0 million km²; no plate boundary moved, the tectonic history byte-identical), the land now drives the large-scale atmosphere (the addendum of 20 November below), the aquaplanet addendum is revised (see its section), Caren's canon holds, and the outcome and the two expectations not met are recorded in `docs/eym-canon.md`.
 1. **Stage 6: the magnetic field and auroras** (small and already decided).
    - Implement the canon in `docs/eym-canon.md`: an Earth-like dipole about 10° from the spin axis; the north magnetic pole toward about 100° E (option A); every coast of Caren and Garyk within about ±12° magnetic latitude; compass declination up to about 10–12° (Earth-normal); a slow deterministic drift bounded so that these hold in every century covered.
    - Auroras only around the magnetic poles: an oval at about 65–75° magnetic latitude, reaching lower in strong storms; great storms down to about 20–25°, rarely. Drawn in the night sky's style.
@@ -81,7 +81,7 @@ This is the order for everything after the Part 1 retrofits above, and it replac
    - A resources lens on the globe and a readout by place. Test that each province lies on the right geology.
 3. **Stage 5: ice ages and old sea levels** (before ecology: its glacial landforms, lakes and soils feed it).
    - Cold periods timed by Eym's own orbital cycles already in its data (obliquity 22.1–24.5°, the precession and obliquity periods), Milankovitch-style.
-   - Small on Eym, per the aquaplanet addendum: mostly sea ice and mountain glaciers, little sea-level drop.
+   - Large since the canon change of 19 November 2026 (the aquaplanet addendum's "small" is superseded): Khohalis reaches to 85° N and Demani to 68° S, so land ice sheets grow there, with sea-level drops of tens of metres exposing shelves around Caren and Garyk. The ice sheets' extent and brightness feed back on the temperatures there (item 4 of the addendum of 20 November).
    - Glacial landforms (valleys, lakes, moraines) at high latitudes and on high mountains; shelves exposed at low sea level, from the bathymetry; past coastlines by era, for lore.
    - Show the glacial maximum's coastlines and sea-ice edge.
 4. **Visibility** (so that the owner can judge every later stage directly).
@@ -316,7 +316,7 @@ Weather must be physically plausible, coherent over time and deterministic. The 
 
 - **Grid:** Eym's coarse geography already uses a 6° grid of 1,800 cells (`data/planet-geography/abydos/eventide.json`). Its 1° cartography raster can supply terrain and ocean proximity.
 - **Climate:** the annual-mean climate in `scripts/eym-cartography.mjs` is a baseline that weather can deviate from.
-- **Continents:** Eym is 98.6% ocean, so maritime weather and tropical cyclones should dominate. Caren straddles the equator, and Garyk sits near 15°N.
+- **Continents:** Eym is 98.6% ocean (about 80% since the canon change of 19 November 2026), so maritime weather and tropical cyclones should dominate. Caren straddles the equator, and Garyk sits near 15°N.
 
 ## Eym's physical history and climate (owner's decision, 17 November 2026)
 
@@ -341,11 +341,23 @@ Already present (not redone): zonal rain bands with rain shadows and orographic 
 - *Caren:* unchanged, exactly as traced. Lore: the gods and angels shaped it deliberately, so its form and composition do not follow plate tectonics. It is masked out of the tectonic simulation (the sea floor around it is still tectonic) and given its own stated geology in the lore.
 - *Garyk:* unchanged, exactly as traced. It formed naturally, so the simulation must explain it: a convergent plate edge along its existing mountains and an old core under its interior.
 - *Gaffa, Khohalis, Demani (eastern, northern, southern):* keep their current centres and target areas from `EYM_LAYOUT.seeded`, within ±10% of area and 3° of centre. Their shapes come from the simulation.
-- Eym stays 98.6% ocean.
+- Eym stays 98.6% ocean. (Superseded by the canon change of 19 November 2026: about 80%. The plate fit still aims at the 98.6% world; the three far continents are grown from its cores afterwards, `data/eym/growth.json`.)
 - Everything is drawn by rule, with named seeds: same inputs, same world. Generators run offline in `tools/`; the module ships their output data.
 - Lore: life on Eym was placed by the gods, not evolved. No biosphere or evolution simulation.
 
-### Addendum: Eym is nearly an aquaplanet (owner, 17 November 2026)
+### Addendum: Eym is nearly an aquaplanet (owner, 17 November 2026; revised 20 November 2026)
+
+**Revised (20 November 2026).** Eym is no longer nearly an aquaplanet: since the canon change of 19 November 2026 it is about 80% ocean (79.86% as built), with three large far continents (Gaffa 65.1, Khohalis 19.7 and Demani 15.0 million km²). What this addendum now says, point by point:
+
+- *Temperatures:* seasonal swings are small over the sea and on Caren and Garyk (small lands on and near the equator: Caren's months run 22.9 to 23.7 °C, Garyk's 18.0 to 21.6 °C), and large inside the far continents. The yearly swing on land is the sine of the latitude times 5 on the coast, rising by 20 to the deep interior, checked against Earth's normals (Winnipeg, Irkutsk, Kansas City, Alice Springs, Paris, San Francisco, each within 1.5 °C); deep inside Gaffa at 45° N the year ranges over some 35 °C. Continentality is no longer weighed down.
+- *Wind belts:* the trades, westerlies and polar easterlies still ring the open ocean, but the land now bends them: monsoon winds reverse over and beside the large continents (strong over Gaffa; 0.7 m/s on a trade of 5 at Garyk; none at Caren), the rain belt follows the summer Sun farther over large land, and each jet has fixed ridges and troughs from the relief and the land's winter cold, with blocking gathered at the ridges (most in the north).
+- *Ocean:* one great basin with a warm boundary current up Gaffa's east coast and cold water and upwelling on the other side; the south is open, the north blocked by Khohalis. The El Niño-like oscillation sits in the widest equatorial ocean between lands, now the 132° east of Caren.
+- *Sea state:* unchanged in kind. The fetch is still very large in the open south and across the great basin, so big swells in the westerly belts.
+- *Cloud and humidity:* unchanged over the sea (low cloud and drizzle, rain energy-limited).
+- *Tropical cyclones:* still tied to warm water. Worldwide there are fewer (352 in eight years against 461), because land now lies where some were born; Garyk's count is unchanged (14 within 900 km in eight years), and none reach Caren.
+- *Ice ages (Stage 5):* no longer small. See Stage 5 in the order of work above.
+
+The text below is the addendum as written for the 98.6% world, kept as the record.
 
 Eym is about 98.6% ocean, close to an aquaplanet. This applies throughout the programme.
 
@@ -387,11 +399,11 @@ Eym is about 98.6% ocean, close to an aquaplanet. This applies throughout the pr
 Split in three: *2a* currents, sea temperature, wet and dry seasons, El Niño and cyclones (done, 0.20.0); *2b* sea state and swell and direction-dependent sailing times (done, 0.21.0), low cloud and drizzle (done, 0.21.1); *2c* tides from the two moons and the Sun, with tidal flats on coastal battle maps (done, 0.22.0).
 
 1. *Currents:*
-   - Wind-driven surface currents from the wind belts and rotation (Coriolis), steered by the coastlines. With Eym 98.6% ocean, expect mostly circumpolar, east–west flow, with boundary currents and gyres where Caren, Garyk and the Eastern Continent block it.
+   - Wind-driven surface currents from the wind belts and rotation (Coriolis), steered by the coastlines. With Eym 98.6% ocean (written before the canon change of 19 November 2026; the grown continents now close one great basin, see the revised addendum above), expect mostly circumpolar, east–west flow, with boundary currents and gyres where Caren, Garyk and the Eastern Continent block it.
    - Upwelling where the wind pushes coastal water offshore.
    - Seasonal variation.
    - Output: a current field and a sea-temperature anomaly map, by season.
-2. *Wet and dry seasons* (corrected by the aquaplanet addendum): the tropical rain belt follows the sun through the year but shifts less than on Earth, and monsoons are weak: at most a weak monsoon on Gaffa. Caren and Garyk get real but milder wet and dry seasons.
+2. *Wet and dry seasons* (corrected by the aquaplanet addendum): the tropical rain belt follows the sun through the year but shifts less than on Earth, and monsoons are weak: at most a weak monsoon on Gaffa. Caren and Garyk get real but milder wet and dry seasons. (Superseded for the far continents by the revision of 20 November 2026: the rain belt follows the Sun farther over large land and Gaffa's monsoon is strong. Caren and Garyk keep mild wet and dry seasons.)
 3. *Fed into what exists:*
    - Coastal and sea temperatures (`seasonalTemperature` takes the anomaly).
    - Rain and aridity for biomes: wet coasts with warm water offshore; dry, foggy coasts with cold water offshore.
@@ -433,7 +445,7 @@ Done in 0.23.0: valleys, gorges and floodplains from the named rivers and a trac
 
 Next after Part 1 of the consolidated addenda.
 
-Corrected by the aquaplanet addendum: ice ages are mainly sea-ice expansion and mountain glaciers. There are no large land ice sheets, the sea-level drop is small, and there are few land bridges or drowned valleys.
+Corrected by the aquaplanet addendum: ice ages are mainly sea-ice expansion and mountain glaciers. There are no large land ice sheets, the sea-level drop is small, and there are few land bridges or drowned valleys. (Superseded by the canon change of 19 November 2026: Khohalis and Demani now carry land ice sheets in cold periods, and the sea-level drop is tens of metres. See Stage 5 in the order of work.)
 
 *Owner, 18 November 2026:* the cold periods are timed by Eym's own orbital cycles already in its data (obliquity 22.1°–24.5° over about 41,000 years, precession about every 25,772 years), Milankovitch-style, not chosen dates. Small on Eym (mostly sea ice and mountain glaciers, little drop in sea level), per the aquaplanet addendum. Land exposed at low sea level comes from the shelf depths.
 
@@ -522,7 +534,7 @@ Agreed in the owner's planning conversations and written here in full; this reco
    - aquatic peoples on shelves and reefs: for the world's author.
 7. *Derived layers for the history engine:*
    - carrying capacity by region at several technology levels;
-   - a travel-cost map over land, rivers and sea, with winds, currents, seasons and sea state (sea travel dominates on a world that is 98.6% ocean), and from it who neighbours whom, the routes of trade and invasion, and how far a state can project power;
+   - a travel-cost map over land, rivers and sea, with winds, currents, seasons and sea state (sea travel dominates on a world that is four fifths ocean), and from it who neighbours whom, the routes of trade and invasion, and how far a state can project power;
    - chokepoints and strategic dependencies: straits, passes, river mouths, single-source resources (copper and tin are rarely found together, so bronze needs trade);
    - a dated timeline of shocks: droughts, weak wet seasons, volcanic winters, blocking episodes, earthquakes, tsunamis, plague introductions.
 
