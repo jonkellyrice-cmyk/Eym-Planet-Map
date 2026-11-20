@@ -5,6 +5,51 @@ follows these; where a value had to be chosen to meet them, the measured values 
 be checked against the intent. Settings that are still the author's to decide are listed at the end, with the
 default the code uses until he answers.
 
+## The wanderers' resonant orbits and the Great Alignment (canon change from the world's author, 20 November 2026)
+
+Every 68 Eym years all four wanderers and Eym stand in one line with Mitkear: the **Great Alignment**. It falls on
+14 March. The last was in year 0, the next is in year 68, then year 136. It is real physics only: no turning nodes,
+no transits, nothing scripted. The sky is drawn from the same orbits.
+
+*The orbits* (`docs/system-orbital-distances.csv`; the registry's keys in brackets). Eccentricities and inclinations
+are as they were, and no node or apsis precesses:
+
+| Wanderer | Period, Eym days | Years | Distance, AU | Phase at the epoch | Orbits in 68 years |
+|---|---|---|---|---|---|
+| Bruthi (Ramses) | 233⅓ (700/3) | 2/3 | 0.763136 | 112.6743° (was 132°) | 102 |
+| Eym (Eventide) | 350 | 1 | 1 | 190° (unchanged) | 68 |
+| Esonth (Thraximundus) | 466⅔ (1400/3) | 4/3 | 1.211432 | 52.5336° (was 78°) | 51 |
+| Lilta (Kandahar) | 661.111… (350 × 17/9) | 17/9 | 1.528038 | 79.5207° (was 265°) | 36 |
+| Iarn (Tribune) | 1700 | 34/7 | 2.868006 | 70.0205° (was 8°) | 14 |
+
+The distances follow from the old ones by Kepler's third law (a ∝ P^(2/3)), the star's mass unchanged; the fields
+worked out from them (nearest and farthest distance, mean speed) follow. Eym, both its moons and Iarn's moon Enoch
+are unchanged, and so are Eym's year, calendar, seasons, eclipses and tides.
+
+*The physics.* Bruthi : Eym : Esonth go round in 2 : 3 : 4 years: a true chain of mean-motion resonances, of the kind
+Jupiter's Galilean moons and the worlds of TRAPPIST-1 keep. Lilta (17/9 of a year) and Iarn (34/7) are
+near-commensurate with it. The model is Keplerian, so the pattern repeats exactly; in reality each alignment would
+come within a degree or two and vary a little from cycle to cycle.
+
+*What is seen* (measured from the model; `tests/eym-almanac.test.mjs`):
+
+- *The Great Alignment* (years 0, 68, 136; 14 March). At 08:00 the five lie within 0.004° of one line round Mitkear,
+  and within 0.5° from midnight until mid-afternoon. From Eym, Esonth, Lilta and Iarn stand together opposite Mitkear,
+  up all night (Lilta and Iarn within 0.4° of the point opposite; Esonth 1.2° from it, because its orbit is tilted),
+  and Bruthi is lost beside Mitkear. Between years 0 and 136 the five never come within 10° of one line except within
+  a week of those three days.
+- *The Lesser Alignment* (years 34, 102, 170; 14 March): Eym, Bruthi, Lilta and Iarn in one line, with Esonth beyond
+  Mitkear, within 1° of the far side.
+- *The Esonth opposition line* (every fourth year, 14 March): Bruthi, Eym and Esonth in one line with Mitkear.
+- *Bruthi never transits Mitkear.* It passes Mitkear every year near 14 March. In even years it passes in front, on
+  14 March, 0.86° from Mitkear's centre: more than three of Mitkear's discs (0.27° in radius) clear. In odd years it
+  passes behind, on the far side of its orbit, and there it does go behind the disc (0.19° from the centre, on
+  12 March): that is not a transit and cannot be seen.
+- *The almanac* (`scripts/eym-almanac.mjs`) lists for any year the true lines above and the close meetings of
+  wanderers in Eym's sky: two within 1°, three within 3°, all four within 10°, each at least 20° from Mitkear, in
+  three dimensions with the inclinations. A year has between none and a few. The sky's panel shows the year's list.
+  The names of the lines are working names; the world's author may rename them.
+
 ## Eym's magnetic field (confirmed by the world's author; recorded 18 November 2026)
 
 *The author's intent:* the north magnetic pole lies over open ocean; there are no compass oddities at Garyk; there
