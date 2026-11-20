@@ -15,14 +15,15 @@ import { pathToFileURL } from "node:url";
 import { buildEymSurface, EYM_LAYOUT, fromLocal, toLocal } from "../scripts/eym-surface.mjs";
 import { CAREN_RELIEF_MODEL, carenRelief } from "../scripts/eym-caren-relief.mjs";
 import { inputsFingerprint, WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
-import { carenClimateFor, monthDeclinationDeg } from "../scripts/eym-caren-climate.mjs";
+import { carenClimate, monthDeclinationDeg } from "../scripts/eym-caren-climate.mjs";
+import { eymRain } from "./generate-eym-rain.mjs";
 import { rainBeltLat, seaLevelTemperatureC } from "../scripts/eym-seasons.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/caren.json", root);
 /** What the survey is made from: this tool, the relief rule, the surface, the traced map and its labels (and the dials, below). */
-export const CAREN_SOURCES = ["tools/generate-eym-caren.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-caren-climate.mjs", "scripts/eym-surface.mjs", "scripts/eym-seasons.mjs", "data/eym/traced-continents.json", "data/eym/caren-labels.json", "data/eym/climate.json"];
+export const CAREN_SOURCES = ["tools/generate-eym-caren.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-caren-climate.mjs", "scripts/eym-rain.mjs", "scripts/eym-land-atmosphere.mjs", "tools/generate-eym-rain.mjs", "scripts/eym-surface.mjs", "scripts/eym-seasons.mjs", "data/eym/traced-continents.json", "data/eym/caren-labels.json", "data/eym/climate.json"];
 /** The groups of dials (scripts/eym-world-inputs.mjs) the survey follows. */
-export const CAREN_INPUTS = ["layout", "caren", "carenClimate"];
+export const CAREN_INPUTS = ["layout", "caren", "carenClimate", "rain", "weather"];
 export const carenSourcesSha256 = () => { const h = createHash("sha256"); for (const p of CAREN_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...CAREN_INPUTS)); return h.digest("hex"); };
 /** Above this a summit keeps snow all year at Caren's latitudes (m: the dial), and the air cools this much with each kilometre (°C). */
 export const SNOW_LINE_M = WORLD_INPUTS.caren.snowLineM, LAPSE_C_PER_KM = 6.5;
@@ -112,54 +113,60 @@ export function buildCaren(dials = WORLD_INPUTS.caren) {
 }
 
 /**
- * Caren's climate as the rule gives it (scripts/eym-caren-climate.mjs), measured against what the canon expects:
+ * Caren's climate as the rules give it (the planet's rain, scripts/eym-rain.mjs, and Caren's temperatures,
+ * scripts/eym-caren-climate.mjs), measured against what the canon expects:
  * found, or not found and by how much. Nothing here is set to an answer.
  */
 function surveyClimate({ source, labels, placeOf, sampler, land, peaks, km }) {
   const D = WORLD_INPUTS.carenClimate, climateDoc = JSON.parse(readFileSync(new URL("data/eym/climate.json", root), "utf8"));
-  const make = (wall) => carenClimateFor({ dials: D, sampler, climate: climateDoc, seaLevelC: seaLevelTemperatureC, beltLat: rainBeltLat, wall });
+  // The planet's rain as it is and as it was with the Sondel's wall standing, and Caren's temperatures with each.
+  const make = (wall) => { const air = eymRain({ wall, climate: climateDoc }); return { air, seaAnomalyAt: air.seaAnomalyAt, rule: carenClimate(D, { seaAnomalyAt: air.seaAnomalyAt, rainMmAt: (lat, lon, month) => air.monthAt(lat, lon, month).rainMm }) }; };
   const now = make(null), before = make(D.wallBeforeTheFall), r1 = (v) => Math.round(v * 10) / 10, mean = (list) => list.reduce((a, b) => a + b, 0) / list.length;
-  const yearAt = (air, lat, lon) => { const m = air.heightAt(lat, lon); return m == null ? null : { groundM: Math.round(m), ...air.rule.yearAt(lat, lon, m, sampler(lat, lon).coastKm, seaLevelTemperatureC(lat)) }; };
+  const yearAt = (era, lat, lon) => { const s = sampler(lat, lon); return !s?.land ? null : { groundM: Math.round(s.elevationM), ...era.rule.yearAt(lat, lon, Math.max(0, s.elevationM), s.coastKm, seaLevelTemperatureC(lat)) }; };
   const brief = (y) => y && { groundM: y.groundM, annualMm: y.annualMm, monthsMm: y.months.map((m) => m.rainMm), wetMonths: y.wetMonths, dryMonths: y.dryMonths, meanC: y.meanC, swingC: y.swingC, coldestNightC: y.coldestNightC, groundFrostMonths: y.frostMonths };
   const town = (name) => { const s = labels.settlements.find((x) => x.name === name), [lat, lon] = placeOf(s); return { name, at: [Math.round(lat * 100) / 100, Math.round(lon * 100) / 100], ...brief(yearAt(now, lat, lon)) }; };
   // The rain belt over Caren, and the sea west of it.
-  const beltByMonth = Array.from({ length: 12 }, (_, m) => r1(now.rule.beltLat(0, m))), pullByMonth = Array.from({ length: 12 }, (_, m) => r1(now.rule.seaPullDeg(0, m)));
+  const beltByMonth = Array.from({ length: 12 }, (_, m) => r1(now.air.beltLat(0, m))), pullByMonth = Array.from({ length: 12 }, (_, m) => r1(now.air.beltLat(0, m) - rainBeltLat(monthDeclinationDeg(m))));
   const seaBox = (lat0, lat1, lon0, lon1, month) => { const v = []; for (let lat = lat0; lat <= lat1; lat += 2) for (let lon = lon0; lon <= lon1; lon += 2) if (!sampler(lat, lon)?.land) v.push(now.seaAnomalyAt(lat, lon, month)); return mean(v); };
   const tongueByMonth = Array.from({ length: 12 }, (_, m) => r1(seaBox(-4, 6, -12, -6, m))), coastByMonth = Array.from({ length: 12 }, (_, m) => r1(seaBox(1, 7, -7, -5, m)));
   const hc = EYM_LAYOUT.hotspotCluster;
-  // North, centre and south (the land's squares, every third one): rain and warmth.
-  const part = (test) => { const ys = land.filter((c, k) => k % 3 === 0 && test(c)).map((c) => yearAt(now, c.lat, c.lon)).filter(Boolean); return { places: ys.length, annualMm: Math.round(mean(ys.map((y) => y.annualMm))), meanC: r1(mean(ys.map((y) => y.meanC))), dryMonths: r1(mean(ys.map((y) => y.dryMonths))) }; };
+  // North, centre and south (the land's squares, one in twenty-four): rain and warmth.
+  const part = (test) => { const ys = land.filter((c, k) => k % 24 === 0 && test(c)).map((c) => yearAt(now, c.lat, c.lon)).filter(Boolean); return { places: ys.length, annualMm: Math.round(mean(ys.map((y) => y.annualMm))), meanC: r1(mean(ys.map((y) => y.meanC))), dryMonths: r1(mean(ys.map((y) => y.dryMonths))) }; };
   // A place's year with the land forced to a height (for snow and frost by height), on the plateau's middle.
   const atHeight = (m) => { const y = now.rule.yearAt(5.5, -0.5, m, 300, seaLevelTemperatureC(5.5)); return { heightM: m, meanC: y.meanC, coldestNightC: y.coldestNightC, groundFrostMonths: y.frostMonths, airFrostMonths: y.airFrostMonths, snow: y.meanC <= -3 ? "all year" : y.coldestNightC <= 1 ? "now and then, in cold, wet spells" : "none" }; };
   // Rain shadows: 70 km to the south-west of a peak (the lee of the north-east trades) against 70 km to its north-east.
   const shadowOf = (p) => { const d = 70 / 111.2 * Math.SQRT1_2, lee = yearAt(now, p.at[0] - d, p.at[1] - d), wind = yearAt(now, p.at[0] + d, p.at[1] + d); return lee && wind ? { name: p.name, leeMm: lee.annualMm, windwardMm: wind.annualMm, leeShare: Math.round(lee.annualMm / wind.annualMm * 100) / 100 } : { name: p.name, leeMm: lee?.annualMm ?? null, windwardMm: wind?.annualMm ?? null, leeShare: null }; };
-  // The Molkath country: the low ground of its box (under 1,000 m), today and with the wall standing.
-  const box = D.molkath, molkath = (air) => { const v = []; for (let lat = box.latDeg[0] + 0.25; lat < box.latDeg[1]; lat += 0.5) for (let lon = box.lonDeg[0] + 0.25; lon < box.lonDeg[1]; lon += 0.5) { const s = sampler(lat, lon); if (!s?.land || s.elevationM > 1000) continue; const y = yearAt(air, lat, lon); if (y && y.groundM <= 1000) v.push(y.annualMm); } v.sort((a, b) => a - b); return v.length ? { places: v.length, annualMm: [v[0], v[Math.floor(v.length / 2)], v.at(-1)] } : { places: 0, annualMm: null }; };
+  // The Molkath country: the map's tan ground (dry tableland) round the Sondel's remnant, by the side of the
+  // remnant's crest it lies on, today and with the wall standing. (The trades blow from the east: the west is the lee.)
+  const box = D.molkath, tan = []; for (let lat = box.latDeg[0] + 0.25; lat < box.latDeg[1]; lat += 0.5) for (let lon = box.lonDeg[0] + 0.25; lon < box.lonDeg[1]; lon += 0.5) { const s = sampler(lat, lon); if (s?.land && s.relief >= 0.6 && s.relief < 1.6) tan.push({ lat, lon, side: lat - box.crestAt[0] > 2.2 ? "north" : lat - box.crestAt[0] < -1.5 ? "south" : lon < box.crestAt[1] ? "west" : "east" }); }
+  const spread = (v) => { const s = [...v].sort((x, y) => x - y); return s.length ? [s[0], s[Math.floor(s.length / 2)], s.at(-1)] : null; };
+  const molkath = (era) => { const rows = tan.map((c) => ({ ...c, y: yearAt(era, c.lat, c.lon) })).filter((c) => c.y), of = (list) => ({ places: list.length, annualMm: spread(list.map((c) => c.y.annualMm)), dryMonths: list.length ? r1(mean(list.map((c) => c.y.dryMonths))) : null, aridShare: list.length ? Math.round(list.filter((c) => c.y.annualMm <= 250).length / list.length * 100) / 100 : null }); return { ...of(rows), sides: Object.fromEntries(["west", "east", "north", "south"].map((side) => [side, of(rows.filter((c) => c.side === side))])) }; };
   const molkathNow = molkath(now), molkathBefore = molkath(before), target = [100, 250];
   const north = part((c) => c.lat >= 4.5), centre = part((c) => c.lat > -4 && c.lat < 4.5), south = part((c) => c.lat <= -4), northWest = part((c) => c.lat >= 4.5 && c.lon < -2), northEast = part((c) => c.lat >= 4.5 && c.lon > 2);
-  const plateauPlaces = land.filter((c, k) => k % 3 === 0 && c.lat >= NORTHERN_COAST_LAT && c.open && c.relief < 0.5 && c.m >= 1300).map((c) => yearAt(now, c.lat, c.lon)).filter(Boolean);
+  const plateauPlaces = land.filter((c, k) => k % 9 === 0 && c.lat >= NORTHERN_COAST_LAT && c.open && c.relief < 0.5 && c.m >= 1300).map((c) => yearAt(now, c.lat, c.lon)).filter(Boolean);
   const plateau = { places: plateauPlaces.length, annualMm: Math.round(mean(plateauPlaces.map((y) => y.annualMm))), meanC: r1(mean(plateauPlaces.map((y) => y.meanC))), swingC: r1(mean(plateauPlaces.map((y) => y.swingC))), coldestNightC: r1(Math.min(...plateauPlaces.map((y) => y.coldestNightC))), wetMonths: r1(mean(plateauPlaces.map((y) => y.wetMonths))), dryMonths: r1(mean(plateauPlaces.map((y) => y.dryMonths))), groundFrostMonths: r1(mean(plateauPlaces.map((y) => y.frostMonths))) };
   const byHeight = [0, 1000, 1750, 2500, 3250, 4000, 4800, 5400].map(atHeight), rainShadows = peaks.map(shadowOf), southOfEquator = beltByMonth.filter((v) => v < 0).length;
   const tongue = r1(mean(tongueByMonth)), coastSwing = r1(Math.max(...coastByMonth) - Math.min(...coastByMonth)), dree = town("Dree"), weth = rainShadows.find((s) => s.name === "Mt. Weth"), oplin = rainShadows.filter((s) => /Oplin|Danrich/.test(s.name));
   const reached = Boolean(molkathNow.annualMm && molkathNow.annualMm[1] <= target[1] && molkathBefore.annualMm && molkathBefore.annualMm[1] <= target[1]);
+  const sides = (m) => ["west", "east", "north", "south"].filter((s) => m.sides[s].places).map((s) => `${s} ${m.sides[s].annualMm[1]} mm`).join(", ");
   // What the canon expects, and whether the rule gives it (found or not, with the measure): verified, not assumed.
   const expectations = [
     { expected: "a tongue of cold water toward Caren's west coast", found: tongue <= -0.3, measure: `the sea west of Caren is ${Math.abs(tongue)} °C colder than its latitude's, the year round` },
     { expected: "the western coasts' sea swings 5 to 8 °C through the year", found: coastSwing >= 5, measure: `${coastSwing} °C` },
-    { expected: "the rain belt south of the equator over Caren for more of the year", found: southOfEquator >= 6, measure: `${southOfEquator} months of 12 (the sea draws it ${Math.max(...pullByMonth)}° north at most, not south: the cold water lies on both sides of the equator)` },
+    { expected: "the rain belt south of the equator over Caren for more of the year", found: southOfEquator >= 6, measure: `${southOfEquator} months of 12 (the sea and the land draw it between ${Math.min(...pullByMonth)}° and ${Math.max(...pullByMonth)}° from the open ocean's place)` },
     { expected: "northern Caren cooler than the south", found: north.meanC < south.meanC - 2, measure: `${north.meanC} °C against ${south.meanC} °C` },
-    { expected: "northern Caren drier than the south", found: north.annualMm < south.annualMm, measure: `${north.annualMm} mm against ${south.annualMm} mm: the plateau's windward ramps wring rain from the trades; only its lee is drier (north-west ${northWest.annualMm} mm, north-east ${northEast.annualMm} mm)` },
+    { expected: "northern Caren drier than the south", found: north.annualMm < south.annualMm, measure: `${north.annualMm} mm against ${south.annualMm} mm (north-west ${northWest.annualMm} mm, north-east ${northEast.annualMm} mm): the rain belt stands over the north for more of the year, and the high ground wrings the air` },
     { expected: "a cool plateau with a mild rhythm of seasons", found: plateau.meanC <= 18 && plateau.swingC >= 1.5, measure: `${plateau.meanC} °C in the mean, the months ${plateau.swingC} °C apart` },
     { expected: "a dry season on the plateau, with frost at night", found: plateau.dryMonths >= 2 && plateau.coldestNightC <= D.temperature.groundFrostC, measure: `${plateau.dryMonths} dry months of 12; the coldest nights ${plateau.coldestNightC} °C (ground frost begins at ${D.temperature.groundFrostC} °C)` },
     { expected: "a rain shadow to the south-west of Mt. Weth", found: Boolean(weth?.leeShare && weth.leeShare < 0.8), measure: weth ? `${weth.leeMm} mm in its lee against ${weth.windwardMm} mm to windward` : "not measured" },
-    { expected: "a rain shadow to the south-west of Mt. Oplin and Mt. Danrich, round Menera", found: oplin.length > 0 && oplin.every((s) => s.leeShare && s.leeShare < 0.8), measure: `${oplin.map((s) => `${s.name}: ${s.leeMm} mm against ${s.windwardMm} mm`).join("; ")}; Menera ${town("Menera").annualMm} mm (the trades reach it from the east coast, up the inlet, with no mountain in the way)` },
+    { expected: "a rain shadow to the south-west of Mt. Oplin and Mt. Danrich, round Menera", found: oplin.length > 0 && oplin.every((s) => s.leeShare && s.leeShare < 0.8), measure: `${oplin.map((s) => `${s.name}: ${s.leeMm} mm against ${s.windwardMm} mm`).join("; ")}; Menera ${town("Menera").annualMm} mm` },
     { expected: "south Caren tropical wet and dry", found: south.dryMonths >= 3 && south.annualMm >= 800, measure: `${south.annualMm} mm a year with ${south.dryMonths} dry months; Dree ${dree.annualMm} mm with ${dree.dryMonths} dry months` },
     { expected: "snow all year only above about 4,800 m; none in the lowlands", found: byHeight.find((h) => h.heightM === 4800).snow === "all year" && byHeight.find((h) => h.heightM === 4000).snow !== "all year" && byHeight.find((h) => h.heightM === 0).snow === "none", measure: byHeight.map((h) => `${h.heightM} m: ${h.snow}`).join("; ") },
     { expected: "frost on clear dry-season nights at 1,500 to 2,000 m", found: byHeight.find((h) => h.heightM === 1750).groundFrostMonths > 0, measure: `the coldest nights at 1,750 m are ${byHeight.find((h) => h.heightM === 1750).coldestNightC} °C; ground frost begins near ${byHeight.find((h) => h.groundFrostMonths > 0)?.heightM ?? "?"} m and air frost near ${byHeight.find((h) => h.airFrostMonths > 0)?.heightM ?? "?"} m` },
-    { expected: "the Molkath desert arid (100 to 250 mm a year), today and before the Sondel fell", found: reached, measure: `today ${molkathNow.annualMm?.[1]} mm in the middle of its low ground (${molkathNow.annualMm?.[0]} to ${molkathNow.annualMm?.[2]}); with the wall standing ${molkathBefore.annualMm?.[1]} mm (${molkathBefore.annualMm?.[0]} to ${molkathBefore.annualMm?.[2]})` },
+    { expected: "the Molkath desert arid (100 to 250 mm a year), today and before the Sondel fell", found: reached, measure: `the map's tan ground round the Sondel's remnant: today ${molkathNow.annualMm?.[1]} mm in the middle (${molkathNow.annualMm?.[0]} to ${molkathNow.annualMm?.[2]}; ${sides(molkathNow)}; ${Math.round(molkathNow.aridShare * 100)}% of it under 250 mm); with the wall standing ${molkathBefore.annualMm?.[1]} mm (${molkathBefore.annualMm?.[0]} to ${molkathBefore.annualMm?.[2]}; ${sides(molkathBefore)}; ${Math.round(molkathBefore.aridShare * 100)}% under 250 mm)` },
   ];
   return {
-    model: now.rule.model, expectations,
+    model: now.rule.model, rainModel: now.air.model, expectations,
     rainBelt: { latByMonth: beltByMonth, monthsSouthOfTheEquator: beltByMonth.filter((v) => v < 0).length, seaPullDegByMonth: pullByMonth },
     sea: { coldTongueCByMonth: tongueByMonth, coldTongueC: r1(mean(tongueByMonth)), westCoastCByMonth: coastByMonth, westCoastSwingC: r1(Math.max(...coastByMonth) - Math.min(...coastByMonth)), overTheRidgeC: hc ? r1(mean(Array.from({ length: 12 }, (_, m) => now.seaAnomalyAt(hc.center[0], hc.center[1], m)))) : null },
     parts: { north, northWest, northEast, centre, south },
@@ -167,7 +174,7 @@ function surveyClimate({ source, labels, placeOf, sampler, land, peaks, km }) {
     towns: ["Folo", "Bostain", "Rach", "Aren", "Menera", "Plangi", "Dubos", "Geniv", "Lyla", "Dree", "Ewash"].map(town),
     molkath: { box, targetMm: target, today: molkathNow, beforeTheFall: molkathBefore, wall: D.wallBeforeTheFall,
       reached,
-      why: "It lies on the windward side of the Sondel's remnant under the easterly trades, on the warm western shore of the widest equatorial sea, and is not shut in across the wind: the mountains round it wring rain out of the air over it, not before it." },
+      why: "The trades blow from the east off a warm sea. The remnant's lee (its west side) is dry; its windward side (the east) is wet, with only low ground between it and the sea the rain comes from. A range across the wind to the east of it, or a far colder sea there, would dry the east side; the map shows neither." },
   };
 }
 

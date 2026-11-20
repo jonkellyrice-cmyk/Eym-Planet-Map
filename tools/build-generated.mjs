@@ -42,6 +42,14 @@ if (readCaren()?.sourcesSha256 !== carenSourcesSha256()) { run("tools/generate-e
 const readClimate = () => { try { return JSON.parse(readFileSync(new URL("data/eym/climate.json", root), "utf8")); } catch { return null; } };
 if (readClimate()?.sourcesSha256 !== climateSourcesSha256()) { run("tools/generate-eym-climate.mjs"); changed = true; }
 
+// Eym's rain (data/eym/rain.json: the water budget of the air, month by month) follows the land, the ocean climate
+// and the rain's dials: made again (a minute or so) when any changed. The survey of Caren reads the same rule, so it
+// is looked at again after it.
+const { rainSourcesSha256 } = await import("./generate-eym-rain.mjs");
+const readRain = () => { try { return JSON.parse(readFileSync(new URL("data/eym/rain.json", root), "utf8")); } catch { return null; } };
+if (readRain()?.sourcesSha256 !== rainSourcesSha256()) { run("tools/generate-eym-rain.mjs"); changed = true; }
+if (readCaren()?.sourcesSha256 !== carenSourcesSha256()) { run("tools/generate-eym-caren.mjs"); changed = true; }
+
 // (Imported only now: it reads the tectonic history and the climate written above.)
 const { eymFingerprintFromRepo } = await import("./eym-world.mjs");
 const csvUrl = new URL("docs/system-orbital-distances.csv", root), csv = readFileSync(csvUrl, "utf8");

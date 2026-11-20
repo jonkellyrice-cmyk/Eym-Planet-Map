@@ -48,8 +48,8 @@ export function projectGeoPath(points, yaw = 0, pitch = 0, radius = 250, center 
   return commands.join(" ");
 }
 
-/** How many rivers and waters a phone draws at each level of detail. */
-const MOBILE_WATER = Object.freeze({ orbital: { rivers: 120, waters: 160 }, regional: { rivers: 180, waters: 220 }, surface: { rivers: 240, waters: 300 } });
+/** How many rivers, waters and regions of country a phone draws at each level of detail. */
+const MOBILE_WATER = Object.freeze({ orbital: { rivers: 120, waters: 160, regions: 300 }, regional: { rivers: 180, waters: 220, regions: 380 }, surface: { rivers: 240, waters: 300, regions: 450 } });
 /** The `count` items of a list with the greatest `size`, in the list's own order (all of them when there are no more than that). */
 function greatest(list, count, size) {
   if (list.length <= count) return list;
@@ -61,7 +61,8 @@ export function buildCartographyRenderPlan(asset, zoom = 1, mobile = false) {
   const lod = cartographyLod(zoom, mobile);
   return {
     lod,
-    ecoregions: asset.regions.ecoregions.filter((region) => region.cellCount >= lod.minRegionCells),
+    // (On a phone the largest regions of country, up to a number for the zoom: a varied climate makes many small ones.)
+    ecoregions: ((regions) => (mobile ? greatest(regions, MOBILE_WATER[lod.id].regions, (region) => region.cellCount ?? 0) : regions))(asset.regions.ecoregions.filter((region) => region.cellCount >= lod.minRegionCells)),
     resources: asset.regions.resourceProvinces.filter((region) => region.cellCount >= lod.minRegionCells).slice(0, lod.resourceRegions),
     coastlines: asset.terrain.coastlines,
     // On a phone the greatest rivers and the largest waters are drawn, up to a number for the zoom: a world with

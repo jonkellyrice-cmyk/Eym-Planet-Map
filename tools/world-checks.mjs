@@ -140,6 +140,13 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
     rule("caren-rivers", "the great rivers of the north are tidal in their lowest reach and climb gently above it (no falls)", c.rivers.length >= 3 && c.rivers.every((r) => r.tidalKm >= 50 && r.tidalKm <= 100 && r.gradientMPerKm <= 0.5), c.rivers.map((r) => `${r.id.replace("caren-water-", "water ")}: ${r.lengthKm} km, ${r.headM} m at its head`).join("; "));
   }
 
+  // The rain is the planet's water budget of the air (scripts/eym-rain.mjs): the file holds every land square, with
+  // dry country and wet, and nothing absurd.
+  if (world.rain) {
+    const s = world.rain.summary, tropics = s.landMeanMmByLatBand.filter((b) => b.fromLat >= -20 && b.fromLat < 20 && b.squares), dry = s.landMeanMmByLatBand.filter((b) => (b.fromLat === 20 || b.fromLat === 30 || b.fromLat === -30 || b.fromLat === -40) && b.squares);
+    rule("rain-budget", "the rain file holds every land square, with deserts and wet coasts and no square over 9,000 mm; the tropics' land is wetter than the dry belts'", s.landSquares > 10000 && s.wettest.mm < 9000 && s.driest.mm < 100 && Math.min(...tropics.map((b) => b.meanMm)) > Math.min(...dry.map((b) => b.meanMm)), `${s.landSquares} land squares; wettest ${s.wettest.mm} mm, driest ${s.driest.mm} mm; land between 20° S and 20° N ${tropics.map((b) => b.meanMm).join(", ")} mm by ten degrees`);
+  }
+
   // Caren's climate is measured, not assumed (canon of 20 November 2026): the survey says of each thing the canon
   // expects whether the physics gives it. What is not found is for the owner and the world's author to weigh; it is
   // a warning here, never hidden and never forced.
@@ -166,6 +173,7 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
     if (world.coasts?.sourcesSha256 !== coastSourcesSha256()) stale.push("coast survey");
     const { magneticSourcesSha256 } = await import("./generate-eym-magnetic.mjs"); if (world.magnetic?.sourcesSha256 !== magneticSourcesSha256()) stale.push("magnetic survey");
     const { carenSourcesSha256 } = await import("./generate-eym-caren.mjs"); if (world.caren?.sourcesSha256 !== carenSourcesSha256()) stale.push("Caren's survey");
+    const { rainSourcesSha256 } = await import("./generate-eym-rain.mjs"); if (world.rain?.sourcesSha256 !== rainSourcesSha256()) stale.push("the rain");
     const fp = regionFingerprint(); if (world.regionFingerprint?.shapes !== fp.shapes || world.regionFingerprint?.paint !== fp.paint) stale.push("Region fingerprint");
     rule("up-to-date", "every derived file is up to date with what it is made from", stale.length === 0, stale.length ? `stale: ${stale.join(", ")} (run npm run world)` : "");
     const managed = managedPinsOf(world), moved = Object.keys(managed).filter((k) => pins.managed[k]?.value !== managed[k]);

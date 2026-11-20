@@ -138,7 +138,7 @@ central uplift of 250 m, a trough 60 m deep and a low rim of 150 m; Dubos stands
 only as a range (20 to 200 million years) until the world's author fixes it; the ore bodies are placed with
 Resources.
 
-*The Molkath desert* (checked against the models in 0.35.0 and not reached: see "As measured", below; it replaces the earlier "basin north of the equator ringed
+*The Molkath desert* (checked against the models in 0.35.0 and again, with the rain as a budget of the air's water, in 0.36.0, and not reached: see "As measured", below; it replaces the earlier "basin north of the equator ringed
 by mountains"). A desert of sand and rock in the tan country of the Molkath Confederation round what is left of the
 Sondel Range, at about 0° to 4° N, between the Drong and the Molkath. It was there before the range fell. The cause
 is natural (as for the Chalbi Desert by Lake Turkana, at 3° N, with 150 to 250 mm of rain a year): a low, hot basin;
@@ -148,7 +148,7 @@ the fall the coast-to-coast wall made the funnel and the shadow stronger. The ai
 eras; if the models cannot reach it by natural means the shortfall is reported, and nothing is tuned or made magical
 without the world's author's word.
 
-*Climate* (checked against the models in 0.35.0: see "As measured", below). South Caren is tropical wet and dry: savanna with patches of forest
+*Climate* (checked against the models in 0.35.0 and 0.36.0: see "As measured", below). South Caren is tropical wet and dry: savanna with patches of forest
 (the Arluna, Calmond, Ewash and Holy Grove forests), the Minisa Forest's conifers being tropical pines on sandy or
 high ground, palms on the Chom Islands and the eastern islets, and Dree often stormy. North of the Sondel the plateau
 has a mild rhythm of four seasons: a warm rainy season, leaf fall, a cool dry season with frost at night, and
@@ -167,37 +167,54 @@ be checked, not assumed: a tongue of cold water toward Caren's west coast; north
 cool, foggy season of drizzle on its western coasts; the rain belt south of the equator over Caren for more of the
 year.
 
-*As measured (0.35.0; `scripts/eym-caren-climate.mjs`, dials `carenClimate`; the survey is `data/eym/caren.json`,
-`climate`).* Caren's rain is now worked out month by month from physical causes: where the rain belt stands, which
-way the trades blow, the mountains the air has crossed or is climbing, how far it has come over land, the warmth of
-the sea it came from, and whether it is squeezed between high grounds. No number was set to reach an answer. What the
-canon expects, and what the physics gives:
+*As measured (0.36.0; the rain is the planet's, `scripts/eym-rain.mjs`, dials `rain`; Caren's temperatures
+`scripts/eym-caren-climate.mjs`; the survey is `data/eym/caren.json`, `climate`).* The rain is now a budget of the
+water the air carries, month by month, for the whole planet: the air is followed along each season's wind, taking up
+water over the sea (less over cold water), raining by how full it is, wrung out on high ground and dry behind it,
+given water back by the land, thinned in wind gaps, and mixing with the air round it. It was fitted to one thing only,
+the rain by latitude of an all-ocean Eym; no number was set for any place. The rule can make deserts (a basin behind a
+3,000 m range across the trades gets about 120 mm on the equator; a coast under air from a sea 4 °C colder loses three
+fifths of its rain). What the canon expects of Caren, and what this physics gives:
 
 | The canon expects | Found? | What the model gives |
 |---|---|---|
-| A tongue of cold water toward Caren's west coast | yes | The sea west of Caren is 0.7 °C colder than its latitude's all year, 1.1 °C over the islands' ridge |
+| A tongue of cold water toward Caren's west coast | yes | 0.7 °C colder than its latitude's all year, 1.1 °C over the islands' ridge (the islands add about half a degree in one four-degree square; most of the tongue was there before them) |
 | The western coasts' sea swinging 5 to 8 °C through the year | no | 0.5 °C |
-| The rain belt south of the equator over Caren for more of the year | no | 4 months of 12, as before: the cold water lies on both sides of the equator and draws the belt at most 0.7° (north) |
-| Northern Caren cooler | yes | 20.8 °C in the mean against 24.7 °C in the south; the plateau 15.1 °C |
-| Northern Caren drier | no | 2,206 mm against the south's 1,405 mm: the plateau's windward ramps wring rain from the trades. Only its lee is drier (north-west 1,771 mm, north-east 2,519 mm) |
-| A cool plateau with a mild rhythm of seasons | yes | 15.1 °C, the months 2.5 °C apart, two rainier seasons as the belt passes twice |
-| A dry season on the plateau with frost at night | no | Almost no dry month (0.2 of 12); the coldest nights 5.6 °C. Ground frost begins near 2,500 m, air frost near 3,250 m |
-| Frost on clear dry-season nights at 1,500 to 2,000 m | no | The coldest nights at 1,750 m are 6.6 °C |
-| A rain shadow south-west of Mt. Weth | yes | 1,080 mm in its lee against 1,830 mm to windward |
-| A rain shadow south-west of Mt. Oplin and Mt. Danrich, round Menera | no | Menera has 2,106 mm: the trades reach it from the east coast up the inlet with no mountain in the way |
-| South Caren tropical wet and dry | yes | 1,405 mm a year with five to six dry months; Dree 1,388 mm with six |
+| The rain belt south of the equator over Caren for more of the year | no | 4 months of 12 |
+| Northern Caren cooler | yes | 21.0 °C in the mean against 24.5 °C in the south; the plateau 14.9 °C |
+| Northern Caren drier | no | 2,545 mm against the south's 1,651 mm: the belt stands over the north for more of the year, and the high ground wrings the air (north-west 2,207 mm, north-east 3,220 mm) |
+| A cool plateau with a mild rhythm of seasons | yes | 14.9 °C, the months 2.9 °C apart |
+| A dry season on the plateau with frost at night | no | No dry month; the coldest nights 5.7 °C. Ground frost begins near 2,500 m, air frost near 3,250 m |
+| Frost on clear dry-season nights at 1,500 to 2,000 m | no | The coldest nights at 1,750 m are 7.4 °C |
+| A rain shadow south-west of Mt. Weth | no | 1,956 mm to its south-west against 1,362 mm to its north-east: the air reaches it from the south-east and south for much of the year, not the north-east, and a lone massif is flowed round |
+| A rain shadow south-west of Mt. Oplin and Mt. Danrich, round Menera | no | Mt. Oplin 2,636 mm against 3,794 mm (a third less); Mt. Danrich 3,802 mm against 4,192 mm; Menera 1,948 mm with two dry months |
+| South Caren tropical wet and dry | yes | 1,651 mm a year with three to four dry months; Dree 1,716 mm with four |
 | Snow all year only above about 4,800 m; none in the lowlands | yes | None to 2,500 m; now and then, in cold, wet spells, from about 3,250 m; all year from 4,800 m |
-| The Molkath desert arid (100 to 250 mm), today and before the fall | no | Today 2,302 mm in the middle of its low ground (390 to 2,812); with the wall standing 1,840 mm (1,380 to 2,696) |
+| The Molkath desert arid (100 to 250 mm), today and before the fall | no | See below |
 
-*Dree's storms* were looked for in two years of the daily weather: no gale and no tropical storm came within 400 km of
-it (it lies under 7° from the equator, where such storms hardly form). Its wet season brings 220 to 265 mm a month.
+*The Molkath country, side by side.* It is measured as the map's tan ground round the Sondel's remnant. The trades
+blow from the east off a warm sea, so the remnant's west side is its lee:
 
-*What this means.* Six of the thirteen follow from the physics as built; seven do not. The largest is the Molkath
-desert: its country lies on the windward side of the Sondel's remnant under the easterly trades, on the warm western
-shore of the widest equatorial sea, and no mountain shuts it in across the wind, so the air rains over it. The canon
-says to report this and to tune nothing; the decision is the world's author's. If a place is to differ from what the
-physics gives, by a recorded nudge or by real magic, it can be set as a hand-authored exception with its reason
-(`data/eym/overrides.json`), which every change report lists.
+| Side of the remnant | Today (least, middle, most) | Dry months | With the wall standing | Dry months |
+|---|---|---|---|---|
+| West (the lee) | 640, 1,536, 1,936 mm | 5.4 | 354, 1,228, 2,134 mm | 5.8 |
+| East (windward) | 2,274, 4,420, 8,184 mm | 0.4 | 1,550, 2,102, 4,816 mm | 1.3 |
+| North | 2,082, 2,562, 3,182 mm | 0 | 1,996, 2,410, 3,760 mm | 1.0 |
+| South | 1,006, 2,608, 6,964 mm | 0.9 | 842, 2,240, 9,910 mm | 1.8 |
+
+So the physics gives a dry-season country in the remnant's lee (the driest low ground of Caren lies west of it, 600
+to 1,300 mm with five to eight dry months), not a desert, and a very wet windward side. What would dry it, tried on
+the model and not applied: a range of 1,500 m or more across the wind between the Molkath country and the east coast
+(the low ground behind it falls to a few hundred millimetres), or a sea to the east colder by several degrees (which
+the ocean model does not give: that sea is a warm pool). The map shows neither. The decision is the world's author's;
+a place can be set apart by a recorded exception with its reason (`data/eym/overrides.json`).
+
+*The map against the rain* (where they disagree; neither is overridden): of Caren's squares that are mostly forest on
+the map, one has under 900 mm (1.5° N 3.5° W, 574 mm, in the remnant's lee); of its mostly open squares, sixteen have
+over 2,500 mm (the east, between 4° S and 4° N); all nine of its mostly tan squares have over 1,000 mm.
+
+*Dree's storms* were looked for in two years of the daily weather (0.35.0): no gale and no tropical storm came within
+400 km of it. Its wet season brings 200 to 390 mm a month.
 
 *The map still rules what is drawn.* Forest is where the map draws forest; the map's tan country is dry grassland
 whatever the rain (so the Molkath country is drawn as the map draws it); and country the map leaves open is open:
