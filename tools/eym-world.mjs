@@ -3,7 +3,6 @@
 // markers transcribed from their maps, the layout in scripts/eym-surface.mjs
 // and Eym's registry row. Shared by the geography and cartography generators
 // and validators; the result is cached per process.
-import { WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 import { existsSync, readFileSync } from "node:fs";
 import { buildEymSurface, EYM_LAYOUT, EYM_SURFACE_MODEL } from "../scripts/eym-surface.mjs";
 import { buildEymGeography, eymInputFingerprint } from "../scripts/eym-cartography.mjs";
@@ -32,6 +31,13 @@ function climateInput() {
   const text = readFileSync(url, "utf8"); return { text, data: JSON.parse(text) };
 }
 
+/** Eym's rain (tools/generate-eym-rain.mjs), as text and parsed, or nulls before it exists. */
+function rainInput() {
+  const url = new URL("data/eym/rain.json", root);
+  if (!existsSync(url)) return { text: "", data: null };
+  const text = readFileSync(url, "utf8"); return { text, data: JSON.parse(text) };
+}
+
 /** The hand-authored exceptions (data/eym/overrides.json), as text and parsed; its text counts toward the fingerprint only when it holds any. */
 function overridesInput() {
   const url = new URL("data/eym/overrides.json", root);
@@ -39,8 +45,8 @@ function overridesInput() {
   const data = JSON.parse(readFileSync(url, "utf8")); return { text: data.overrides?.length ? JSON.stringify(data.overrides) : "", data };
 }
 
-/** The code the cartography is made by and Caren's relief and climate rules (scripts/eym-cartography.mjs, eym-caren-relief.mjs, eym-caren-climate.mjs): a change to any of them is a change of input, so the build makes the cartography again. */
-const carenRuleText = () => readFileSync(new URL("scripts/eym-cartography.mjs", root), "utf8") + readFileSync(new URL("scripts/eym-caren-relief.mjs", root), "utf8") + readFileSync(new URL("scripts/eym-caren-climate.mjs", root), "utf8") + JSON.stringify(WORLD_INPUTS.carenClimate);
+/** The code the cartography is made by, Caren's relief rule and the rain it reads (scripts/eym-cartography.mjs, eym-caren-relief.mjs, data/eym/rain.json): a change to any of them is a change of input, so the build makes the cartography again. */
+const carenRuleText = () => readFileSync(new URL("scripts/eym-cartography.mjs", root), "utf8") + readFileSync(new URL("scripts/eym-caren-relief.mjs", root), "utf8") + rainInput().text;
 
 export const isEymRow = (row) => row?.geography_model_version === EYM_SURFACE_MODEL;
 
@@ -52,11 +58,11 @@ export function loadEymWorld(row) {
     caren: JSON.parse(readFileSync(new URL("data/eym/caren-labels.json", root), "utf8")),
     garyk: JSON.parse(readFileSync(new URL("data/eym/garyk-markers.json", root), "utf8")),
   };
-  const tectonics = tectonicsInput(), growth = growthInput(), climate = climateInput(), overrides = overridesInput();
+  const tectonics = tectonicsInput(), growth = growthInput(), climate = climateInput(), overrides = overridesInput(), rain = rainInput();
   const fingerprint = eymInputFingerprint(tracedText + JSON.stringify(labels) + tectonics.text + growth.text + climate.text + overrides.text + carenRuleText(), EYM_LAYOUT);
   if (row.geography_input_fingerprint !== fingerprint) throw new Error(`Eym's surface inputs changed: set geography_input_fingerprint for ${row.object} to ${fingerprint} in docs/system-orbital-distances.csv`);
   const surface = buildEymSurface(traced, EYM_LAYOUT, tectonics.data, growth.data);
-  const world = { ...buildEymGeography({ ...surface, traced, labels, row, fingerprint, tectonics: tectonics.data, climate: climate.data, overrides: overrides.data }), surface: surface.surface, fingerprint };
+  const world = { ...buildEymGeography({ ...surface, traced, labels, row, fingerprint, tectonics: tectonics.data, climate: climate.data, overrides: overrides.data, rain: rain.data }), surface: surface.surface, fingerprint };
   cached = { row, world };
   return world;
 }

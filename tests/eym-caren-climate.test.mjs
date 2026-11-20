@@ -59,37 +59,27 @@ test("the sea west of Caren: the undercurrent wells up at the ridge, the trades'
   assert.ok(at(climate.seasons[0].sstAnomaly, 2, 10) > 0.3);
 });
 
-test("the climate rule follows the air: the belt, the trades, the mountains, the sea and the wind's channels", () => {
-  const flat = { heightAt: (lat, lon) => (lon < -3 || lon > 3 ? null : 100), seaAnomalyAt: () => 0, beltLatAt: (lon, declination) => 4 + 0.4 * declination };
-  const rule = carenClimate(D, flat), year = (lat, lon, m = 100) => rule.yearAt(lat, lon, m, 150, 27);
-  // The belt follows the Sun; rain falls under it: at 6° N the wettest months have the belt near, the driest have it far.
-  assert.ok(rule.beltLat(0, 2) > 12 && rule.beltLat(0, 8) < -3 && Math.abs(monthDeclinationDeg(2) - 22.6) < 0.5);
-  const north = year(6, 0), south = year(-7, 0);
-  assert.ok(north.months[0].rainMm > north.months[8].rainMm * 2 && south.months[8].rainMm > south.months[2].rainMm * 3);
-  assert.ok(south.dryMonths >= 4 && south.annualMm < north.annualMm, "the south has a long dry season");
-  // The trades blow toward the belt: from the north-east north of it, from the south-east south of it.
-  assert.ok(rule.windAt(8, 0, 8).north < 0 && rule.windAt(-8, 0, 2).north > 0 && rule.windAt(0, 0, 0).east < 0);
-  // A mountain upwind casts a rain shadow; a slope the air climbs gets more; neither changes the belt.
-  const wallEast = carenClimate(D, { ...flat, heightAt: (lat, lon) => (lon < -3 || lon > 3 ? null : lon > 1 && lon < 1.5 ? 3000 : 100) });
-  const lee = wallEast.yearAt(0, 0, 100, 150, 27), open = rule.yearAt(0, 0, 100, 150, 27), slope = wallEast.yearAt(0, 1.2, 3000, 150, 27);
-  assert.ok(lee.annualMm < open.annualMm * 0.6 && lee.months.every((m) => m.barrierM >= 2800), `${lee.annualMm} mm behind the mountain, ${open.annualMm} mm without it`);
-  assert.ok(slope.months[0].lift > 1.3, "the windward slope is wetter");
-  // Cold water upwind: less rain; warm: more.
-  const coldSea = carenClimate(D, { ...flat, seaAnomalyAt: () => -2 }).yearAt(0, 2.5, 100, 50, 27), warmSea = carenClimate(D, { ...flat, seaAnomalyAt: () => 2 }).yearAt(0, 2.5, 100, 50, 27);
-  assert.ok(coldSea.annualMm < warmSea.annualMm * 0.8);
-  // A channel between two high grounds across the wind is drier than open country.
-  const channel = carenClimate(D, { ...flat, heightAt: (lat, lon) => (lon < -3 || lon > 3 ? null : Math.abs(lat) > 1 ? 2500 : 100) }).monthAt(0, 0, 100, 0);
-  assert.ok(channel.squeeze > 0.3 && channel.channel < 0.85);
-  // Cooler with height by 6.5 °C a kilometre; the day's range wider in a dry month inland.
-  const high = rule.yearAt(6, 0, 2100, 150, 27);
-  assert.ok(Math.abs((north.meanC - high.meanC) - 13) < 1.5 && high.coldestNightC < north.coldestNightC - 10);
+test("Caren's temperatures: cooler by height, the months swinging with the Sun, the nights colder in a dry month inland", () => {
+  const rule = carenClimate(D, { seaAnomalyAt: () => 0, rainMmAt: (lat, lon, month) => (month < 6 ? 200 : 20) });
+  const low = rule.yearAt(6, 0, 100, 150, 27), high = rule.yearAt(6, 0, 2100, 150, 27);
+  assert.ok(Math.abs((low.meanC - high.meanC) - 13) < 0.2 && high.coldestNightC < low.coldestNightC - 10, "6.5 °C a kilometre");
+  assert.equal(low.annualMm, 6 * 200 + 6 * 20); assert.equal(low.dryMonths, 6); assert.equal(low.wetMonths, 6);
+  // A dry month's nights are colder than a wet month's with the Sun as high (months 0 and 5 against 6 and 11).
+  assert.ok(low.months[6].nightC < low.months[5].nightC && low.months[6].dayC > low.months[5].dayC - 0.5);
+  // Cold water offshore cools the coast, and hardly the interior.
+  const cold = carenClimate(D, { seaAnomalyAt: () => -3, rainMmAt: () => 100 });
+  assert.ok(cold.yearAt(0, 0, 0, 10, 27).meanC < cold.yearAt(0, 0, 0, 900, 27).meanC - 2);
+  assert.ok(Math.abs(monthDeclinationDeg(2) - 22.6) < 0.5);
 });
 
 test("the survey measures the climate against the canon's expectations and says which are found: verified, not assumed", () => {
-  assert.ok(CAREN_INPUTS.includes("carenClimate") && CAREN_SOURCES.includes("scripts/eym-caren-climate.mjs") && CAREN_SOURCES.includes("data/eym/climate.json"));
+  for (const group of ["carenClimate", "rain"]) assert.ok(CAREN_INPUTS.includes(group), group);
+  for (const path of ["scripts/eym-caren-climate.mjs", "scripts/eym-rain.mjs", "data/eym/climate.json"]) assert.ok(CAREN_SOURCES.includes(path), path);
+  assert.equal(C.rainModel, "eym-rain-v1");
   const found = Object.fromEntries(C.expectations.map((e) => [e.expected, e.found]));
   for (const e of C.expectations) assert.ok(typeof e.found === "boolean" && e.measure.length > 5, e.expected);
-  // What the physics gives (20 November 2026). A change here is a change of Caren's climate: look before accepting it.
+  // What the physics gives (20 November 2026, with the rain as a budget of the air's water). A change here is a
+  // change of Caren's climate: look before accepting it.
   assert.deepEqual(found, {
     "a tongue of cold water toward Caren's west coast": true,
     "the western coasts' sea swings 5 to 8 °C through the year": false,
@@ -98,38 +88,45 @@ test("the survey measures the climate against the canon's expectations and says 
     "northern Caren drier than the south": false,
     "a cool plateau with a mild rhythm of seasons": true,
     "a dry season on the plateau, with frost at night": false,
-    "a rain shadow to the south-west of Mt. Weth": true,
+    "a rain shadow to the south-west of Mt. Weth": false,
     "a rain shadow to the south-west of Mt. Oplin and Mt. Danrich, round Menera": false,
     "south Caren tropical wet and dry": true,
     "snow all year only above about 4,800 m; none in the lowlands": true,
     "frost on clear dry-season nights at 1,500 to 2,000 m": false,
     "the Molkath desert arid (100 to 250 mm a year), today and before the Sondel fell": false,
   });
-  // South Caren: a long dry season; Dree among it. The north: cooler by height.
-  assert.ok(C.parts.south.dryMonths >= 4 && C.parts.south.annualMm > 900 && C.towns.find((t) => t.name === "Dree").dryMonths >= 4);
+  // South Caren: a dry season; the north: cooler by height, and wetter.
+  assert.ok(C.parts.south.dryMonths >= 3 && C.parts.south.annualMm > 900 && C.parts.south.dryMonths > C.parts.north.dryMonths + 1.5);
   assert.ok(C.plateau.meanC < 18 && C.plateau.meanC > 12 && C.parts.north.meanC < C.parts.south.meanC);
   // Snow and frost by height: none in the lowlands, now and then from about 3,000 m, all year from the snow line.
   const at = (m) => C.byHeight.find((h) => h.heightM === m);
   assert.equal(at(0).snow, "none"); assert.equal(at(1750).snow, "none"); assert.match(at(4000).snow, /now and then/); assert.equal(at(4800).snow, "all year");
   for (let k = 1; k < C.byHeight.length; k += 1) assert.ok(C.byHeight[k].meanC < C.byHeight[k - 1].meanC);
-  // The Molkath desert: the shortfall is reported with its numbers, for both eras, and nothing is tuned to hide it.
-  const m = C.molkath;
+  // The Molkath country is the map's tan ground round the Sondel's remnant, measured side by side in both eras.
+  // The trades blow from the east: its west side, the remnant's lee, is its driest and has the longest dry season,
+  // its east side the wettest; the wall dries the west further. It is not a desert on any side, and that is
+  // reported with its numbers: nothing is tuned to hide it.
+  const m = C.molkath, now = m.today.sides, then = m.beforeTheFall.sides;
   assert.equal(m.reached, false); assert.deepEqual(m.targetMm, [100, 250]);
-  assert.ok(m.today.places >= 8 && m.today.annualMm[1] > 1000 && m.beforeTheFall.annualMm[1] > 1000, `${m.today.annualMm[1]} mm today, ${m.beforeTheFall.annualMm[1]} mm before the fall`);
-  assert.match(m.why, /windward/);
+  for (const side of ["west", "east", "north", "south"]) assert.ok(now[side].places >= 4, side);
+  assert.ok(now.west.annualMm[1] < now.east.annualMm[1] * 0.5 && now.west.dryMonths > now.east.dryMonths + 2, `west ${now.west.annualMm[1]} mm, east ${now.east.annualMm[1]} mm`);
+  assert.ok(then.west.annualMm[1] < now.west.annualMm[1] * 0.8 && then.west.dryMonths > now.west.dryMonths, `the west with the wall standing: ${then.west.annualMm[1]} mm`);
+  assert.ok(now.west.annualMm[1] > 1000 && m.today.aridShare < 0.1 && m.beforeTheFall.aridShare < 0.1, "not a desert, and said so");
+  assert.match(m.why, /lee/);
   // The map's tan country is still shown as the map draws it: dry grassland, whatever the rain.
   const biomes = asset.raster.biome.categories, values = [...Buffer.from(asset.raster.biome.valuesBase64, "base64")], biomeAt = (lat, lon) => biomes[values[Math.floor(lat + 90) * 360 + Math.floor(lon + 180)]];
   assert.ok(["savanna", "steppe"].includes(biomeAt(1.5, 1.5)), biomeAt(1.5, 1.5));
 });
 
-test("Caren's country by the map and the dry season: forest where the map draws it, open country elsewhere, savanna in the long-dry south; Dubos is tropical", () => {
+test("Caren's country by the map and the dry season: forest where the map draws it, open country elsewhere, savanna and woodland in the south; Dubos is tropical", () => {
   const biomes = asset.raster.biome.categories, values = [...Buffer.from(asset.raster.biome.valuesBase64, "base64")], biomeAt = (lat, lon) => biomes[values[Math.floor(lat + 90) * 360 + Math.floor(lon + 180)]];
   const dubos = asset.settlements.find((s) => s.properName === "Dubos"), dree = asset.settlements.find((s) => s.properName === "Dree");
   assert.equal(biomeAt(dubos.lat, dubos.lon), "tropical-rainforest");
-  // Dree's open country has a long dry season: savanna (tropical wet and dry), as the map's open south is.
-  assert.equal(biomeAt(dree.lat, dree.lon), "savanna");
+  // Dree's open country has a dry season: savanna or open woodland (tropical wet and dry), as the map's open south is.
+  assert.ok(["savanna", "seasonal-forest"].includes(biomeAt(dree.lat, dree.lon)), biomeAt(dree.lat, dree.lon));
   let forest = 0, land = 0, south = { seasonal: 0, rain: 0 };
   for (let lat = -9.5; lat <= 8.5; lat += 1) for (let lon = -5.5; lon <= 5.5; lon += 1) { const b = biomeAt(lat, lon); if (/ocean/.test(b)) continue; land += 1; if (/forest/.test(b)) forest += 1; if (lat <= -5.5) { if (b === "seasonal-forest" || b === "savanna") south.seasonal += 1; if (b === "tropical-rainforest") south.rain += 1; } }
   assert.ok(forest > land * 0.5, `most of Caren is forest or woodland (${forest} of ${land} cells)`);
   assert.ok(south.seasonal > south.rain * 3, `the far south is seasonal forest and savanna (${south.seasonal} cells against ${south.rain} of rainforest)`);
 });
+

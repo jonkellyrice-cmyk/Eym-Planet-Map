@@ -160,31 +160,64 @@ export const WORLD_INPUTS = deepFreeze({
   },
 
   /**
-   * Caren's climate by physical cause (scripts/eym-caren-climate.mjs; canon of 20 November 2026). These are the
-   * sizes of the causes, taken from what is measured on Earth; none is set to reach a wanted rainfall.
+   * Eym's rain as a budget of the water the air carries (scripts/eym-rain.mjs; owner's direction of 20 November
+   * 2026). The sizes of the causes are taken from measured physics, and the overturning is fitted to one thing
+   * only: the rain by latitude of an all-ocean Eym (scripts/eym-seasons.mjs, `zonalPrecipitationMm`), which it
+   * gives back within about a tenth. No number is set to reach a wanted rainfall at any place.
+   */
+  rain: {
+    // The air is followed back `steps` steps of `stepKm` along the month's wind, and forward again from there,
+    // starting `startFull` full (what it starts with is forgotten within a few days' travel).
+    path: { stepKm: 50, steps: 100, startFull: 0.6 },
+    // A full column of air over sea-level ground holds `fullMmAt27` mm of water where the air at sea level is
+    // 27 °C, and `perC` more or less for each degree (the vapour-pressure law as measured over the oceans, Stephens
+    // 1990); the water thins out upward with a scale of `scaleM`, so the column over ground that high holds 1/e.
+    column: { fullMmAt27: 59, perC: 0.064, scaleM: 2500 },
+    // Rain by how full the column is: `mmPerDay` when it is `fromFull` full, and e times more for each 1/`steepness`
+    // fuller (the monthly law measured over the tropical oceans, Bretherton, Peters and Back 2004). What a column
+    // cannot hold at all falls within about `spillKm`. A month is dry under `dryMonthMm` and wet from `wetMonthMm`.
+    rain: { mmPerDay: 1, steepness: 11.4, fromFull: 0.522, spillKm: 60, dryMonthMm: 60, wetMonthMm: 100 },
+    // The sea: the low air over it is `airFull` full for the sea's own temperature, and the column takes water up
+    // toward that with a time of `uptakeDays`. Warm water draws the low air together and cold water spreads it:
+    // `gatherPerC` a day for each degree the sea is warmer than the sea `ringDeg` round it (Lindzen and Nigam 1987).
+    sea: { airFull: 0.85, uptakeDays: 4, gatherPerC: 0.09, ringDeg: 8 },
+    // The land gives its rain back to the air by Budyko's curve: nearly all where the rain is far less than the
+    // `evaporationMmDay` the Sun could lift, a falling share where it is more (the rest runs off).
+    land: { evaporationMmDay: 4.5 },
+    // The air mixes with the air round and above it toward what the open ocean's air holds at its latitude, with
+    // a time of `days` (the stirring of the weather: about a million m² a second across some 700 km, the width of a rain shadow).
+    mixing: { days: 6 },
+    // The overturning of the air: gathering under the rain belt, spreading round it, gathering along the storm
+    // tracks (each per day, with a width in degrees). Fitted to the all-ocean rain by latitude; shapes, not places.
+    overturning: { beltPerDay: 0.229, beltWidthDeg: 10.1, dryPerDay: 0.0632, dryOffsetDeg: 6.36, dryWidthDeg: 44.2, stormPerDay: 0.366, stormLat: 58.1, stormWidthDeg: 16.1, polarPerDay: 0 },
+    // The rain belt stands over the warmest water within `pullMostDeg` of its seasonal place, the sea's anomaly
+    // taken along `pullReachDeg` of longitude to either side.
+    belt: { pullReachDeg: 12, pullMostDeg: 12 },
+    // The season's wind: trades of `easterlyMs` from the east (slack by `doldrums` under the belt) blowing toward
+    // the belt at up to `towardBeltMs` (full `turnDeg` from it); air that has crossed the equator to a belt more than
+    // `monsoonFromDeg` from it is turned to a westerly of up to `monsoonWestMs` (full when the belt is `monsoonFullDeg`
+    // farther still); westerlies of `westerlyMs` beyond `westerliesFromDeg`. The belts' seasonal shift is
+    // `seasonShift` of the Sun's. The wind is never slacker than `leastMs`, and through a month it blows from
+    // `spreadDeg` to either side of its mean a quarter of the time each. Low air climbs high ground only within
+    // speed/`layeringPerS` of its top (the air's layering, N = 0.01 a second), measured above the lowest ground
+    // of the last `blockKm`.
+    wind: { seasonShift: 0.4, towardBeltMs: 3, turnDeg: 6, easterlyMs: 6, doldrums: 0.6, monsoonFromDeg: 4, monsoonFullDeg: 8, monsoonWestMs: 4, westerliesFromDeg: 28, westerlyMs: 8, leastMs: 2, spreadDeg: 25, layeringPerS: 0.01, blockKm: 500 },
+    // A wind gap: ground `wallM` higher on both sides, across the wind, within `widthKm` in all. In the narrowest
+    // the wind runs `speedUp` times faster again and spreads by that extra speed over the gap's width (a few
+    // millionths a second, as measured in the Turkana channel); `lowAirShare` of the column is in the air that spreads.
+    jet: { stepKm: 50, widthKm: 600, wallM: 600, speedUp: 1, lowAirShare: 0.5 },
+    // The rain file (data/eym/rain.json): land by the degree (four places in each square, and `neighbourShare` of
+    // each square's rain taken from the land squares beside it), the sea every `seaDeg` degrees.
+    grid: { seaDeg: 4, neighbourShare: 0.34 },
+  },
+
+  /**
+   * Caren's temperatures and its survey (scripts/eym-caren-climate.mjs; canon of 20 November 2026). Its rain is the
+   * planet's (the `rain` group above).
    */
   carenClimate: {
-    // The rain belt: rain falls under it and less with each `widthDeg` away. It keeps off cold water: it is drawn
-    // toward the warmer side of the equator by `degPerC` for each degree the sea is warmer there (the sea within
-    // `seaReachDeg` of longitude and `seaBandDeg` of the equator), by no more than `maxPullDeg`.
-    belt: { widthDeg: 9, seaReachDeg: 12, seaBandDeg: 9, degPerC: 2, maxPullDeg: 6 },
-    // The trades: an easterly of `easterlyMs` with a flow toward the belt of up to `towardBeltMs`, full `turnDeg` from it.
-    wind: { easterlyMs: 6, towardBeltMs: 2.5, turnDeg: 6 },
-    // Mountains. Air is followed `reachKm` upwind in steps. Crossing a barrier it loses the water below the barrier's
-    // top (the air's water thins out upward with a scale of `moistureScaleM`), of which `rainedOut` falls there;
-    // climbing a slope it rains `liftPerMPerKm` more for each metre per kilometre (over `slopeKm`), up to `liftMost`
-    // more; and it has less to give the farther it has come over land (a scale of `inlandKm`: forest gives much back).
-    orography: { stepKm: 30, reachKm: 600, moistureScaleM: 2000, rainedOut: 0.8, slopeKm: 90, liftPerMPerKm: 0.05, liftMost: 0.8, inlandKm: 3000 },
-    // The sea upwind: rain changes `rainPerC` for each degree it is warmer or colder than its latitude's (between
-    // `least` and `most`), fading over `reachKm` of land.
-    sea: { rainPerC: 0.09, reachKm: 600, least: 0.55, most: 1.45 },
-    // A wind channel: ground `wallM` higher on both sides, across the wind, within `widthKm` in all. The narrower,
-    // the faster and drier, down to `driest` less rain in the narrowest (as the Turkana channel on Earth).
-    channel: { stepKm: 30, widthKm: 450, wallM: 1000, driest: 0.6 },
-    // Rain in a month: `backgroundMm` anywhere and `beltMm` more right under the belt (together about 2,200 mm a
-    // year where the belt spends the year overhead, as over Earth's wettest equatorial lowlands). A month is wet
-    // from `wetMonthMm` and dry under `dryMonthMm`.
-    rain: { backgroundMm: 22, beltMm: 260, wetMonthMm: 60, dryMonthMm: 60 },
+    // A month is wet from `wetMonthMm` and dry under `dryMonthMm`.
+    rain: { wetMonthMm: 60, dryMonthMm: 60 },
     // Temperature: cooler by `lapseCPerKm` with height; the months swing by `sunSwingC` times how far the Sun
     // stands from overhead (its cosine against `sunMean`); the sea upwind is felt within `seaReachKm` of the coast;
     // a wet month (`cloudyMm` or more) is `rainCoolC` cooler. The day's range runs from `dayRangeC[0]` in a wet
@@ -195,8 +228,9 @@ export const WORLD_INPUTS = deepFreeze({
     // coast to coast along `latDeg`, `crestM` high and `halfWidthKm` to either side. Its line and height are taken
     // from what is left of it; the world's author may correct them.
     wallBeforeTheFall: { latDeg: 1.2, halfWidthKm: 120, crestM: 4500 },
-    // The Molkath desert's country (the map's tan ground round the Sondel's remnant), for the survey.
-    molkath: { latDeg: [0, 4], lonDeg: [0.4, 2.2] },
+    // The Molkath desert's country for the survey: the map's tan ground (dry tableland) within this box round the
+    // Sondel's remnant, taken in four parts by where it lies from the remnant's crest (`crestAt`).
+    molkath: { latDeg: [-2.5, 4.8], lonDeg: [-3.6, 2.6], crestAt: [1.2, -0.2] },
   },
 
   /** The sea floor's shape (scripts/eym-seafloor.mjs): shelf widths (km) by margin, the slope's width, the abyss's run. */

@@ -13,8 +13,7 @@ import { EYM_LAYOUT, EYM_SURFACE_MODEL, frameEastScale, frameToLatLon, fromLocal
 import { normLon, unwrapRing } from "./geo-wrap.mjs";
 import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
 import { carenRelief } from "./eym-caren-relief.mjs";
-import { carenClimateFor } from "./eym-caren-climate.mjs";
-import { rainBeltLat } from "./eym-seasons.mjs";
+import { rainReader } from "./eym-rain.mjs";
 import { seaLevelTemperatureC, zonalPrecipitationMm } from "./eym-seasons.mjs";
 import { soilFromRock } from "./eym-geology.mjs";
 import { prepareOverrides } from "./eym-overrides.mjs";
@@ -331,7 +330,7 @@ function terrainDetail(frames) {
  * Build Eym's coarse and refined geography from its surface.
  * @param {object} input { surface, sampler, frames, traced, labels: { caren, garyk }, row, fingerprint }
  */
-export function buildEymGeography({ surface, sampler, frames, traced, labels, row, fingerprint, tectonics = null, climate = null, overrides = null }) {
+export function buildEymGeography({ surface, sampler, frames, traced, labels, row, fingerprint, tectonics = null, climate = null, overrides = null, rain = null }) {
   // Hand-authored exceptions (data/eym/overrides.json), applied after the rules: see scripts/eym-overrides.mjs.
   const exceptions = prepareOverrides(overrides, EYM_CARTOGRAPHY_RESOLUTION_DEG);
   const res = EYM_CARTOGRAPHY_RESOLUTION_DEG, latCount = 180 / res, lonCount = 360 / res, sub = 4;
@@ -406,9 +405,10 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
   // climate (data/eym/climate.json), the sea's yearly anomaly warms or cools the coasts and wets or dries them:
   // warm water offshore, wetter; cold water offshore, drier and foggier. Its reach inland fades over ~600 km.
   const annualAnomaly = climate ? climateAnnualAnomaly(climate) : null;
-  // Caren's rain follows the air month by month (scripts/eym-caren-climate.mjs; canon of 20 November 2026): the rain
-  // belt, the trades' direction, the mountains crossed and climbed, the sea upwind and the wind's channels.
-  const carenAir = climate && WORLD_INPUTS.carenClimate ? carenClimateFor({ dials: WORLD_INPUTS.carenClimate, sampler, climate, seaLevelC: seaLevelTemperatureC, beltLat: rainBeltLat }) : null;
+  // The rain is the planet's water budget of the air, month by month (scripts/eym-rain.mjs, read from
+  // data/eym/rain.json): the land's by the degree, the sea's year on a coarser grid. Without the file (a world
+  // before its rain is made) the old rule by latitude stands.
+  const rainOf = rain ? rainReader(rain) : null;
   for (const cell of cells) {
     const surfaceM = cell.landCovered ? Math.max(0, cell.landElevationM) : 0;
     const reach = annualAnomaly ? (cell.ocean ? 1 : Math.exp(-(cell.coastKm ?? 0) / 600)) : 0, anomalyC = annualAnomaly ? annualAnomaly(cell.lat, cell.lon) * reach : 0;
@@ -422,7 +422,11 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
       if (cell.coastKm > 500) p *= 0.8;
     }
     cell.precipitationMm = Math.round(clamp(p, 60, 4200));
-    if (carenAir && cell.landCovered && cell.continent === "Caren") { const year = carenAir.cellYear(cell.lat, cell.lon, cell.coastKm); if (year) { cell.precipitationMm = clamp(year.annualMm, 60, 4200); cell.driestMm = Math.min(...year.monthsMm); } }
+    if (rainOf) {
+      const year = cell.landCovered ? rainOf.landYear(cell.latIndex, cell.lonIndex) : null;
+      if (year) { cell.precipitationMm = clamp(year.annualMm, 10, 9000); cell.driestMm = year.driestMm; cell.monthsMm = year.monthsMm; }
+      else cell.precipitationMm = clamp(rainOf.seaAnnualMm(cell.lat, cell.lon), 10, 9000);
+    }
   }
 
   // Seeded continents get routed rivers and basin lakes; Caren and Garyk keep their authored water.
