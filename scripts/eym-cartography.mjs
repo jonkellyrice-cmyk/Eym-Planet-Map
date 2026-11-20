@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 import { createRng, generatePlateModel } from "./planet-geography.mjs";
 import { buildElevationMesh, circlePolygon, smoothOpen } from "./planet-cartography.mjs";
 import { polygonize } from "./cartography-regions.mjs";
-import { EYM_LAYOUT, EYM_SURFACE_MODEL, fromLocal, greatCircleKm } from "./eym-surface.mjs";
+import { EYM_LAYOUT, EYM_SURFACE_MODEL, frameToLatLon, fromLocal, greatCircleKm } from "./eym-surface.mjs";
 import { seaLevelTemperatureC, zonalPrecipitationMm } from "./eym-seasons.mjs";
 import { soilFromRock } from "./eym-geology.mjs";
 import { prepareOverrides } from "./eym-overrides.mjs";
@@ -193,12 +193,15 @@ function maskRings(frame, mask, minCells = 4) {
       points = simplifyClosed(points, cellKm * 0.75);
       if (points.length < 4) continue;
       for (let pass = 0; pass < 1; pass += 1) points = points.flatMap((p, i) => { const q = points[(i + 1) % points.length]; return [[p[0] * 0.75 + q[0] * 0.25, p[1] * 0.75 + q[1] * 0.25], [p[0] * 0.25 + q[0] * 0.75, p[1] * 0.25 + q[1] * 0.75]]; });
-      const ring = points.map(([x, y]) => fromLocal(frame.center, x, y).map(round3));
+      const ring = points.map(([x, y]) => (frame.sphere ? frameToLatLon(frame, x, y) : fromLocal(frame.center, x, y)).map(round3));
       rings.push([...ring, ring[0]]);
     }
   }
   return rings;
 }
+
+/** The outlines of a mask on a frame's grid, for tests and for tools with masks of their own. */
+export const frameMaskRings = (frame, mask, minCells = 4) => maskRings(frame, mask, minCells);
 
 /** Forests, uplands, mountains and peaks for each continent at its local (6–10 km) resolution. */
 function terrainDetail(frames) {

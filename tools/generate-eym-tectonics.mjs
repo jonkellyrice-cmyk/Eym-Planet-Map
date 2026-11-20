@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { buildEymSurface, EYM_LAYOUT, fromLocal, toLocal, ringAreaKm2, greatCircleKm } from "../scripts/eym-surface.mjs";
+import { bboxWrap, normLon } from "../scripts/geo-wrap.mjs";
 import { createRng } from "../scripts/planet-geography.mjs";
 import { inputsFingerprint, WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 import { CAREN_GEOLOGY, EYM_TECTONICS_MODEL, arcKm, classifyBoundary, latLon, layoutFirstLand, makeNoise, plateAt, plateVelocity, presentCrust, rotate, rotationBetween, vec } from "../scripts/eym-tectonics.mjs";
@@ -446,12 +447,15 @@ export function hotspotChain(plates, plateOf, at) {
 
 /** How many 1° cells of Garyk's interior are old core: centres over 170 km inland, 140 km from a collision, 250 km from a trench. */
 function garykCoreCells(ring, lines) {
-  const lats = ring.map((p) => p[0]), lons = ring.map((p) => p[1]), coast = ring.filter((_, i) => i % 4 === 0);
+  // The ring's reach, with its longitudes as the shortest arc that holds it (scripts/geo-wrap.mjs). For a ring away
+  // from ±180°, as Garyk's is, that is its least and greatest longitude, so the cells counted are the same.
+  const { minLat, maxLat, lonExtent: reach } = bboxWrap(ring), seam = reach.westLon > reach.eastLon, eastEnd = seam ? reach.westLon + reach.spanDeg : reach.eastLon, coast = ring.filter((_, i) => i % 4 === 0);
   const collisions = lines.collisions.map((p) => latLon(p)), trenches = lines.trenches.map((p) => latLon(p));
   const inside = (lat, lon) => { let k = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [ya, xa] = ring[i], [yb, xb] = ring[j]; if ((ya > lat) !== (yb > lat) && lon < (xb - xa) * (lat - ya) / (yb - ya) + xa) k = !k; } return k; };
   const near = (p, list, km) => list.some((q) => greatCircleKm(p, q) <= km);
   let n = 0;
-  for (let lat = Math.floor(Math.min(...lats)) + 0.5; lat < Math.max(...lats); lat += 1) for (let lon = Math.floor(Math.min(...lons)) + 0.5; lon < Math.max(...lons); lon += 1) {
+  for (let lat = Math.floor(minLat) + 0.5; lat < maxLat; lat += 1) for (let east = Math.floor(reach.westLon) + 0.5; east < eastEnd; east += 1) {
+    const lon = seam ? normLon(east) : east;
     if (!inside(lat, lon) || near([lat, lon], coast, 170) || near([lat, lon], collisions, 140) || near([lat, lon], trenches, 250)) continue;
     n += 1;
   }

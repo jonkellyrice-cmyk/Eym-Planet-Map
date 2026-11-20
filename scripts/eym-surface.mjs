@@ -64,12 +64,16 @@ export function ringAreaKm2(ring) {
 
 /** Spherical area (km²) of a closed [lat, lon] ring. */
 export function sphericalRingAreaKm2(ring) {
-  let total = 0;
+  let total = 0, turn = 0, latSum = 0;
   for (let i = 0; i < ring.length; i += 1) {
     const [lat1, lon1] = ring[i], [lat2, lon2] = ring[(i + 1) % ring.length];
     let dl = lon2 - lon1; while (dl > 180) dl -= 360; while (dl < -180) dl += 360;
-    total += dl * DEG * (2 + Math.sin(lat1 * DEG) + Math.sin(lat2 * DEG));
+    total += dl * DEG * (2 + Math.sin(lat1 * DEG) + Math.sin(lat2 * DEG)); turn += dl; latSum += lat1;
   }
+  // The sum measures from the south pole up to the ring. For a ring right round a pole (its longitudes make a whole
+  // turn) that is the land itself when it lies over the south pole, and everything but the land when it lies over
+  // the north pole.
+  if (Math.abs(turn) > 180 && latSum > 0) return (4 * Math.PI - Math.abs(total) / 2) * EYM_RADIUS_KM ** 2;
   return Math.abs(total) * EYM_RADIUS_KM ** 2 / 2;
 }
 
@@ -240,12 +244,147 @@ function buildFrame({ id, continent, origin, center, rings, waterRings = [], rel
 }
 
 function sampleFrame(frame, lat, lon) {
-  const [x, y] = toLocal(frame.center, lat, lon), { grid } = frame;
+  const [x, y] = frame.sphere ? sphereLocal(frame.sphere, lat, lon) : toLocal(frame.center, lat, lon), { grid } = frame;
   const c = Math.floor((x - grid.x0) / grid.cellKm), r = Math.floor((grid.y0 - y) / grid.cellKm);
   if (c < 0 || r < 0 || c >= grid.cols || r >= grid.rows) return null;
   const i = r * grid.cols + c;
   if (!frame.outline[i]) return null;
   return { land: Boolean(frame.land[i]), inlandWater: Boolean(frame.water[i]), elevationM: frame.elevation[i], coastKm: frame.coastKm[i], forest: Boolean(frame.forest[i]), relief: frame.reliefValue[i], continent: frame.continent, origin: frame.origin };
+}
+
+// ---------------------------------------------------------------- land too large for a flat frame
+
+// A flat frame is an azimuthal-equidistant map about its centre: true along every line through the centre, stretched
+// across those lines by c / sin c at an angle c from it. That is under a hundredth for Caren and Garyk (their frames
+// reach 11° and 14°) and for any land of their size, but a continent that reaches 38° is stretched 8% at its edge,
+// and one that reaches 85°, 49%: distances to the coast, slopes and areas worked out on such a frame would be wrong
+// by as much. A continent whose flat frame would stretch more than FRAME_STRETCH_LIMIT is therefore given a grid on
+// the sphere itself:
+//   - latitude and longitude turned so that the continent's centre is at 0°, 0° and its length lies along the turned
+//     equator (the turn that keeps it nearest that equator is found by trial), so it never meets a pole or ±180° of
+//     its own grid, wherever on Eym it lies: across the real ±180°, or over a real pole;
+//   - squares of SPHERE_CELL_DEG of turned latitude and longitude: 22 km north to south everywhere, and 22 km east
+//     to west at the turned equator, less by the cosine of the turned latitude away from it. That narrowing is
+//     known for every row and is used wherever a distance is worked out, so nothing is measured as if it were flat;
+//   - the frame's own coordinates are those turned degrees in kilometres at the equator's scale (x east, y north),
+//     so its grid reads like a flat frame's: only `frameToLatLon`, `frameFromLatLon` and `frameEastScale` differ.
+// The same land, the same heights and the same sampler come out of it; no flat frame is changed by its existence.
+
+/** The most a flat frame may stretch (east–west at its edge, as a fraction) before the land is put on a sphere grid. */
+export const FRAME_STRETCH_LIMIT = 0.02;
+/** The size of a sphere grid's squares, in degrees of its turned latitude and longitude (22.2 km). */
+export const SPHERE_CELL_DEG = 0.2;
+const KM_PER_DEG = EYM_RADIUS_KM * DEG;
+
+/** How much a flat frame stretches at `radiusKm` from its centre: c / sin c − 1. */
+export function frameStretch(radiusKm) { const c = radiusKm / EYM_RADIUS_KM; return c < 1e-9 ? 0 : c >= Math.PI ? Infinity : c / Math.sin(c) - 1; }
+
+function valueNoise3(seed) {
+  const rng = createRng(seed), table = Float32Array.from({ length: 4096 }, () => rng() * 2 - 1);
+  const at = (i, j, k) => table[((i * 73856093) ^ (j * 19349663) ^ (k * 83492791)) & 4095];
+  const smooth = (t) => t * t * (3 - 2 * t), mix = (a, b, t) => a + (b - a) * t;
+  const octave = (x, y, z) => {
+    const i = Math.floor(x), j = Math.floor(y), k = Math.floor(z), fx = smooth(x - i), fy = smooth(y - j), fz = smooth(z - k);
+    const low = mix(mix(at(i, j, k), at(i + 1, j, k), fx), mix(at(i, j + 1, k), at(i + 1, j + 1, k), fx), fy);
+    const high = mix(mix(at(i, j, k + 1), at(i + 1, j, k + 1), fx), mix(at(i, j + 1, k + 1), at(i + 1, j + 1, k + 1), fx), fy);
+    return mix(low, high, fz);
+  };
+  return (x, y, z) => octave(x, y, z) * 0.6 + octave(x * 2.03 + 17.1, y * 2.03 - 9.4, z * 2.03 + 4.7) * 0.28 + octave(x * 4.11 - 3.3, y * 4.11 + 5.9, z * 4.11 - 11.2) * 0.12;
+}
+
+/** The three directions of a turned grid: to its centre, along its equator eastward, and to its north. */
+function sphereAxes(center, turnDeg) {
+  const [lat, lon] = center, p = lat * DEG, l = lon * DEG, t = turnDeg * DEG;
+  const c = [Math.cos(p) * Math.cos(l), Math.cos(p) * Math.sin(l), Math.sin(p)], east = [-Math.sin(l), Math.cos(l), 0], north = [-Math.sin(p) * Math.cos(l), -Math.sin(p) * Math.sin(l), Math.cos(p)];
+  const u = east.map((e, i) => e * Math.cos(t) + north[i] * Math.sin(t)), w = east.map((e, i) => -e * Math.sin(t) + north[i] * Math.cos(t));
+  return { c, u, w };
+}
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+/** A place in a turned grid's own coordinates (km at its equator's scale: x east, y north). */
+function sphereLocal({ c, u, w }, lat, lon) { const v = unit([lat, lon]); return [Math.atan2(dot(v, u), dot(v, c)) / DEG * KM_PER_DEG, Math.asin(Math.max(-1, Math.min(1, dot(v, w)))) / DEG * KM_PER_DEG]; }
+/** The unit vector of a place given in a turned grid's coordinates. */
+function sphereVector({ c, u, w }, x, y) { const l = x / EYM_RADIUS_KM, p = y / EYM_RADIUS_KM, a = Math.cos(p) * Math.cos(l), b = Math.cos(p) * Math.sin(l), d = Math.sin(p); return [a * c[0] + b * u[0] + d * w[0], a * c[1] + b * u[1] + d * w[1], a * c[2] + b * u[2] + d * w[2]]; }
+const vectorLatLon = (v) => [Math.asin(Math.max(-1, Math.min(1, v[2]))) / DEG, Math.atan2(v[1], v[0]) / DEG];
+
+/** A frame's own coordinates (km: x east, y north) for a place, whichever kind of frame it is. */
+export const frameFromLatLon = (frame, lat, lon) => (frame.sphere ? sphereLocal(frame.sphere, lat, lon) : toLocal(frame.center, lat, lon));
+/** The place at a frame's own coordinates. */
+export const frameToLatLon = (frame, x, y) => (frame.sphere ? vectorLatLon(sphereVector(frame.sphere, x, y)) : fromLocal(frame.center, x, y));
+/** How long a kilometre of a frame's x is on the ground at height y in the frame (1 on a flat frame; on a sphere grid, the cosine of its turned latitude). */
+export const frameEastScale = (frame, y) => (frame.sphere ? Math.cos(y / EYM_RADIUS_KM) : 1);
+
+/** Distance (km) from each land square to the nearest square that is not land, on a grid whose squares narrow by `east[row]`. */
+function coastDistanceOnSphere(grid, land, east) {
+  const { cols, rows, cellKm } = grid, d = new Float32Array(cols * rows), big = 1e9;
+  const h = Float64Array.from(east, (e) => cellKm * e), up = Float64Array.from({ length: rows }, (_, r) => (r > 0 ? Math.hypot(cellKm, (h[r] + h[r - 1]) / 2) : cellKm)), down = Float64Array.from({ length: rows }, (_, r) => (r < rows - 1 ? Math.hypot(cellKm, (h[r] + h[r + 1]) / 2) : cellKm));
+  for (let i = 0; i < d.length; i += 1) d[i] = land[i] ? big : 0;
+  // Twice over: with squares of unequal sides one pass each way leaves a little unsettled.
+  for (let pass = 0; pass < 2; pass += 1) {
+    for (let r = 0; r < rows; r += 1) for (let c = 0; c < cols; c += 1) {
+      const i = r * cols + c; if (!d[i]) continue;
+      let v = d[i];
+      v = Math.min(v, c > 0 ? d[i - 1] + h[r] : h[r]);
+      if (r > 0) { v = Math.min(v, d[i - cols] + cellKm); if (c > 0) v = Math.min(v, d[i - cols - 1] + up[r]); if (c < cols - 1) v = Math.min(v, d[i - cols + 1] + up[r]); } else v = Math.min(v, cellKm);
+      d[i] = v;
+    }
+    for (let r = rows - 1; r >= 0; r -= 1) for (let c = cols - 1; c >= 0; c -= 1) {
+      const i = r * cols + c; if (!d[i]) continue;
+      let v = d[i];
+      v = Math.min(v, c < cols - 1 ? d[i + 1] + h[r] : h[r]);
+      if (r < rows - 1) { v = Math.min(v, d[i + cols] + cellKm); if (c < cols - 1) v = Math.min(v, d[i + cols + 1] + down[r]); if (c > 0) v = Math.min(v, d[i + cols - 1] + down[r]); } else v = Math.min(v, cellKm);
+      d[i] = v;
+    }
+  }
+  return d;
+}
+
+/** The angle (radians) from a unit vector to the nearest point of the great-circle arc from a to b. */
+function arcAngle(v, a, b) {
+  const n = cross(a, b), length = Math.hypot(n[0], n[1], n[2]);
+  if (length > 1e-12 && dot(cross(a, v), n) >= 0 && dot(cross(v, b), n) >= 0) return Math.abs(Math.asin(Math.max(-1, Math.min(1, dot(v, n) / length))));
+  return Math.min(Math.acos(Math.max(-1, Math.min(1, dot(v, a)))), Math.acos(Math.max(-1, Math.min(1, dot(v, b)))));
+}
+
+/**
+ * A continent on a grid of the sphere itself (see the head of this section). `rings` are its coasts in [lat, lon]
+ * (they may cross ±180° or lie over a pole); `ridges` are { heightM, widthKm, points: [[lat, lon], …] }. The heights
+ * follow the flat frame's rule for seeded land (a rise from the coast, ranges along the ridges, rolling upland),
+ * with the noise taken in three dimensions on the sphere so that it has no direction or seam of its own.
+ */
+export function buildSphereFrame({ id, continent, origin, center, rings, ridges = [], cellDeg = SPHERE_CELL_DEG, seed }) {
+  // The turn that keeps the land nearest the grid's equator (then the narrowest east to west).
+  let best = null;
+  for (let turnDeg = 0; turnDeg < 180; turnDeg += 15) {
+    const axes = sphereAxes(center, turnDeg); let reachY = 0, reachX = 0;
+    for (const ring of rings) for (const [lat, lon] of ring) { const [x, y] = sphereLocal(axes, lat, lon); if (Math.abs(y) > reachY) reachY = Math.abs(y); if (Math.abs(x) > reachX) reachX = Math.abs(x); }
+    if (!best || reachY < best.reachY - 1e-6 || (Math.abs(reachY - best.reachY) <= 1e-6 && reachX < best.reachX)) best = { turnDeg, axes, reachY, reachX };
+  }
+  const { axes, turnDeg } = best;
+  if (best.reachY / KM_PER_DEG > 72 || best.reachX / KM_PER_DEG > 168) throw new Error(`${id}: this land is too large for one grid on the sphere (it reaches ${Math.round(best.reachY / KM_PER_DEG)}° from its own equator and ${Math.round(best.reachX / KM_PER_DEG)}° along it)`);
+  const local = rings.map((ring) => ring.map(([lat, lon]) => sphereLocal(axes, lat, lon)));
+  const cellKm = cellDeg * KM_PER_DEG, margin = cellKm * 3; let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, radiusKm = 0;
+  for (const ring of local) for (const [x, y] of ring) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
+  for (const ring of rings) for (const point of ring) { const km = greatCircleKm(center, point); if (km > radiusKm) radiusKm = km; }
+  const grid = { x0: minX - margin, y0: maxY + margin, cellKm, cellDeg };
+  grid.cols = Math.ceil((maxX - minX + 2 * margin) / cellKm); grid.rows = Math.ceil((maxY - minY + 2 * margin) / cellKm);
+  const count = grid.cols * grid.rows, outline = fillRings(grid, local), water = new Uint8Array(count), land = Uint8Array.from(outline);
+  const east = Float64Array.from({ length: grid.rows }, (_, r) => Math.cos((grid.y0 - (r + 0.5) * cellKm) / EYM_RADIUS_KM));
+  const coastKm = coastDistanceOnSphere(grid, outline, east), elevation = new Float32Array(count);
+  const noise = valueNoise3(`${seed}|relief|sphere`), arcs = ridges.map((ridge) => ({ ...ridge, vectors: ridge.points.map((point) => unit(point)) }));
+  for (let r = 0; r < grid.rows; r += 1) for (let c = 0; c < grid.cols; c += 1) {
+    const i = r * grid.cols + c; if (!outline[i]) continue;
+    const v = sphereVector(axes, grid.x0 + (c + 0.5) * cellKm, grid.y0 - (r + 0.5) * cellKm), X = v[0] * EYM_RADIUS_KM, Y = v[1] * EYM_RADIUS_KM, Z = v[2] * EYM_RADIUS_KM, coast = coastKm[i];
+    let e = 12 + 300 * (1 - Math.exp(-coast / 140)) * (1 + 0.5 * noise(X / 160, Y / 160, Z / 160)), ridgeM = 0;
+    for (const ridge of arcs) {
+      let nearest = Infinity;
+      for (let k = 0; k + 1 < ridge.vectors.length; k += 1) { const angle = arcAngle(v, ridge.vectors[k], ridge.vectors[k + 1]); if (angle < nearest) nearest = angle; }
+      ridgeM = Math.max(ridgeM, ridge.heightM * Math.exp(-((nearest * EYM_RADIUS_KM / ridge.widthKm) ** 2)) * Math.min(1, coast / 90) * (0.8 + 0.3 * (noise(X / 60 + 40, Y / 60, Z / 60) + 1) / 2));
+    }
+    e += ridgeM + 380 * Math.max(0, noise(X / 300 - 20, Y / 300 + 7, Z / 300)) * Math.min(1, coast / 200);
+    elevation[i] = Math.max(1, e);
+  }
+  return { id, continent, origin, center, grid, outline, land, water, coastKm, elevation, forest: new Uint8Array(count), reliefValue: new Float32Array(count), radiusKm: radiusKm + margin, sphere: { ...axes, turnDeg } };
 }
 
 // ---------------------------------------------------------------- composition
@@ -325,7 +464,13 @@ export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null) {
         return { heightM, widthKm: 70 + shapeRng() * 50, points };
       });
     }
-    const frame = buildFrame({ id: spec.id, continent: spec.name, origin: "seeded", center: spec.center, rings, ridges, cellKm: 10, noise });
+    // A continent a flat frame would stretch too far goes on a grid of the sphere, its areas taken on the sphere too.
+    let reachKm = 0; for (const ring of rings) for (const [x, y] of ring) reachKm = Math.max(reachKm, Math.hypot(x, y));
+    const large = frameStretch(reachKm) > FRAME_STRETCH_LIMIT;
+    if (large) areas = rings.map((ring) => sphericalRingAreaKm2(toLatLonRing(spec.center, ring)));
+    const frame = large
+      ? buildSphereFrame({ id: spec.id, continent: spec.name, origin: "seeded", center: spec.center, rings: rings.map((ring) => toLatLonRing(spec.center, ring)), ridges: ridges.map((ridge) => ({ ...ridge, points: ridge.points.map(([x, y]) => fromLocal(spec.center, x, y)) })), seed: layout.seed })
+      : buildFrame({ id: spec.id, continent: spec.name, origin: "seeded", center: spec.center, rings, ridges, cellKm: 10, noise });
     frames.push(frame); addCoasts(frame, rings, kinds, areas);
     continents.push({ id: spec.id, name: spec.name, origin: "seeded", center: spec.center, mainlandAreaKm2: Math.round(areas[0]), islands: rings.length - 1 });
   }

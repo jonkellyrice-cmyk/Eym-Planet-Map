@@ -17,20 +17,20 @@
       "system": "Abydos",
       "body": "Eventide",
       "path": "data/planet-cartography/abydos/eventide.json",
-      "sha256": "7f01e4731c21f75058cf604937cacc0f3f90921e3d6a629c3c9bc4b55ab8fa54",
+      "sha256": "6ea21b42765d2925e861c7ae371961f10ab3ca0f62dac385e2349fcddbdf2678",
       "bytes": 1468861,
       "geology": {
         "path": "data/planet-cartography/abydos/eventide-geology.json",
-        "sha256": "db5f1d0f5b5bd1f90ea4b74162788cb8f5140ad4042a16117789ec7ae9249562",
+        "sha256": "196de748fa04f3ec379c573353af80ae234f2e5842f0814722f0609d009998a6",
         "bytes": 125616
       },
       "ocean": {
         "path": "data/planet-cartography/abydos/eventide-ocean.json",
-        "sha256": "5d70c6f98287a86d36085ec8deadd0029a9b2c5544f3ba26a136cd87325f8e85",
+        "sha256": "0a464edcde969cb7ba208f391c24e78eba85f3180d7665d3d26746964a9604ef",
         "bytes": 65251
       },
       "sourceSeed": "741343188e552de0",
-      "sourceFingerprint": "9f6b55c63c811736ddcb"
+      "sourceFingerprint": "5b04ff6fd44f0c61ea8f"
     },
     {
       "system": "Abydos",
