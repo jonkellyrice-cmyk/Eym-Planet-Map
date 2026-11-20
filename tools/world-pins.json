@@ -8,8 +8,8 @@
   },
   "managed": {
     "registryCsvSha256": {
-      "value": "49f2e9819acbda7ba3021fee41e37972c7861d57ea406b959fc5052c5d215e48",
-      "note": "canon of 19 November 2026: the system's age 3.5 billion years, Mitkear 1.02 solar masses"
+      "value": "d217cd2306669e16a068eb85ef25a9f00bf1974f7e56e01a59255f159128cd11",
+      "note": "Land-growth scaling, Fix 4: the surface and tectonics tools changed (sphere grid for land too large for a flat frame; wrap-aware box in the tectonics tool), so Eym's input fingerprint in the registry changed. The plate history was fitted again and every derived file has the same content; only source stamps and fingerprints differ."
     }
   }
 }
