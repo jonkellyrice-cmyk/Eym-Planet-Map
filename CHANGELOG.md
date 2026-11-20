@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+Land-growth scaling fixes, Fix 6: Region frames. Caren's, Garyk's and the strait's frames are what they were, and so is every tile.
+
+- The guard: `scripts/eym-region-layer.mjs` refuses a frame for land outside the detailed scope, twice over. By name: only Caren and Garyk (and the sea between them) have frames; asking for Gaffa's is an error that says so. By size: a land that reaches past the flat-frame limit of Fix 4 (stretched more than 2% at its edge) is refused whatever it is called, so a far continent cannot be given 300 m tiles by a slip of configuration. (At 76.8 km a tile, the grown Gaffa would have been some 60,000 tiles.)
+- Frame centres already came from the wrap-aware box (Fix 0). That is now tested on a land that straddles ±180°: its frame sits about its true middle, its tile range is the land's own and not a band round the world, and two places 20 km apart on either side of the seam fall 20 km apart on the frame.
+- Measured, today's frames: Caren reaches 1,306 km from its centre to its farthest tile corner (stretched 0.70%), 392 tiles kept; Garyk 1,753 km (1.27%), 437 tiles; the sea between, a corridor 96 tiles long, reaches 3,737 km at its two ends (5.97% there, as its own note says: true to within a few per cent), 40 tiles kept. The size guard is for continents; the corridor is laid along a line and keeps its own rule.
+- `regionFrameFor(asset, land)` gives one land's frame, for tests and tools.
+- Proof of sameness: the three frames are equal to what they were; 92 Region tiles, 10 local tiles and 6 battle maps hash the same before and after. The Region fingerprint changes because this file changed, so the stored tiles are made again and compared.
+- Tests: a detailed land across ±180° with an island beyond it; refusal by name and by size; today's frames unchanged.
+
 Land-growth scaling fixes, Fix 5: river routing on the continents that are routed, not traced (Gaffa, Khohalis, Demani). Today's 48 routed rivers and 5 lakes are point for point what they were; no data file changes.
 
 - The routing (`seededHydrology` in `scripts/eym-cartography.mjs`) works on either kind of frame. The flood only asks which neighbour is lower, so it is the same on a flat frame and on a grid of the sphere; what differs is measure. On a sphere grid a square's area is taken with its row's narrowing, so catchments (which decide where a river begins) and lake areas are areas on the ground, and places are read back through the frame.
