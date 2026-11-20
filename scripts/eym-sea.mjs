@@ -12,6 +12,7 @@
 //     steamer, and a sailing ship goes with the wind (tacking when it must).
 
 import { systemAt, systemsBetween, tropicalMaxWindMs, weatherAt } from "./eym-weather.mjs";
+import { landAtmosphere } from "./eym-land-atmosphere.mjs";
 import { currentAt } from "./eym-climate.mjs";
 import { approximateDeclinationDeg } from "./eym-seasons.mjs";
 import { DAY_MS } from "./universal-time.mjs";
@@ -321,7 +322,7 @@ export function voyage({ asset, field, from, to, departMs, ship = "steamer", rou
   const legs = path.slice(1).map((p, i) => ({ a: path[i], b: p, km: distanceKm(path[i][0], path[i][1], p[0], p[1]) }));
   const totalKm = legs.reduce((s, l) => s + l.km, 0), startHour = departMs / HOUR_MS, maxHours = 24 * 120;
   const isOcean = (a, b) => field.cellAt(a, b).ocean, landFraction = (a, b) => (field.cellAt(a, b).ocean ? 0 : 1);
-  const systems = systemsBetween(startHour - SWELL_WINDOW_HOURS, startHour + maxHours, isOcean, field.sstC);
+  const land = landAtmosphere(field), systems = systemsBetween(startHour - SWELL_WINDOW_HOURS, startHour + maxHours, isOcean, field.sstC, land);
   const sources = swellSources(systems, startHour - SWELL_WINDOW_HOURS, startHour + maxHours, landFraction);
   let leg = 0, along = 0, hour = startHour, sailed = 0, help = 0, steps = 0, worst = { hsM: 0, day: 0 };
   const log = [], stepH = 3;
@@ -329,7 +330,7 @@ export function voyage({ asset, field, from, to, departMs, ship = "steamer", rou
     const L = legs[leg], heading = bearingDeg(L.a[0], L.a[1], L.b[0], L.b[1]);
     const [lat, lon] = destination(L.a[0], L.a[1], heading, along), localHeading = bearingDeg(lat, lon, L.b[0], L.b[1]);
     const alive = []; for (const s of systems) { if (s.born > hour || s.born + s.life < hour) continue; const at = systemAt(s, hour, landFraction); if (at) alive.push(at); }
-    const w = weatherAt(alive, lat, lon, { cell: field.cellAt(lat, lon), declinationDeg: approximateDeclinationDeg(hour * HOUR_MS), solarHour: 12, timeMs: hour * HOUR_MS });
+    const w = weatherAt(alive, lat, lon, { cell: field.cellAt(lat, lon), declinationDeg: approximateDeclinationDeg(hour * HOUR_MS), solarHour: 12, timeMs: hour * HOUR_MS, land });
     const sea = seaState(field, sources, lat, lon, hour, w);
     const c = currentAt(asset, lat, lon, hour * HOUR_MS), currentAlong = c ? (c.east * Math.sin(localHeading * DEG) + c.north * Math.cos(localHeading * DEG)) / KNOT : 0;
     const knots = Math.max(0.3, shipSpeedKnots(ship, localHeading, w, sea) + currentAlong);

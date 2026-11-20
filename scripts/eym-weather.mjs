@@ -14,6 +14,7 @@
 
 import { annualMeanTemperatureC, approximateDeclinationDeg, rainBeltLat, seasonalTemperature, yearFraction, zonalPrecipitationMm } from "./eym-seasons.mjs";
 import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
+import { landAtmosphere } from "./eym-land-atmosphere.mjs";
 import { DAY_MS, DAYS_PER_YEAR } from "./universal-time.mjs";
 
 export const WEATHER_SEED = "eym-weather|v1";
@@ -77,10 +78,13 @@ const lonGap = (a, b) => ((a - b + 540) % 360) - 180;
 const blockEnvelope = (block, hour) => { const tau = hour - block.born; return tau <= 0 || tau >= block.life ? 0 : smooth(clamp(Math.min(tau, block.life - tau) / 48, 0, 1)); };
 
 /** The block that may begin in one slot of one hemisphere, or null. */
-function slotBlock(hemisphere, slot) {
+function slotBlock(hemisphere, slot, land = null) {
   const r = rng(`${WEATHER_SEED}|block|${hemisphere}|${slot}`);
-  if (r() >= W.blocksPerYear * W.blockSlotDays / DAYS_PER_YEAR) return null;
-  const pick = ([a, b]) => a + (b - a) * r(), born = (slot + r()) * BLOCK_SLOT_HOURS, life = pick(W.blockDays) * 24, lon = r() * 360 - 180;
+  // (With the land's atmosphere: more blocks in a hemisphere whose jet the land bends, and more of them at its
+  // fixed ridges. The same numbers are drawn either way, so a block keeps its time, life and strength.)
+  const season = land ? approximateDeclinationDeg((slot + 0.5) * BLOCK_SLOT_HOURS * HOUR_MS) : 0;
+  if (r() >= W.blocksPerYear * W.blockSlotDays / DAYS_PER_YEAR * (land ? land.blockRate(hemisphere, season) : 1)) return null;
+  const pick = ([a, b]) => a + (b - a) * r(), born = (slot + r()) * BLOCK_SLOT_HOURS, life = pick(W.blockDays) * 24, u = r(), lon = land ? land.blockLon(hemisphere, u, season) : u * 360 - 180;
   // The high sits a little poleward of the jet's place for the season, where the stalled ridge reaches.
   const mid = (born + life / 2) * HOUR_MS, lat = hemisphere * (W.jetLat + 6) + beltShiftDeg(hemisphere * W.jetLat, approximateDeclinationDeg(mid));
   return { id: `block-${hemisphere > 0 ? "n" : "s"}-${slot}`, kind: "high", block: true, hemisphere, born, life, lat0: lat, lon0: lon, amp: pick(W.blockHpa), radiusKm: pick(W.blockRadiusKm), eastMs: 0, polewardMs: 0, turn: 0 };
@@ -91,9 +95,9 @@ function slotBlock(hemisphere, slot) {
  * { id, hemisphere, born, life (hours), lat0, lon0, amp (hPa), radiusKm }: for the weather, and for the history
  * engine's timeline of shocks (a spell of persistent dry, hot or cold weather under it, and wet beside it).
  */
-export function blocksBetween(fromHour, toHour) {
+export function blocksBetween(fromHour, toHour, land = null) {
   const out = [];
-  for (let slot = Math.floor((fromHour - BLOCK_MAX_HOURS) / BLOCK_SLOT_HOURS); slot <= Math.floor(toHour / BLOCK_SLOT_HOURS); slot += 1) for (const hemisphere of [1, -1]) { const b = slotBlock(hemisphere, slot); if (b && b.born + b.life >= fromHour && b.born <= toHour) out.push(b); }
+  for (let slot = Math.floor((fromHour - BLOCK_MAX_HOURS) / BLOCK_SLOT_HOURS); slot <= Math.floor(toHour / BLOCK_SLOT_HOURS); slot += 1) for (const hemisphere of [1, -1]) { const b = slotBlock(hemisphere, slot, land); if (b && b.born + b.life >= fromHour && b.born <= toHour) out.push(b); }
   return out;
 }
 
@@ -102,19 +106,21 @@ export function blocksBetween(fromHour, toHour) {
  * slow waves drifting east whose strength comes and goes over weeks, and, where a block stands, a stalled ridge
  * bending it poleward with a trough on either side.
  */
-export function jetLatAt(hemisphere, lon, hour) {
-  const days = hour / 24, season = beltShiftDeg(hemisphere * W.jetLat, approximateDeclinationDeg(hour * HOUR_MS));
+export function jetLatAt(hemisphere, lon, hour, land = null) {
+  const days = hour / 24, declination = approximateDeclinationDeg(hour * HOUR_MS), season = beltShiftDeg(hemisphere * W.jetLat, declination);
   let swing = 0;
   W.jetWaves.forEach((w, k) => {
     const strength = 0.65 + 0.35 * noise3(17.3 * (k + 1), 5.1 * hemisphere, days / 25), phase = 2 * Math.PI * lattice(k + 1, hemisphere, 7);
     swing += w.swingDeg * strength * Math.sin(w.count * (lon - w.eastDegPerDay * days) * DEG + phase);
   });
   let ridge = 0;
-  for (const b of blocksBetween(hour, hour)) {
+  for (const b of blocksBetween(hour, hour, land)) {
     if (b.hemisphere !== hemisphere) continue; const e = blockEnvelope(b, hour), d = lonGap(lon, b.lon0);
     ridge += e * W.blockSwingDeg * (Math.exp(-((d / 24) ** 2)) - 0.45 * Math.exp(-(((Math.abs(d) - 50) / 20) ** 2)));
   }
-  return hemisphere * (W.jetLat + swing + ridge) + season;
+  // The fixed bends the land puts in it (scripts/eym-land-atmosphere.mjs): none without a land's atmosphere.
+  const fixed = land ? land.stationaryJetDeg(hemisphere, lon, declination) : 0;
+  return hemisphere * (W.jetLat + swing + ridge + fixed) + season;
 }
 
 /** The latitude (signed) of a hemisphere's subtropical jet at an hour: it follows the season and hardly meanders. */
@@ -156,12 +162,16 @@ function slotSystems(population, hemisphere, slot, isOcean, sstAt) {
 }
 
 /** All systems alive at some point in [fromHour, toHour] (hours since the timeline's zero). */
-export function systemsBetween(fromHour, toHour, isOcean = () => true, sstAt = null) {
+/** The land's atmosphere each system was made under (for its path along the jet), kept beside the system. */
+const systemLand = new WeakMap();
+
+export function systemsBetween(fromHour, toHour, isOcean = () => true, sstAt = null, land = null) {
   const systems = [];
   for (let slot = Math.floor((fromHour - MAX_LIFE_HOURS) / SLOT_HOURS); slot <= Math.floor(toHour / SLOT_HOURS); slot += 1) {
     for (const population of POPULATIONS) for (const hemisphere of [1, -1]) for (const s of slotSystems(population, hemisphere, slot, isOcean, sstAt)) if (s.born + s.life >= fromHour && s.born <= toHour) systems.push(s);
   }
-  systems.push(...blocksBetween(fromHour, toHour));
+  systems.push(...blocksBetween(fromHour, toHour, land));
+  if (land) for (const s of systems) systemLand.set(s, land);
   return systems;
 }
 
@@ -186,7 +196,7 @@ export function systemAt(system, hour, landFractionAt = () => 0) {
   const lon = ((system.lon0 + eastKm / (111.2 * Math.max(0.15, Math.cos(((system.lat0 + straight) / 2) * DEG))) + 540) % 360) - 180;
   // Mid-latitude lows and highs ride the jet: wherever it swings from its mean place, they swing with it.
   const follow = system.block ? 0 : W.follow[system.kind] ?? 0;
-  const lat = follow ? clamp(straight + follow * (jetLatAt(system.hemisphere, lon, hour) - system.hemisphere * W.jetLat), -88, 88) : straight;
+  const lat = follow ? clamp(straight + follow * (jetLatAt(system.hemisphere, lon, hour, systemLand.get(system) ?? null) - system.hemisphere * W.jetLat), -88, 88) : straight;
   if (system.block) envelope = blockEnvelope(system, hour);
   if (system.kind === "tropical" && Math.abs(lat) > 40) envelope *= 0.4; // transitions to an ordinary low
   let amp = system.amp * envelope;
@@ -256,7 +266,9 @@ export function weatherAt(systems, lat, lon, ctx) {
   const gs = Math.hypot(ge, gn), cap = 38;
   if (gs > cap) { ge *= cap / gs; gn *= cap / gs; }
   const friction = land ? 0.6 : 0.8, turn = 20 * DEG * (sinLat >= 0 ? 1 : -1);
-  const back = backgroundWind(lat, ctx.declinationDeg);
+  const back = backgroundWind(lat, ctx.declinationDeg), monsoon = ctx.land?.monsoonWind(lat, lon, ctx.declinationDeg);
+  // (Where the land has drawn the rain belt on, the trades between the equator and the belt turn about.)
+  if (monsoon?.strength) { back.east += monsoon.east; back.north += monsoon.north; }
   let windE = back.east + friction * (ge * Math.cos(turn) - gn * Math.sin(turn)) + tcEast * (land ? 0.75 : 1);
   let windN = back.north + friction * (ge * Math.sin(turn) + gn * Math.cos(turn)) + tcNorth * (land ? 0.75 : 1);
   const windMs = Math.hypot(windE, windN), windFromDeg = (Math.atan2(-windE, -windN) / DEG + 360) % 360;
@@ -264,7 +276,7 @@ export function weatherAt(systems, lat, lon, ctx) {
   // Rising air makes cloud and rain: lows, the tropical rain belt, afternoon storms over land, and drifting showers.
   const drift = back.east * 3.6 * hour / (111.2 * Math.max(0.2, Math.cos(p)));
   const showers = noise3((lon - drift) / 4, lat / 4, hour / 9);
-  const itcz = Math.exp(-(((lat - rainBeltLat(ctx.declinationDeg)) / 9) ** 2));
+  const itcz = Math.exp(-(((lat - (ctx.land ? ctx.land.rainBeltLatAt(lon, ctx.declinationDeg) : rainBeltLat(ctx.declinationDeg))) / 9) ** 2));
   const afternoon = land && Math.abs(lat) < 35 ? Math.max(0, Math.cos(2 * Math.PI * (ctx.solarHour - 15.5) / 24)) : 0;
   const lift = 0.12 - Math.min(anomaly, 30) / 11 + 0.85 * itcz + 0.4 * afternoon * (0.4 + itcz) + 0.6 * showers + tcRain;
   const wetness = cell ? (cell.ocean ? 1 : BIOME_RAIN[cell.biome] ?? 0.8) : 1;
@@ -319,13 +331,13 @@ export function describeWeather(w) {
 export function buildWeatherState({ timeMs, subsolar, field }) {
   const nowHour = Math.round(timeMs / HOUR_MS / STEP_HOURS) * STEP_HOURS; // 3-hour steps
   const landFraction = (lat, lon) => (field ? (field.cellAt(lat, lon).ocean ? 0 : 1) : 0), isOcean = (lat, lon) => (field ? field.cellAt(lat, lon).ocean : true);
-  const systems = systemsBetween(nowHour - WINDOW_HOURS, nowHour + FORECAST_HOURS, isOcean, field?.sstC ?? null);
+  const land = landAtmosphere(field ?? null), systems = systemsBetween(nowHour - WINDOW_HOURS, nowHour + FORECAST_HOURS, isOcean, field?.sstC ?? null, land);
   const steps = [];
   for (let hour = nowHour - WINDOW_HOURS; hour <= nowHour + FORECAST_HOURS; hour += STEP_HOURS) {
     const alive = []; for (const s of systems) { const at = systemAt(s, hour, landFraction); if (at) alive.push(at); }
     steps.push({ hour, timeMs: hour * HOUR_MS, systems: alive, declinationDeg: subsolar.latDeg, subsolarLonDeg: subsolar.lonDeg - 15 * (hour * HOUR_MS - timeMs) / HOUR_MS });
   }
-  return { timeMs, nowHour, steps, nowIndex: WINDOW_HOURS / STEP_HOURS, field };
+  return { timeMs, nowHour, steps, nowIndex: WINDOW_HOURS / STEP_HOURS, field, land };
 }
 
 const solarHourAt = (lon, subsolarLonDeg) => ((12 + (lon - subsolarLonDeg) / 15) % 24 + 24) % 24;
@@ -336,9 +348,9 @@ export function placeWeatherNow(state, lat, lon, { subsolar, timeMs } = {}) {
   const landFraction = (a, b) => (state.field ? (state.field.cellAt(a, b).ocean ? 0 : 1) : 0);
   // Place the systems alive now at the exact hour, between the 3-hour steps.
   const exactHour = t / HOUR_MS, systems = [];
-  for (const s of systemsBetween(exactHour, exactHour, (a, b) => (state.field ? state.field.cellAt(a, b).ocean : true), state.field?.sstC ?? null)) { const at = systemAt(s, exactHour, landFraction); if (at) systems.push(at); }
+  for (const s of systemsBetween(exactHour, exactHour, (a, b) => (state.field ? state.field.cellAt(a, b).ocean : true), state.field?.sstC ?? null, state.land ?? null)) { const at = systemAt(s, exactHour, landFraction); if (at) systems.push(at); }
   const sub = subsolar ?? { latDeg: state.steps[state.nowIndex].declinationDeg, lonDeg: state.steps[state.nowIndex].subsolarLonDeg };
-  return weatherAt(systems, lat, lon, { cell, declinationDeg: sub.latDeg, solarHour: solarHourAt(lon, sub.lonDeg), timeMs: t, anomalyC: state.field?.anomalyAt?.(lat, lon, t) ?? 0 });
+  return weatherAt(systems, lat, lon, { cell, declinationDeg: sub.latDeg, solarHour: solarHourAt(lon, sub.lonDeg), timeMs: t, anomalyC: state.field?.anomalyAt?.(lat, lon, t) ?? 0, land: state.land ?? null });
 }
 
 /**
@@ -355,7 +367,7 @@ export function placeHistory(state, lat, lon) {
   const hours = [];
   for (let i = 0; i < state.steps.length; i += 1) {
     const step = state.steps[i];
-    const w = weatherAt(step.systems, lat, lon, { cell, declinationDeg: step.declinationDeg, solarHour: solarHourAt(lon, step.subsolarLonDeg), timeMs: step.timeMs, anomalyC: state.field?.anomalyAt?.(lat, lon, step.timeMs) ?? 0 });
+    const w = weatherAt(step.systems, lat, lon, { cell, declinationDeg: step.declinationDeg, solarHour: solarHourAt(lon, step.subsolarLonDeg), timeMs: step.timeMs, anomalyC: state.field?.anomalyAt?.(lat, lon, step.timeMs) ?? 0, land: state.land ?? null });
     hours.push({ hour: step.hour, w });
     if (i > state.nowIndex) continue; // the forecast does not build up yet
     const mm = w.precipMmH * STEP_HOURS;
@@ -413,7 +425,7 @@ export function globeWeather(state, { landCells = 5000 } = {}) {
   const step = state.steps[state.nowIndex], cells = [];
   for (let lat = -87; lat < 90; lat += 6) for (let lon = -177; lon < 180; lon += 6) {
     const cell = state.field?.cellAt(lat, lon) ?? null;
-    const w = weatherAt(step.systems, lat, lon, { cell, declinationDeg: step.declinationDeg, solarHour: solarHourAt(lon, step.subsolarLonDeg), timeMs: step.timeMs, anomalyC: state.field?.anomalyAt?.(lat, lon, step.timeMs) ?? 0 });
+    const w = weatherAt(step.systems, lat, lon, { cell, declinationDeg: step.declinationDeg, solarHour: solarHourAt(lon, step.subsolarLonDeg), timeMs: step.timeMs, anomalyC: state.field?.anomalyAt?.(lat, lon, step.timeMs) ?? 0, land: state.land ?? null });
     cells.push({ lat, lon, cloud: w.cloud, precipMmH: w.precipMmH, precipKind: w.precipKind, thunder: w.thunder, windMs: w.windMs, windE: w.windE, windN: w.windN });
   }
   const centres = step.systems.filter((s) => s.kind !== "tropical" && Math.abs(s.amp) >= 6).map((s) => ({ lat: s.lat, lon: s.lon, kind: s.amp < 0 ? "low" : "high", ...(s.block ? { block: true } : {}), pressureHpa: Math.round(backgroundPressure(s.lat, step.declinationDeg) + s.amp) }));

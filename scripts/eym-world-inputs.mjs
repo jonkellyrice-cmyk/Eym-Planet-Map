@@ -123,6 +123,33 @@ export const WORLD_INPUTS = deepFreeze({
     // `blocksPerYear` a year); a block lasts `blockDays`, bends the jet `blockSwingDeg` poleward around a stationary
     // high of `blockHpa`, and warms a summer or chills a winter under it by up to `blockTempC`.
     blockSlotDays: 14, blocksPerYear: 4, blockDays: [7, 21], blockSwingDeg: 9, blockHpa: [12, 18], blockRadiusKm: [1500, 2000], blockTempC: 4,
+    // How much warmer a summer and colder a winter the land has than the sea at its latitude (scripts/eym-seasons.mjs):
+    // the yearly swing of the day's mean temperature is the sine of the latitude times `coastC` on the coast, rising
+    // by `inlandC` to the deep interior (1,200 km from the sea). Earth-like since the far continents were grown:
+    // Earth's interiors swing by about 21 to 26 times the sine of their latitude (Winnipeg, Irkutsk, Kansas City,
+    // Alice Springs) and its west coasts by about 6 to 10 (San Francisco, Lisbon, Paris). They were 4 and 10.
+    continentality: { coastC: 5, inlandC: 20 },
+    /**
+     * The land's hand on the large-scale atmosphere (scripts/eym-land-atmosphere.mjs; owner, 20 November 2026).
+     */
+    land: {
+      // Monsoons. The land that heats is what lies between `heatLat` degrees from the equator, counted along each
+      // longitude and smoothed over `reachDeg` (so a coast's neighbouring sea feels it); high ground counts for up
+      // to `plateauGain` more. Over land from end to end of that band the rain belt follows the Sun `monsoonReach`
+      // of its declination farther than over ocean (Earth's reaches 25° to 30° N over southern Asia, 5° to 10° over
+      // the open Pacific). Where the belt is drawn `monsoonFullDeg` beyond the ocean's, the wind between the equator
+      // and the belt is fully turned: `monsoonWestMs` from the west and `monsoonOnshoreMs` toward the land (m/s).
+      heatLat: [5, 40], reachDeg: 18, plateauGain: 0.3, monsoonReach: 0.75, monsoonFullDeg: 10, monsoonWestMs: 10, monsoonOnshoreMs: 4,
+      // Stationary waves. What bends a jet is the land and high ground between `jetLat` degrees of latitude, smoothed
+      // over `waveDeg` of longitude; ground of `highM` metres counts as fully high. High ground puts a ridge
+      // `ridgeDeg` upwind of itself and a trough `troughDeg` downwind, up to `orographyDeg` of latitude; a continent's
+      // winter cold puts a trough `coldEastDeg` east of its middle, up to `thermalDeg`. In summer the bends keep
+      // `summerShare` of their strength.
+      jetLat: [25, 70], waveDeg: 14, highM: 2000, ridgeDeg: 10, troughDeg: 30, orographyDeg: 14, coldEastDeg: 20, thermalDeg: 7, summerShare: 0.35,
+      // Blocking. A block is `blockRidgeBias` times as likely to form at the strongest fixed ridge as where the jet
+      // is unbent (and as much less likely in a trough as deep), and a hemisphere whose jet is bent by `blockFullDeg` has `blockMore` times as many blocks again.
+      blockRidgeBias: 4, blockFullDeg: 6, blockMore: 1,
+    },
   },
 
   /** The shelf seas of the mapped continents (tools/generate-eym-coasts.mjs, scripts/eym-shelf-seas.mjs): tides in bays and storm surge. */

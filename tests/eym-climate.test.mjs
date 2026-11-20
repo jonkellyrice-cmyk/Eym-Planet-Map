@@ -41,12 +41,17 @@ test("the El Niño-like oscillation is drawn from the clock: the same every time
   assert.match(describeEnso(1.2), /warm/); assert.match(describeEnso(-1.2), /cool/);
 });
 
-test("the rain belt follows the Sun, less than on Earth; seasons and days stay mild on an aquaplanet", () => {
+test("over open ocean the rain belt follows the Sun less than on Earth; days stay mild, and the seasons deep inland are Earth's", () => {
   assert.ok(rainBeltLat(23.44) > rainBeltLat(-23.44) && rainBeltLat(23.44) - rainBeltLat(-23.44) < 0.5 * 2 * 23.44);
   const day = seasonalTemperature({ annualMeanC: 20, latDeg: 10, continentality: 1, timeMs: T0 });
   assert.ok(day.highC - day.lowC <= 8, "the daily range on land is at most 8 °C even deep inland");
   const inland = seasonalTemperature({ annualMeanC: 5, latDeg: 52, continentality: 1, timeMs: T0 });
-  assert.ok(inland.swingC < 12, `a deep-inland swing at 52° of ${inland.swingC.toFixed(1)} °C`);
+  // (Until 20 November 2026 this held the swing under 12 °C, for a world that was nearly all sea. With continents of
+  // tens of millions of km² the owner's addendum asks for Earth-like seasons inland: Irkutsk, at 52° N in the middle
+  // of Asia, swings 18.5 °C either side of its yearly mean. The coast stays mild.)
+  assert.ok(inland.swingC > 16 && inland.swingC < 23, `a deep-inland swing at 52° of ${inland.swingC.toFixed(1)} °C`);
+  const coast = seasonalTemperature({ annualMeanC: 10, latDeg: 52, continentality: 0, timeMs: T0 });
+  assert.ok(coast.swingC < 5, `a coastal swing at 52° of ${coast.swingC.toFixed(1)} °C`);
 });
 
 test("currents: the westerly drift runs east around the far south; no current is faster than about two metres a second", () => {
