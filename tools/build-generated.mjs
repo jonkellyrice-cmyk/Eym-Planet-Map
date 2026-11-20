@@ -30,6 +30,13 @@ const { growthSourcesSha256 } = await import("./generate-eym-growth.mjs");
 const readGrowth = () => { try { return JSON.parse(readFileSync(new URL("data/eym/growth.json", root), "utf8")); } catch { return null; } };
 if (readGrowth()?.sourcesSha256 !== growthSourcesSha256()) { run("tools/generate-eym-growth.mjs"); changed = true; }
 
+// The survey of Caren against its natural history (tools/generate-eym-caren.mjs: the plateau and what holds it up,
+// the ramps, the peaks' heights, the lakes, the Arluna structure) follows the traced map and Caren's dials: made
+// again (under a second) when either changed.
+const { carenSourcesSha256 } = await import("./generate-eym-caren.mjs");
+const readCaren = () => { try { return JSON.parse(readFileSync(new URL("data/eym/caren.json", root), "utf8")); } catch { return null; } };
+if (readCaren()?.sourcesSha256 !== carenSourcesSha256()) { run("tools/generate-eym-caren.mjs"); changed = true; }
+
 // The ocean climate (data/eym/climate.json) follows the land: made again (about a quarter of a minute) when its
 // sources changed, the tectonic history among them.
 const readClimate = () => { try { return JSON.parse(readFileSync(new URL("data/eym/climate.json", root), "utf8")); } catch { return null; } };

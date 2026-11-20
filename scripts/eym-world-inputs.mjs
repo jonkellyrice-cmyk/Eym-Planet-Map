@@ -95,6 +95,62 @@ export const WORLD_INPUTS = deepFreeze({
     coastNoise: 0.14, noiseKm: 900, cellKm: 30,
   },
 
+  /**
+   * Caren's land surface from its natural history (scripts/eym-caren-relief.mjs; canon of 20 November 2026,
+   * docs/eym-canon.md). Places are [latitude, longitude]; heights in metres. The outline, the waters, the forests and
+   * where the mountains stand are the owner's map; these say how high the land is and why.
+   */
+  caren: {
+    // Where the rule is used (Caren and its islands).
+    box: { latDeg: [-11, 9.5], lonDeg: [-6.5, 6.5] },
+    // Above this, so near the equator, snow lies all year and small glaciers form (m); below it snow comes only now
+    // and then, in cold, wet spells, and does not stay.
+    snowLineM: 4800,
+    // The northern swell (the plume under northern Caren: a nudge): a dome `heightM` high at its centre, falling
+    // away over `reachKm` (faster to the south, toward the Sondel), eased to nothing at the coast over
+    // `coastRampKm` so that every northern coast rises to it by a long, gentle ramp. `dynamicShare` of the lift is
+    // the mantle's push (about a kilometre at most, as under Earth's swells); the rest is thicker crust.
+    swell: { center: [6, 0], reachKm: { north: 420, south: 250, eastWest: 480 }, shape: 3, heightM: 1700, dynamicShare: 0.57, coastRampKm: 150 },
+    // The great rivers of the dome (the Myra, the Thran, the Palma and the river by Menera, by their ids in the
+    // traced map): older than the uplift, they cut down as it rose. Each is tidal for its lowest `estuaryKm`, then
+    // climbs `gradientMPerKm` (navigable; rapids, no falls); its valley's sides rise to the plateau over `valleyKm`.
+    // `drawnAsRivers` are waters the tracing took for lakes that are rivers drawn wide (the Palma). On every wide
+    // river of Caren the real channel is at most `channelMaxKm` wide, and a great one (`estuaryFromM` wide or more)
+    // widens `estuaryWidens` times, to no more than `estuaryMaxKm`, over its tidal reach.
+    rivers: { ids: ["caren-water-1", "caren-water-2", "caren-water-3", "caren-water-6"], estuaryKm: 75, gradientMPerKm: 0.3, valleyKm: 50, drawnAsRivers: ["caren-water-2"], channelMaxKm: 3, estuaryFromM: 1000, estuaryWidens: 2.5, estuaryMaxKm: 7 },
+    // Lakes lie in sags of the warped surface: each has one level, `belowShoreM` under the lowest ground on its
+    // shore, and the ground eases down to it over `sagKm`.
+    lakes: { belowShoreM: 6, sagKm: 25 },
+    // The massifs of the ancient belt (quartzite and massive granite; none is a volcano), where the map draws them.
+    massifs: [
+      { name: "Mt. Weth", at: [4.48, -2.51], reachKm: 95 },
+      { name: "Mt. Shila", at: [4.25, 1.05], reachKm: 95 },
+      { name: "Mt. Oplin and Mt. Danrich", line: [[5.55, 2.6], [6.62, 4.09]], reachKm: 80 },
+    ],
+    // How high such a massif can stand above the land round it: the greatest relief hard rock keeps on an old,
+    // worn-down continent (`inselbergM`: Earth's largest, as Mulanje, stand about 2,300 m above their plains), the
+    // throw of the small faults that raise it as a block on the swell (`blockThrowM`: small, since no fault here
+    // gives a great earthquake), and the crust's rebound as `valleyErosionM` of rock is cut away round it. Its
+    // shoulders (the map's mountains, below its high peaks) stand at `shoulderShare` of that.
+    massif: { inselbergM: 2300, blockThrowM: 300, valleyErosionM: 350, shoulderShare: 0.45 },
+    // Hills: [the map's mountains, the map's high peaks] above the land round them.
+    hills: [
+      { name: "Trate Hills", at: [-5.26, -2.23], reachKm: 120, heightM: [450, 1150] },
+      { name: "Sarven Hills", at: [-5.28, 0.68], reachKm: 120, heightM: [450, 1150] },
+    ],
+    // What is left of the Sondel Range (artificial: real magic, now a ruin): the heights the map gave it are kept.
+    sondel: { name: "Sondel Range", latDeg: [-2.4, 4], lonDeg: [-1.4, 2], heightM: [2300, 5400] },
+    // The map's tan country is dry country, not high ground: it stands this much above the plain. Mountains and
+    // peaks that belong to none of the above: [mountains, peaks].
+    dryCountryM: 90, otherHeightM: [600, 1200],
+    // The Arluna impact structure: its ring trough runs through the middles of these lakes; a central uplift
+    // `upliftM` high, the trough `troughM`, and an outer rim `rimM` high at `rimAt` times the trough's radius.
+    // Its age is the world's author's to fix: old enough to be worn low, young enough to keep its ring.
+    arluna: { lakes: ["caren-water-26", "caren-water-27", "caren-water-28", "caren-water-31", "caren-water-32"], upliftM: 250, troughM: -60, rimM: 150, rimAt: 1.25, ageMyr: [20, 200] },
+    // The crust: `lowlandKm` thick where the land stands at `lowlandM`; its density and the mantle's (kg/m³).
+    crust: { lowlandKm: 36, lowlandM: 150, densityCrust: 2800, densityMantle: 3300 },
+  },
+
   /** The sea floor's shape (scripts/eym-seafloor.mjs): shelf widths (km) by margin, the slope's width, the abyss's run. */
   seaFloor: { shelfKm: { active: 50, passive: 220 }, slopeKm: 260, abyssKm: 1500 },
 

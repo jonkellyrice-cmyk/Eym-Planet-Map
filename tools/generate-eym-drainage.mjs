@@ -27,7 +27,7 @@ import { bboxWrap, lonInExtent, lonOffset, normLon } from "../scripts/geo-wrap.m
 const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartography/mitkear/eym-drainage.json", root), ASSET = new URL("data/planet-cartography/mitkear/eym.json", root);
 export const DRAINAGE_MODEL = "eym-drainage-v1";
 /** What the drainage is made from: this tool, the local detail's surface, and the cartography it reads. */
-export const DRAINAGE_SOURCES = ["tools/generate-eym-drainage.mjs", "scripts/eym-local-detail.mjs", "scripts/geo-wrap.mjs", "data/planet-cartography/mitkear/eym.json"];
+export const DRAINAGE_SOURCES = ["tools/generate-eym-drainage.mjs", "scripts/eym-local-detail.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-world-inputs.mjs", "scripts/geo-wrap.mjs", "data/planet-cartography/mitkear/eym.json"];
 export const drainageSourcesSha256 = () => { const h = createHash("sha256"); for (const p of DRAINAGE_SOURCES) h.update(readFileSync(new URL(p, root))); return h.digest("hex"); };
 /** The smallest catchment kept (km²): a stream big enough to have cut a valley worth drawing at 300 m. */
 export const MIN_AREA_KM2 = 800;
@@ -130,13 +130,14 @@ function riverTest(ctx) {
 export const landMassesOf = (asset) => asset.terrain.coastlines.filter((c) => c.kind === "mainland" && DETAILED.includes(c.continent));
 
 /**
- * A fingerprint of what one land mass's drainage is made from: this tool and the local detail's code, and the
+ * A fingerprint of what one land mass's drainage is made from: this tool and the local detail's code (with the
+ * dials and Caren's relief rule, which set the heights the water runs over), and the
  * cartography within its reach (its outline; the coasts, lakes, relief and rivers within 3° of its box; the 1° rasters).
  */
 export function landMassFingerprint(asset, coast) {
   const box = bboxWrap(coast.points), near = (points) => points.some(([lat, lon]) => lat >= box.minLat - 3 && lat <= box.maxLat + 3 && lonInExtent(lon, box.lonExtent, 3));
   const h = createHash("sha256");
-  for (const p of ["tools/generate-eym-drainage.mjs", "scripts/eym-local-detail.mjs", "scripts/geo-wrap.mjs", "scripts/eym-river-courses.mjs", "scripts/eym-surface.mjs", "scripts/eym-seasons.mjs"]) h.update(readFileSync(new URL(p, root)));
+  for (const p of ["tools/generate-eym-drainage.mjs", "scripts/eym-local-detail.mjs", "scripts/geo-wrap.mjs", "scripts/eym-river-courses.mjs", "scripts/eym-surface.mjs", "scripts/eym-seasons.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-world-inputs.mjs"]) h.update(readFileSync(new URL(p, root)));
   h.update(JSON.stringify([
     coast.points, asset.terrain.coastlines.filter((c) => near(c.points)).map((c) => [c.kind, c.continent, c.points]),
     asset.hydrology.lakes.filter((l) => near(l.polygon)), (asset.terrain.detail ?? []).map((d) => [d.kind, d.rings.filter(near)]),

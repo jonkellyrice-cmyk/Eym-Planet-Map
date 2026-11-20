@@ -15,14 +15,24 @@ const distanceKm = (place, course) => {
 };
 
 test("every river channel of Caren and Garyk becomes rivers of believable width", () => {
-  assert.equal(channels.length, 16); assert.ok(channels.every((c) => c.continent === "Caren" || c.continent === "Garyk"));
+  // (17 since the Palma, which the tracing took for a lake, is a river: canon of 20 November 2026.)
+  assert.equal(channels.length, 17); assert.ok(channels.every((c) => c.continent === "Caren" || c.continent === "Garyk"));
   for (const ch of channels) assert.ok(courses.some((c) => c.channel === ch.id), `${ch.id} has a river`);
   for (const c of courses) {
-    assert.ok(c.widthM >= 60 && c.widthM <= 1200, `${c.id}: ${c.widthM} m`); assert.ok(c.points.length >= 2);
+    // Garyk's are at most 1.2 km wide, as before; Caren's great rivers a few kilometres, and wider in their tidal estuaries.
+    const most = c.channel.startsWith("garyk") ? 1200 : c.tidal ? 7000 : 3000;
+    assert.ok(c.widthM >= 60 && c.widthM <= most, `${c.id}: ${c.widthM} m`); assert.ok(c.points.length >= 2);
     for (const [lat, lon] of c.points) assert.ok(Number.isFinite(lat) && Number.isFinite(lon));
   }
   // The broadest channels carry the broadest rivers; none is the kilometres-wide strait it was.
-  assert.ok(courses.some((c) => c.widthM === 1200) && courses.some((c) => c.widthM < 400));
+  assert.ok(courses.some((c) => c.widthM === 1200) && courses.some((c) => c.widthM === 3000) && courses.some((c) => c.widthM < 400));
+  // The Myra, the Thran and the Palma each end in a tidal estuary of 50 to 100 km, wider than the river above it.
+  for (const id of ["caren-water-1", "caren-water-2", "caren-water-3"]) {
+    const estuary = courses.find((c) => c.channel === id && c.tidal), above = courses.filter((c) => c.channel === id && !c.tidal);
+    assert.ok(estuary && above.length && estuary.widthM > Math.max(...above.map((c) => c.widthM)), `${id} has an estuary`);
+    let km = 0; for (let k = 1; k < estuary.points.length; k += 1) km += Math.hypot((estuary.points[k][0] - estuary.points[k - 1][0]) * 111.2, (estuary.points[k][1] - estuary.points[k - 1][1]) * 111.2);
+    assert.ok(km >= 50 && km <= 100, `${id}: an estuary of ${km.toFixed(0)} km`);
+  }
 });
 
 test("a river stays in its old channel's country and keeps the towns on its banks", () => {

@@ -21,7 +21,7 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const smoothstep = (t) => { const x = clamp(t, 0, 1); return x * x * (3 - 2 * x); };
 /** How far a valley can reach from its river (km): the widest floodplain and its slopes. */
 const VALLEY_REACH_KM = 24;
-const HARD_ROCK = new Set(["granite-gneiss", "godstone-granite", "volcanic", "metamorphic", "marble"]);
+const HARD_ROCK = new Set(["granite-gneiss", "godstone-granite", "godstone-quartzite", "volcanic", "metamorphic", "marble"]);
 
 // ---------------------------------------------------------------- the rivers, indexed
 

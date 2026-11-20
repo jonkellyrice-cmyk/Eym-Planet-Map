@@ -12,6 +12,7 @@ import { polygonize } from "./cartography-regions.mjs";
 import { EYM_LAYOUT, EYM_SURFACE_MODEL, frameEastScale, frameToLatLon, fromLocal, greatCircleKm } from "./eym-surface.mjs";
 import { normLon, unwrapRing } from "./geo-wrap.mjs";
 import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
+import { carenRelief } from "./eym-caren-relief.mjs";
 import { seaLevelTemperatureC, zonalPrecipitationMm } from "./eym-seasons.mjs";
 import { soilFromRock } from "./eym-geology.mjs";
 import { prepareOverrides } from "./eym-overrides.mjs";
@@ -606,16 +607,38 @@ export const BEDROCK_KINDS = Object.freeze({
   limestone: "basin: limestone (warm shallow seas)",
   volcanic: "active margin: basalt, andesite and tuff",
   metamorphic: "collision belt: schist, slate and marble",
-  "godstone-granite": "Caren: white leucogranite and quartzite of the ancient belt (the Godstone)",
+  "godstone-granite": "Caren: massive white leucogranite of the ancient belt (the Godstone)",
+  "godstone-quartzite": "Caren: white quartzite of the ancient belt (the Godstone)",
   marble: "Caren: banded marble",
   "caren-limestone": "Caren: limestone and sandstone over the old core",
 });
 
-/** Bedrock by origin: Caren's from its ancient belt (its hard massifs high, marble in the foothills, basin cover low); elsewhere from the plates and the ranges they raised. */
+// Caren's own features and its northern swell (scripts/eym-caren-relief.mjs), for its bedrock.
+const CAREN_RULE = carenRelief(WORLD_INPUTS.caren, [], () => 0);
+
+/**
+ * Caren's bedrock from its natural history (canon of 20 November 2026): white quartzite in the high peaks of the
+ * massifs and in what is left of the Sondel Range; massive white leucogranite in the massifs' shoulders and in the
+ * granite hills; the old core laid bare (granite and gneiss) where the swell has raised the land highest and the
+ * cover is stripped; marble, slate and coal-bearing sandstone in the foothills and the dry country round the
+ * mountains; limestone and sandstone over the old core in the lowlands.
+ */
+function carenBedrock(cell) {
+  // (A 1° cell is read by its own land: its mean height says how far the swell has raised it, its highest ground
+  // whether a massif stands in it, the map's relief whether it is mountain country.)
+  const relief = cell.relief ?? 0, feature = CAREN_RULE.featureAt(cell.lat, cell.lon), high = cell.elevationMaxM;
+  if (feature.kind === "massif" && high >= 2500) return high >= 4000 ? "godstone-quartzite" : "godstone-granite";
+  if (relief >= 1.4) return feature.kind === "sondel" ? "godstone-quartzite" : feature.kind === "other" ? "marble" : "godstone-granite";
+  if (cell.landElevationM >= 1100) return feature.kind === "sondel" ? "marble" : "granite-gneiss";
+  if (relief >= 0.5 || cell.landElevationM >= 500) return "marble";
+  return "caren-limestone";
+}
+
+/** Bedrock by origin: Caren's from its ancient belt and its uplift; elsewhere from the plates and the ranges they raised. */
 function bedrockFor(cell) {
   if (!cell.landCovered) return "sea-floor";
   const high = cell.elevationMaxM;
-  if (cell.continent === "Caren") return high > 1200 ? "godstone-granite" : high > 400 ? "marble" : "caren-limestone";
+  if (cell.continent === "Caren") return carenBedrock(cell);
   if (cell.arcKm <= 110) return "volcanic";
   if (cell.sutureKm <= 130 || cell.collisionKm <= 140) return "metamorphic";
   if (cell.trenchKm <= 250 && high > 300) return "volcanic";

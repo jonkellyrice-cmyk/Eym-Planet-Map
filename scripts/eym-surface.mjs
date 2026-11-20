@@ -5,6 +5,7 @@
 
 import { createRng } from "./planet-geography.mjs";
 import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
+import { carenRelief } from "./eym-caren-relief.mjs";
 
 export const EYM_SURFACE_MODEL = "eym-surface-v1";
 export const EYM_RADIUS_KM = 6371;
@@ -20,6 +21,8 @@ const CAREN_AREA_KM2 = 590_000 * 2.589988110336;
  */
 export const EYM_LAYOUT = Object.freeze({
   ...WORLD_INPUTS.layout,
+  // Caren's heights follow from its natural history (scripts/eym-caren-relief.mjs).
+  carenRelief: WORLD_INPUTS.caren,
   seeded: WORLD_INPUTS.layout.seeded.map(({ id, name, areaCarens, ...rest }) => ({ id, name, areaKm2: areaCarens * CAREN_AREA_KM2, ...rest })),
 });
 
@@ -201,7 +204,7 @@ const piecewise = (points, value) => {
  * One placed region of the surface (a continent with its islands, or an
  * archipelago) with a local land/water/elevation raster.
  */
-function buildFrame({ id, continent, origin, center, rings, waterRings = [], relief = null, ridges = [], peakM, cellKm, noise }) {
+function buildFrame({ id, continent, origin, center, rings, waterRings = [], relief = null, ridges = [], peakM, cellKm, noise, reliefRule = null }) {
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (const ring of rings) for (const [x, y] of ring) { minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
   const margin = cellKm * 3, grid = { x0: minX - margin, y0: maxY + margin, cellKm };
@@ -220,9 +223,21 @@ function buildFrame({ id, continent, origin, center, rings, waterRings = [], rel
     reliefValue = boxBlur(reliefValue, grid.cols, grid.rows, 2);
   }
   const elevation = new Float32Array(land.length);
+  // A land whose heights follow from its own history (Caren: scripts/eym-caren-relief.mjs) is given them by that rule.
+  // The rule reads the distance to the sea as the local detail does (scripts/eym-local-detail.mjs): the true distance
+  // to the nearest coast, not the grid's count of squares (which runs a few per cent long), and no farther than 160 km.
+  const coastSegments = reliefRule ? rings.flatMap((ring) => ring.map((p, k) => [p, ring[(k + 1) % ring.length]])) : null;
+  const trueCoastKm = (x, y, about) => {
+    if (about > 185) return 160; let best = 160 * 160;
+    for (const [[ax, ay], [bx, by]] of coastSegments) { const dx = bx - ax, dy = by - ay, t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1))), d = (x - ax - t * dx) ** 2 + (y - ay - t * dy) ** 2; if (d < best) best = d; }
+    return Math.sqrt(best);
+  };
+  const seaKm = reliefRule ? new Float32Array(land.length) : null;
+  const ruled = reliefRule ? reliefRule((lat, lon) => { const [x, y] = toLocal(center, lat, lon), c = Math.floor((x - grid.x0) / cellKm), r = Math.floor((grid.y0 - y) / cellKm); return c < 0 || r < 0 || c >= grid.cols || r >= grid.rows ? 0 : trueCoastKm(x, y, coastKm[r * grid.cols + c]); }) : null;
   for (let r = 0; r < grid.rows; r += 1) for (let c = 0; c < grid.cols; c += 1) {
     const i = r * grid.cols + c; if (!outline[i]) continue;
     const x = grid.x0 + (c + 0.5) * cellKm, y = grid.y0 - (r + 0.5) * cellKm, n = noise(x / 160, y / 160), coast = coastKm[i];
+    if (ruled) { const [lat, lon] = fromLocal(center, x, y); seaKm[i] = trueCoastKm(x, y, coast); elevation[i] = Math.max(water[i] ? 2 : 1, ruled.heightM(lat, lon, seaKm[i], reliefValue[i], n)); continue; }
     let e = 12 + 300 * (1 - Math.exp(-coast / 140)) * (1 + 0.5 * n);
     if (relief) e += piecewise([[0, 0], [0.35, 120], [1, 750], [2, 2300], [3, peakM]], reliefValue[i]) * (1 + 0.14 * n);
     let ridgeM = 0;
@@ -240,7 +255,8 @@ function buildFrame({ id, continent, origin, center, rings, waterRings = [], rel
     elevation[i] = water[i] ? Math.max(5, e - 25) : Math.max(1, e);
   }
   const radiusKm = Math.max(...rings.flat().map(([x, y]) => Math.hypot(x, y))) + margin;
-  return { id, continent, origin, center, grid, outline, land, water, coastKm, elevation, forest, reliefValue, radiusKm };
+  // (`seaKm`: for a land with a relief rule, the distance to the sea its rule read at each square.)
+  return { id, continent, origin, center, grid, outline, land, water, coastKm, elevation, forest, reliefValue, radiusKm, ...(seaKm ? { seaKm } : {}) };
 }
 
 function sampleFrame(frame, lat, lon) {
@@ -445,10 +461,13 @@ export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null, g
   if (minGapKm(carenMainLatLon, [toLatLonRing(garykCenter, mainland(authored.garyk))]) < 500) throw new Error("Garyk overlaps Caren");
   for (const [key, center, peakM] of [["caren", carenCenter, 5400], ["garyk", garykCenter, 3900]]) {
     const source = authored[key];
-    const frame = buildFrame({ id: key, continent: source.name, origin: "authored", center, rings: source.coasts.map((coast) => coast.ring), waterRings: source.inlandWater.flatMap((water) => water.rings), relief: source.relief, peakM, cellKm: 6, noise });
+    // Caren's heights follow from its natural history (canon of 20 November 2026): the dials' rule over its mapped waters.
+    const reliefRule = key === "caren" && layout.carenRelief ? (coastKmAt) => carenRelief(layout.carenRelief, source.inlandWater.map((water) => ({ id: water.id, lake: water.kind === "lake" && !layout.carenRelief.rivers.drawnAsRivers.includes(water.id), ring: toLatLonRing(center, water.rings[0]) })), coastKmAt) : null;
+    const frame = buildFrame({ id: key, continent: source.name, origin: "authored", center, rings: source.coasts.map((coast) => coast.ring), waterRings: source.inlandWater.flatMap((water) => water.rings), relief: source.relief, peakM, cellKm: 6, noise, reliefRule });
     frames.push(frame);
     addCoasts(frame, source.coasts.map((coast) => coast.ring), source.coasts.map((coast) => coast.kind), source.coasts.map((coast) => coast.areaKm2));
-    for (const water of source.inlandWater) inlandWater.push({ id: water.id, continent: source.name, kind: water.kind, areaKm2: water.areaKm2, center: fromLocal(center, ...water.centerKm).map(round3), rings: water.rings.map((ring) => toLatLonRing(center, ring)) });
+    // (A water the tracing took for a lake that is a river drawn wide is a river: the dials name them.)
+    for (const water of source.inlandWater) inlandWater.push({ id: water.id, continent: source.name, kind: key === "caren" && layout.carenRelief?.rivers.drawnAsRivers.includes(water.id) ? "river" : water.kind, areaKm2: water.areaKm2, center: fromLocal(center, ...water.centerKm).map(round3), rings: water.rings.map((ring) => toLatLonRing(center, ring)) });
     continents.push({ id: key, name: source.name, origin: "authored", center: center.map(round3), mainlandAreaKm2: Math.round(ringAreaKm2(mainland(source))), islands: source.coasts.length - 1, sourceSha256: source.sourceImage.sha256 });
   }
 

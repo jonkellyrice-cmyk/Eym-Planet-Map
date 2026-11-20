@@ -112,10 +112,11 @@ test("Caren's earthquakes are an old continent's: small, seldom and spread out, 
 });
 
 test("Caren's rocks: the Godstone is quartzite and leucogranite; the granites carry the veins, quartzite little; no volcanic rock", () => {
-  const god = ROCKS["godstone-granite"];
-  assert.match(god.name, /leucogranite and quartzite/);
-  assert.ok(god.ores.some((o) => /tin and tungsten/.test(o)) && god.ores.some((o) => /veins/.test(o)) && god.ores.some((o) => /little in the quartzite/.test(o)));
-  assert.doesNotMatch(JSON.stringify([god, ROCKS.marble, ROCKS["caren-limestone"]]), /holds no veins|seamless|volcan|lava|basalt/i);
+  const god = ROCKS["godstone-granite"], quartzite = ROCKS["godstone-quartzite"];
+  assert.match(god.name, /leucogranite/); assert.match(quartzite.name, /quartzite/);
+  assert.ok(god.ores.some((o) => /tin and tungsten/.test(o)) && god.ores.some((o) => /veins/.test(o)));
+  assert.ok(quartzite.ores.some((o) => /carries almost no ore/.test(o)) && !quartzite.ores.some((o) => /vein|tin|silver|copper/.test(o)), "no veins in quartzite");
+  assert.doesNotMatch(JSON.stringify([god, quartzite, ROCKS.marble, ROCKS["caren-limestone"]]), /holds no veins|seamless|volcan|lava|basalt/i);
   assert.ok(ROCKS.marble.ores.some((o) => /coal/.test(o)) && ROCKS["caren-limestone"].ores.some((o) => /salt/.test(o)) && ROCKS["caren-limestone"].ores.some((o) => /ironstone/.test(o)));
   // No cell of Caren carries volcanic rock.
   const carenCells = bedrock.filter((_, i) => { const [lat, lon] = cellLatLon(i); return Math.abs(lat) < 11 && Math.abs(lon) < 7; });

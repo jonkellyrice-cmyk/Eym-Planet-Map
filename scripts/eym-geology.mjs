@@ -51,11 +51,18 @@ export const ROCKS = Object.freeze({
   // (Caren's people call its white quartzite and its massive white leucogranite "the Godstone": natural rocks of
   // the ancient belt, the hardest it has. The granite's own fluids left the veins round it; quartzite holds little.)
   "godstone-granite": {
-    name: "the Godstone (white leucogranite and quartzite)", colour: "#e6e2da", colourWords: "white",
-    landform: "smooth white domes and bare walls of massive granite and quartzite, with few joints, that weather very slowly",
-    battle: "white Godstone: smooth, massive white granite and quartzite with few cracks",
+    name: "the Godstone (massive white leucogranite)", colour: "#e6e2da", colourWords: "white",
+    landform: "smooth white domes and bare walls of massive granite, with few joints, that weather very slowly",
+    battle: "white Godstone: smooth, massive white granite with few cracks",
     stone: "white Godstone in great blocks with few joints: fit for temples and palaces",
-    ores: ["tin and tungsten close to the granite", "silver, lead, zinc and copper in veins round it", "little in the quartzite"],
+    ores: ["tin and tungsten close to the granite", "silver, lead, zinc and copper in veins round it"],
+  },
+  "godstone-quartzite": {
+    name: "the Godstone (white quartzite)", colour: "#ece9e2", colourWords: "white",
+    landform: "bare white walls, ledges and flat-topped crags of hard quartzite, with white sand and scree at their feet",
+    battle: "white Godstone: hard white quartzite in blocky ledges, with white sand between",
+    stone: "white quartzite: almost too hard to dress, used as rough block and paving; its sand makes fine glass",
+    ores: ["little: quartzite carries almost no ore", "glass sand"],
   },
   marble: {
     name: "Caren's marble", colour: "#d7d3cb", colourWords: "banded white and grey",
@@ -74,7 +81,7 @@ export const ROCKS = Object.freeze({
 });
 
 /** The kinds of bedrock that shake least in an earthquake: hard and little broken (scripts/eym-quakes.mjs). */
-const HARD_GROUND = new Set(["granite-gneiss", "godstone-granite", "marble", "metamorphic"]);
+const HARD_GROUND = new Set(["granite-gneiss", "godstone-granite", "godstone-quartzite", "marble", "metamorphic"]);
 
 /** The soils, in words (the cartography's soil layer uses these keys). */
 export const SOILS = Object.freeze({
@@ -113,7 +120,7 @@ export function soilFromRock(cell) {
   if (cell.biome === "taiga") return "podzol";
   if (rock === "limestone" || rock === "caren-limestone" || rock === "marble") return warm > 14 && wet < 1400 ? "terra-rossa" : "rendzina";
   if (warm > 20 && wet > 1500) return "laterite";
-  if (rock === "granite-gneiss" || rock === "godstone-granite") return wet > 1500 ? "leached-humid" : "sandy-acid";
+  if (rock === "granite-gneiss" || rock === "godstone-granite" || rock === "godstone-quartzite") return wet > 1500 ? "leached-humid" : "sandy-acid";
   if (rock === "metamorphic") return "stony-loam";
   if (cell.biome === "steppe") return "black-earth";
   if (wet > 1800) return "leached-humid";
@@ -174,7 +181,7 @@ export function geologyAt(asset, lat, lon) {
   const climate = windClimate(asset), loessM = climate ? loessAt(climate, lat, lon) : 0;
   if (loessM >= 2) soil = "loess";
   const rock = ROCKS[kind] ?? null;
-  return { bedrock: kind, rock, soil, loessM: Math.round(loessM * 10) / 10, soilWords: SOILS[soil] ?? soil, onGodstone: ["godstone-granite", "marble", "caren-limestone"].includes(kind), hardRock: HARD_GROUND.has(kind), volcanoes };
+  return { bedrock: kind, rock, soil, loessM: Math.round(loessM * 10) / 10, soilWords: SOILS[soil] ?? soil, onGodstone: ["godstone-granite", "godstone-quartzite", "marble", "caren-limestone"].includes(kind), hardRock: HARD_GROUND.has(kind), volcanoes };
 }
 
 /** The rock and ground at a place in one line, for the "Here and now" card. */

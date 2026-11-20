@@ -84,7 +84,7 @@ in a generation, none of 6 (`scripts/eym-quakes.mjs`).
 *Erosion* follows each rock: quartzite and massive granite wear very slowly; limestone weathers to caves and
 sinkholes; rivers, deltas and soils follow.
 
-*The northern plateau and its peaks* (to be built: heights). North of the Sondel the interior is a plateau of about
+*The northern plateau and its peaks.* North of the Sondel the interior is a plateau of about
 1,200 to 2,000 m: the buoyant old root, and a broad swell of the mantle over the last 5 to 10 million years (the
 northern plume: a nudge), as southern Africa was raised. Every northern coast rises to it by a long, gentle ramp
 over 100 to 300 km (a slope of 0.4 to 2%), with no escarpment and no cliff coast but where the map shows one: a broad
@@ -97,10 +97,46 @@ round them are cut. Mt. Weth is not a volcano. Their heights are worked out from
 Surnet, Whitswell, Havamere, Nal, Rochest, Conera) lie in shallow sags of the warped plateau, as Lake Victoria does.
 The Trate Hills and the Sarven Hills are hills (about 500 to 1,500 m).
 
-*The Arluna Lakes* (to be built: heights and resources): one great impact structure 150 to 200 km across (as
+*As built (0.34.0; `scripts/eym-caren-relief.mjs`, dials in `scripts/eym-world-inputs.mjs`, measured in
+`data/eym/caren.json`):*
+
+- *The plateau* stands at 1,340 to 1,870 m (the middle four fifths of it; 1,630 m in the middle), about 10.6 °C cooler
+  than the coast. It is held up by crust 35 to 41 km thick (36 km under the lowlands) and a swell of the mantle that
+  pushes up 960 m at most; nothing is left unsupported.
+- *The ramps:* from the west coast 145 km at a mean slope of 1.0%, from the north 125 km at 1.4%, from the east 135 km
+  at 1.0%; the steepest 10 km anywhere is 1.7%. No land within 12 km of a northern coast stands above 124 m. With the
+  tan country now low ground, Caren has no cliff coast at all (it had three short stretches): confirmed by the owner,
+  20 November 2026.
+- *The great rivers* lie in valleys cut through the dome: the Myra (310 km of drawn band, 73 m above the sea at its
+  head), the Thran (277 km, 62 m), the Palma (142 km, 22 m; the tracing had taken it for a lake) and the unnamed
+  water by Menera (109 km, 12 m: an inlet of the sea, confirmed by the owner). Their real channels are up to 3 km wide,
+  and each great river (the Drong, the Molkath, the Taunmis and the Sherval too) widens to as much as 7 km over its
+  tidal 75 km.
+- *The peaks, as the physics gives them:* a massif of hard rock on an old, worn continent stands at most about
+  2,300 m above the land round it (Earth's largest, as Mulanje); small faults add about 300 m (no fault here gives a
+  great earthquake) and the crust's rebound about 300 m more: 2,900 m above the plateau. That makes **Mt. Oplin
+  4,567 m, Mt. Shila 3,992 m, Mt. Danrich 3,582 m and Mt. Weth 3,437 m**. The data had peaks of about 5,300 m. None
+  reaches the snow line (about 4,800 m): no natural summit of Caren has snow all year or a glacier. Higher peaks
+  would need a block thrown up some two kilometres on great faults, as the Rwenzori was, which the canon's small
+  earthquakes rule out. The owner accepts the peaks as computed (20 November 2026).
+- *Caren's highest summits* are in what is left of the Sondel Range (up to 5,608 m, as the map's heights were; not
+  natural, and the only snow that lies all year), then the four massifs. The Trate Hills reach 1,312 m and the
+  Sarven Hills 1,366 m.
+- *The tan country* is low, dry ground (about 350 m round the Sondel's remnant), not upland.
+- *The lakes:* Lake Luin lies on the plateau at 1,290 m; the others in the lowlands (the Nal Lakes at 147 to 361 m,
+  Whitswell 177 m, Havamere 170 to 176 m, the Arluna Lakes about 163 m, the Xel Lakes 103 to 145 m, Surnet 108 m).
+- *Bedrock:* white quartzite in the Sondel's remnant and the massifs' peaks; massive white leucogranite in the
+  massifs' shoulders and the granite hills; the old core laid bare (granite and gneiss) on the plateau; marble, slate
+  and coal-bearing sandstone in the foothills; limestone and sandstone in the lowlands.
+
+*The Arluna Lakes:* one great impact structure 150 to 200 km across (as
 Manicouagan is), on the old core, from before any people. The lakes lie in its ring trough round a central uplift,
 and Dubos stands near the centre. It is a skymetal district: the ore lies in the melt sheet under the uplift and
 the ring. Optional, for the world's author: that this was the impact that left Eym's worldwide trace of skymetal.
+*As built (0.34.0):* a ring 195 km across centred at 3.25° S, 0.79° E, through the middles of the five lakes; a
+central uplift of 250 m, a trough 60 m deep and a low rim of 150 m; Dubos stands inside the ring. Its age is set
+only as a range (20 to 200 million years) until the world's author fixes it; the ore bodies are placed with
+Resources.
 
 *The Molkath desert* (to be checked against the models; it replaces the earlier "basin north of the equator ringed
 by mountains"). A desert of sand and rock in the tan country of the Molkath Confederation round what is left of the

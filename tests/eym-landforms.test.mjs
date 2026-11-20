@@ -64,8 +64,11 @@ test("the shore: a beach is sand to the water, a cliff stands on raised land, a 
   assert.equal(beach.ground, "beach"); assert.equal(dunes.ground, "dunes");
   assert.equal(shoreAt({ kind: "cliffs", exposure: 0.6, tideGain: 3, cliffM: 60 }, 0.02, 0, 10).ground, "cliff");
   assert.equal(shoreAt({ kind: "cliffs", exposure: 0.6, tideGain: 3, cliffM: 60 }, 0.3, 0, 10), null, "behind the face, the land is left to the lift");
-  // Behind Caren's marble cliffs the land stands higher, the lift fading inland and along the shore without a step.
-  const [la, lo] = [-6.93, -3.73], relief = coarseAt(ctx, la, lo).relief;
+  // Behind a cliff coast the land stands higher, the lift fading inland and along the shore without a step. (A cliff
+  // coast of Garyk's: since Caren's heights follow from its natural history, canon of 20 November 2026, Caren's tan
+  // country is low and its coasts have no cliffs but where the map shall show them. The place was on Caren's
+  // south-west coast before.)
+  const [la, lo] = [15.157, -89.536], relief = coarseAt(ctx, la, lo).relief;
   assert.equal(coastCharacter(lf, la, lo, relief).kind, "cliffs");
   assert.ok(cliffLiftM(lf, la, lo, relief, 0.3) > 12 && cliffLiftM(lf, la, lo, relief, 0) === 0, "it drops to the water");
   assert.ok(cliffLiftM(lf, la, lo, relief, 10) < cliffLiftM(lf, la, lo, relief, 0.3) && cliffLiftM(lf, la, lo, relief, 26) === 0, "and fades inland");
@@ -77,8 +80,8 @@ test("the shore: a beach is sand to the water, a cliff stands on raised land, a 
   assert.equal(shoreAt({ kind: "beach", exposure: 0.6, tideGain: 3 }, 0.2, 0, 5, 0.3).ground, "beach", "at least a square wide on a coarse map");
 });
 
-test("a local map on Caren's marble coast has its cliff, and the Region layer's tiles carry the new landforms", () => {
-  const tile = buildLocalTile(asset, { center: [-6.93, -3.73], sizeKm: 4, resolutionM: 25 });
+test("a local map on a cliff coast has its cliff, and the Region layer's tiles carry the new landforms", () => {
+  const tile = buildLocalTile(asset, { center: [15.157, -89.536], sizeKm: 4, resolutionM: 25 });
   assert.ok(tile.cover.includes(COVER.rock) && !tile.cover.includes(COVER.beach), "rock at the water, no beach");
   assert.ok(Math.max(...tile.elevation) > 30);
   assert.equal(REGION_MODEL, "eym-region-layer-v5");
@@ -132,11 +135,12 @@ test("each land mass has a fingerprint of what it reads, and the threaded build 
   assert.equal(`${JSON.stringify(doc)}\n`, read(drainagePath)); assert.deepEqual(report.map((r) => r.continent).sort(), [...DETAILED].sort()); assert.ok(report.every((r) => !r.cached && r.landNodes > 100000));
 });
 
-test("Caren's and Garyk's channels are the ones they had before the far continents were grown", () => {
-  // The channels' points, bit for bit (568 of Caren's and 412 of Garyk's). When Gaffa, Khohalis and Demani were grown
+test("Caren's and Garyk's channels are the ones recorded, bit for bit", () => {
+  // The channels' points, bit for bit (572 of Caren's and 412 of Garyk's; Caren's were 568 until its heights were
+  // made to follow from its natural history, canon of 20 November 2026, which changed where its water runs). When Gaffa, Khohalis and Demani were grown
   // (canon of 19 November 2026) a river of theirs that crosses ±180° was at first walked right round the world at
   // its latitude, through Caren and Garyk, and 47 false channels appeared: this is the guard against its like.
   const doc = JSON.parse(read(drainagePath));
-  assert.deepEqual(doc.landMasses, [{ continent: "Caren", latticeDeg: 0.02, channels: 568 }, { continent: "Garyk", latticeDeg: 0.02, channels: 412 }]);
-  assert.equal(createHash("sha256").update(doc.pointsInt16Base64).digest("hex"), "4e8202ef8b3b0bfec468cc1d1fc1a8358b856215b45233fe22f07375e0ddea62");
+  assert.deepEqual(doc.landMasses, [{ continent: "Caren", latticeDeg: 0.02, channels: 572 }, { continent: "Garyk", latticeDeg: 0.02, channels: 412 }]);
+  assert.equal(createHash("sha256").update(doc.pointsInt16Base64).digest("hex"), "dbf4fca5ae88dc43e54aae799461ad9ec8fff94b124c1e8584bceda1f69fe2c7");
 });
