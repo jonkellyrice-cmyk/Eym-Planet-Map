@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+Records brought up to the 80%-water world (documents only; no code, data or test changed). The aquaplanet addendum in `ROADMAP.md` is revised point by point, its old text kept as the record; the places that cited it (wet and dry seasons, ice ages, Stage 5) say what supersedes them; the canon notes (`docs/eym-canon.md`) record the world as rebuilt, the check of Caren's canon, the two expectations not met and the open question of the El Niño basin's western shore; the README gives the continents' new sizes.
+
 The land drives the large-scale atmosphere (owner's addendum of 20 November 2026; step 3 of the canon change, the revised climate). Caren's and Garyk's coasts, relief, water, drainage, coast survey and the whole cartography are byte for byte what they were; only the rivers' monthly climate and the wind climate change, by the mechanisms below.
 
 - A new module, `scripts/eym-land-atmosphere.mjs`, works out once from the coarse world (the 1° land mask and heights) what the land does to the atmosphere, and keeps it with the world: no clock, no noise. Over a longitude with no land in reach it gives exactly what the atmosphere gave before. Its dials are `weather.land` and `weather.continentality`.

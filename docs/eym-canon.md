@@ -218,6 +218,31 @@ world's author approved the first outlines drawn on that basis (Gaffa a broad ea
 south-west through its present core; Khohalis and Demani their present shapes, enlarged). The work is shown in
 three steps: outlines and relief; sea floor and currents, with the check of Caren's canon; the revised climate.
 
+*Done (20 November 2026).* The world as rebuilt:
+
+- *Sizes:* ocean 79.86% (it was 98.6%). Gaffa 65.1 million km², Khohalis 19.7, Demani 15.0, as approved by the
+  world's author; a fourth archipelago was accreted into Khohalis. Caren's and Garyk's outlines are byte-identical.
+- *Least change:* no plate boundary moved; the plates' poles, speeds and history are unchanged (the tectonic record is
+  byte-identical). The grown land is kept apart from the plate fit (`data/eym/growth.json`).
+- *Caren's canon holds:* Dubos is tropical rainforest (25.7 °C); the seasons are mild (the widest yearly range
+  anywhere on Caren is under 5 °C; the months run 22.9 to 23.7 °C); 148 of its 175 climate cells are forest; the
+  enclosed dry basin north of the equator remains (9 steppe cells). Its yearly rain is 2,785 mm (2,831 before).
+- *Garyk:* yearly rain 1,694 mm (1,591 before, the gain in the wet months); months 18.0 to 21.6 °C (18.7 to 21.1
+  before); a weak monsoon wind (0.7 m/s on a trade of 5).
+- *Expectations met:* one great basin with a warm boundary current up Gaffa's east coast and cold water and upwelling
+  on the other side; strong monsoons over Gaffa; large seasonal swings in the interiors (some 35 °C deep inside Gaffa
+  at 45° N); more meandering jets and more blocking, most in the north. The aquaplanet addendum is revised
+  (`ROADMAP.md`).
+- *Expectations not met:* Garyk does not get more or stronger tropical cyclones (14 within 900 km in eight years
+  before and after; worldwide 352 against 461, land now lying where some were born). Caren's El Niño-like swing in
+  rainfall is smaller, not larger (its yearly wetness ranged from 0.70 to 1.43 of normal, and ranges from 0.90 to
+  1.14 now), because the oscillation's basin is now the 132° of ocean east of Caren and Caren lies 5° outside its
+  western edge.
+- *Open, for the owner:* whether Caren counts as the western shore of that basin (and so has dry years when the basin
+  warms). Nothing was changed for it.
+- *Left for Stage 5:* ice sheets on Khohalis and Demani and their feedback on the temperatures there. Until then the
+  cold of Khohalis is from temperature alone (1,665 of its 3,494 climate cells class as ice cap).
+
 ## Still the author's to decide (defaults until he answers)
 
 - *Peoples, gods and magic in the history engine:* Pathfinder defaults for every setting, including which magical
