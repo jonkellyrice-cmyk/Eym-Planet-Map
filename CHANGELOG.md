@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.32.0 (2026-11-20)
+
+The registry, the code and the data take the names people use (owner, 20 November 2026). The star and its system are **Mitkear** (the working name was Abydos), the world is **Eym** (Eventide), and the wanderers are **Bruthi** (Ramses), **Esonth** (Thraximundus), **Lilta** (Kandahar) and **Iarn** (Tribune). The two moons keep their registry keys (White Moon, Red Moon), shown as Austarm and Chatarm. Entries below this one are left as written and use the working names.
+
+- Renamed everywhere but in this changelog's and the roadmap's history: the registry's rows (`docs/system-orbital-distances.csv`: system, object, parent and owner), the code and its tests, the documents, the release workflow's file list, and the data files and folders (`data/planet-cartography/mitkear/eym.json` and its companions, `bruthi.json`, `esonth.json`, `lilta.json`; `data/planet-geography/mitkear/`; `data/body-operations/mitkear/iarn.json`).
+- Nothing drawn changed. Wherever a name feeds a seed, the word the seed was first drawn from is used, from one place, `scripts/seed-words.mjs`: the surveys of the moons and Iarn, the place names of the wanderers' maps, the bodies' turning at the epoch, and small variations of their air and of the map view. Every data file was made again and compared field by field with what it was: the same, but for names, file hashes and the fingerprints that are taken from the registry's rows or from files' own text.
+- One thing drawn did change, because it was itself a name: one of the naming roots of the wanderers' place names was Bruthi's working name, so ten place names on the maps of Bruthi, Esonth and Lilta now begin "Bruthi…" (Bruthistrand Sea, and the like).
+- `scripts/display-names.mjs` now only names the two moons and the sun's alias; everything else is shown by its registry name.
+- Eym's surface, its coasts, relief, rivers and climate are unchanged. The Region layer's fingerprint moves (its files were renamed), so the stored tiles are made again under the new fingerprint with the same pixels.
+- Tests: no test is weakened, skipped or deleted. Tests that name these bodies name them by the new names; two expected lists of the wanderers are re-sorted alphabetically under the new names; and the moons' calendar test, which forbade the working names on its pages, now forbids only the moons' registry keys (the pages rightly say Eym and Mitkear). The registry file's pinned hash is recorded anew.
+
 ## 0.31.0 (2026-11-20)
 
 The moons' calendar: a view of its own beside the map and the ground view of the sky, open to every player. No new astronomy: it lays out what `scripts/moon-events.mjs` already finds.

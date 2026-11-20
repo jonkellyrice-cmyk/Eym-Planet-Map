@@ -1,5 +1,5 @@
 // Fits Eym's wind and wave climate for its landforms (the wind addendum to Stage 3 of the physical history and
-// climate programme) and writes data/planet-cartography/abydos/eventide-wind.json. Four years of the weather and
+// climate programme) and writes data/planet-cartography/mitkear/eym-wind.json. Four years of the weather and
 // the swell (scripts/eym-weather.mjs, scripts/eym-sea.mjs: the same storms, winds and swell as everywhere else)
 // are sampled every 7 hours over Caren, Garyk and their islands:
 //   - at the sea off every coast: the wave energy arriving from each of 16 directions (wind sea and swell), and
@@ -24,10 +24,10 @@ import { attachGeology, attachOcean } from "../scripts/cartography-asset.mjs";
 import { geologyAt } from "../scripts/eym-geology.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universal-time.mjs";
 
-const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartography/abydos/eventide-wind.json", root);
+const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartography/mitkear/eym-wind.json", root);
 export const WIND_MODEL = "eym-wind-v1";
 /** What the wind climate is made from: this tool, the weather and sea models, and the data they read. */
-export const WIND_SOURCES = ["tools/generate-eym-wind.mjs", "scripts/eym-weather.mjs", "scripts/eym-land-atmosphere.mjs", "scripts/eym-sea.mjs", "scripts/eym-seasons.mjs", "scripts/eym-geology.mjs", "data/planet-cartography/abydos/eventide.json", "data/planet-cartography/abydos/eventide-geology.json", "data/planet-cartography/abydos/eventide-ocean.json", "data/eym/climate.json"];
+export const WIND_SOURCES = ["tools/generate-eym-wind.mjs", "scripts/eym-weather.mjs", "scripts/eym-land-atmosphere.mjs", "scripts/eym-sea.mjs", "scripts/eym-seasons.mjs", "scripts/eym-geology.mjs", "data/planet-cartography/mitkear/eym.json", "data/planet-cartography/mitkear/eym-geology.json", "data/planet-cartography/mitkear/eym-ocean.json", "data/eym/climate.json"];
 /** The dials it follows (scripts/eym-world-inputs.mjs): the weather's circulation. */
 export const WIND_INPUTS = ["weather"];
 export const windSourcesSha256 = () => { const h = createHash("sha256"); for (const p of WIND_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...WIND_INPUTS)); return h.digest("hex"); };
@@ -143,10 +143,10 @@ export function buildWind(asset) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const read = (p) => JSON.parse(readFileSync(new URL(p, root), "utf8"));
-  const asset = read("data/planet-cartography/abydos/eventide.json");
-  attachGeology(asset, read(`data/planet-cartography/abydos/${asset.geologyFile}`)); attachOcean(asset, read("data/planet-cartography/abydos/eventide-ocean.json"));
+  const asset = read("data/planet-cartography/mitkear/eym.json");
+  attachGeology(asset, read(`data/planet-cartography/mitkear/${asset.geologyFile}`)); attachOcean(asset, read("data/planet-cartography/mitkear/eym-ocean.json"));
   const t0 = Date.now(), data = buildWind(asset), text = `${JSON.stringify(data)}\n`;
-  if (process.argv.includes("--check")) { const same = readFileSync(OUT, "utf8") === text; console.log(same ? "eventide-wind.json is up to date" : "eventide-wind.json differs"); process.exit(same ? 0 : 1); }
+  if (process.argv.includes("--check")) { const same = readFileSync(OUT, "utf8") === text; console.log(same ? "eym-wind.json is up to date" : "eym-wind.json differs"); process.exit(same ? 0 : 1); }
   writeFileSync(OUT, text);
-  console.log(`eventide-wind.json: ${data.sea.cells.length} sea cells, ${data.land.cells.length} land cells, ${data.samples} samples, ${text.length} bytes, ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+  console.log(`eym-wind.json: ${data.sea.cells.length} sea cells, ${data.land.cells.length} land cells, ${data.samples} samples, ${text.length} bytes, ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 }

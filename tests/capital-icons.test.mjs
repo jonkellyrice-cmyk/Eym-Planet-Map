@@ -5,7 +5,7 @@ import { FACTION_PRESENTATIONS, factionPresentationForOwner } from "../scripts/c
 // Cluster capital markers were removed with the cluster view; the faction emblems remain because the
 // system and body views use them for the owning faction.
 test("canonical ownership names resolve to reusable faction emblems", () => {
-  assert.equal(factionPresentationForOwner("Eventide").factionId, "eventide");
+  assert.equal(factionPresentationForOwner("Eym").factionId, "eym");
   assert.equal(factionPresentationForOwner("Signatories of the Accords").factionId, "accords");
   assert.equal(factionPresentationForOwner("Adanian Conclave").factionId, "conclave");
   assert.equal(factionPresentationForOwner("Xuanjia Mandate").factionId, "mandate");

@@ -10,8 +10,8 @@ import { systemsBetween } from "../scripts/eym-weather.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universal-time.mjs";
 
 const root = new URL("../", import.meta.url), read = (path) => readFileSync(new URL(path, root), "utf8");
-const climate = JSON.parse(read("data/eym/climate.json")), asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
-const manifest = JSON.parse(read("data/planet-cartography/manifest.json")), entry = manifest.worlds.find((w) => w.body === "Eventide");
+const climate = JSON.parse(read("data/eym/climate.json")), asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
+const manifest = JSON.parse(read("data/planet-cartography/manifest.json")), entry = manifest.worlds.find((w) => w.body === "Eym");
 const YEAR_MS = DAYS_PER_YEAR * DAY_MS, T0 = NORTHWARD_EQUINOX_MS, field = environmentField(asset);
 /** A moment when the oscillation is near neutral, in a given season. */
 const neutralAt = (f) => { for (let y = 0; y < 40; y += 1) { const t = T0 + (y + f) * YEAR_MS; if (Math.abs(ensoIndex(t)) < 0.15) return t; } throw new Error("no neutral year"); };

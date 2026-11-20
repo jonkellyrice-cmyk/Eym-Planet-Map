@@ -25,8 +25,8 @@ export const starId = (index) => `star-${String(index + 1).padStart(4, "0")}`;
 /** Eym's sky frame from the registry and epoch orientations. */
 export function eymSky(root = ROOT) {
   const rows = parseCsv(readFileSync(resolve(root, "docs/system-orbital-distances.csv"), "utf8"));
-  const eym = rows.find((row) => row.system === "Abydos" && row.object === "Eventide");
-  const orientation = JSON.parse(readFileSync(resolve(root, "data/astronomy/epoch-orientations.json"), "utf8")).orientations["abydos-eventide"];
+  const eym = rows.find((row) => row.system === "Mitkear" && row.object === "Eym");
+  const orientation = JSON.parse(readFileSync(resolve(root, "data/astronomy/epoch-orientations.json"), "utf8")).orientations["mitkear-eym"];
   const inclinationDeg = Number(eym.inclination_deg || 0);
   return {
     sunPathPole: orbitNormal(inclinationDeg),

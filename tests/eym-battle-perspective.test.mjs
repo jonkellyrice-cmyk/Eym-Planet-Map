@@ -10,7 +10,7 @@ import { artDirection } from "../scripts/eym-map-packet.mjs";
 import { battleMapSpec } from "../scripts/eym-map-presets.mjs";
 import { fromLocal } from "../scripts/eym-surface.mjs";
 
-const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
+const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/mitkear/eym.json", import.meta.url), "utf8"));
 const at = (n, dx, dy) => { const s = asset.settlements.find((x) => x.properName === n); return fromLocal([s.lat, s.lon], dx, dy); };
 
 test("buildings stand inside their footprint: roof to the north, a front wall with windows and door to the south", () => {

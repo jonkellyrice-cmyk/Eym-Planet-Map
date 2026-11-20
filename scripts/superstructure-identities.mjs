@@ -1,7 +1,7 @@
 export const SUPERSTRUCTURE_MODEL_VERSION = "orphaned-sun-superstructure-identity-v1";
 
 const SYSTEM_FACTION = Object.freeze({
-  Abydos: "frontier",
+  Mitkear: "frontier",
 });
 
 export const FACTION_GRAMMARS = Object.freeze({
@@ -38,7 +38,7 @@ export const FACTION_GRAMMARS = Object.freeze({
     prohibited: ["ornate imperial styling", "religious monumentalism unless object-specific canon requires it", "sterile featureless white sci-fi minimalism"],
   }),
   frontier: Object.freeze({
-    label: "Abydos / Eventide / unaffiliated",
+    label: "Mitkear / Eym / unaffiliated",
     designGrammar: "plausible sleek frontier eco-punk/space-punk construction; logical modular growth, robust maintenance access, strong local self-sufficiency and clear operational purpose",
     materialLanguage: "weathered but well-kept structural metal, modular pressure volumes, visible service trusses, practical lights and locally maintained surface variation",
     interiorLogic: "self-sufficient habitation, repair, logistics, civic and emergency districts with conservative redundancy",
@@ -61,7 +61,7 @@ export function factionFamilyFor(row) {
   if (owner.includes("mandate")) return "mandate";
   if (owner.includes("accord")) return "accords";
   if (owner.includes("union")) return "union";
-  if (owner.includes("eventide") || owner.includes("abydos")) return "frontier";
+  if (owner.includes("eym") || owner.includes("mitkear")) return "frontier";
   return SYSTEM_FACTION[row?.system] ?? "frontier";
 }
 

@@ -36,7 +36,7 @@ export function buildNamedGeography({ coarse, terrain, hydrology, regions }) {
   for (const layer of [terrain, hydrology, regions]) if (layer.sourceSeed !== coarse.seed || layer.sourceFingerprint !== coarse.inputFingerprint) throw new Error("Cartographic layer does not match the accepted world");
   const landTotal = terrain.landPolygons.reduce((sum, polygon) => sum + polygon.areaDeg2, 0);
   const land = terrain.landPolygons.slice(0, 24).map((polygon) => {
-    const continental = coarse.body !== "Eventide" && polygon.areaDeg2 >= Math.max(200, landTotal * .09);
+    const continental = coarse.body !== "Eym" && polygon.areaDeg2 >= Math.max(200, landTotal * .09);
     return { id: polygon.id, featureClass: continental ? "continent" : "island", geometryType: "polygon", geometryRef: polygon.id, at: centroid(polygon.points), scale: polygon.areaDeg2, scientificClassification: continental ? "major continental landmass" : "island or microcontinental fragment" };
   });
   const oceanRegions = regions.ecoregions.filter((region) => ["open-ocean", "tropical-ocean", "sea-ice"].includes(region.category)).sort((a, b) => b.cellCount - a.cellCount || a.id.localeCompare(b.id));

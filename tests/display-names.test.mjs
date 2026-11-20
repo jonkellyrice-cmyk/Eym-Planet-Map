@@ -5,34 +5,34 @@ import { buildSystemModel, parseCsv } from "../scripts/system-data.mjs";
 import { displayNameFor, objectDisplayName, parentDisplayName, systemDisplayName } from "../scripts/display-names.mjs";
 
 const rows = parseCsv(readFileSync(new URL("../docs/system-orbital-distances.csv", import.meta.url), "utf8"));
-const model = buildSystemModel(rows, "Abydos");
+const model = buildSystemModel(rows, "Mitkear");
 const source = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
 test("people on Eym call their world Eym, their star Mitkear and their moons Austarm and Chatarm", () => {
-  assert.equal(objectDisplayName(model.byName.get("Eventide")), "Eym");
-  assert.equal(objectDisplayName(model.byName.get("Abydos")), "Mitkear");
-  assert.equal(systemDisplayName("Abydos"), "Mitkear");
+  assert.equal(objectDisplayName(model.byName.get("Eym")), "Eym");
+  assert.equal(objectDisplayName(model.byName.get("Mitkear")), "Mitkear");
+  assert.equal(systemDisplayName("Mitkear"), "Mitkear");
   assert.equal(objectDisplayName(model.byName.get("White Moon")), "Austarm");
   assert.equal(objectDisplayName(model.byName.get("Red Moon")), "Chatarm");
   assert.equal(objectDisplayName(model.byName.get("Enoch")), "Enoch", "unrenamed bodies keep their names");
-  assert.equal(parentDisplayName(model.byName.get("Ramses")), "Mitkear");
+  assert.equal(parentDisplayName(model.byName.get("Bruthi")), "Mitkear");
   assert.equal(parentDisplayName(model.byName.get("White Moon")), "Eym");
   assert.equal(parentDisplayName(model.byName.get("Red Moon")), "Eym");
-  assert.equal(displayNameFor("Abydos", "Eventide"), "Eym");
+  assert.equal(displayNameFor("Mitkear", "Eym"), "Eym");
 });
 
 test("the four wandering stars, largest to smallest, are Iarn, Esonth, Bruthi and Lilta", () => {
-  const wanderers = ["Tribune", "Thraximundus", "Ramses", "Kandahar"];
+  const wanderers = ["Iarn", "Esonth", "Bruthi", "Lilta"];
   const radii = wanderers.map((name) => Number(rows.find((row) => row.object === name).radius_re));
   assert.deepEqual(radii, [...radii].sort((a, b) => b - a));
-  assert.deepEqual(wanderers.map((name) => displayNameFor("Abydos", name)), ["Iarn", "Esonth", "Bruthi", "Lilta"]);
+  assert.deepEqual(wanderers.map((name) => displayNameFor("Mitkear", name)), ["Iarn", "Esonth", "Bruthi", "Lilta"]);
 });
 
 test("canonical names stay as data keys: the registry, model and asset paths are unchanged", () => {
-  assert.ok(rows.some((row) => row.system === "Abydos" && row.object === "Eventide"));
-  assert.equal(model.name, "Abydos");
-  assert.equal(model.byName.get("Eventide").name, "Eventide");
-  assert.ok(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url)).length > 0);
+  assert.ok(rows.some((row) => row.system === "Mitkear" && row.object === "Eym"));
+  assert.equal(model.name, "Mitkear");
+  assert.equal(model.byName.get("Eym").name, "Eym");
+  assert.ok(readFileSync(new URL("../data/planet-cartography/mitkear/eym.json", import.meta.url)).length > 0);
 });
 
 test("every on-screen name goes through the display layer", () => {

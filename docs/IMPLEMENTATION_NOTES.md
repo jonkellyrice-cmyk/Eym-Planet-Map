@@ -29,7 +29,7 @@ The canonical object registry remains `docs/system-orbital-distances.csv`. Non-c
 - `data/body-operations/manifest.json`
 - `data/body-operations/<system-slug>/<body-slug>.json`
 
-The current registry yields **4** eligible operational targets (the three moons and Tribune) after excluding the Sun and the 4 accepted cartographic worlds.
+The current registry yields **4** eligible operational targets (the three moons and Iarn) after excluding the Sun and the 4 accepted cartographic worlds.
 
 Every accepted operational asset stores:
 

@@ -15,7 +15,7 @@ import { mansionForDirection } from "./lunar-mansions.mjs";
 import { calendarMs, trueLines, wandererEphemeris, yearSpan } from "./eym-almanac.mjs";
 import { DAY_MS, DAYS_PER_MONTH, DAYS_PER_YEAR, HOLIDAY_DAYS, HOLIDAY_MONTH, HOLIDAY_NAME, MONTH_NAMES, MONTH_START_WEEKDAY_INDEX, WEEKDAY_NAMES, universalTimeParts } from "./universal-time.mjs";
 
-export const MOON_CALENDAR_SYSTEM = "Abydos", MOON_CALENDAR_HOME = "Eventide", MOON_KEYS = Object.freeze(["White Moon", "Red Moon"]);
+export const MOON_CALENDAR_SYSTEM = "Mitkear", MOON_CALENDAR_HOME = "Eym", MOON_KEYS = Object.freeze(["White Moon", "Red Moon"]);
 /** The names people use for the moons, and their colours on the calendar. */
 export const MOON_DISPLAY = Object.freeze({ "White Moon": { name: "Austarm", color: "#f4f1e8", dark: "#3a3f4a" }, "Red Moon": { name: "Chatarm", color: "#d9673f", dark: "#3d2420" } });
 /** The hour (of the calendar's clock) at which a night's moons are drawn. */

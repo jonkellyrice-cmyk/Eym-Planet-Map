@@ -34,7 +34,7 @@ for (const entry of manifest.worlds ?? []) {
   assert(world.rivers.length > 0 && world.lakes.length > 0, `${key}: missing hydrology`);
   assert(world.settlements.length > 0, `${key}: inhabited world has no settlement sites`);
   assert(world.transportRoutes.length === Math.max(0, world.settlements.length - 1), `${key}: incomplete transport network`);
-  if (entry.body === "Eventide") assert(!world.cells.some((cell) => !cell.ocean && cell.elevationM < 0), "Eventide contains invalid submerged land");
+  if (entry.body === "Eym") assert(!world.cells.some((cell) => !cell.ocean && cell.elevationM < 0), "Eym contains invalid submerged land");
   if (strict) {
     const regenerated = isEymRow(row) ? loadEymWorld(row).coarse : generatePlanetGeography(row, { resolutionDeg: world.resolutionDeg });
     assert(JSON.stringify(regenerated) === JSON.stringify(world), `${key}: asset is not reproducible from canonical inputs`);

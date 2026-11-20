@@ -29,7 +29,7 @@ const assets = cartographyManifest.worlds.map((entry) => {
   return { entry, sourceRow, asset };
 });
 
-const EXEMPLAR = Object.freeze({ system: "Abydos", body: "Eventide" });
+const EXEMPLAR = Object.freeze({ system: "Mitkear", body: "Eym" });
 const exemplar = assets.find(({ entry }) => entry.system === EXEMPLAR.system && entry.body === EXEMPLAR.body);
 if (!exemplar) fail(`${EXEMPLAR.system}/${EXEMPLAR.body} cartography asset was not found.`);
 

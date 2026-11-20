@@ -63,7 +63,7 @@ import { guardPageZoom } from "./zoom-guard.mjs";
 
 export const MODULE_ID = "eym-planet-map";
 /** The only system this module exposes. Its name must match the `system` column of the registry CSV. */
-export const HOME_SYSTEM = Object.freeze({ id: "abydos", name: "Abydos" });
+export const HOME_SYSTEM = Object.freeze({ id: "mitkear", name: "Mitkear" });
 const assetSlug = (value) => value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -307,7 +307,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     for (let tries = 0; tries < 40 && !this.element?.querySelector?.(".oscm-shell"); tries += 1) await new Promise((resolve) => setTimeout(resolve, 50));
     this.skyTimeMs = Number.isFinite(timeMs) ? timeMs : null;
     // The way back from the sky is to Eym's map, so Eym is the body in hand.
-    this.activeBody ??= (await this.#astronomicalModel(HOME_SYSTEM.name, this.skyTimeMs ?? CAMPAIGN_START_MS)).byName.get("Eventide");
+    this.activeBody ??= (await this.#astronomicalModel(HOME_SYSTEM.name, this.skyTimeMs ?? CAMPAIGN_START_MS)).byName.get("Eym");
     await this.#enterSky(latDeg, lonDeg);
     this.bringToFront?.();
   }
@@ -326,7 +326,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       root.classList.remove("is-system-mode", "is-body-mode", "has-geography", "has-operations", "can-look-up");
       root.querySelector('[data-action="back-to-system"]')?.classList.remove("is-hidden");
       root.querySelector('[data-action="back-to-body"]')?.classList.remove("is-hidden");
-      const title = root.querySelector("[data-map-title]"); if (title) title.textContent = `The sky over ${displayNameFor(HOME_SYSTEM.name, "Eventide")}`;
+      const title = root.querySelector("[data-map-title]"); if (title) title.textContent = `The sky over ${displayNameFor(HOME_SYSTEM.name, "Eym")}`;
       const help = root.querySelector("[data-map-help]"); if (help) help.textContent = "Drag to turn · pinch to look closer · tap to name";
       this.#updateSkyReadout(snapshot, sky);
       window.clearInterval(this._skyTicker);
@@ -353,7 +353,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
 
   /** Real day and night on Eym's globe, and the season's snow and sea ice (recomputed once a day). */
   async #refreshBodyEnvironment() {
-    if (this.mode !== "body" || this.activeBody?.name !== "Eventide" || !this._eymField || !this._clusterView?.setEnvironment) return;
+    if (this.mode !== "body" || this.activeBody?.name !== "Eym" || !this._eymField || !this._clusterView?.setEnvironment) return;
     const { t, subsolar } = await this.#sunNow();
     if (this.mode !== "body" || !this._clusterView?.setEnvironment) return;
     const day = Math.floor(t / DAY_MS);
@@ -1101,7 +1101,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       this.mode = "body"; this.activeBody = object;
       // Eym: real day and night and the seasons on the globe, kept current with the clock.
       window.clearInterval(this._bodyTicker); this._bodyTicker = null;
-      if (object.name === "Eventide" && geography?.terrain?.coastlineSource === "vector") {
+      if (object.name === "Eym" && geography?.terrain?.coastlineSource === "vector") {
         this._eymGeography = geography; this._geologyLoading = null; this._drainageLoading = null; this._windLoading = null; this._flowLoading = null;
         this._eymField = environmentField(geography); this._coverDay = null; this._weatherStep = null; this._weatherSnow = null;
         void this.#refreshBodyEnvironment().catch((error) => console.warn(`${MODULE_ID} | Unable to show day and night`, error));
@@ -1109,7 +1109,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
       }
       root.classList.add("is-system-mode", "is-body-mode");
       // Only Eym has people on it to look up: offer the ground view from its surface map.
-      root.classList.toggle("can-look-up", object.name === "Eventide" && Boolean(geography));
+      root.classList.toggle("can-look-up", object.name === "Eym" && Boolean(geography));
       root.classList.toggle("has-geography", Boolean(geography));
       root.classList.toggle("has-operations", Boolean(operations));
       root.querySelector('[data-action="back-to-system"]')?.classList.remove("is-hidden");

@@ -11,7 +11,7 @@ import { REGION_PIXELS_ID, REGION_SHAPES_ID, createMapServer, purgeableRegionFol
 import { buildRegionTile } from "../scripts/eym-region-layer.mjs";
 import { renderRegionTile } from "../scripts/eym-region-paint.mjs";
 
-const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
+const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/mitkear/eym.json", import.meta.url), "utf8"));
 const frames = regionFrames(asset), caren = frames.find((f) => f.id === "caren"), home = regionTileAt(caren, -6.79, 0.412);
 const ENV = { SUPABASE_URL: "https://example.supabase.co/", SUPABASE_SERVICE_ROLE_KEY: "service-key-for-tests" };
 

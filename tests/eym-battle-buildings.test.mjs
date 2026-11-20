@@ -8,7 +8,7 @@ import { battleScenePlan } from "../scripts/eym-battle-scene.mjs";
 import { battleMapSpec } from "../scripts/eym-map-presets.mjs";
 import { fromLocal } from "../scripts/eym-surface.mjs";
 
-const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
+const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/mitkear/eym.json", import.meta.url), "utf8"));
 const at = (n, dx, dy) => { const s = asset.settlements.find((x) => x.properName === n); return fromLocal([s.lat, s.lon], dx, dy); };
 
 test("shapes: an L leaves a back corner as yard and keeps the front whole; cut corners are on the street side; temples are cut all round", () => {

@@ -44,10 +44,10 @@ export function buildRefinedTerrain(coarse, { resolutionDeg = 2 } = {}) {
   for (let latIndex = 0; latIndex < latCount; latIndex += 1) for (let lonIndex = 0; lonIndex < lonCount; lonIndex += 1) {
     const lat = -90 + resolutionDeg / 2 + latIndex * resolutionDeg, lon = -180 + resolutionDeg / 2 + lonIndex * resolutionDeg;
     const anchor = coarseElevationAt(coarse, lat, lon);
-    // Eventide's canonical land is volcanic arcs, banks and microfragments,
+    // Eym's canonical land is volcanic arcs, banks and microfragments,
     // never a hidden polar or continental mass. Compress its broad coarse
     // relief so accepted anchors guide many islands instead of joining them.
-    const archipelago = coarse.body === "Eventide", coastalDetail = anchoredNoise(coarse.seed, lat, lon) * (archipelago ? 2200 : 310);
+    const archipelago = coarse.body === "Eym", coastalDetail = anchoredNoise(coarse.seed, lat, lon) * (archipelago ? 2200 : 310);
     raw.push({ id: raw.length, latIndex, lonIndex, lat, lon, rawElevationM: anchor * (archipelago ? .2 : 1) + coastalDetail - (archipelago ? Math.max(0, Math.abs(lat) - 62) * 24 : 0) });
   }
   const sorted = raw.map((cell) => cell.rawElevationM).sort((a, b) => a - b), targetWater = coarse.realizedWaterFraction;

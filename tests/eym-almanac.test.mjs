@@ -8,13 +8,13 @@ import { displayNameFor } from "../scripts/display-names.mjs";
 import { ALIGNMENT_DAY, GREAT_ALIGNMENT_YEARS, MEETING_LIMIT_DEG, MEETING_MIN_ELONGATION_DEG, WANDERERS, almanacForYear, almanacLines, calendarMs, describeAlmanacEvent, heliocentricLongitudes, skyMeetings, spreadDeg, trueLines, wandererEphemeris, wandererSky, yearSpan } from "../scripts/eym-almanac.mjs";
 
 const rows = parseCsv(readFileSync(new URL("../docs/system-orbital-distances.csv", import.meta.url), "utf8")), eph = wandererEphemeris(rows), HOUR = 3600e3;
-const row = (name) => rows.find((r) => r.system === "Abydos" && r.object === name), [BRUTHI, ESONTH, LILTA, IARN] = WANDERERS, EYM = "Eventide";
+const row = (name) => rows.find((r) => r.system === "Mitkear" && r.object === name), [BRUTHI, ESONTH, LILTA, IARN] = WANDERERS, EYM = "Eym";
 const alignment = (year, hour = 8) => calendarMs(year, ALIGNMENT_DAY.month, ALIGNMENT_DAY.day, hour);
 const allFive = (t) => spreadDeg(Object.values(heliocentricLongitudes(eph, t)));
 const sunRadiusDeg = (t) => Math.asin(696_000 / (Math.hypot(...eph.at(t)[EYM]) * 149_597_870.7)) * 180 / Math.PI;
 
 test("the registry holds the resonant orbits: periods in whole-number ratios, distances by Kepler's third law", () => {
-  assert.deepEqual(WANDERERS.map((n) => displayNameFor("Abydos", n)), ["Bruthi", "Esonth", "Lilta", "Iarn"]);
+  assert.deepEqual(WANDERERS.map((n) => displayNameFor("Mitkear", n)), ["Bruthi", "Esonth", "Lilta", "Iarn"]);
   const period = (n) => Number(row(n).orbital_period_days);
   assert.equal(period(EYM), 350); assert.equal(period(BRUTHI), 700 / 3); assert.equal(period(ESONTH), 1400 / 3); assert.equal(period(LILTA), 350 * 17 / 9); assert.equal(period(IARN), 1700);
   // Bruthi : Eym : Esonth go round 2 : 3 : 4 years; Lilta takes 17/9 of a year and Iarn 34/7.
@@ -90,9 +90,9 @@ test("the almanac finds the true lines from the orbits: every four years, and th
   const kinds = {}; for (let year = 0; year <= 136; year += 1) { const { fromMs, toMs } = yearSpan(year); for (const line of trueLines(eph, fromMs, toMs)) { const p = universalTimeParts(line.timeMs); assert.deepEqual([p.month, p.day], [3, 14], `year ${year}`); assert.equal(p.year, year); kinds[year] = line.kind; } }
   for (let year = 0; year <= 136; year += 1) assert.equal(kinds[year], year % 68 === 0 ? "great" : year % 68 === 34 ? "lesser" : year % 4 === 0 ? "opposition" : undefined, `year ${year}`);
   const great = almanacForYear(rows, 68, { ephemeris: eph })[0]; assert.equal(great.type, "line"); assert.deepEqual(great.date, { year: 68, month: 3, day: 14 });
-  assert.equal(describeAlmanacEvent(great, (n) => displayNameFor("Abydos", n)), "the Great Alignment: Bruthi, Eym, Esonth, Lilta and Iarn in one line with Mitkear");
-  assert.match(describeAlmanacEvent(almanacForYear(rows, 34, { ephemeris: eph })[0], (n) => displayNameFor("Abydos", n)), /^the Lesser Alignment: Bruthi, Eym, Lilta and Iarn in one line with Mitkear, Esonth beyond it$/);
-  assert.match(describeAlmanacEvent(almanacForYear(rows, 52, { ephemeris: eph })[0], (n) => displayNameFor("Abydos", n)), /^the Esonth opposition line: Bruthi, Eym and Esonth in one line with Mitkear$/);
+  assert.equal(describeAlmanacEvent(great, (n) => displayNameFor("Mitkear", n)), "the Great Alignment: Bruthi, Eym, Esonth, Lilta and Iarn in one line with Mitkear");
+  assert.match(describeAlmanacEvent(almanacForYear(rows, 34, { ephemeris: eph })[0], (n) => displayNameFor("Mitkear", n)), /^the Lesser Alignment: Bruthi, Eym, Lilta and Iarn in one line with Mitkear, Esonth beyond it$/);
+  assert.match(describeAlmanacEvent(almanacForYear(rows, 52, { ephemeris: eph })[0], (n) => displayNameFor("Mitkear", n)), /^the Esonth opposition line: Bruthi, Eym and Esonth in one line with Mitkear$/);
 });
 
 test("the almanac lists the year's sky meetings: close together, clear of Mitkear, by rule", () => {
@@ -113,10 +113,10 @@ test("the almanac lists the year's sky meetings: close together, clear of Mitkea
   assert.ok(total >= 20 && total <= 120, `${total} meetings in 33 years`); assert.ok(triples >= 1);
   // Three days after the Great Alignment the three outer wanderers stand together opposite Mitkear.
   const after = almanacForYear(rows, 68, { ephemeris: eph })[1]; assert.deepEqual(after.bodies, [ESONTH, LILTA, IARN]); assert.ok(after.elongationDeg > 170);
-  const lines = almanacLines(almanacForYear(rows, 68, { ephemeris: eph }), (n) => displayNameFor("Abydos", n), monthName);
+  const lines = almanacLines(almanacForYear(rows, 68, { ephemeris: eph }), (n) => displayNameFor("Mitkear", n), monthName);
   assert.match(lines[0], /^14 March: the Great Alignment/); assert.match(lines[1], /^17 March: Esonth, Lilta and Iarn within 0\.8° opposite Mitkear, up all night$/);
   // The same as a search of the whole span at once; and the places are the system model's own.
   const { fromMs } = yearSpan(48), span = skyMeetings(eph, fromMs, fromMs + 2 * DAYS_PER_YEAR * DAY_MS).length; assert.equal(span, [48, 49].reduce((n, y) => n + almanacForYear(rows, y, { ephemeris: eph }).filter((e) => e.type === "meeting").length, 0));
-  const t = alignment(50), model = buildSystemModel(rows, "Abydos", { referenceTimestampMs: t }), p = eph.at(t);
+  const t = alignment(50), model = buildSystemModel(rows, "Mitkear", { referenceTimestampMs: t }), p = eph.at(t);
   for (const [name, v] of Object.entries(p)) { const q = model.byName.get(name).physical; assert.ok(Math.hypot(q.x - v[0], q.y - v[1], q.z - v[2]) < 1e-12, name); }
 });

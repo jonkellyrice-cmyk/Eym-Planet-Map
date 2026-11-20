@@ -42,7 +42,7 @@ export function dataBudget(world, pins = readPins()) {
 export async function worldChecks(world, { current = false, pins = readPins() } = {}) {
   const out = [], rule = (id, text, ok, detail = "", level = "must") => out.push({ id, level, rule: text, ok: Boolean(ok), detail });
   const { asset, tectonics, climate } = world;
-  if (!asset) { rule("asset", "Eventide has a cartography asset", false, "missing"); return out; }
+  if (!asset) { rule("asset", "Eym has a cartography asset", false, "missing"); return out; }
   const summary = summarizeWorld(world), { latCount, lonCount } = asset.grid, n = latCount * lonCount, height = heights(asset), owner = cellContinents(asset), biome = summary.fields.biome;
 
   // The hand-authored exceptions are sound (each says what, where and why).

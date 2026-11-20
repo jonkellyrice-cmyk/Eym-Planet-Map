@@ -1,3 +1,4 @@
+import { seedWord } from "../scripts/seed-words.mjs";
 import assert from "node:assert/strict";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -18,7 +19,7 @@ for (const row of rows) {
   const objectClass = classifySystemObject(row.type);
   if (!naturalClasses.has(objectClass) || !(Number(row.rotation_hours) > 0)) continue;
   const id = slug(`${row.system}:${row.object}`);
-  const stableSeed = row.geography_seed || [row.system, row.object, row.type, row.parent, row.distance_from_parent, row.reference_phase_deg, row.rotation_hours].join("|");
+  const stableSeed = row.geography_seed || [seedWord(row.system), seedWord(row.object), row.type, seedWord(row.parent), row.distance_from_parent, row.reference_phase_deg, row.rotation_hours].join("|");
   const tidallyLocked = row.tidally_locked.toLowerCase().startsWith("yes");
   orientations[id] = {
     ...(tidallyLocked ? {} : { spinPhaseAtEpochDeg: angle(stableSeed, "rotation-epoch-phase-v1") }),

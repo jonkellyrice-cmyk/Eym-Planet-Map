@@ -67,7 +67,7 @@ test("live Foundry artificial-body renderer shares the frozen-atlas superstructu
   // The setting has no artificial superstructures: no profiled keys, and no former or synthetic body resolves to a live identity.
   assert.equal(SUPERSTRUCTURE_KEYS.length, 0);
   assert.deepEqual([...SUPERSTRUCTURE_KEYS], []);
-  for (const [system, body] of [["Abydos", "Eventide"], ["Abydos", "Tribune"], ["Synthetic", "Synthetic Anchorage"]]) assert.equal(liveSuperstructureIdentity({ system, body }), null, `${system}/${body}`);
+  for (const [system, body] of [["Mitkear", "Eym"], ["Mitkear", "Iarn"], ["Synthetic", "Synthetic Anchorage"]]) assert.equal(liveSuperstructureIdentity({ system, body }), null, `${system}/${body}`);
 
   // Synthetic (non-canon) identities shaped like liveSuperstructureIdentity's output (profile + model version + faction family)
   // keep the live silhouette contract under test: same family marker as the frozen atlas, without its zoning strip.

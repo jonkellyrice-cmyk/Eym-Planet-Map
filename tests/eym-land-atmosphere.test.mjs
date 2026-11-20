@@ -10,7 +10,7 @@ import { backgroundWind, blocksBetween, jetLatAt, systemsBetween, weatherAt } fr
 import { WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universal-time.mjs";
 
-const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
+const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/mitkear/eym.json", import.meta.url), "utf8"));
 const field = environmentField(asset), land = landAtmosphere(field), SUMMER = 23.44, YEAR_HOURS = DAYS_PER_YEAR * 24;
 /** A world of 2° cells with land where `isLand(lat, lon)` says, `heightM` high. */
 const world = (isLand, heightM = () => 300) => { const cells = []; for (let lat = -89; lat < 90; lat += 2) for (let lon = -179; lon < 180; lon += 2) { const dry = isLand(lat, lon); cells.push({ lat, lon, ocean: !dry, elevationM: dry ? heightM(lat, lon) : 0 }); } return { grid: { latCount: 90, lonCount: 180 }, resolutionDeg: 2, cells }; };

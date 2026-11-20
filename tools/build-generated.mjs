@@ -38,7 +38,7 @@ if (readClimate()?.sourcesSha256 !== climateSourcesSha256()) { run("tools/genera
 // (Imported only now: it reads the tectonic history and the climate written above.)
 const { eymFingerprintFromRepo } = await import("./eym-world.mjs");
 const csvUrl = new URL("docs/system-orbital-distances.csv", root), csv = readFileSync(csvUrl, "utf8");
-const row = parseCsv(csv).find((r) => r.object === "Eventide"), fingerprint = eymFingerprintFromRepo();
+const row = parseCsv(csv).find((r) => r.object === "Eym"), fingerprint = eymFingerprintFromRepo();
 if (row.geography_input_fingerprint !== fingerprint) {
   writeFileSync(csvUrl, csv.replace(row.geography_input_fingerprint, fingerprint));
   run("tools/generate-planet-geography.mjs", "--accept");
@@ -49,7 +49,7 @@ if (row.geography_input_fingerprint !== fingerprint) {
 // The survey of the mapped continents' coasts (tools/generate-eym-coasts.mjs: shelves, bays, the tide's funnelling)
 // follows the cartography and the plates: made again (about a quarter of a minute) when either changed.
 const { coastSourcesSha256 } = await import("./generate-eym-coasts.mjs");
-const readCoasts = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/abydos/eventide-coasts.json", root), "utf8")); } catch { return null; } };
+const readCoasts = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/mitkear/eym-coasts.json", root), "utf8")); } catch { return null; } };
 if (readCoasts()?.sourcesSha256 !== coastSourcesSha256()) { run("tools/generate-eym-coasts.mjs"); changed = true; }
 // The survey of the magnetic field against its canon (tools/generate-eym-magnetic.mjs: the pole's loop, the coasts'
 // magnetic latitudes, the open sea round the poles) follows the cartography and the field's dials: made again (under a
@@ -60,17 +60,17 @@ if (readMagnetic()?.sourcesSha256 !== magneticSourcesSha256()) { run("tools/gene
 // Eym's drainage (tools/generate-eym-drainage.mjs) follows the cartography: made again (a quarter of a minute) when the
 // cartography or the local detail's surface changed.
 const { drainageSourcesSha256 } = await import("./generate-eym-drainage.mjs");
-const readDrainage = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/abydos/eventide-drainage.json", root), "utf8")); } catch { return null; } };
+const readDrainage = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/mitkear/eym-drainage.json", root), "utf8")); } catch { return null; } };
 if (readDrainage()?.sourcesSha256 !== drainageSourcesSha256()) { run("tools/generate-eym-drainage.mjs"); changed = true; }
 // Eym's wind and wave climate (tools/generate-eym-wind.mjs) follows the weather, the sea and the land: made again
 // (about a minute and a half) when any of them changed.
 const { windSourcesSha256 } = await import("./generate-eym-wind.mjs");
-const readWind = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/abydos/eventide-wind.json", root), "utf8")); } catch { return null; } };
+const readWind = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/mitkear/eym-wind.json", root), "utf8")); } catch { return null; } };
 if (readWind()?.sourcesSha256 !== windSourcesSha256()) { run("tools/generate-eym-wind.mjs"); changed = true; }
 // The rivers' monthly climate (tools/generate-eym-flow.mjs) follows the weather and the land: made again (a few
 // seconds) when either changed.
 const { flowSourcesSha256 } = await import("./generate-eym-flow.mjs");
-const readFlow = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/abydos/eventide-flow.json", root), "utf8")); } catch { return null; } };
+const readFlow = () => { try { return JSON.parse(readFileSync(new URL("data/planet-cartography/mitkear/eym-flow.json", root), "utf8")); } catch { return null; } };
 if (readFlow()?.sourcesSha256 !== flowSourcesSha256()) { run("tools/generate-eym-flow.mjs"); changed = true; }
 // Last, the Region layer's fingerprint (tools/generate-region-fingerprint.mjs): the code and data its stored tiles
 // are made from, all of the above included. Written again whenever either fingerprint moved.

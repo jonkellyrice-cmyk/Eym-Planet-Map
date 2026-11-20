@@ -7,7 +7,7 @@ import { battleMapSpec, atlasMapSpec } from "../scripts/eym-map-presets.mjs";
 import { buildReferenceMap } from "../scripts/eym-reference-map.mjs";
 import { fromLocal, toLocal } from "../scripts/eym-surface.mjs";
 
-const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/abydos/eventide.json", import.meta.url), "utf8"));
+const asset = JSON.parse(readFileSync(new URL("../data/planet-cartography/mitkear/eym.json", import.meta.url), "utf8"));
 const town = (name) => { const s = asset.settlements.find((x) => x.properName === name); return [s.lat, s.lon]; };
 const share = (cover, kinds) => cover.reduce((n, v) => n + (kinds.includes(v) ? 1 : 0), 0) / cover.length;
 

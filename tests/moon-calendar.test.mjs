@@ -52,7 +52,7 @@ test("the double full of 4 July and the double dark of 19 July, year 50, are on 
   assert.deepEqual([summary.counts.crossings, summary.counts.solarEclipses, summary.counts.lunarEclipses], [n("occultation"), n("solar-eclipse"), n("lunar-eclipse")]);
   assert.ok(summary.counts.crossings > 0 && summary.counts.solarEclipses > 0 && summary.counts.lunarEclipses > 0);
   // The names are the display names everywhere; the registry's keys never show.
-  for (const e of all) { assert.ok(e.label && !/White Moon|Red Moon|Eventide/.test(e.label), e.label); assert.ok(e.mansion.name && e.mansion.number >= 1); assert.ok(e.type in EVENT_TYPES); assert.equal(e.label, eventLabel(e)); }
+  for (const e of all) { assert.ok(e.label && !/White Moon|Red Moon/.test(e.label), e.label); assert.ok(e.mansion.name && e.mansion.number >= 1); assert.ok(e.type in EVENT_TYPES); assert.equal(e.label, eventLabel(e)); }
   assert.ok(all.some((e) => e.label === "Chatarm crosses Austarm") && all.some((e) => /solar eclipse by (Austarm|Chatarm)$/.test(e.label)) && all.some((e) => /lunar eclipse of (Austarm|Chatarm)$/.test(e.label)));
 });
 
@@ -78,7 +78,7 @@ test("Austarm keeps the calendar: the same phase on the same date each month, fl
 
 test("what is seen from a place agrees with the ground view of the sky there and then", () => {
   const places = [DREE, { latDeg: 45, lonDeg: -80 }, { latDeg: -30, lonDeg: 150 }, { latDeg: 70, lonDeg: -70 }, { latDeg: -60, lonDeg: 60 }];
-  const ground = (t, place) => groundSky({ model: buildSystemModel(rows, "Abydos", { referenceTimestampMs: t, orientations }), sky, starfield: { stars: [] }, latDeg: place.latDeg, lonDeg: place.lonDeg });
+  const ground = (t, place) => groundSky({ model: buildSystemModel(rows, "Mitkear", { referenceTimestampMs: t, orientations }), sky, starfield: { stars: [] }, latDeg: place.latDeg, lonDeg: place.lonDeg });
   const seenKinds = new Set(); let seen = 0, unseen = 0;
   for (const place of places) for (const e of eventList(calendar, 50, { place })) {
     const v = e.local; assert.equal(typeof v.visible, "boolean"); assert.ok(v.note.length > 0 || PHASES.has(e.type)); assert.deepEqual(localVisibility(calendar, e, place), v);
@@ -153,7 +153,7 @@ test("the pages: the month's grid, the year's blocks and the list, with the disp
   const year = renderMoonCalendar(calendar, { year: 51, month: 1, tab: "year" }); assert.equal((year.match(/class="oscm-moon-block[ "]/g) ?? []).length, 13); assert.match(year, /<b>2<\/b> double fulls/); assert.match(year, /★ \d+<\/b> rare/); assert.match(year, /is-rare/); assert.match(year, /data-action="show-month" data-month="13"/);
   const list = renderMoonCalendar(calendar, { year: 50, month: 1, tab: "events", place: DREE }); assert.match(list, /Chatarm crosses Austarm/); assert.match(list, /The Shallows/); assert.match(list, /From here/); assert.match(list, /not seen: /); assert.ok(!/<td>[^<]*Austarm full/.test(list));
   const phases = renderMoonCalendar(calendar, { year: 50, month: 1, tab: "events", types: ["full"] }); assert.match(phases, /Austarm full/); assert.ok(!/Double full<\/td>/.test(phases)); assert.equal((phases.match(/data-action="filter"/g) ?? []).length, Object.keys(EVENT_TYPES).length);
-  for (const page of [month, holiday, september, year, list, phases]) assert.ok(!/White Moon|Red Moon|Eventide|Abydos/.test(page));
+  for (const page of [month, holiday, september, year, list, phases]) assert.ok(!/White Moon|Red Moon/.test(page));
   assert.match(moonGlyph({ key: "White Moon", illuminated: 1, waxing: true }), /aria-label="Austarm 100%"/); assert.equal(badgeText({ type: "occultation" }), "CHATARM CROSSES AUSTARM");
   // Nothing of the GM's is on it: the window and its pages never ask who is looking.
   for (const file of ["scripts/moon-calendar-app.mjs", "scripts/moon-calendar-view.mjs", "scripts/moon-calendar.mjs", "templates/moon-calendar.hbs"]) assert.ok(!/isGM|oscm-gm-only/.test(read(file)), file);

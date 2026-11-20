@@ -9,9 +9,9 @@ import { REGION_MODEL, buildRegionTile, regionFrames, regionTileAt } from "../sc
 import { DETAILED, MinHeap, buildDrainageParallel, drainageSourcesSha256, landMassFingerprint, landMassesOf } from "../tools/generate-eym-drainage.mjs";
 
 const root = new URL("../", import.meta.url), read = (path) => readFileSync(new URL(path, root), "utf8");
-const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
-attachGeology(asset, JSON.parse(read(`data/planet-cartography/abydos/${asset.geologyFile}`)));
-const drainagePath = `data/planet-cartography/abydos/${drainageFileName("eventide.json")}`;
+const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
+attachGeology(asset, JSON.parse(read(`data/planet-cartography/mitkear/${asset.geologyFile}`)));
+const drainagePath = `data/planet-cartography/mitkear/${drainageFileName("eym.json")}`;
 attachDrainage(asset, JSON.parse(read(drainagePath)));
 const ctx = localContext(asset), lf = landformsOf(ctx);
 

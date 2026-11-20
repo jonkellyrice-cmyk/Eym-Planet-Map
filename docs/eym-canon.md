@@ -11,16 +11,16 @@ Every 68 Eym years all four wanderers and Eym stand in one line with Mitkear: th
 14 March. The last was in year 0, the next is in year 68, then year 136. It is real physics only: no turning nodes,
 no transits, nothing scripted. The sky is drawn from the same orbits.
 
-*The orbits* (`docs/system-orbital-distances.csv`; the registry's keys in brackets). Eccentricities and inclinations
+*The orbits* (`docs/system-orbital-distances.csv`). Eccentricities and inclinations
 are as they were, and no node or apsis precesses:
 
 | Wanderer | Period, Eym days | Years | Distance, AU | Phase at the epoch | Orbits in 68 years |
 |---|---|---|---|---|---|
-| Bruthi (Ramses) | 233⅓ (700/3) | 2/3 | 0.763136 | 112.6743° (was 132°) | 102 |
-| Eym (Eventide) | 350 | 1 | 1 | 190° (unchanged) | 68 |
-| Esonth (Thraximundus) | 466⅔ (1400/3) | 4/3 | 1.211432 | 52.5336° (was 78°) | 51 |
-| Lilta (Kandahar) | 661.111… (350 × 17/9) | 17/9 | 1.528038 | 79.5207° (was 265°) | 36 |
-| Iarn (Tribune) | 1700 | 34/7 | 2.868006 | 70.0205° (was 8°) | 14 |
+| Bruthi | 233⅓ (700/3) | 2/3 | 0.763136 | 112.6743° (was 132°) | 102 |
+| Eym | 350 | 1 | 1 | 190° (unchanged) | 68 |
+| Esonth | 466⅔ (1400/3) | 4/3 | 1.211432 | 52.5336° (was 78°) | 51 |
+| Lilta | 661.111… (350 × 17/9) | 17/9 | 1.528038 | 79.5207° (was 265°) | 36 |
+| Iarn | 1700 | 34/7 | 2.868006 | 70.0205° (was 8°) | 14 |
 
 The distances follow from the old ones by Kepler's third law (a ∝ P^(2/3)), the star's mass unchanged; the fields
 worked out from them (nearest and farthest distance, mean speed) follow. Eym, both its moons and Iarn's moon Enoch
@@ -49,6 +49,22 @@ come within a degree or two and vary a little from cycle to cycle.
   wanderers in Eym's sky: two within 1°, three within 3°, all four within 10°, each at least 20° from Mitkear, in
   three dimensions with the inclinations. A year has between none and a few. The sky's panel shows the year's list.
   The names of the lines are working names; the world's author may rename them.
+
+## The names in the registry, the code and the data (owner, 20 November 2026)
+
+The registry, the code, the data files and their folders call things by the names people use: the star and its
+system **Mitkear**, the world **Eym**, and the wanderers **Bruthi**, **Esonth**, **Lilta** and **Iarn**. Until
+then they carried working names. The two moons keep their registry keys (White Moon, Red Moon) and are shown as
+Austarm and Chatarm.
+
+- *Nothing drawn changed.* Wherever a name feeds a seed (the surveys of the moons and Iarn, the place names of the
+  wanderers' maps, the bodies' turning at the epoch, small variations of their air), the word the seed was first
+  drawn from is used; those words are kept in one place, `scripts/seed-words.mjs`, and shown nowhere. Every data
+  file was made again and compared: Eym's surface, its tiles and every other body's survey are the same.
+- *One thing that did change:* one of the naming roots of the wanderers' own place names was the old working name
+  of Bruthi, so ten place names on the maps of Bruthi, Esonth and Lilta now begin "Bruthi…" (as in Bruthistrand Sea).
+- *History is left as written:* the changelog and the roadmap keep the working names where they record what was
+  done under them.
 
 ## Eym's magnetic field (confirmed by the world's author; recorded 18 November 2026)
 

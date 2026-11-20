@@ -9,9 +9,9 @@ import { OCEAN_FRACTION, TARGET_TOLERANCE, TECTONIC_SEEDS, buildTectonics, tecto
 import { WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 
 const root = new URL("../", import.meta.url), read = (path) => readFileSync(new URL(path, root), "utf8");
-const tect = JSON.parse(read("data/eym/tectonics.json")), asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
+const tect = JSON.parse(read("data/eym/tectonics.json")), asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
 // Eym's geology is its own file beside the asset (scripts/cartography-asset.mjs).
-attachGeology(asset, JSON.parse(read(`data/planet-cartography/abydos/${asset.geologyFile}`)));
+attachGeology(asset, JSON.parse(read(`data/planet-cartography/mitkear/${asset.geologyFile}`)));
 const sha = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const convergent = [...tect.boundaries.trenches, ...tect.boundaries.collisions];
 const nearestKm = (ll, list) => Math.min(...list.map((q) => greatCircleKm(ll, q)));

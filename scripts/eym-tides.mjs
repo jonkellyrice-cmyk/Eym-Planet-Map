@@ -32,7 +32,7 @@ const norm = (v) => { const l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, 
  * The tide-raising bodies at the model's moment: where each stands overhead on Eym (latitude, longitude) and the
  * height of its equilibrium tide (metres, already reduced by the planet's yielding).
  */
-export function tideBodies(model, sky, { planet = "Eventide", moons = ["White Moon", "Red Moon"] } = {}) {
+export function tideBodies(model, sky, { planet = "Eym", moons = ["White Moon", "Red Moon"] } = {}) {
   const home = model.byName.get(planet), body = bodyFrame(sky.celestialPole, sky.sunPathPole, home.rotationState?.primeMeridianAngleDeg ?? 0);
   const p = [home.physical.x, home.physical.y, home.physical.z], radiusKm = EARTH_RADIUS_KM * (Number(home.radiusRe) || 1);
   const over = (v) => { const n = norm(v); return { latDeg: Math.asin(clamp(dot(n, body.z), -1, 1)) / DEG, lonDeg: Math.atan2(dot(n, body.y), dot(n, body.x)) / DEG }; };
@@ -74,7 +74,7 @@ export function springIndex(bodies) {
  * A clock for the tide-raising bodies: their places at any moment, from the registry's orbits (a system model per
  * minute, cached; each costs well under a millisecond).
  */
-export function createTideClock({ rows, orientations, sky, system = "Abydos" }) {
+export function createTideClock({ rows, orientations, sky, system = "Mitkear" }) {
   const cache = new Map();
   return {
     bodiesAt(timeMs) {

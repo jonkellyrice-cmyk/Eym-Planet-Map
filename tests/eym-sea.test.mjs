@@ -10,8 +10,8 @@ import { battleMapSpec } from "../scripts/eym-map-presets.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universal-time.mjs";
 
 const root = new URL("../", import.meta.url), read = (path) => readFileSync(new URL(path, root), "utf8");
-const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
-attachOcean(asset, JSON.parse(read(`data/planet-cartography/abydos/${asset.oceanFile}`)));
+const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
+attachOcean(asset, JSON.parse(read(`data/planet-cartography/mitkear/${asset.oceanFile}`)));
 const field = environmentField(asset), YEAR_MS = DAYS_PER_YEAR * DAY_MS, T0 = NORTHWARD_EQUINOX_MS + 2 * YEAR_MS;
 const port = (p) => asset.settlements.find((s) => s.id === p.id), pouk = port(CROSSING_PORTS.caren), garyk = port(CROSSING_PORTS.garyk);
 /** The most inland place (in the tropics and mid-latitudes). */

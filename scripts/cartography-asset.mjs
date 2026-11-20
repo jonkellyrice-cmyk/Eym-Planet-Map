@@ -10,7 +10,7 @@
 const decodeBase64 = (value) => (typeof Buffer !== "undefined" ? Uint8Array.from(Buffer.from(value, "base64")) : Uint8Array.from(atob(value), (c) => c.charCodeAt(0)));
 const encodeBase64 = (bytes) => { if (typeof Buffer !== "undefined") return Buffer.from(bytes).toString("base64"); let text = ""; for (let i = 0; i < bytes.length; i += 8192) text += String.fromCharCode(...bytes.subarray(i, i + 8192)); return btoa(text); };
 
-/** The geology file's name beside an asset's ("eventide.json" → "eventide-geology.json"). */
+/** The geology file's name beside an asset's ("eym.json" → "eym-geology.json"). */
 export const geologyFileName = (assetPath) => assetPath.replace(/^.*\//, "").replace(/\.json$/, "-geology.json");
 
 /**
@@ -29,7 +29,7 @@ export function packCartography(asset, fileName) {
   return { main, geology: { schemaVersion: 1, system: asset.system, body: asset.body, sourceFingerprint: asset.sourceFingerprint, geology, bedrock }, ocean: oceanDoc };
 }
 
-/** The ocean file's name beside an asset's ("eventide.json" → "eventide-ocean.json"): currents, loaded for the currents overlay. */
+/** The ocean file's name beside an asset's ("eym.json" → "eym-ocean.json"): currents, loaded for the currents overlay. */
 export const oceanFileName = (assetPath) => assetPath.replace(/^.*\//, "").replace(/\.json$/, "-ocean.json");
 
 /** Put an ocean document back into its asset (returns the asset). */
@@ -55,25 +55,25 @@ export function attachGeology(asset, document) {
   return asset;
 }
 
-/** The drainage file's name beside an asset's ("eventide.json" → "eventide-drainage.json"): the valleys the land's water has cut (tools/generate-eym-drainage.mjs), loaded for the local detail, the Region layer and battle maps. */
+/** The drainage file's name beside an asset's ("eym.json" → "eym-drainage.json"): the valleys the land's water has cut (tools/generate-eym-drainage.mjs), loaded for the local detail, the Region layer and battle maps. */
 export const drainageFileName = (assetPath) => assetPath.replace(/^.*\//, "").replace(/\.json$/, "-drainage.json");
 
 /** Put a drainage document into its asset (returns the asset). */
 export function attachDrainage(asset, document) { if (document) asset.drainage = document; return asset; }
 
-/** The wind file's name beside an asset's ("eventide.json" → "eventide-wind.json"): the wind and wave climate of its landforms (tools/generate-eym-wind.mjs). */
+/** The wind file's name beside an asset's ("eym.json" → "eym-wind.json"): the wind and wave climate of its landforms (tools/generate-eym-wind.mjs). */
 export const windFileName = (assetPath) => assetPath.replace(/^.*\//, "").replace(/\.json$/, "-wind.json");
 
 /** Put a wind document into its asset (returns the asset). */
 export function attachWind(asset, document) { if (document) asset.wind = document; return asset; }
 
-/** The rivers' monthly-climate file beside an asset's ("eventide.json" → "eventide-flow.json"): rain, snow and warmth by month (tools/generate-eym-flow.mjs). */
+/** The rivers' monthly-climate file beside an asset's ("eym.json" → "eym-flow.json"): rain, snow and warmth by month (tools/generate-eym-flow.mjs). */
 export const flowFileName = (assetPath) => assetPath.replace(/^.*\//, "").replace(/\.json$/, "-flow.json");
 
 /** Put a monthly-climate document into its asset (returns the asset). */
 export function attachFlow(asset, document) { if (document) asset.flow = document; return asset; }
 
-/** The coasts file beside an asset's ("eventide.json" → "eventide-coasts.json"): the survey of the mapped continents' shelves and bays (tools/generate-eym-coasts.mjs). */
+/** The coasts file beside an asset's ("eym.json" → "eym-coasts.json"): the survey of the mapped continents' shelves and bays (tools/generate-eym-coasts.mjs). */
 export const coastsFileName = (assetPath) => assetPath.replace(/^.*\//, "").replace(/\.json$/, "-coasts.json");
 
 /** Put a coasts document into its asset (returns the asset). */

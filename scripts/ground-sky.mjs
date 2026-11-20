@@ -103,7 +103,7 @@ export function reflectedMagnitude({ radiusKm, albedo, sunDistanceAu, observerDi
  * @param sky     data/stellar/constellations.json
  * @param starfield data/stellar/starfield.json
  */
-export function groundSky({ model, sky, starfield, latDeg, lonDeg, planet = "Eventide", moons = ["White Moon", "Red Moon"] }) {
+export function groundSky({ model, sky, starfield, latDeg, lonDeg, planet = "Eym", moons = ["White Moon", "Red Moon"] }) {
   const home = model.byName.get(planet);
   const body = bodyFrame(sky.celestialPole, sky.sunPathPole, home.rotationState?.primeMeridianAngleDeg ?? 0);
   const observer = observerFrame(body, latDeg, lonDeg);

@@ -11,7 +11,7 @@ const liveHbs = (source) => source.replace(/\{\{!--[\s\S]*?--\}\}/g, "");
 
 test("application opens on the single home system and never builds the cluster view", () => {
   const live = liveJs(app);
-  assert.match(live, /export const HOME_SYSTEM = Object\.freeze\(\{ id: "abydos", name: "Abydos" \}\)/);
+  assert.match(live, /export const HOME_SYSTEM = Object\.freeze\(\{ id: "mitkear", name: "Mitkear" \}\)/);
   assert.match(live, /mode = "system"/);
   assert.match(live, /activeSystem = HOME_SYSTEM/);
   assert.match(live, /new SystemView/);

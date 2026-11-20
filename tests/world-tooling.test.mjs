@@ -114,7 +114,7 @@ test("every generator of Eym's derived data is in the propagation chain (a new s
     assert.ok(checks.includes(`./${file}`) && checks.includes(sha), `${file}: tools/world-checks.mjs checks it is up to date`);
     // 4. The change report reads what it writes.
     const out = /new URL\((?:"([^"]+)"|`([^`]+)`), root\)/.exec(source.slice(source.indexOf("OUT =")));
-    const path = (out[1] ?? out[2]).replace("${DIR}", "data/planet-cartography/abydos");
+    const path = (out[1] ?? out[2]).replace("${DIR}", "data/planet-cartography/mitkear");
     assert.ok(Object.values(WORLD_FILES).includes(path), `${file}: the change report reads ${path}`);
     // 5. Its dials, if it has any, are groups of the one inputs file, fingerprinted with its sources.
     const key = Object.keys(module).find((k) => /_INPUTS$/.test(k));

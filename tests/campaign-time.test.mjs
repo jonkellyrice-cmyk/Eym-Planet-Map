@@ -9,7 +9,7 @@ import { CAMPAIGN_START_MS } from "../scripts/universal-time.mjs";
 
 const DAY_MS = 86_400_000;
 const route = {
-  id: "test-voyage", originId: "abydos", destinationId: "thebes", originName: "Abydos", destinationName: "Thebes",
+  id: "test-voyage", originId: "mitkear", destinationId: "thebes", originName: "Mitkear", destinationName: "Thebes",
   context: "cluster", originCoordinates: { x: 0, y: 0, z: 0 }, destinationCoordinates: { x: 5.29, y: 0, z: 0 },
   distanceLy: 5.29, accelerationG: 200, cruiseBeta: .995,
 };

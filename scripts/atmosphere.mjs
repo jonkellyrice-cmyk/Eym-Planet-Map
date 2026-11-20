@@ -1,3 +1,4 @@
+import { seedWord } from "./seed-words.mjs";
 const ATM_TO_BAR = 1.01325;
 const ATM_TO_PSI = 14.6959488;
 
@@ -27,7 +28,7 @@ function hash32(text) {
 }
 
 function unitFrom(row, salt) {
-  return hash32(`${row.system ?? ""}:${row.object ?? ""}:${row.geography_seed ?? ""}:${salt}`) / 0xffffffff;
+  return hash32(`${seedWord(row.system ?? "")}:${seedWord(row.object ?? "")}:${row.geography_seed ?? ""}:${salt}`) / 0xffffffff;
 }
 
 function normalizeComposition(parts) {

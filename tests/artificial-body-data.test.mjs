@@ -5,7 +5,7 @@ import { parseCsv } from "../scripts/system-data.mjs";
 import { artificialBodyKind, buildArtificialBodyModel, buildArtificialBodyModels } from "../scripts/artificial-body-data.mjs";
 
 const rows = parseCsv(readFileSync(new URL("../docs/system-orbital-distances.csv", import.meta.url), "utf8"));
-// Abydos has no artificial or anomalous bodies. These synthetic rows keep every generic structural
+// Mitkear has no artificial or anomalous bodies. These synthetic rows keep every generic structural
 // family (still supported by the code) under test; they are not canon.
 const syntheticRows = [
   ["Synthetic Station", "major station"],
@@ -18,7 +18,7 @@ const syntheticRows = [
   ["Synthetic Gate", "blinkgate"],
 ].map(([object, type]) => ({ system: "Synthetic", object, type, parent: "Synthetic" }));
 
-test("Abydos has no artificial bodies and approach models cover every generic structural family", () => {
+test("Mitkear has no artificial bodies and approach models cover every generic structural family", () => {
   const models = buildArtificialBodyModels(rows);
   assert.deepEqual(models, []);
   assert.equal(rows.filter((row) => artificialBodyKind(row)).length, 0);

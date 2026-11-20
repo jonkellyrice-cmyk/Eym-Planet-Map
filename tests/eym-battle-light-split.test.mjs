@@ -14,7 +14,7 @@ import { occlusionMask } from "../webapp/render/light.mjs";
 import { parseRequest } from "../webapp/server.mjs";
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
-const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
+const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
 const at = (n, dx, dy) => { const s = asset.settlements.find((x) => x.properName === n); return fromLocal([s.lat, s.lon], dx, dy); };
 const spec = battleMapSpec({ size: "custom", columns: 14, rows: 12, density: "custom", gridPx: 70 });
 const city = buildBattleMap(asset, { center: at("Lyle", 0.2, 0.15), spec }), interiors = buildInteriors(city);

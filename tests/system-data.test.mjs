@@ -19,32 +19,32 @@ const BINARY_FIXTURE_ROWS = [
   binaryRow("Test World", "habitable terrestrial", "Test barycenter", 1.0, 35, { orbital_period_days: "288.755", orbital_eccentricity: "0.0447" }),
 ];
 
-test("canonical registry parses all 9 Abydos objects in one system", () => {
+test("canonical registry parses all 9 Mitkear objects in one system", () => {
   assert.equal(rows.length, 9);
-  assert.deepEqual([...new Set(rows.map((row) => row.system))], ["Abydos"]);
+  assert.deepEqual([...new Set(rows.map((row) => row.system))], ["Mitkear"]);
 });
 
 test("parent-relative moon positions convert canonical semi-major axes and apply the epoch radial solution", () => {
-  const model = buildSystemModel(rows, "Abydos");
-  const tribune = model.byName.get("Tribune");
+  const model = buildSystemModel(rows, "Mitkear");
+  const iarn = model.byName.get("Iarn");
   const enoch = model.byName.get("Enoch");
   assert.ok(Math.abs(enoch.semiMajorAxisAu - 620_000 / AU_KM) < 1e-12);
-  assert.ok(Math.abs(physicalDistanceAu(tribune, enoch) - enoch.orbitalState.radiusAu) < 1e-12);
+  assert.ok(Math.abs(physicalDistanceAu(iarn, enoch) - enoch.orbitalState.radiusAu) < 1e-12);
 });
 
 test("Eym's moons resolve through their planetary parent hierarchy", () => {
-  const model = buildSystemModel(rows, "Abydos");
-  const eventide = model.byName.get("Eventide");
+  const model = buildSystemModel(rows, "Mitkear");
+  const eym = model.byName.get("Eym");
   for (const name of ["White Moon", "Red Moon"]) {
     const moon = model.byName.get(name);
-    assert.equal(moon.parentObject, eventide);
-    assert.ok(Math.abs(physicalDistanceAu(eventide, moon) - moon.orbitalState.radiusAu) < 1e-12);
+    assert.equal(moon.parentObject, eym);
+    assert.ok(Math.abs(physicalDistanceAu(eym, moon) - moon.orbitalState.radiusAu) < 1e-12);
   }
-  assert.equal(eventide.parentObject, model.byName.get("Abydos"));
+  assert.equal(eym.parentObject, model.byName.get("Mitkear"));
 });
 
 test("system models preserve canonical ownership and reject conflicting owners", () => {
-  assert.equal(buildSystemModel(rows, "Abydos").ownerFaction, "Eventide");
+  assert.equal(buildSystemModel(rows, "Mitkear").ownerFaction, "Eym");
   const mandate = BINARY_FIXTURE_ROWS.map((row) => ({ ...row, owner_faction: "Xuanjia Mandate" }));
   assert.equal(buildSystemModel(mandate, "Binary Test").ownerFaction, "Xuanjia Mandate");
   const conflicting = BINARY_FIXTURE_ROWS.map((row, index) => ({ ...row, owner_faction: index ? "Xuanjia Mandate" : "Adanian Conclave" }));
@@ -52,20 +52,20 @@ test("system models preserve canonical ownership and reject conflicting owners",
 });
 
 test("display compression does not alter physical route coordinates", () => {
-  const model = buildSystemModel(rows, "Abydos");
-  const eventide = model.byName.get("Eventide");
+  const model = buildSystemModel(rows, "Mitkear");
+  const eym = model.byName.get("Eym");
   const moon = model.byName.get("Red Moon");
-  const physical = physicalDistanceAu(eventide, moon);
-  const a = displayPosition(eventide, model), b = displayPosition(moon, model);
+  const physical = physicalDistanceAu(eym, moon);
+  const a = displayPosition(eym, model), b = displayPosition(moon, model);
   assert.ok(Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) > physical * 100);
   assert.ok(Math.abs(moon.semiMajorAxisAu - 195_000 / AU_KM) < 1e-12);
   assert.ok(Math.abs(physical - moon.orbitalState.radiusAu) < 1e-12);
 });
 
-test("Abydos is a single-star system", () => {
-  const model = buildSystemModel(rows, "Abydos");
-  assert.deepEqual(model.objects.filter((object) => object.objectClass === "star").map((object) => object.name), ["Abydos"]);
-  assert.equal(model.byName.get("Abydos").parent, "System barycenter");
+test("Mitkear is a single-star system", () => {
+  const model = buildSystemModel(rows, "Mitkear");
+  assert.deepEqual(model.objects.filter((object) => object.objectClass === "star").map((object) => object.name), ["Mitkear"]);
+  assert.equal(model.byName.get("Mitkear").parent, "System barycenter");
 });
 
 test("a binary system preserves two stars around the barycenter (synthetic fixture)", () => {

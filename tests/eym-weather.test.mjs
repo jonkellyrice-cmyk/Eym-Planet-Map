@@ -11,10 +11,10 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf
 const rows = parseCsv(read("docs/system-orbital-distances.csv"));
 const orientations = JSON.parse(read("data/astronomy/epoch-orientations.json")).orientations;
 const sky = JSON.parse(read("data/stellar/constellations.json"));
-const field = environmentField(JSON.parse(read("data/planet-cartography/abydos/eventide.json")));
+const field = environmentField(JSON.parse(read("data/planet-cartography/mitkear/eym.json")));
 const HOUR_MS = DAY_MS / 24;
 const isOcean = (lat, lon) => field.cellAt(lat, lon).ocean;
-const stateAt = (timeMs) => buildWeatherState({ timeMs, subsolar: subsolarPoint(buildSystemModel(rows, "Abydos", { referenceTimestampMs: timeMs, orientations }), sky), field });
+const stateAt = (timeMs) => buildWeatherState({ timeMs, subsolar: subsolarPoint(buildSystemModel(rows, "Mitkear", { referenceTimestampMs: timeMs, orientations }), sky), field });
 
 test("identical inputs give identical weather", () => {
   const a = weatherReport(stateAt(CAMPAIGN_START_MS), 6.9, 0.1), b = weatherReport(stateAt(CAMPAIGN_START_MS), 6.9, 0.1);

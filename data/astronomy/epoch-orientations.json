@@ -4,54 +4,54 @@
   "modelVersion": "kepler-snapshot-v1",
   "note": "Only genuinely unconstrained epoch orientations are generated. Registry periods, tilts, reference orbital phases, and tidal locks remain authoritative.",
   "orientations": {
-    "abydos-ramses": {
+    "mitkear-bruthi": {
       "spinPhaseAtEpochDeg": 358.016386908,
       "axialSeasonPhaseAtEpochDeg": 11.191187035,
       "spinPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + rotation-epoch-phase-v1",
       "axialSeasonPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + axial-season-phase-v1",
       "seedBasis": "ESTABLISHED: geography_seed"
     },
-    "abydos-eventide": {
+    "mitkear-eym": {
       "spinPhaseAtEpochDeg": 197.888869643,
       "axialSeasonPhaseAtEpochDeg": 271.632948797,
       "spinPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + rotation-epoch-phase-v1",
       "axialSeasonPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + axial-season-phase-v1",
       "seedBasis": "ESTABLISHED: geography_seed"
     },
-    "abydos-white-moon": {
+    "mitkear-white-moon": {
       "axialSeasonPhaseAtEpochDeg": 229.867689013,
       "spinPhaseProvenance": "DERIVED: synchronous tidal lock to orbital geometry",
       "axialSeasonPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + axial-season-phase-v1",
       "seedBasis": "DERIVED: immutable canonical identity fingerprint"
     },
-    "abydos-red-moon": {
+    "mitkear-red-moon": {
       "axialSeasonPhaseAtEpochDeg": 55.396212805,
       "spinPhaseProvenance": "DERIVED: synchronous tidal lock to orbital geometry",
       "axialSeasonPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + axial-season-phase-v1",
       "seedBasis": "DERIVED: immutable canonical identity fingerprint"
     },
-    "abydos-thraximundus": {
+    "mitkear-esonth": {
       "spinPhaseAtEpochDeg": 231.143557085,
       "axialSeasonPhaseAtEpochDeg": 3.072074298,
       "spinPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + rotation-epoch-phase-v1",
       "axialSeasonPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + axial-season-phase-v1",
       "seedBasis": "ESTABLISHED: geography_seed"
     },
-    "abydos-kandahar": {
+    "mitkear-lilta": {
       "spinPhaseAtEpochDeg": 354.322064761,
       "axialSeasonPhaseAtEpochDeg": 34.413292017,
       "spinPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + rotation-epoch-phase-v1",
       "axialSeasonPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + axial-season-phase-v1",
       "seedBasis": "ESTABLISHED: geography_seed"
     },
-    "abydos-tribune": {
+    "mitkear-iarn": {
       "spinPhaseAtEpochDeg": 275.313325636,
       "axialSeasonPhaseAtEpochDeg": 78.383050086,
       "spinPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + rotation-epoch-phase-v1",
       "axialSeasonPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + axial-season-phase-v1",
       "seedBasis": "DERIVED: immutable canonical identity fingerprint"
     },
-    "abydos-enoch": {
+    "mitkear-enoch": {
       "axialSeasonPhaseAtEpochDeg": 345.290174,
       "spinPhaseProvenance": "DERIVED: synchronous tidal lock to orbital geometry",
       "axialSeasonPhaseProvenance": "DETERMINISTIC WORKING CANON: stable body seed + axial-season-phase-v1",

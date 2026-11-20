@@ -12,7 +12,7 @@ const orientations = JSON.parse(readFileSync(new URL("../data/astronomy/epoch-or
 const sky = JSON.parse(readFileSync(new URL("../data/stellar/constellations.json", import.meta.url), "utf8"));
 const starfield = JSON.parse(readFileSync(new URL("../data/stellar/starfield.json", import.meta.url), "utf8"));
 const HOUR = DAY_MS / 24;
-const snap = (t, latDeg, lonDeg) => groundSky({ model: buildSystemModel(rows, "Abydos", { referenceTimestampMs: t, orientations }), sky, starfield, latDeg, lonDeg });
+const snap = (t, latDeg, lonDeg) => groundSky({ model: buildSystemModel(rows, "Mitkear", { referenceTimestampMs: t, orientations }), sky, starfield, latDeg, lonDeg });
 const near = (a, b, tol) => Math.abs(a - b) <= tol;
 
 test("observer frames are orthonormal and the pole is overhead at the north pole", () => {
@@ -75,14 +75,14 @@ test("like Earth's Moon, the White Moon is sometimes visible in daylight", () =>
 });
 
 test("all four wandering stars appear in the night sky within their slowest return", () => {
-  // Thraximundus orbits just outside Eym (463-day year), so Eym laps it only every 1/(1/350 − 1/463) ≈ 1,430
+  // Esonth orbits just outside Eym (463-day year), so Eym laps it only every 1/(1/350 − 1/463) ≈ 1,430
   // days: it spends long stretches behind the Sun, like Mars does from Earth (every 2.1 years).
   const seen = new Set();
   for (let day = 0; day < 1450 && seen.size < 4; day += 5) for (const h of [0, 4, 20]) {
     const s = snap(UNION_EPOCH_MS + (day * 24 + h) * HOUR, 20, 0);
     if (s.sun.altDeg < -12) for (const p of s.planets) if (p.visible) seen.add(p.name);
   }
-  assert.deepEqual([...seen].sort(), ["Kandahar", "Ramses", "Thraximundus", "Tribune"]);
+  assert.deepEqual([...seen].sort(), ["Bruthi", "Esonth", "Iarn", "Lilta"]);
 });
 
 test("eclipses: a totally eclipsed moon goes dark and totality reveals stars", () => {
@@ -91,15 +91,15 @@ test("eclipses: a totally eclipsed moon goes dark and totality reveals stars", (
   const lunar = events.find((e) => e.type === "lunar-eclipse" && e.kind === "total" && e.moon === "White Moon");
   const solar = events.find((e) => e.type === "solar-eclipse" && e.kind === "total" && e.moon === "White Moon");
   // Stand where the moon is overhead for the lunar eclipse.
-  const model = buildSystemModel(rows, "Abydos", { referenceTimestampMs: lunar.timeMs, orientations });
+  const model = buildSystemModel(rows, "Mitkear", { referenceTimestampMs: lunar.timeMs, orientations });
   const probe = groundSky({ model, sky, starfield, latDeg: 0, lonDeg: 0 });
   const moonDir = probe.moons[0].dir, b = probe.body;
   const lat = Math.asin(dot(moonDir, b.z)) * 180 / Math.PI, lon = Math.atan2(dot(moonDir, b.y), dot(moonDir, b.x)) * 180 / Math.PI;
   const eclipsed = groundSky({ model, sky, starfield, latDeg: lat, lonDeg: lon }).moons[0];
   assert.ok(eclipsed.umbralFraction > 0.95 && eclipsed.magnitude > -8, `umbra ${eclipsed.umbralFraction}, magnitude ${eclipsed.magnitude}`);
   // Stand where the moon's shadow axis meets the surface for the solar eclipse.
-  const m2 = buildSystemModel(rows, "Abydos", { referenceTimestampMs: solar.timeMs, orientations });
-  const E = ["x", "y", "z"].map((k) => m2.byName.get("Eventide").physical[k]), M = ["x", "y", "z"].map((k) => m2.byName.get("White Moon").physical[k]);
+  const m2 = buildSystemModel(rows, "Mitkear", { referenceTimestampMs: solar.timeMs, orientations });
+  const E = ["x", "y", "z"].map((k) => m2.byName.get("Eym").physical[k]), M = ["x", "y", "z"].map((k) => m2.byName.get("White Moon").physical[k]);
   const u = M.map((v) => v / Math.hypot(...M)), R = 6371 / 149597870.7, tc = dot(E, u);
   const miss = Math.hypot(...u.map((v, i) => v * tc - E[i])), t = tc - Math.sqrt(Math.max(0, R * R - miss * miss));
   const n = u.map((v, i) => v * t - E[i]), nl = Math.hypot(...n), b2 = groundSky({ model: m2, sky, starfield, latDeg: 0, lonDeg: 0 }).body;

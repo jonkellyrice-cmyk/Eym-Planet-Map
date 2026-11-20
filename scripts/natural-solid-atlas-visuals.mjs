@@ -1,3 +1,4 @@
+import { seedWord } from "./seed-words.mjs";
 const xml = (value) => String(value ?? "")
   .replaceAll("&", "&amp;")
   .replaceAll("<", "&lt;")
@@ -38,7 +39,7 @@ function sphericalGrid(x, y, width, height) {
 
 function broadSurface(asset, model, frame) {
   const { x, y, width, height } = frame;
-  const seed = asset.permanentOperationalSeed ?? `${asset.system}/${asset.body}`;
+  const seed = asset.permanentOperationalSeed ?? `${seedWord(asset.system)}/${seedWord(asset.body)}`;
   const surface = model?.surfaceCharacter ?? asset.surfaceSurvey?.profile ?? {};
   const colors = paletteFor(model);
   const shapes = [];

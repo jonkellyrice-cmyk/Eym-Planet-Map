@@ -14,7 +14,7 @@ import { pathToFileURL } from "node:url";
 import { antipode, auroraNeverBelowDeg, driftKmPerYear, EYM_MAGNETIC_MODEL, fieldAt, greatCircleKm, MAGNETIC, poleOnLoop } from "../scripts/eym-magnetic.mjs";
 import { inputsFingerprint } from "../scripts/eym-world-inputs.mjs";
 
-const root = new URL("../", import.meta.url), ASSET = "data/planet-cartography/abydos/eventide.json", OUT = new URL("data/eym/magnetic.json", root);
+const root = new URL("../", import.meta.url), ASSET = "data/planet-cartography/mitkear/eym.json", OUT = new URL("data/eym/magnetic.json", root);
 /** What the survey is made from: this tool, the field's rules and the cartography (and its dials, below). */
 export const MAGNETIC_SOURCES = ["tools/generate-eym-magnetic.mjs", "scripts/eym-magnetic.mjs", ASSET];
 /** The groups of dials (scripts/eym-world-inputs.mjs) the survey follows. */

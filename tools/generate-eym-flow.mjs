@@ -1,5 +1,5 @@
 // Fits the monthly climate Eym's rivers run on (Stage 4 of the physical history and climate programme: rivers
-// through the year) and writes data/planet-cartography/abydos/eventide-flow.json. Four years of the weather
+// through the year) and writes data/planet-cartography/mitkear/eym-flow.json. Four years of the weather
 // (scripts/eym-weather.mjs: the same rain belt, storms, snow and seasons as everywhere else) are sampled every
 // 5 hours over every land cell of Caren, Garyk and their islands, and kept month by month: the rain (mm), how much
 // of it fell as snow, and the mean temperature at the cell's height. scripts/eym-river-flow.mjs turns these into
@@ -18,10 +18,10 @@ import { approximateDeclinationDeg, environmentField, yearFraction } from "../sc
 import { attachOcean } from "../scripts/cartography-asset.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universal-time.mjs";
 
-const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartography/abydos/eventide-flow.json", root);
+const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartography/mitkear/eym-flow.json", root);
 export const FLOW_MODEL = "eym-flow-v1";
 /** What the monthly climate is made from: this tool, the weather and seasons, and the data they read. */
-export const FLOW_SOURCES = ["tools/generate-eym-flow.mjs", "scripts/eym-weather.mjs", "scripts/eym-land-atmosphere.mjs", "scripts/eym-seasons.mjs", "data/planet-cartography/abydos/eventide.json", "data/planet-cartography/abydos/eventide-ocean.json", "data/eym/climate.json"];
+export const FLOW_SOURCES = ["tools/generate-eym-flow.mjs", "scripts/eym-weather.mjs", "scripts/eym-land-atmosphere.mjs", "scripts/eym-seasons.mjs", "data/planet-cartography/mitkear/eym.json", "data/planet-cartography/mitkear/eym-ocean.json", "data/eym/climate.json"];
 /** The dials it follows (scripts/eym-world-inputs.mjs): the weather's circulation. */
 export const FLOW_INPUTS = ["weather"];
 export const flowSourcesSha256 = () => { const h = createHash("sha256"); for (const p of FLOW_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...FLOW_INPUTS)); return h.digest("hex"); };
@@ -72,9 +72,9 @@ export function buildFlow(asset) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const read = (p) => JSON.parse(readFileSync(new URL(p, root), "utf8"));
-  const asset = read("data/planet-cartography/abydos/eventide.json"); attachOcean(asset, read("data/planet-cartography/abydos/eventide-ocean.json"));
+  const asset = read("data/planet-cartography/mitkear/eym.json"); attachOcean(asset, read("data/planet-cartography/mitkear/eym-ocean.json"));
   const t0 = Date.now(), data = buildFlow(asset), text = `${JSON.stringify(data)}\n`;
-  if (process.argv.includes("--check")) { const same = readFileSync(OUT, "utf8") === text; console.log(same ? "eventide-flow.json is up to date" : "eventide-flow.json differs"); process.exit(same ? 0 : 1); }
+  if (process.argv.includes("--check")) { const same = readFileSync(OUT, "utf8") === text; console.log(same ? "eym-flow.json is up to date" : "eym-flow.json differs"); process.exit(same ? 0 : 1); }
   writeFileSync(OUT, text);
-  console.log(`eventide-flow.json: ${data.cells.length} land cells, ${data.samples} samples, ${text.length} bytes, ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+  console.log(`eym-flow.json: ${data.cells.length} land cells, ${data.samples} samples, ${text.length} bytes, ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 }

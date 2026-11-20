@@ -1,5 +1,5 @@
 {
-  "shapes": "fb62423788df1282f50f43756c284f8f1f714c5382eee05714b2edb889d1bea6",
+  "shapes": "fe7a795975c7802e1e795843cb66d0f3b788900f503082084e30d6c916608303",
   "paint": "2d71b3a902992d9c0135c24c043286623d0ead09420f7495b38b7ae813704558",
   "shapesFiles": [
     "scripts/astronomy.mjs",
@@ -26,14 +26,15 @@
     "scripts/ground-sky.mjs",
     "scripts/planet-geography.mjs",
     "scripts/scholars-model.mjs",
+    "scripts/seed-words.mjs",
     "scripts/sky-frame.mjs",
     "scripts/system-data.mjs",
     "scripts/universal-time.mjs",
-    "data/planet-cartography/abydos/eventide-drainage.json",
-    "data/planet-cartography/abydos/eventide-flow.json",
-    "data/planet-cartography/abydos/eventide-geology.json",
-    "data/planet-cartography/abydos/eventide-wind.json",
-    "data/planet-cartography/abydos/eventide.json"
+    "data/planet-cartography/mitkear/eym-drainage.json",
+    "data/planet-cartography/mitkear/eym-flow.json",
+    "data/planet-cartography/mitkear/eym-geology.json",
+    "data/planet-cartography/mitkear/eym-wind.json",
+    "data/planet-cartography/mitkear/eym.json"
   ],
   "paintFiles": [
     "scripts/eym-cover.mjs",

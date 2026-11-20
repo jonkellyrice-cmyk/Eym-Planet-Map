@@ -1,3 +1,4 @@
+import { seedWord } from "./seed-words.mjs";
 export const BODY_OPERATIONS_SCHEMA_VERSION = 1;
 export const BODY_OPERATIONS_MODEL_VERSION = "orphaned-sun-body-operations-v1";
 export const BODY_OPERATIONS_STATUS = "accepted-generated-canon";
@@ -34,7 +35,7 @@ export function deriveBodyOperationTargets(rows, cartographyManifest) {
 }
 
 export function operationSeed(system, body, canonicalType) {
-  return stableHex(`${system}\u0000${body}\u0000${canonicalType}\u0000${BODY_OPERATIONS_MODEL_VERSION}`, 16);
+  return stableHex(`${seedWord(system)}\u0000${seedWord(body)}\u0000${canonicalType}\u0000${BODY_OPERATIONS_MODEL_VERSION}`, 16);
 }
 export function canonicalSourceFingerprint(system, body, canonicalType) {
   return stableHex(`registry-v1\u0000${system}\u0000${body}\u0000${canonicalType}`, 20);

@@ -205,20 +205,20 @@ export async function regionTilePicture(asset, frames, store, frameId, tx, ty, k
 
 /** The request handler: (req, res), for a Node server or a Vercel function. */
 export function createMapHandler({ asset, cacheDir = process.env.CACHE_DIR ?? (process.env.VERCEL ? "/tmp/eym-map-cache" : join(HERE, "cache")), corsOrigins = process.env.CORS_ORIGINS ?? "*", store = regionStore(), purge = process.env.EYM_REGION_PURGE === "on" } = {}) {
-  const dataDir = join(HERE, "..", "data", "planet-cartography", "abydos");
-  const data = asset ?? JSON.parse(readFileSync(join(dataDir, "eventide.json"), "utf8"));
+  const dataDir = join(HERE, "..", "data", "planet-cartography", "mitkear");
+  const data = asset ?? JSON.parse(readFileSync(join(dataDir, "eym.json"), "utf8"));
   // Eym's geology lives in its own file beside the asset (scripts/cartography-asset.mjs): battle maps need its rock.
   if (data.geologyFile && !data.geology && existsSync(join(dataDir, data.geologyFile))) attachGeology(data, JSON.parse(readFileSync(join(dataDir, data.geologyFile), "utf8")));
   // And its drainage (tools/generate-eym-drainage.mjs): the valleys of the Region layer, the local detail and battle maps.
-  const drainageFile = join(dataDir, drainageFileName("eventide.json"));
+  const drainageFile = join(dataDir, drainageFileName("eym.json"));
   if (!data.drainage && existsSync(drainageFile)) attachDrainage(data, JSON.parse(readFileSync(drainageFile, "utf8")));
   // And its wind climate (tools/generate-eym-wind.mjs): the waves on its coasts, its dunes and loess.
-  const windFile = join(dataDir, windFileName("eventide.json"));
+  const windFile = join(dataDir, windFileName("eym.json"));
   if (!data.wind && existsSync(windFile)) attachWind(data, JSON.parse(readFileSync(windFile, "utf8")));
   // And its rivers' monthly climate (tools/generate-eym-flow.mjs): the widths of their beds.
-  const coastsFile = join(dataDir, coastsFileName("eventide.json"));
+  const coastsFile = join(dataDir, coastsFileName("eym.json"));
   if (!data.coasts && existsSync(coastsFile)) attachCoasts(data, JSON.parse(readFileSync(coastsFile, "utf8")));
-  const flowFile = join(dataDir, flowFileName("eventide.json"));
+  const flowFile = join(dataDir, flowFileName("eym.json"));
   if (!data.flow && existsSync(flowFile)) attachFlow(data, JSON.parse(readFileSync(flowFile, "utf8")));
   mkdirSync(cacheDir, { recursive: true });
   const allowed = corsOrigins === "*" ? null : new Set(String(corsOrigins).split(",").map((s) => s.trim()).filter(Boolean));

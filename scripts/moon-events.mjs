@@ -24,7 +24,7 @@ const vec = (p) => [p.x, p.y, p.z];
 const wrap180 = (deg) => ((deg + 540) % 360) - 180;
 
 /** Positions (AU, system frame) of the star, the planet and its moons at any time. */
-export function createEphemeris(rows, { system = "Abydos", planet = "Eventide", moons = ["White Moon", "Red Moon"] } = {}) {
+export function createEphemeris(rows, { system = "Mitkear", planet = "Eym", moons = ["White Moon", "Red Moon"] } = {}) {
   const model = buildSystemModel(rows, system);
   const planetObject = model.byName.get(planet);
   const moonObjects = moons.map((name) => model.byName.get(name));

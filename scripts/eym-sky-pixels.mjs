@@ -41,7 +41,7 @@ export const SKY_PALETTE = Object.freeze({
   faint: [hex("#c9d2e8"), hex("#aab4cc"), hex("#8f9ab6"), hex("#7b86a4")], // faint stars, the background dust
   band: hex("#b4bedf"), bandCore: hex("#e6dcc4"),
   line: hex("#a88a4e"), lineBright: hex("#f2cf6a"),
-  wanderers: { Thraximundus: hex("#d9ecff"), Tribune: hex("#f3e3c2"), Kandahar: hex("#f0a36a"), Ramses: hex("#ffe7a3") },
+  wanderers: { Esonth: hex("#d9ecff"), Iarn: hex("#f3e3c2"), Lilta: hex("#f0a36a"), Bruthi: hex("#ffe7a3") },
   moons: { "White Moon": { lit: [hex("#b4b9c3"), hex("#d6d9df"), hex("#f4f1e8")], dark: hex("#262a33"), eclipse: hex("#7a2f1a") }, "Red Moon": { lit: [hex("#7e3626"), hex("#ab4f37"), hex("#d9673f")], dark: hex("#2a1a17"), eclipse: hex("#5c1f12") } },
   sun: { disc: hex("#fff7dc"), ray: hex("#f2c14e"), glow: hex("#ffe9a8") },
   veil: { day: hex("#c4ccd4"), night: hex("#1b2229") },

@@ -1,5 +1,7 @@
 # Roadmap
 
+*A note on names (20 November 2026).* The registry, the code and the data now call the star and its system Mitkear, the world Eym, and the wanderers Bruthi, Esonth, Lilta and Iarn. This roadmap is left as written: where it says Abydos, Eventide, Ramses, Thraximundus, Kandahar or Tribune, read Mitkear, Eym, Bruthi, Esonth, Lilta and Iarn, and read file paths such as `data/planet-cartography/abydos/eventide.json` as `data/planet-cartography/mitkear/eym.json`.
+
 This roadmap was carried over from the Lancer GM Kit and Lancer cluster map, and most of it still applies to Eym. The table gives each item's status as recorded there, then where it stands in this repository now. The weather design below it was agreed on 3 September 2026.
 
 ## Where we are and what is left (17 November 2026, version 0.16.4)

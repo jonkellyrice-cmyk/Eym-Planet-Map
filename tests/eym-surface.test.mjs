@@ -11,7 +11,7 @@ const read = (path) => readFileSync(new URL(path, root), "utf8");
 const traced = JSON.parse(read("data/eym/traced-continents.json"));
 const tectonics = JSON.parse(read("data/eym/tectonics.json"));
 const { surface, sampler } = buildEymSurface(traced, EYM_LAYOUT, tectonics);
-const asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
+const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
 const CAREN_KM2 = 590_000 * 2.589988110336;
 const continent = (id) => surface.continents.find((item) => item.id === id);
 const mainland = (id) => surface.coasts.find((coast) => coast.id.startsWith(`${id}-mainland`)).points;
@@ -79,7 +79,7 @@ test("the colder continents are colder: taiga, tundra or ice, not rainforest", (
 });
 
 test("Eym's registry row records the surface inputs it was built from", () => {
-  const row = parseCsv(read("docs/system-orbital-distances.csv")).find((item) => item.object === "Eventide");
+  const row = parseCsv(read("docs/system-orbital-distances.csv")).find((item) => item.object === "Eym");
   assert.equal(row.geography_model_version, "eym-surface-v1");
   assert.equal(row.geography_input_fingerprint, eymFingerprintFromRepo());
   assert.ok(Math.abs(Number(row.water_pct) / 100 - asset.terrain.realizedWaterFraction) < 0.001);

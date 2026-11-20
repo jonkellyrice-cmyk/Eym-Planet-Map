@@ -86,9 +86,9 @@ test("one period returns to the same phase and half a circular period is opposit
 });
 
 test("moon state remains parent-relative while its planet advances", () => {
-  const epoch = buildSystemModel(rows, "Abydos", options(UNION_EPOCH_MS));
-  const later = buildSystemModel(rows, "Abydos", options(UNION_EPOCH_MS + 100 * DAY_MS));
-  const moonName = rows.find((row) => row.system === "Abydos" && row.type.toLowerCase().includes("moon"))?.object;
+  const epoch = buildSystemModel(rows, "Mitkear", options(UNION_EPOCH_MS));
+  const later = buildSystemModel(rows, "Mitkear", options(UNION_EPOCH_MS + 100 * DAY_MS));
+  const moonName = rows.find((row) => row.system === "Mitkear" && row.type.toLowerCase().includes("moon"))?.object;
   const moon0 = epoch.byName.get(moonName), moon1 = later.byName.get(moonName);
   assert.ok(moon0.parentObject && moon1.parentObject);
   const local0 = Math.hypot(moon0.physical.x - moon0.parentObject.physical.x, moon0.physical.y - moon0.parentObject.physical.y, moon0.physical.z - moon0.parentObject.physical.z);
@@ -112,7 +112,7 @@ test("free and tidally locked rotations are analytical", () => {
 
 test("opening a natural body can consume its coherent system-snapshot rotation", () => {
   const timestamp = UNION_EPOCH_MS + 42 * DAY_MS;
-  const system = buildSystemModel(rows, "Abydos", options(timestamp));
+  const system = buildSystemModel(rows, "Mitkear", options(timestamp));
   const body = system.objects.find((object) => object.selectable && naturalBodyKind(object));
   const model = buildNaturalBodyModel(body);
   assert.equal(model.astronomy.referenceTimestampMs, timestamp);
@@ -138,12 +138,12 @@ test("binary stellar components remain opposite around their barycenter (synthet
 test("snapshot cache reuses exact requests and bounds retained history", () => {
   const cache = new AstronomySnapshotCache(2);
   let calls = 0;
-  const first = cache.getOrCreate("Abydos", 10, () => ({ calls: ++calls }));
-  assert.strictEqual(cache.getOrCreate("Abydos", 10, () => ({ calls: ++calls })), first);
-  cache.getOrCreate("Abydos", 20, () => ({ calls: ++calls }));
+  const first = cache.getOrCreate("Mitkear", 10, () => ({ calls: ++calls }));
+  assert.strictEqual(cache.getOrCreate("Mitkear", 10, () => ({ calls: ++calls })), first);
+  cache.getOrCreate("Mitkear", 20, () => ({ calls: ++calls }));
   cache.getOrCreate("Other", 30, () => ({ calls: ++calls }));
   assert.equal(cache.entries.size, 2);
-  assert.equal(cache.get("Abydos", 10), null);
+  assert.equal(cache.get("Mitkear", 10), null);
 });
 
 test("astronomy remains snapshot-only with no heartbeat or animation loop", async () => {

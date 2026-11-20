@@ -24,7 +24,7 @@ const assetFor = (system, body) => {
 
 // The setting has no artificial superstructures, but the identity contract and renderer remain. These synthetic
 // (non-canon) rows and identities have the same shape as the entries data/superstructure-identities.json carries.
-const syntheticRow = (object, type, extra) => ({ system: "Synthetic", object, type, parent: "Synthetic", owner_faction: "Eventide", ...extra });
+const syntheticRow = (object, type, extra) => ({ system: "Synthetic", object, type, parent: "Synthetic", owner_faction: "Eym", ...extra });
 const SYNTHETIC_ROWS = {
   anchorage: syntheticRow("Synthetic Anchorage", "major station", { structure_class: "orbital anchorage / port", dimensions_estimate: "~10-15 km principal span", population_crew_scale: "~10,000-30,000 permanent/transient", primary_function: "civilian docking, logistics, customs, local traffic control", strategic_role: "principal orbital interface", visual_archetype: "compact docking lattice / anchorage", visual_palette: "weathered metal / pale neutral / blue-green accents" }),
   watch: syntheticRow("Synthetic Watch Array", "installation array", { structure_class: "distributed watch/sensor-defense array", dimensions_estimate: "individual nodes ~1-3 km; network spans millions of km", population_crew_scale: "~1,000-10,000 distributed", primary_function: "sensor coverage, navigation warning, border watch, likely defensive support", strategic_role: "monitors approaches to a synthetic anomaly", visual_archetype: "sparse chain of watch stations", visual_palette: "weathered metal / pale neutral / blue-green accents" }),
@@ -102,9 +102,9 @@ test("distributed superstructures remain networks rather than generic single sta
 });
 
 test("natural bodies remain outside the superstructure rendering and packet contract", () => {
-  const row = rowFor("Abydos", "Red Moon");
+  const row = rowFor("Mitkear", "Red Moon");
   assert.ok(row);
-  const { item, sourceText, asset } = assetFor("Abydos", "Red Moon");
+  const { item, sourceText, asset } = assetFor("Mitkear", "Red Moon");
   const snapshot = snapshotOperationalRich(asset, buildNaturalBodyModel(row), item.path, sourceText);
   assert.doesNotMatch(snapshot.referenceSvg, /data-superstructure=/);
   assert.doesNotMatch(snapshot.informationPacket, /Superstructure generation contract/);
