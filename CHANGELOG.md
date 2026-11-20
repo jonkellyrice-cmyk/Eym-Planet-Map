@@ -1,6 +1,22 @@
 # Changelog
 
-## Unreleased
+## 0.31.0 (2026-11-20)
+
+The moons' calendar: a view of its own beside the map and the ground view of the sky, open to every player. No new astronomy: it lays out what `scripts/moon-events.mjs` already finds.
+
+- A new window (the moon button in the scene controls; *The moons' calendar* beside *Look up from here* and in the sky's panel; `api.openMoonCalendar()`), in the sky viewer's colours.
+- Month: a grid of the month's 28 nights (Year's End is its own block of 14), each with both moons' faces (Austarm white, Chatarm red) and the share of each that is lit, the exact full, new and quarter moments, and badges for the day's events: DOUBLE FULL, DOUBLE DARK, CHATARM CROSSES AUSTARM, solar and lunar eclipses by moon and kind, great-tide and slack-tide days, and the wanderers' alignments.
+- The header says how Austarm keeps the calendar, from the model: its phase on a given date is the same every month to within a day (it wanders 7° to 9° either way through a year) and flips by half a cycle each year. Year 50 is a dark-moon year (Austarm full about the 4th, dark about the 18th); year 51 a full-moon year.
+- Year: the twelve months and Year's End as blocks, the days that hold events coloured, the rare ones ringed, with the year's counts (in year 50: one double full, one double dark, seven crossings, six solar and eight lunar eclipses).
+- Events: the year's list with time, event and lunar mansion, filtered by kind.
+- Seen from a place: each event says whether it is seen from there, judged with the ground view's own snapshot of the sky. A double full needs both moons up in the dark on that night; a lunar eclipse the moon up while it is in the shadow; a solar eclipse or a crossing of Chatarm over Austarm needs the place to be inside the track (and says total, annular or partial as seen there). What is seen is bright, the rest greyed.
+- Rare nights are starred: a double full with a lunar eclipse or a crossing, a double dark with a solar eclipse, a crossing seen from the place during one, and the nights of the Great and Lesser Alignments. Year 50 has none; 19 February of year 51 has a double full with both moons totally eclipsed and a crossing.
+- A great-tide day is one on which Mitkear's and both moons' pulls come to 95% of the most they can give together; a slack-tide day one on which they never reach 25% (`GREAT_TIDE_SHARE`, `SLACK_TIDE_SHARE`; some 25 and 20 days a year).
+- Clicking a night or an event opens the ground view of the sky at that moment and place. The campaign clock is not moved: the sky's panel names the moment shown and has a button back to the clock.
+- Nothing of the GM's is on the calendar. The party's place is not known to the module, so the place is the one last looked up from, or one typed or chosen from Eym's named settlements.
+- Tests (`tests/moon-calendar.test.mjs`, seven): the grid holds exactly the events `moon-events.mjs` finds for year 50, each on its day; the double full of 4 July and the double dark of 19 July; Austarm's phase 28 days on is the same to within 5° and flips each year; what is seen from five places agrees with the ground view's snapshot at the moment given; the rare nights; the tide days; the pages. No existing test is changed.
+
+Also in this release:
 
 Caren is the western shore of the El Niño-like oscillation's basin (owner, 20 November 2026). The lands that shut the basin in now share in the side they stand on, for 15% of its width beyond each end (`ENSO_SHORE` in `scripts/eym-river-flow.mjs`); before, a river mouth just west of the basin's edge had no share, so only Caren's east coast felt it. All of Caren now has dry years when the basin warms and wet years when it cools: yearly wetness from 0.60 to about 1.4 of normal on every coast (the west coast and the middle were 0.85 to 1.15), with some eighteen dry and twenty wet years in a century. Garyk is unchanged (0.85 to 1.15). Only rivers' stages through the years change (how full, fordable or in flood a river is on a given date); the climate, the vegetation and every stored tile are as they were. A new test holds it; no existing test is changed.
 

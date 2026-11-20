@@ -1,4 +1,5 @@
 import { ClusterMapApplication, MODULE_ID } from "./cluster-map-app.mjs";
+import { MoonCalendarApplication } from "./moon-calendar-app.mjs";
 import { addMapSceneControl } from "./scene-control.mjs";
 import {
   DEFAULT_UNIVERSAL_TIME_STATE,
@@ -35,6 +36,20 @@ export function openClusterMap() {
   app = new ClusterMapApplication();
   app.render({ force: true });
   return app;
+}
+
+let moonCalendar = null;
+/** Open the moons' calendar (a window of its own, for every player). `place` and `places` are where events are judged from and the named places to choose from. */
+export function openMoonCalendar({ place = null, places = [] } = {}) {
+  if (moonCalendar?.rendered) { if (place) moonCalendar.setPlace(place); if (places.length) moonCalendar.places = places; moonCalendar.bringToFront(); return moonCalendar; }
+  moonCalendar = new MoonCalendarApplication({
+    moduleId: MODULE_ID, place, places,
+    now: () => currentCampaignTime(getUniversalTimeState()).referenceBaseMs,
+    // A night or an event of the calendar, looked at from the ground: the map's own sky view, at that moment.
+    openSky: (at) => void openClusterMap().lookUpAt(at),
+  });
+  moonCalendar.render({ force: true });
+  return moonCalendar;
 }
 
 function readUniversalTimeState() {
@@ -232,7 +247,7 @@ Hooks.once("init", () => {
   registerMapServerSettings(MODULE_ID);
 
   const module = game.modules.get(MODULE_ID);
-  if (module) module.api = Object.freeze({ open: openClusterMap, getCampaignTimeState: () => currentCampaignTime(getUniversalTimeState()), saveCampaignTimeState: saveUniversalTimeState, isClockAuthority: isUniversalClockAuthority });
+  if (module) module.api = Object.freeze({ open: openClusterMap, openMoonCalendar, getCampaignTimeState: () => currentCampaignTime(getUniversalTimeState()), saveCampaignTimeState: saveUniversalTimeState, isClockAuthority: isUniversalClockAuthority });
 });
 
 Hooks.once("ready", async () => {
@@ -257,5 +272,13 @@ Hooks.on("getSceneControlButtons", (controls) => {
     button: true,
     visible: true,
     onChange: () => openClusterMap(),
+  });
+  addMapSceneControl(controls, {
+    name: "eymMoonCalendar",
+    title: "The Moons' Calendar",
+    icon: "fa-solid fa-moon",
+    button: true,
+    visible: true,
+    onChange: () => openMoonCalendar(),
   });
 });

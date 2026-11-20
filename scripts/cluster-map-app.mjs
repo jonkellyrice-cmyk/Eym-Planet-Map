@@ -88,6 +88,8 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
   _skyDocumentPromise = null;
   /** Where the ground view looks up from: { latDeg, lonDeg }. */
   lookUp = null;
+  /** A moment chosen for the ground view of the sky (from the moons' calendar), or null: the campaign clock's. */
+  skyTimeMs = null;
   _astronomyCache = new AstronomySnapshotCache();
   _systemSnapshotReferenceMs = null;
   // ASTRAL TRAVEL (dormant): _astronomyArrivalVoyageId = null;
@@ -138,13 +140,21 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     // root.querySelector('[data-action="apply-profile"]')?.addEventListener("click", () => this.#applyProfile(root));
     // root.querySelector('[data-action="engage-route"]')?.addEventListener("click", () => this.#engageSelectedRoute());
     // root.querySelector('[data-action="abort-voyage"]')?.addEventListener("click", () => this.#abortActiveVoyage());
-    root.querySelector('[data-action="back-to-system"]')?.addEventListener("click", () => this.#showSystem());
+    root.querySelector('[data-action="back-to-system"]')?.addEventListener("click", () => { this.skyTimeMs = null; this.#showSystem(); });
     root.querySelector('[data-action="look-up"]')?.addEventListener("click", () => {
       const lat = Number(root.querySelector('[name="lookUpLat"]')?.value), lon = Number(root.querySelector('[name="lookUpLon"]')?.value);
       if (!(lat >= -90 && lat <= 90) || !(lon >= -180 && lon <= 180)) return ui.notifications.warn("Latitude must be −90 to 90 and longitude −180 to 180.");
+      this.skyTimeMs = null;
       this.#enterSky(lat, lon);
     });
-    root.querySelector('[data-action="back-to-body"]')?.addEventListener("click", () => { if (this.activeBody) this.#enterBody(this.activeBody); });
+    root.querySelector('[data-action="sky-now"]')?.addEventListener("click", () => { this.skyTimeMs = null; void this.#refreshSky().catch(() => {}); });
+    for (const button of root.querySelectorAll('[data-action="open-moon-calendar"]')) button.addEventListener("click", () => {
+      const lat = Number(root.querySelector('[name="lookUpLat"]')?.value), lon = Number(root.querySelector('[name="lookUpLon"]')?.value);
+      const place = this.lookUp ? { ...this.lookUp, name: "" } : lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180 && (lat || lon) ? { latDeg: lat, lonDeg: lon, name: "" } : null;
+      const places = (this._eymGeography?.settlements ?? []).filter((s) => s.properName && s.lat != null).map((s) => ({ name: s.properName, latDeg: s.lat, lonDeg: s.lon }));
+      game.modules.get(MODULE_ID)?.api?.openMoonCalendar?.({ place, places });
+    });
+    root.querySelector('[data-action="back-to-body"]')?.addEventListener("click", () => { this.skyTimeMs = null; if (this.activeBody) this.#enterBody(this.activeBody); });
     for (const control of root.querySelectorAll("[data-sky-layer]")) control.addEventListener("change", () => this._clusterView?.setLayerVisibility?.(control.dataset.skyLayer, control.checked));
     for (const name of ["lookUpLat", "lookUpLon"]) root.querySelector(`[name="${name}"]`)?.addEventListener("input", () => this.#updatePlaceReadout());
     this.#setUpAtlasControls(root);
@@ -274,7 +284,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
   /** A fresh ground-sky snapshot for the current look-up place at the campaign clock's moment. */
   async #skySnapshot() {
     const api = game.modules.get(MODULE_ID)?.api;
-    const t = api?.getCampaignTimeState?.()?.referenceBaseMs ?? CAMPAIGN_START_MS;
+    const t = this.skyTimeMs ?? api?.getCampaignTimeState?.()?.referenceBaseMs ?? CAMPAIGN_START_MS;
     this._registryPromise ??= loadSystemRegistry(MODULE_ID);
     this._astronomyOrientationsPromise ??= loadAstronomyOrientations(MODULE_ID);
     this._skyDocumentPromise ??= fetch(`modules/${MODULE_ID}/data/stellar/constellations.json`).then((r) => { if (!r.ok) throw new Error(`Sky data fetch failed (${r.status})`); return r.json(); });
@@ -287,6 +297,19 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const almanacYear = universalTimeParts(t).year;
     if (this._almanac?.year !== almanacYear) { const lines = almanacLines(almanacForYear(rows, almanacYear), (name) => displayNameFor(HOME_SYSTEM.name, name), monthName); this._almanac = { year: almanacYear, text: lines.length ? lines.join("; ") : "nothing of note this year" }; }
     return { snapshot: groundSky({ model, sky, starfield, latDeg: this.lookUp.latDeg, lonDeg: this.lookUp.lonDeg }), sky, starfield };
+  }
+
+  /**
+   * Open the ground view of the sky at a place and a chosen moment (the moons' calendar does, for a night or an
+   * event). The campaign clock is not touched: the sky's panel says the moment shown and offers the way back.
+   */
+  async lookUpAt({ latDeg, lonDeg, timeMs }) {
+    for (let tries = 0; tries < 40 && !this.element?.querySelector?.(".oscm-shell"); tries += 1) await new Promise((resolve) => setTimeout(resolve, 50));
+    this.skyTimeMs = Number.isFinite(timeMs) ? timeMs : null;
+    // The way back from the sky is to Eym's map, so Eym is the body in hand.
+    this.activeBody ??= (await this.#astronomicalModel(HOME_SYSTEM.name, this.skyTimeMs ?? CAMPAIGN_START_MS)).byName.get("Eventide");
+    await this.#enterSky(latDeg, lonDeg);
+    this.bringToFront?.();
   }
 
   async #enterSky(latDeg, lonDeg) {
@@ -1034,6 +1057,10 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     if (auroraRow) { auroraRow.hidden = !(aurora && auroraEverSeen(aurora.magneticLatDeg)); auroraRow.style.display = auroraRow.hidden ? "none" : ""; }
     if (aurora) extra.aurora = describeAurora(aurora, { sunAltDeg: snapshot.sun.altDeg, cloud });
     if (this._almanac) extra.almanac = this._almanac.text;
+    // A chosen moment (from the moons' calendar) is named, with the way back to the clock.
+    const chosenRow = root.querySelector('[data-sky-row="chosen"]');
+    if (chosenRow) { chosenRow.hidden = this.skyTimeMs == null; chosenRow.style.display = chosenRow.hidden ? "none" : ""; }
+    if (this.skyTimeMs != null) extra.chosen = `${formatUniversalDate(this.skyTimeMs)}, ${formatUniversalClock(this.skyTimeMs)}`;
     const visiblePlanets = snapshot.planets.filter((p) => p.visible).map((p) => displayNameFor(HOME_SYSTEM.name, p.name));
     const values = {
       place: `${Math.abs(latDeg).toFixed(1)}°${latDeg >= 0 ? "N" : "S"}, ${Math.abs(lonDeg).toFixed(1)}°${lonDeg >= 0 ? "E" : "W"}`,
