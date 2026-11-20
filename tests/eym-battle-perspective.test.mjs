@@ -33,7 +33,7 @@ test("tall things rise above their base; lighter tops, darker south sides; faces
 });
 
 test("the painter's reference and every prompt ask for three-quarter view, never flat symbols", () => {
-  const map = buildBattleMap(asset, { center: at("Lyle", 0.2, 0.15), spec: battleMapSpec() });
+  const map = buildBattleMap(asset, { center: at("Lyla", 0.2, 0.15), spec: battleMapSpec() });
   const ref = battleReferenceSvg(map, 10);
   assert.match(ref, /fill="#5a3d24"/, "tree trunks are drawn"); assert.match(ref, /fill="#7fb6d6"/, "building fronts with windows");
   const prompt = battleArtDirection(map);

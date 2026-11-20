@@ -375,20 +375,20 @@ export function bestVoyage({ asset, field, from, to, departMs, ship = "steamer" 
   return best;
 }
 
-/** The two ports the Caren–Garyk steamer runs between (the layout's crossing: Pouk, and Garyk's south-east port). */
-export const CROSSING_PORTS = Object.freeze({ caren: { id: "caren-settlement-8", name: "Pouk (Caren)" }, garyk: { id: "garyk-settlement-48", name: "Garyk's south-east port" } });
+/** The two ports the Caren–Garyk steamer runs between (the layout's crossing: Folo, and Garyk's south-east port). */
+export const CROSSING_PORTS = Object.freeze({ caren: { id: "caren-settlement-8", name: "Folo (Caren)" }, garyk: { id: "garyk-settlement-48", name: "Garyk's south-east port" } });
 
 /**
  * The passage from a coastal place or a place at sea to the far side of the Caren–Garyk crossing (to Garyk's
- * south-east port from anywhere nearer Pouk, else to Pouk), leaving at a moment: a steamer and a sailing ship,
+ * south-east port from anywhere nearer Folo, else to Folo), leaving at a moment: a steamer and a sailing ship,
  * each the short way. Null inland or when the ports are unknown.
  */
 export function crossingPassage({ asset, field, lat, lon, departMs }) {
   if (!nearestSea(field, lat, lon)) return null;
   const port = (p) => asset.settlements?.find((s) => s.id === p.id);
-  const pouk = port(CROSSING_PORTS.caren), garyk = port(CROSSING_PORTS.garyk); if (!pouk || !garyk) return null;
-  const toGaryk = distanceKm(lat, lon, pouk.lat, pouk.lon) <= distanceKm(lat, lon, garyk.lat, garyk.lon);
-  const dest = toGaryk ? garyk : pouk, route = seaRoute(field, [lat, lon], [dest.lat, dest.lon]); if (!route) return null;
+  const folo = port(CROSSING_PORTS.caren), garyk = port(CROSSING_PORTS.garyk); if (!folo || !garyk) return null;
+  const toGaryk = distanceKm(lat, lon, folo.lat, folo.lon) <= distanceKm(lat, lon, garyk.lat, garyk.lon);
+  const dest = toGaryk ? garyk : folo, route = seaRoute(field, [lat, lon], [dest.lat, dest.lon]); if (!route) return null;
   const steamer = voyage({ asset, field, from: [lat, lon], to: [dest.lat, dest.lon], departMs, ship: "steamer", route });
   const sail = voyage({ asset, field, from: [lat, lon], to: [dest.lat, dest.lon], departMs, ship: "sail", route });
   return { to: toGaryk ? CROSSING_PORTS.garyk.name : CROSSING_PORTS.caren.name, steamer, sail, words: `to ${toGaryk ? CROSSING_PORTS.garyk.name : CROSSING_PORTS.caren.name}: ${steamer.days.toFixed(1)} days by steamer, ${sail.days.toFixed(1)} by sailing ship (${Math.round(steamer.km).toLocaleString("en-GB")} km)` };

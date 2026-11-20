@@ -16,7 +16,7 @@ import { createMapServer, parseRequest } from "../webapp/server.mjs";
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
-const lyle = asset.settlements.find((s) => s.properName === "Lyle"), center = fromLocal([lyle.lat, lyle.lon], 0.2, 0.15);
+const lyla = asset.settlements.find((s) => s.properName === "Lyla"), center = fromLocal([lyla.lat, lyla.lon], 0.2, 0.15);
 const spec = battleMapSpec({ size: "custom", columns: 15, rows: 24, density: "custom", gridPx: 70 });
 const map = buildBattleMap(asset, { center, spec }), interiors = buildInteriors(map);
 const layers = renderBattleLayers(map, interiors, { gridPx: 70 });

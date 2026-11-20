@@ -11,7 +11,7 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf
 const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
 const town = (name) => { const s = asset.settlements.find((x) => x.properName === name); return [s.lat, s.lon]; };
 const spec = battleMapSpec();
-const city = buildBattleMap(asset, { center: fromLocal(town("Lyle"), 0.2, 0.15), spec });
+const city = buildBattleMap(asset, { center: fromLocal(town("Lyla"), 0.2, 0.15), spec });
 const forest = buildBattleMap(asset, { center: fromLocal(town("Bostain"), -2.2, -1.8), spec });
 const volcano = buildBattleMap(asset, { center: fromLocal(town("Bostain"), -2.2, -1.8), spec, setting: "volcanic" });
 
@@ -43,7 +43,7 @@ test("settings are classified from the ground, in a fixed order", () => {
 });
 
 test("maps snap to the world's 5-ft grid, so nearby maps share squares", () => {
-  const a = snapToWorldGrid(fromLocal(town("Lyle"), 0.2, 0.15), spec), b = snapToWorldGrid(fromLocal(town("Lyle"), 0.2137, 0.1418), spec);
+  const a = snapToWorldGrid(fromLocal(town("Lyla"), 0.2, 0.15), spec), b = snapToWorldGrid(fromLocal(town("Lyla"), 0.2137, 0.1418), spec);
   assert.deepEqual(a.anchor, b.anchor);
   const [x, y] = toLocal(a.anchor, ...b.center).map((v, k) => v - toLocal(a.anchor, ...a.center)[k]), sq = 5 * 0.3048 / 1000;
   assert.ok(Math.abs(x / sq - Math.round(x / sq)) < 0.02 && Math.abs(y / sq - Math.round(y / sq)) < 0.02, `${x / sq}, ${y / sq}`);
@@ -53,7 +53,7 @@ test("maps snap to the world's 5-ft grid, so nearby maps share squares", () => {
 test("a city: streets, buildings walled with one door each, greenery, routes, deterministic", () => {
   assert.equal(city.setting, "urban");
   assert.ok(city.buildings.length >= 10);
-  const again = buildBattleMap(asset, { center: fromLocal(town("Lyle"), 0.2, 0.15), spec });
+  const again = buildBattleMap(asset, { center: fromLocal(town("Lyla"), 0.2, 0.15), spec });
   assert.deepEqual(again.grid.move, city.grid.move); assert.deepEqual([...again.grid.walls.keys()], [...city.grid.walls.keys()]);
   const doors = new Map(); for (const w of city.grid.walls.values()) if (w.door) doors.set(w.building, (doors.get(w.building) ?? 0) + 1);
   for (const count of doors.values()) assert.equal(count, 1, "one door per building");
@@ -77,12 +77,12 @@ test("a forest and a volcano: obstacles, hazards and high ground by the setting'
 });
 
 test("conditions change the ground: deep snow and mud are difficult; streets stay clear", () => {
-  const snowy = buildBattleMap(asset, { center: fromLocal(town("Lyle"), 0.2, 0.15), spec, conditions: { snowDepthCm: 30, tempC: -6 } });
+  const snowy = buildBattleMap(asset, { center: fromLocal(town("Lyla"), 0.2, 0.15), spec, conditions: { snowDepthCm: 30, tempC: -6 } });
   let streets = 0, clearStreets = 0, yards = 0, snowyYards = 0;
   snowy.grid.ground.forEach((g, i) => { if (snowy.grid.street[i] && snowy.grid.feature[i] < 0) { streets += 1; if (snowy.grid.move[i] === MOVE.normal) clearStreets += 1; } if (snowy.grid.building[i] < 0 && !snowy.grid.street[i] && g === "snow") { yards += 1; if (snowy.grid.move[i] !== MOVE.normal) snowyYards += 1; } });
   assert.equal(clearStreets, streets); assert.ok(yards > 0 && snowyYards === yards);
   assert.ok(snowy.notes.some((n) => /Snow 30 cm/.test(n)));
-  const wet = buildBattleMap(asset, { center: fromLocal(town("Lyle"), 1.2, 0.9), spec, conditions: { ground: "waterlogged" } });
+  const wet = buildBattleMap(asset, { center: fromLocal(town("Lyla"), 1.2, 0.9), spec, conditions: { ground: "waterlogged" } });
   assert.ok(wet.grid.ground.some((g) => g === "field (mud)"));
   assert.ok(!wet.grid.ground.some((g) => g === "grass (mud)"), "grass holds up unless flooding");
 });
@@ -100,7 +100,7 @@ test("the painter's reference is text-free and gridless; the GM overlay and pack
 });
 
 test("the Foundry scene: 5-ft grid, walls and doors from the buildings, terrain regions, light and weather", () => {
-  const scene = battleSceneData(city, { name: "Lyle", imagePath: "worlds/w/x.png", movementCost: true, darkness: darknessFor(-3), weather: weatherEffectFor({ precipKind: "rain", precipMmH: 1 }) });
+  const scene = battleSceneData(city, { name: "Lyla", imagePath: "worlds/w/x.png", movementCost: true, darkness: darknessFor(-3), weather: weatherEffectFor({ precipKind: "rain", precipMmH: 1 }) });
   assert.deepEqual(scene.grid, { type: 1, size: 140, distance: 5, units: "ft" });
   assert.equal(scene.width, 3360); assert.equal(scene.height, 4200);
   const chamfers = city.buildings.reduce((n, b) => n + (b.chamfers ?? []).filter((c) => c.x >= 0 && c.y >= 0 && c.x < 24 && c.y < 30).length, 0), straight = [...city.grid.walls.values()].filter((w) => !w.chamfer).length;

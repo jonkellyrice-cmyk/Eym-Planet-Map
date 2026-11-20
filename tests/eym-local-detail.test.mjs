@@ -24,7 +24,7 @@ test("a local tile is deterministic and shows a town with its fields, woods and 
 });
 
 test("detail is pinned to the world: overlapping tiles agree where they overlap", () => {
-  const center = town("Lyle"), shifted = fromLocal(center, 1.2, -0.8), res = 0.04;
+  const center = town("Lyla"), shifted = fromLocal(center, 1.2, -0.8), res = 0.04;
   const a = buildLocalTile(asset, { center, sizeKm: 5, resolutionM: 40 }), b = buildLocalTile(asset, { center: shifted, sizeKm: 5, resolutionM: 40 });
   let same = 0, land = 0, total = 0;
   for (let r = 0; r < a.rows; r += 1) for (let c = 0; c < a.cols; c += 1) {
@@ -39,7 +39,7 @@ test("detail is pinned to the world: overlapping tiles agree where they overlap"
 });
 
 test("a battle site: 5-ft squares, world-pinned objects, buildings only in built-up squares", () => {
-  const spec = battleMapSpec(), center = fromLocal(town("Lyle"), 0.2, 0.15);
+  const spec = battleMapSpec(), center = fromLocal(town("Lyla"), 0.2, 0.15);
   const site = buildBattleSite(asset, { center, spec });
   assert.equal(site.squares.length, spec.columns * spec.rows);
   assert.deepEqual(site.squares, buildBattleSite(asset, { center, spec }).squares, "deterministic");

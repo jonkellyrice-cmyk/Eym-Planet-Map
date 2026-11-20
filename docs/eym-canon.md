@@ -129,9 +129,31 @@ is seen down to 20°–25°, never below 20°. Caren and Garyk are at least 8° 
 
 ## Caren (from the world's author, 18 November 2026)
 
-*Name:* the city the source map labels "Dubor" is **Dubos** (the author's spelling). The label and everything derived
-from it are corrected with the next climate and weather work (`data/eym/caren-labels.json`, then the cartography asset
-and the atlas snapshot made from it).
+*Names (confirmed by the owner and the world's author, 20 November 2026).* The source map is authoritative for Caren's
+names. Every label in `data/eym/caren-labels.json` carries one of these, each name once (the cartography asset and the
+atlas snapshot are made from that file):
+
+- *Realms:* New Fae'run, Cius League, Molkath Confederation, Federation of Vinon.
+- *Capitals* (a star on the map): Bostain, Geniv, Lyla.
+- *North-west:* Fae'mel Forest, Lake Luin, Var Dylon, Andal, Mt. Weth, Aren, Myra River, Khovd, Achak Forest, Selendel,
+  Cykon, Lake Surnet, Mar'amu, Ognum.
+- *North:* Piramus, Bostain, Central Valley, Rach, Thran River, Mt. Shila, Hadree Forest, Vercome, Fort Demak.
+- *North-east:* Centarm, Rigala, Palma River, Terr, Mt. Oplin, Mt. Danrich, Menera, Alamak, Zamerio, Jennu Forest,
+  Nalgari, Nal Lakes, Lipka.
+- *Centre:* Sondel Range, Drong River, Molkath River, Eern, Plangi, Slem, Dylal, Tarun, Kelmat, Umata, Bhunhed, Angoria,
+  Merios, Malam, Bestead, Augaknoll.
+- *Arluna:* Arluna Lakes, Arluna, Dubos, Xoln, Oraph, Maitbe, Clenos.
+- *West:* Seaton, Turic, Lucern, Lake Whitswell, Val-de-Galles, Geniv, Mater Forest, Lake Havamere, Winthur, Riefell,
+  Bemm, Magstead, Lake Sile, Chom, Chom Islands.
+- *East:* Bejaa, Reme, Lake Rochest, Andatias, Betoban, Telti, Lake Conera, Lyla, Valdak, Grazm, Ico, Calda.
+- *South:* Holy Grove, Piety, Schlum Bi, Vlens, Xel Lakes, Glaset, Gorax, Ytery, Fort Zanix, Blaudis, Sarven Hills,
+  Colkirk, Taunmis River, Dree, Calmond Forest, Calmond, Zorento.
+- *South-west:* Nerin, Quaton, Trate Hills, Ewash, Ewash Forest, Yakat, Minisa Forest, Chilla, Khaelum, Sherval River,
+  Steknen, Orlu'ka.
+
+One town is on the map but was not in the list: **Folo**, on New Fae'run's west coast, the north-west port the steamer
+to Garyk sails from (the label first read "Pouk"; owner, 20 November 2026). Which label took which name, and the
+matches still to be checked against the map, are in the changelog (0.32.2).
 
 *Climate, as the author describes it:*
 

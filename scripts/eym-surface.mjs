@@ -15,7 +15,7 @@ const CAREN_AREA_KM2 = 590_000 * 2.589988110336;
  * Where everything goes: the layout of scripts/eym-world-inputs.mjs (the dials), with each seeded continent's
  * area worked out from its multiple of Caren's. Caren straddles the equator (its centroid sits on it). Garyk lies
  * slightly north of the equator, three weeks by steamer from Caren: its south-east port is that far from Caren's
- * north-west port (Pouk), which puts it west-north-west of Caren; the largest continent lies east of Caren; two
+ * north-west port (Folo), which puts it west-north-west of Caren; the largest continent lies east of Caren; two
  * smaller, colder ones lie far to the north and south. The seeded shapes come from `seed`.
  */
 export const EYM_LAYOUT = Object.freeze({
