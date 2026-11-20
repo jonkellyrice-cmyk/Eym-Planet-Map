@@ -19,12 +19,13 @@
         "flow": 17823,
         "coasts": 84318
       }
-    }
+    },
+    "tectonicsContentSha256": "3ace10ee9afc5d651e8c730ca6063311cdb463fbbbbb1cc15c871478df59cad6"
   },
   "managed": {
     "registryCsvSha256": {
-      "value": "a5ef765c161456b0ec1a2037609a17783f77637ecb53e8c8593af9d67f7d71db",
-      "note": "Land-growth scaling, Fix 7: the layout dials gained the farLand group (how a continent on a sphere grid is written), so Eym's input fingerprint in the registry changed. The plate history was fitted again and every derived file has the same content; only source stamps and fingerprints differ."
+      "value": "04c9c652772b65e81c764ca1cb415c7f0191cd021f3ee0f2b368347375dee7a6",
+      "note": "Canon of 19 November 2026: Eym about 80% water. Gaffa, Khohalis and Demani grown (data/eym/growth.json); the registry's water and land shares are now 79.9% and 20.1%."
     }
   }
 }

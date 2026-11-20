@@ -11,6 +11,7 @@
 import { readFileSync } from "node:fs";
 import { WORLD_FILES, cellContinents, heights, sha256, summarizeWorld } from "./world-snapshot.mjs";
 import { overrideProblems } from "../scripts/eym-overrides.mjs";
+import { tectonicContentSha256 } from "./generate-eym-growth.mjs";
 
 const PINS = new URL("world-pins.json", import.meta.url);
 export const readPins = () => JSON.parse(readFileSync(PINS, "utf8"));
@@ -55,7 +56,16 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
   for (const line of dataBudget(world, pins)) rule(line.id, line.rule, line.ok, line.detail);
 
   // An ocean world with its continents.
-  rule("ocean-share", "the ocean covers 98% to 99% of the world", summary.waterFraction >= 0.98 && summary.waterFraction <= 0.99, `${(summary.waterFraction * 100).toFixed(2)}%`);
+  // (Canon of 19 November 2026: about 80%. A world from before the continents were grown is held to what it was.)
+  const { WORLD_INPUTS } = await import("../scripts/eym-world-inputs.mjs"), [seaLo, seaHi] = world.growth ? WORLD_INPUTS.growth.oceanFraction : [0.98, 0.99];
+  rule("ocean-share", `the ocean covers ${(seaLo * 100).toFixed(1)}% to ${(seaHi * 100).toFixed(1)}% of the world`, summary.waterFraction >= seaLo - 0.004 && summary.waterFraction <= seaHi + 0.004, `${(summary.waterFraction * 100).toFixed(2)}% (counted on the 1° map)`);
+  if (world.growth) {
+    const g = world.growth, d = WORLD_INPUTS.growth, grown = Object.values(g.continents);
+    rule("growth-areas", "each grown continent is within the canon's tolerance of its area, and the ocean's share is the canon's", grown.every((c) => Math.abs(c.areaKm2 / d.areaKm2[c.id] - 1) <= d.tolerance) && g.oceanFraction >= d.oceanFraction[0] && g.oceanFraction <= d.oceanFraction[1], grown.map((c) => `${c.name} ${(c.areaKm2 / 1e6).toFixed(1)} Mkm²`).join(", ") + `; ocean ${(g.oceanFraction * 100).toFixed(2)}%`);
+    rule("growth-clearance", "the grown continents keep clear of Caren, Garyk, the crossing and each other", grown.every((c) => c.clearanceKm.caren >= d.clearanceKm.caren - 60 && c.clearanceKm.garyk >= d.clearanceKm.garyk - 60 && (c.clearanceKm.between ?? Infinity) >= d.clearanceKm.between - 60), grown.map((c) => `${c.name}: Caren ${c.clearanceKm.caren} km, Garyk ${c.clearanceKm.garyk} km${c.clearanceKm.between ? `, the others ${c.clearanceKm.between} km` : ""}`).join("; "));
+    rule("growth-tectonics", "the growth changed nothing in the tectonic history it was made from", tectonics && g.tectonics.contentSha256 === tectonicContentSha256(tectonics) && g.tectonics.plateBoundariesMoved === 0, "");
+    rule("tectonics-fixed", "the tectonic history is the one the continents were grown on (canon: the least change)", !pins.fixed.tectonicsContentSha256 || tectonicContentSha256(tectonics ?? {}) === pins.fixed.tectonicsContentSha256, "");
+  }
   const continents = asset.gazetteer.filter((f) => f.featureClass === "continent").map((f) => f.properName);
   rule("continents", "every named continent has land and a coastline", continents.length >= 2 && continents.every((c) => summary.continents[c]?.cells > 0 && asset.terrain.coastlines.some((x) => x.continent === c)), continents.map((c) => `${c} ${summary.continents[c]?.cells ?? 0}`).join(", "));
 
@@ -109,9 +119,10 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
   // Everything derived is up to date with what it is made from (the working tree only).
   if (current) {
     const [{ tectonicSourcesSha256 }, { climateSourcesSha256 }, { drainageSourcesSha256 }, { windSourcesSha256 }, { flowSourcesSha256 }, { eymFingerprintFromRepo }, { regionFingerprint }, { coastSourcesSha256 }] = await Promise.all([
-      import("./generate-eym-tectonics.mjs"), import("./generate-eym-climate.mjs"), import("./generate-eym-drainage.mjs"), import("./generate-eym-wind.mjs"), import("./generate-eym-flow.mjs"), import("./eym-world.mjs"), import("./generate-region-fingerprint.mjs"), import("./generate-eym-coasts.mjs")]);
+      import("./generate-eym-tectonics.mjs"), import("./generate-eym-climate.mjs"), import("./generate-eym-drainage.mjs"), import("./generate-eym-wind.mjs"), import("./generate-eym-flow.mjs"), import("./eym-world.mjs"), import("./generate-region-fingerprint.mjs"), import("./generate-eym-coasts.mjs")]), { growthSourcesSha256 } = await import("./generate-eym-growth.mjs");
     const stale = [];
     if (tectonics?.sourcesSha256 !== tectonicSourcesSha256()) stale.push("tectonic history");
+    if (world.growth?.sourcesSha256 !== growthSourcesSha256()) stale.push("the continents' growth");
     if (climate?.sourcesSha256 !== climateSourcesSha256()) stale.push("ocean climate");
     if (asset.sourceFingerprint !== eymFingerprintFromRepo()) stale.push("cartography");
     if (world.drainage?.sourcesSha256 !== drainageSourcesSha256()) stale.push("drainage");

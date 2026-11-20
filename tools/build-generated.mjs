@@ -24,6 +24,12 @@ if (tect?.sourcesSha256 !== tectonicSourcesSha256()) {
   if (tect?.sourcesSha256 !== tectonicSourcesSha256()) { console.log("The tectonic history is not finished: run npm run build again."); process.exit(0); }
 }
 
+// The growth of the three far continents (data/eym/growth.json; canon: Eym about 80% water) follows the tectonic
+// history, which it reads and never alters: made again (half a minute) when its sources changed.
+const { growthSourcesSha256 } = await import("./generate-eym-growth.mjs");
+const readGrowth = () => { try { return JSON.parse(readFileSync(new URL("data/eym/growth.json", root), "utf8")); } catch { return null; } };
+if (readGrowth()?.sourcesSha256 !== growthSourcesSha256()) { run("tools/generate-eym-growth.mjs"); changed = true; }
+
 // The ocean climate (data/eym/climate.json) follows the land: made again (about a quarter of a minute) when its
 // sources changed, the tectonic history among them.
 const readClimate = () => { try { return JSON.parse(readFileSync(new URL("data/eym/climate.json", root), "utf8")); } catch { return null; } };

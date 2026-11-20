@@ -6,6 +6,7 @@ import { EYM_LAYOUT, fromLocal, greatCircleKm } from "../scripts/eym-surface.mjs
 import { CAREN_GEOLOGY } from "../scripts/eym-tectonics.mjs";
 import { attachGeology, elevationGrid } from "../scripts/cartography-asset.mjs";
 import { OCEAN_FRACTION, TARGET_TOLERANCE, TECTONIC_SEEDS, buildTectonics, tectonicSourcesSha256 } from "../tools/generate-eym-tectonics.mjs";
+import { WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 
 const root = new URL("../", import.meta.url), read = (path) => readFileSync(new URL(path, root), "utf8");
 const tect = JSON.parse(read("data/eym/tectonics.json")), asset = JSON.parse(read("data/planet-cartography/abydos/eventide.json"));
@@ -15,14 +16,19 @@ const sha = (value) => createHash("sha256").update(JSON.stringify(value)).digest
 const convergent = [...tect.boundaries.trenches, ...tect.boundaries.collisions];
 const nearestKm = (ll, list) => Math.min(...list.map((q) => greatCircleKm(ll, q)));
 
-test("Caren, Garyk and the open-ocean archipelagos keep their coasts byte for byte (one archipelago moved whole)", () => {
+test("Caren, Garyk and the open-ocean archipelagos keep their coasts byte for byte (one archipelago moved whole, one taken into Khohalis)", () => {
   // The coasts as they were before the tectonic history (eym-surface-v1): authored, traced and seeded once.
   assert.equal(sha(asset.terrain.coastlines.filter((c) => c.continent === "Caren")), "6200884021edf3166e8c7cb6b209431b188bd6dd9a5706412f2504815c43bb5f");
   assert.equal(sha(asset.terrain.coastlines.filter((c) => c.continent === "Garyk")), "953d7b92cd342baab154888dcddb499306d0d2e91380f1da52b43f0dc1d837e0");
-  // Nine of the ten ocean archipelagos are unchanged since eym-surface-v1. The sixth moved on 17 November 2026
+  // Eight of the ten ocean archipelagos are unchanged since eym-surface-v1. The sixth moved on 17 November 2026
   // (the owner's decision), from 8.8°N 152.4°E, where Gaffa now stands, to 8.8°N 39°E: same islands, new place.
+  // The fourth (36.4°N 115.2°E) lies where Khohalis grew to (canon of 19 November 2026: Eym about 80% water) and is
+  // part of that continent now: its five islands are no longer coasts of their own. The hash below is of the other
+  // eight, and is the same in the world before the growth (where, with the fourth, they hashed to f527012d…).
   const archipelagos = asset.terrain.coastlines.filter((c) => !c.continent), sixth = (c) => c.id.startsWith("archipelago-6-");
-  assert.equal(sha(archipelagos.filter((c) => !sixth(c))), "f527012d71b9c086cb30fd8b419fbd572ae4c2131678183d6a96b1bedb6a5195");
+  assert.equal(archipelagos.filter((c) => c.id.startsWith("archipelago-4-")).length, 0);
+  assert.deepEqual(JSON.parse(read("data/eym/growth.json")).accreted.map((a) => [a.archipelago, a.into]), [[4, "Khohalis"]]);
+  assert.equal(sha(archipelagos.filter((c) => !sixth(c))), "14f9038579aa196822c036396695d85f126dcd21ec552fd23bb909c71532189c");
   assert.equal(sha(archipelagos.filter(sixth)), "935b202ae9719d528c713d8b2a931f410e1b6bdfc48de65ecba8d4209d1dcc50");
 });
 
@@ -36,8 +42,13 @@ test("Gaffa, Khohalis and Demani meet their targets, each centred on its own lan
   }
 });
 
-test("Eym stays 98.6% ocean", () => {
-  assert.ok(asset.terrain.realizedWaterFraction >= OCEAN_FRACTION[0] && asset.terrain.realizedWaterFraction <= OCEAN_FRACTION[1], String(asset.terrain.realizedWaterFraction));
+test("Eym is about 80% ocean, as its canon says, and was 98.6% before its far continents were grown", () => {
+  // The plate fit still aims at the 98.6% world (its continents are the cores the land was grown from)...
+  const growth = JSON.parse(read("data/eym/growth.json")), [low, high] = WORLD_INPUTS.growth.oceanFraction;
+  assert.ok(growth.oceanFractionBefore >= OCEAN_FRACTION[0] && growth.oceanFractionBefore <= OCEAN_FRACTION[1], String(growth.oceanFractionBefore));
+  // ...and the grown world is the canon's (counted on the 1° map, which is a little coarser than the outlines).
+  assert.ok(growth.oceanFraction >= low && growth.oceanFraction <= high, String(growth.oceanFraction));
+  assert.ok(asset.terrain.realizedWaterFraction >= low - 0.004 && asset.terrain.realizedWaterFraction <= high + 0.004, String(asset.terrain.realizedWaterFraction));
 });
 
 test("the tectonic history is up to date with what it is made from (npm run build would not change it)", () => {

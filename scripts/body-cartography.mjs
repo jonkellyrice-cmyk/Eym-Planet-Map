@@ -48,6 +48,15 @@ export function projectGeoPath(points, yaw = 0, pitch = 0, radius = 250, center 
   return commands.join(" ");
 }
 
+/** How many rivers and waters a phone draws at each level of detail. */
+const MOBILE_WATER = Object.freeze({ orbital: { rivers: 120, waters: 160 }, regional: { rivers: 180, waters: 220 }, surface: { rivers: 240, waters: 300 } });
+/** The `count` items of a list with the greatest `size`, in the list's own order (all of them when there are no more than that). */
+function greatest(list, count, size) {
+  if (list.length <= count) return list;
+  const keep = new Set(list.map((item, index) => [size(item), index]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).slice(0, count).map(([, index]) => index));
+  return list.filter((_, index) => keep.has(index));
+}
+
 export function buildCartographyRenderPlan(asset, zoom = 1, mobile = false) {
   const lod = cartographyLod(zoom, mobile);
   return {
@@ -55,8 +64,10 @@ export function buildCartographyRenderPlan(asset, zoom = 1, mobile = false) {
     ecoregions: asset.regions.ecoregions.filter((region) => region.cellCount >= lod.minRegionCells),
     resources: asset.regions.resourceProvinces.filter((region) => region.cellCount >= lod.minRegionCells).slice(0, lod.resourceRegions),
     coastlines: asset.terrain.coastlines,
-    rivers: asset.hydrology.rivers,
-    waterbodies: [...asset.hydrology.lakes, ...asset.hydrology.wetlands, ...asset.hydrology.glaciers],
+    // On a phone the greatest rivers and the largest waters are drawn, up to a number for the zoom: a world with
+    // continents tens of millions of km² across has hundreds of each. A world with fewer keeps them all, in order.
+    rivers: mobile ? greatest(asset.hydrology.rivers, MOBILE_WATER[lod.id].rivers, (river) => river.dischargeIndex ?? 0) : asset.hydrology.rivers,
+    waterbodies: mobile ? greatest([...asset.hydrology.lakes, ...asset.hydrology.wetlands, ...asset.hydrology.glaciers], MOBILE_WATER[lod.id].waters, (water) => water.areaKm2 ?? 0) : [...asset.hydrology.lakes, ...asset.hydrology.wetlands, ...asset.hydrology.glaciers],
     settlements: asset.settlements,
     routes: asset.transportRoutes,
     labels: selectCartographyLabels(asset, zoom, mobile),

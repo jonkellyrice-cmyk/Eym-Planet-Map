@@ -24,10 +24,11 @@ test("every inhabited world has literal physical and civilization geometry", () 
   }
 });
 
-test("Eym's coarse summary records its five continents in a planet-wide ocean", () => {
+test("Eym's coarse summary records its five continents in an ocean that covers about four fifths of it", () => {
   const entry = manifest.worlds.find((world) => world.body === "Eventide");
   const world = load(entry);
-  assert.ok(world.realizedWaterFraction >= .98);
+  // Canon of 19 November 2026: about 80% water.
+  assert.ok(world.realizedWaterFraction >= .79 && world.realizedWaterFraction <= .81, String(world.realizedWaterFraction));
   assert.equal(world.surface.continents.length, 5);
-  assert.ok(world.cells.filter((cell) => !cell.ocean).length < world.cells.length * .03);
+  assert.ok(world.cells.filter((cell) => !cell.ocean).length < world.cells.length * .25);
 });

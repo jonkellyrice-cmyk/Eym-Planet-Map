@@ -165,8 +165,11 @@ function coastKm(ctx, lat, lon) {
   const lonReach = Math.min(179, Math.ceil(1.5 / Math.max(0.2, k)));
   const nearby = [];
   for (let a = Math.floor(lat) - 2; a <= Math.floor(lat) + 2; a += 1) for (let b = Math.floor(lon) - lonReach; b <= Math.floor(lon) + lonReach; b += 1) { const bucket = ctx.coastSegments.get(a * 1000 + (((b % 360) + 540) % 360 - 180)); if (bucket) nearby.push(...bucket); }
+  // (Longitudes are taken the short way round from the place, so a stretch of coast that crosses ±180° is the short
+  // stretch it is and not one right round the world. Away from the seam the difference is the plain one.)
+  const east = (to) => { const d = to - lon; return d > 180 ? d - 360 : d < -180 ? d + 360 : d; };
   for (const [a, b] of nearby) {
-    const ax = (a[1] - lon) * 111.2 * k, ay = (a[0] - lat) * 111.2, bx = (b[1] - lon) * 111.2 * k, by = (b[0] - lat) * 111.2;
+    const ax = east(a[1]) * 111.2 * k, ay = (a[0] - lat) * 111.2, bx = east(b[1]) * 111.2 * k, by = (b[0] - lat) * 111.2;
     const dx = bx - ax, dy = by - ay, t = clamp(-(ax * dx + ay * dy) / (dx * dx + dy * dy || 1), 0, 1);
     best = Math.min(best, Math.hypot(ax + t * dx, ay + t * dy));
   }

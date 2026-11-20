@@ -62,6 +62,7 @@ test("ocean-rich Eventide receives routed island hydrology without a synthetic c
   // generic router, run here on that coarse 6° world, still runs and keeps its rivers short.
   assert.ok(load("Eventide").rivers.length > 0);
   const world = build("Eventide");
-  assert.ok(world.cells.filter((cell) => cell.ocean).length / world.cells.length >= .85);
+  // (About four fifths of Eym is ocean since the canon of 19 November 2026; it was 98.6%.)
+  assert.ok(world.cells.filter((cell) => cell.ocean).length / world.cells.length >= .75);
   assert.ok(world.rivers.every((river) => river.points.length < 100));
 });

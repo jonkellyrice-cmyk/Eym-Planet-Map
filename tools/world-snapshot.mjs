@@ -10,12 +10,13 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { splitRingAtAntimeridian } from "../scripts/geo-wrap.mjs";
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 const ASSET = "data/planet-cartography/abydos/eventide";
 /** The files a world is read from (the registry CSV carries Eventide's input fingerprint). */
 export const WORLD_FILES = Object.freeze({
-  tectonics: "data/eym/tectonics.json", climate: "data/eym/climate.json", asset: `${ASSET}.json`, geology: `${ASSET}-geology.json`, ocean: `${ASSET}-ocean.json`,
+  tectonics: "data/eym/tectonics.json", growth: "data/eym/growth.json", climate: "data/eym/climate.json", asset: `${ASSET}.json`, geology: `${ASSET}-geology.json`, ocean: `${ASSET}-ocean.json`,
   drainage: `${ASSET}-drainage.json`, wind: `${ASSET}-wind.json`, flow: `${ASSET}-flow.json`, coasts: `${ASSET}-coasts.json`, regionFingerprint: "data/eym/region-fingerprint.json", registry: "docs/system-orbital-distances.csv", overrides: "data/eym/overrides.json",
 });
 
@@ -28,7 +29,7 @@ export const refReader = (ref, dir = repoRoot) => (path) => { try { return execF
 export function loadWorld(read) {
   const text = Object.fromEntries(Object.entries(WORLD_FILES).map(([key, path]) => [key, read(path)]));
   const json = (key) => (text[key] ? JSON.parse(text[key]) : null);
-  return { text, tectonics: json("tectonics"), climate: json("climate"), asset: json("asset"), geology: json("geology"), ocean: json("ocean"), drainage: json("drainage"), wind: json("wind"), flow: json("flow"), coasts: json("coasts"), regionFingerprint: json("regionFingerprint"), registry: text.registry, overrides: json("overrides") };
+  return { text, tectonics: json("tectonics"), growth: json("growth"), climate: json("climate"), asset: json("asset"), geology: json("geology"), ocean: json("ocean"), drainage: json("drainage"), wind: json("wind"), flow: json("flow"), coasts: json("coasts"), regionFingerprint: json("regionFingerprint"), registry: text.registry, overrides: json("overrides") };
 }
 
 // ---------------------------------------------------------------- decoding
@@ -46,11 +47,15 @@ export function heights(asset) {
 }
 const isSea = (biome) => /ocean|sea-ice/.test(biome);
 
-/** Point in a closed ring of [lat, lon] (longitudes taken near the point, so rings across the date line work). */
+/**
+ * Point in a closed ring of [lat, lon] that does not cross ±180°. (A ring that crosses is first cut there, below:
+ * taking each corner's longitude "near the point" tears a wide ring on the far side of the world from the point,
+ * and gave a continent that reaches across ±180° the cells of lands half a world away.)
+ */
 function inRing(ring, lat, lon) {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
-    const [yi, xi0] = ring[i], [yj, xj0] = ring[j], xi = lon + ((((xi0 - lon) % 360) + 540) % 360 - 180), xj = lon + ((((xj0 - lon) % 360) + 540) % 360 - 180);
+    const [yi, xi] = ring[i], [yj, xj] = ring[j];
     if ((yi > lat) !== (yj > lat) && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
   }
   return inside;
@@ -62,10 +67,11 @@ function inRing(ring, lat, lon) {
  */
 export function cellContinents(asset) {
   const { latCount, lonCount } = asset.grid, biome = category(asset.raster.biome), out = new Array(latCount * lonCount).fill(null);
-  const rings = asset.terrain.coastlines.filter((c) => c.continent && c.closed !== false).map((c) => {
-    let s = 90, n = -90; for (const [la] of c.points) { if (la < s) s = la; if (la > n) n = la; }
-    return { name: c.continent, points: c.points, s, n };
-  });
+  // Each coast as rings that lie on one side of ±180° (scripts/geo-wrap.mjs): one ring for a coast that does not cross.
+  const rings = asset.terrain.coastlines.filter((c) => c.continent && c.closed !== false).flatMap((c) => splitRingAtAntimeridian(c.points).map((points) => {
+    let s = 90, n = -90; for (const [la] of points) { if (la < s) s = la; if (la > n) n = la; }
+    return { name: c.continent, points, s, n };
+  }));
   for (let r = 0; r < latCount; r += 1) for (let c = 0; c < lonCount; c += 1) {
     const i = r * lonCount + c; if (isSea(biome.at(i))) continue;
     const lat = -90 + (r + 0.5) * (180 / latCount), lon = -180 + (c + 0.5) * (360 / lonCount);

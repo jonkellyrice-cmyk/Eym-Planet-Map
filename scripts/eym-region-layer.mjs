@@ -119,13 +119,21 @@ export function regionTileAt(frame, lat, lon) {
   return { tx, ty, px: (x - tx * REGION_TILE_KM) / REGION_CELL_KM, py: (-y - ty * REGION_TILE_KM) / REGION_CELL_KM };
 }
 
+/** How far (km) past a frame's farthest tile an outline may lie and still be laid on the frame. */
+const FRAME_MARGIN_KM = 1000;
 const projections = new WeakMap();
 /** The cartography's outlines and lines laid on a frame (made once for each frame). */
 function projected(ctx, frame) {
   let byFrame = projections.get(ctx); if (!byFrame) projections.set(ctx, (byFrame = new Map()));
   let p = byFrame.get(frame.id); if (p) return p;
   const lay = (ring) => { const xs = new Float64Array(ring.length), ys = new Float64Array(ring.length); let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity; for (let i = 0; i < ring.length; i += 1) { const [x, y] = toLocal(frame.center, ring[i][0], ring[i][1]); xs[i] = x; ys[i] = y; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; } return { xs, ys, minX, maxX, minY, maxY }; };
-  const rings = (index) => index.map((r) => lay(r.ring));
+  // Only outlines that come within the frame's own reach (and FRAME_MARGIN_KM more) are laid on it. A flat frame is a
+  // map about its centre on which the far side of the world is its rim: a land that holds the point opposite the
+  // centre (as a continent tens of millions of km² across can) would be drawn right round the frame, and everything
+  // in the frame would count as inside it. An outline with no point within reach cannot cross any tile of the
+  // frame, so nothing that could be drawn is left out.
+  const { tx0, tx1, ty0, ty1 } = frame.tiles, reachKm = Math.max(Math.hypot(tx0, ty0), Math.hypot(tx1 + 1, ty0), Math.hypot(tx0, ty1 + 1), Math.hypot(tx1 + 1, ty1 + 1)) * REGION_TILE_KM + FRAME_MARGIN_KM;
+  const rings = (index) => index.map((r) => lay(r.ring)).filter((o) => { let near = Infinity; for (let i = 0; i < o.xs.length; i += 1) { const km = Math.hypot(o.xs[i], o.ys[i]); if (km < near) near = km; } return near <= reachKm; });
   ctx.worldRoads ??= roadsNear(ctx, [0, 0], 1e9);
   p = { coasts: rings(ctx.coasts), waters: rings(ctx.waters), forest: rings(ctx.detail.forest), upland: rings(ctx.detail.upland), mountains: rings(ctx.detail.mountains), peaks: rings(ctx.detail.peaks),
     rivers: ctx.rivers.map((r) => ({ ...lay(r.points), widthM: r.widthM })), roads: ctx.worldRoads.map((r) => ({ ...lay(r.points), kind: r.kind, id: r.id })),

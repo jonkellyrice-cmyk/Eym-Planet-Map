@@ -314,6 +314,9 @@ export const frameToLatLon = (frame, x, y) => (frame.sphere ? vectorLatLon(spher
 /** How long a kilometre of a frame's x is on the ground at height y in the frame (1 on a flat frame; on a sphere grid, the cosine of its turned latitude). */
 export const frameEastScale = (frame, y) => (frame.sphere ? Math.cos(y / EYM_RADIUS_KM) : 1);
 
+/** The inland relief of a grown continent: a rise of `riseMPerKm` for the first `riseOverKm` from the sea, and plateaus up to about `plateauM`. */
+const INTERIOR = Object.freeze({ riseMPerKm: 0.35, riseOverKm: 1800, plateauM: 1100 });
+
 /** Distance (km) from each land square to the nearest square that is not land, on a grid whose squares narrow by `east[row]`. */
 function coastDistanceOnSphere(grid, land, east) {
   const { cols, rows, cellKm } = grid, d = new Float32Array(cols * rows), big = 1e9;
@@ -352,7 +355,7 @@ function arcAngle(v, a, b) {
  * follow the flat frame's rule for seeded land (a rise from the coast, ranges along the ridges, rolling upland),
  * with the noise taken in three dimensions on the sphere so that it has no direction or seam of its own.
  */
-export function buildSphereFrame({ id, continent, origin, center, rings, ridges = [], cellDeg = SPHERE_CELL_DEG, seed }) {
+export function buildSphereFrame({ id, continent, origin, center, rings, ridges = [], rifts = [], interior = false, cellDeg = SPHERE_CELL_DEG, seed }) {
   // The turn that keeps the land nearest the grid's equator (then the narrowest east to west).
   let best = null;
   for (let turnDeg = 0; turnDeg < 180; turnDeg += 15) {
@@ -371,7 +374,7 @@ export function buildSphereFrame({ id, continent, origin, center, rings, ridges 
   const count = grid.cols * grid.rows, outline = fillRings(grid, local), water = new Uint8Array(count), land = Uint8Array.from(outline);
   const east = Float64Array.from({ length: grid.rows }, (_, r) => Math.cos((grid.y0 - (r + 0.5) * cellKm) / EYM_RADIUS_KM));
   const coastKm = coastDistanceOnSphere(grid, outline, east), elevation = new Float32Array(count);
-  const noise = valueNoise3(`${seed}|relief|sphere`), arcs = ridges.map((ridge) => ({ ...ridge, vectors: ridge.points.map((point) => unit(point)) }));
+  const noise = valueNoise3(`${seed}|relief|sphere`), arcs = ridges.map((ridge) => ({ ...ridge, vectors: ridge.points.map((point) => unit(point)) })), valleys = rifts.map((rift) => ({ ...rift, vectors: rift.points.map((point) => unit(point)) }));
   for (let r = 0; r < grid.rows; r += 1) for (let c = 0; c < grid.cols; c += 1) {
     const i = r * grid.cols + c; if (!outline[i]) continue;
     const v = sphereVector(axes, grid.x0 + (c + 0.5) * cellKm, grid.y0 - (r + 0.5) * cellKm), X = v[0] * EYM_RADIUS_KM, Y = v[1] * EYM_RADIUS_KM, Z = v[2] * EYM_RADIUS_KM, coast = coastKm[i];
@@ -381,7 +384,20 @@ export function buildSphereFrame({ id, continent, origin, center, rings, ridges 
       for (let k = 0; k + 1 < ridge.vectors.length; k += 1) { const angle = arcAngle(v, ridge.vectors[k], ridge.vectors[k + 1]); if (angle < nearest) nearest = angle; }
       ridgeM = Math.max(ridgeM, ridge.heightM * Math.exp(-((nearest * EYM_RADIUS_KM / ridge.widthKm) ** 2)) * Math.min(1, coast / 90) * (0.8 + 0.3 * (noise(X / 60 + 40, Y / 60, Z / 60) + 1) / 2));
     }
-    e += ridgeM + 380 * Math.max(0, noise(X / 300 - 20, Y / 300 + 7, Z / 300)) * Math.min(1, coast / 200);
+    e += ridgeM;
+    if (interior) {
+      // A continent tens of millions of km² across: the land goes on rising gently away from the sea, so that its
+      // water runs out to the coasts and does not stand in the hollows of the noise; old high country far inland
+      // (plateaus and shields); and rift valleys, with raised shoulders, where plates part beneath it.
+      e += INTERIOR.riseMPerKm * Math.min(coast, INTERIOR.riseOverKm) + INTERIOR.plateauM * Math.max(0, noise(X / 1500 + 3, Y / 1500 - 8, Z / 1500)) ** 1.3 * Math.min(1, coast / 500) + 260 * Math.max(0, noise(X / 420 - 9, Y / 420 + 2, Z / 420)) * Math.min(1, coast / 250);
+      for (const rift of valleys) {
+        let nearest = Infinity;
+        for (let k = 0; k + 1 < rift.vectors.length; k += 1) { const angle = arcAngle(v, rift.vectors[k], rift.vectors[k + 1]); if (angle < nearest) nearest = angle; }
+        const km = nearest * EYM_RADIUS_KM;
+        if (km < 3 * rift.widthKm) e = e * (1 - 0.75 * Math.exp(-((km / rift.widthKm) ** 2))) + 600 * Math.exp(-(((km - 1.6 * rift.widthKm) / (0.5 * rift.widthKm)) ** 2)) * Math.min(1, coast / 200);
+      }
+    }
+    e += 380 * Math.max(0, noise(X / 300 - 20, Y / 300 + 7, Z / 300)) * Math.min(1, coast / 200);
     elevation[i] = Math.max(1, e);
   }
   return { id, continent, origin, center, grid, outline, land, water, coastKm, elevation, forest: new Uint8Array(count), reliefValue: new Float32Array(count), radiusKm: radiusKm + margin, sphere: { ...axes, turnDeg } };
@@ -400,7 +416,7 @@ function minGapKm(ringsA, ringsB, step = 4) {
  * Build Eym's surface from the traced continents and the layout. Returns the
  * serializable surface (rings in [lat, lon]) and a sampler over it.
  */
-export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null) {
+export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null, growth = null) {
   const rng = createRng(`${layout.seed}|shapes`), noise = valueNoise2(`${layout.seed}|relief`);
   const frames = [], continents = [], coasts = [], inlandWater = [];
   const addCoasts = (frame, ringsKm, kinds, areas) => ringsKm.forEach((ring, index) => {
@@ -439,7 +455,8 @@ export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null) {
   // Gaffa, Khohalis and Demani: from the tectonic history (data/eym/tectonics.json) when it is given, else
   // the old seeded shapes.
   for (const spec of layout.seeded) {
-    const fitted = tectonics?.continents?.[spec.id];
+    // (Grown to its canon size, data/eym/growth.json, when that is given: the fitted continent is then its core.)
+    const grown = growth?.continents?.[spec.id], fitted = grown ?? tectonics?.continents?.[spec.id];
     let rings, kinds, areas, ridges;
     if (fitted) {
       rings = fitted.rings; kinds = fitted.kinds; areas = rings.map((ring) => ringAreaKm2(ring)); ridges = fitted.ridges.map(({ heightM, widthKm, points }) => ({ heightM, widthKm, points }));
@@ -469,7 +486,7 @@ export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null) {
     const large = frameStretch(reachKm) > FRAME_STRETCH_LIMIT;
     if (large) areas = rings.map((ring) => sphericalRingAreaKm2(toLatLonRing(spec.center, ring)));
     const frame = large
-      ? buildSphereFrame({ id: spec.id, continent: spec.name, origin: "seeded", center: spec.center, rings: rings.map((ring) => toLatLonRing(spec.center, ring)), ridges: ridges.map((ridge) => ({ ...ridge, points: ridge.points.map(([x, y]) => fromLocal(spec.center, x, y)) })), seed: layout.seed })
+      ? buildSphereFrame({ id: spec.id, continent: spec.name, origin: "seeded", center: spec.center, rings: rings.map((ring) => toLatLonRing(spec.center, ring)), ridges: ridges.map((ridge) => ({ ...ridge, points: ridge.points.map(([x, y]) => fromLocal(spec.center, x, y)) })), rifts: (grown?.rifts ?? []).map((rift) => ({ ...rift, points: rift.points.map(([x, y]) => fromLocal(spec.center, x, y)) })), interior: Boolean(grown), seed: layout.seed })
       : buildFrame({ id: spec.id, continent: spec.name, origin: "seeded", center: spec.center, rings, ridges, cellKm: 10, noise });
     frames.push(frame); addCoasts(frame, rings, kinds, areas);
     continents.push({ id: spec.id, name: spec.name, origin: "seeded", center: spec.center, mainlandAreaKm2: Math.round(areas[0]), islands: rings.length - 1 });
@@ -504,6 +521,9 @@ export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null) {
       const ring = seededRing(archRng, { areaKm2: area, elongation: 1 + archRng() * 2, orientationDeg: archRng() * 180, vertices: 18, subdivisions: 2, lobes: 1 }).map(([x, y]) => [x + cx, y + cy]);
       rings.push(ring); kinds.push("island"); areas.push(ringAreaKm2(ring));
     }
+    // (An island chain the grown land has taken in is part of that continent now: its draws are still made, so the
+    // other chains keep their shapes, and its islands are not placed.)
+    if (growth?.accreted?.some((a) => a.archipelago === clusterIndex + 1)) return;
     const frame = buildFrame({ id: `archipelago-${clusterIndex + 1}`, continent: null, origin: "seeded", center, rings, cellKm: 4, noise });
     frames.push(frame); addCoasts(frame, rings, kinds, areas);
   });

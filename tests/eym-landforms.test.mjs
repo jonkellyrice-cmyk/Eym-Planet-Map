@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, statSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { attachDrainage, attachGeology, drainageFileName } from "../scripts/cartography-asset.mjs";
 import { coarseAt, buildLocalTile, landformsOf, localContext, terrainAt, COVER } from "../scripts/eym-local-detail.mjs";
 import { channelWidthM, cliffLiftM, coastCharacter, drainageChannels, shoreAt, valleyAt } from "../scripts/eym-landforms.mjs";
@@ -129,4 +130,13 @@ test("each land mass has a fingerprint of what it reads, and the threaded build 
   // Drained afresh in two threads, nothing reused: the very file that is shipped.
   const report = [], doc = await buildDrainageParallel({ cache: false, report });
   assert.equal(`${JSON.stringify(doc)}\n`, read(drainagePath)); assert.deepEqual(report.map((r) => r.continent).sort(), [...DETAILED].sort()); assert.ok(report.every((r) => !r.cached && r.landNodes > 100000));
+});
+
+test("Caren's and Garyk's channels are the ones they had before the far continents were grown", () => {
+  // The channels' points, bit for bit (568 of Caren's and 412 of Garyk's). When Gaffa, Khohalis and Demani were grown
+  // (canon of 19 November 2026) a river of theirs that crosses ±180° was at first walked right round the world at
+  // its latitude, through Caren and Garyk, and 47 false channels appeared: this is the guard against its like.
+  const doc = JSON.parse(read(drainagePath));
+  assert.deepEqual(doc.landMasses, [{ continent: "Caren", latticeDeg: 0.02, channels: 568 }, { continent: "Garyk", latticeDeg: 0.02, channels: 412 }]);
+  assert.equal(createHash("sha256").update(doc.pointsInt16Base64).digest("hex"), "4e8202ef8b3b0bfec468cc1d1fc1a8358b856215b45233fe22f07375e0ddea62");
 });

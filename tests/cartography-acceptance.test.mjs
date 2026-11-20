@@ -61,9 +61,10 @@ test("canonical CSV is pinned to the world as accepted (a managed pin)", () => {
   assert.equal(createHash("sha256").update(csv).digest("hex"), pin.value);
 });
 
-test("Eym's accepted canon has five continents in a planet-wide ocean", () => {
+test("Eym's accepted canon has five continents in an ocean that covers about four fifths of it", () => {
   const eym = load(manifest.worlds.find((world) => world.body === "Eventide"));
-  assert.ok(eym.terrain.realizedWaterFraction >= .98);
+  // Canon of 19 November 2026: about 80% water (it was 98.6% before Gaffa, Khohalis and Demani were grown).
+  assert.ok(eym.terrain.realizedWaterFraction >= .79 && eym.terrain.realizedWaterFraction <= .81, String(eym.terrain.realizedWaterFraction));
   const continents = eym.gazetteer.filter((feature) => feature.featureClass === "continent");
   assert.equal(continents.length, 5);
   assert.deepEqual(continents.filter((feature) => feature.origin === "authored").map((feature) => feature.properName).sort(), ["Caren", "Garyk"]);

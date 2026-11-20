@@ -37,6 +37,9 @@ test("mobile render plans retain essential layers within a bounded DOM budget", 
     assert.ok(surface.resources.length > 0, body);
     assert.ok(cartographyFeatureBudget(orbital) < cartographyFeatureBudget(surface), body);
     assert.ok(cartographyFeatureBudget(surface) < 1_600, body);
+    // A phone draws no more rivers and waters than its level of detail allows, the greatest first; the desk draws all.
+    assert.ok(surface.rivers.length <= 240 && surface.waterbodies.length <= 300 && orbital.rivers.length <= 120, body);
+    assert.equal(buildCartographyRenderPlan(world, 3, false).rivers.length, world.hydrology.rivers.length, body);
   }
 });
 
