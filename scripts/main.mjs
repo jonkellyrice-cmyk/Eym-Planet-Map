@@ -1,6 +1,7 @@
 import { ClusterMapApplication, MODULE_ID } from "./cluster-map-app.mjs";
 import { MoonCalendarApplication } from "./moon-calendar-app.mjs";
 import { addMapSceneControl } from "./scene-control.mjs";
+import { clockDateChoices } from "./clock-date-menus.mjs";
 import {
   DEFAULT_UNIVERSAL_TIME_STATE,
   UNIVERSAL_TIME_SETTING,
@@ -104,15 +105,20 @@ function startUniversalClockSessionMaintenance() {
   }
 }
 
+// Fill a menu with choices and choose one (only rebuilt when its choices change, so an open menu is not disturbed).
+function fillMenu(select, choices, value) {
+  if (!select) return;
+  const key = choices.map(([v]) => v).join(",");
+  if (select.dataset.choices !== key) { select.replaceChildren(...choices.map(([v, label]) => { const option = document.createElement("option"); option.value = String(v); option.textContent = label; return option; })); select.dataset.choices = key; }
+  select.value = String(Math.min(Number(value), choices.at(-1)[0]));
+}
+
 function populateClockInputs(root, ms) {
-  const parts = universalTimeParts(ms);
-  const month = root.querySelector('[name="universalMonth"]');
-  const day = root.querySelector('[name="universalDay"]');
-  const year = root.querySelector('[name="universalYear"]');
+  const parts = universalTimeParts(ms), choices = clockDateChoices(parts);
+  fillMenu(root.querySelector('[name="universalMonth"]'), choices.months, parts.month);
+  fillMenu(root.querySelector('[name="universalDay"]'), choices.days, parts.day);
+  fillMenu(root.querySelector('[name="universalYear"]'), choices.years, parts.year);
   const time = root.querySelector('[name="universalTime"]');
-  if (month) month.value = String(parts.month);
-  if (day) day.value = String(parts.day);
-  if (year) year.value = String(parts.year);
   if (time) time.value = formatUniversalTimeInput(ms);
 }
 
@@ -170,6 +176,12 @@ function bindUniversalClock(root) {
       mutateUniversalClock(root, (state, now) => adjustCampaignProperTime(state, deltaMinutes * MINUTE_MS, now));
     });
   }
+
+  // Year's End has fourteen days: choosing a month sets the days on offer, keeping the day chosen where it still exists.
+  root.querySelector('[name="universalMonth"]')?.addEventListener("change", (event) => {
+    const day = root.querySelector('[name="universalDay"]'), year = Number(root.querySelector('[name="universalYear"]')?.value) || 1;
+    fillMenu(day, clockDateChoices({ month: Number(event.target.value), year }).days, day?.value || 1);
+  });
 
   root.querySelector('[data-action="set-universal-clock"]')?.addEventListener("click", () => {
     const month = Number(root.querySelector('[name="universalMonth"]')?.value);
