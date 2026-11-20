@@ -138,7 +138,7 @@ central uplift of 250 m, a trough 60 m deep and a low rim of 150 m; Dubos stands
 only as a range (20 to 200 million years) until the world's author fixes it; the ore bodies are placed with
 Resources.
 
-*The Molkath desert* (to be checked against the models; it replaces the earlier "basin north of the equator ringed
+*The Molkath desert* (checked against the models in 0.35.0 and not reached: see "As measured", below; it replaces the earlier "basin north of the equator ringed
 by mountains"). A desert of sand and rock in the tan country of the Molkath Confederation round what is left of the
 Sondel Range, at about 0° to 4° N, between the Drong and the Molkath. It was there before the range fell. The cause
 is natural (as for the Chalbi Desert by Lake Turkana, at 3° N, with 150 to 250 mm of rain a year): a low, hot basin;
@@ -148,7 +148,7 @@ the fall the coast-to-coast wall made the funnel and the shadow stronger. The ai
 eras; if the models cannot reach it by natural means the shortfall is reported, and nothing is tuned or made magical
 without the world's author's word.
 
-*Climate* (to be checked against the models). South Caren is tropical wet and dry: savanna with patches of forest
+*Climate* (checked against the models in 0.35.0: see "As measured", below). South Caren is tropical wet and dry: savanna with patches of forest
 (the Arluna, Calmond, Ewash and Holy Grove forests), the Minisa Forest's conifers being tropical pines on sandy or
 high ground, palms on the Chom Islands and the eastern islets, and Dree often stormy. North of the Sondel the plateau
 has a mild rhythm of four seasons: a warm rainy season, leaf fall, a cool dry season with frost at night, and
@@ -159,13 +159,50 @@ the dry season and almost no snow; at 2,500 to 4,000 m snow now and then in cold
 snow all year and small glaciers, if the summits are that high. Forest of a temperate kind grows only where height
 makes it cool enough, and is called highland forest.
 
-*The sea west of Caren* (to be built). A plume under the Caren Plate at about 1° N, 14° W has built a cluster of
+*The sea west of Caren* (built in 0.35.0: nine islands, 3,433 km² together, the largest 1,528 km², 890 km and more off Caren, on a ridge of twenty sunken volcanoes whose crest is 300 m down; they lie outside the detailed maps and are drawn on the globe). A plume under the Caren Plate at about 1° N, 14° W has built a cluster of
 volcanic islands on a shallow ridge (1° S to 4° N, 12° to 16° W), 800 to 1,200 km off Caren's west coast: a cluster
 and not a chain, because the plate moves so slowly (as at Cape Verde). Cold water wells up where the equator's deep
 current meets the ridge, and along Caren's western coasts when the north-east trades blow hardest. Expected, and to
 be checked, not assumed: a tongue of cold water toward Caren's west coast; northern Caren cooler and drier, with a
 cool, foggy season of drizzle on its western coasts; the rain belt south of the equator over Caren for more of the
 year.
+
+*As measured (0.35.0; `scripts/eym-caren-climate.mjs`, dials `carenClimate`; the survey is `data/eym/caren.json`,
+`climate`).* Caren's rain is now worked out month by month from physical causes: where the rain belt stands, which
+way the trades blow, the mountains the air has crossed or is climbing, how far it has come over land, the warmth of
+the sea it came from, and whether it is squeezed between high grounds. No number was set to reach an answer. What the
+canon expects, and what the physics gives:
+
+| The canon expects | Found? | What the model gives |
+|---|---|---|
+| A tongue of cold water toward Caren's west coast | yes | The sea west of Caren is 0.7 °C colder than its latitude's all year, 1.1 °C over the islands' ridge |
+| The western coasts' sea swinging 5 to 8 °C through the year | no | 0.5 °C |
+| The rain belt south of the equator over Caren for more of the year | no | 4 months of 12, as before: the cold water lies on both sides of the equator and draws the belt at most 0.7° (north) |
+| Northern Caren cooler | yes | 20.8 °C in the mean against 24.7 °C in the south; the plateau 15.1 °C |
+| Northern Caren drier | no | 2,206 mm against the south's 1,405 mm: the plateau's windward ramps wring rain from the trades. Only its lee is drier (north-west 1,771 mm, north-east 2,519 mm) |
+| A cool plateau with a mild rhythm of seasons | yes | 15.1 °C, the months 2.5 °C apart, two rainier seasons as the belt passes twice |
+| A dry season on the plateau with frost at night | no | Almost no dry month (0.2 of 12); the coldest nights 5.6 °C. Ground frost begins near 2,500 m, air frost near 3,250 m |
+| Frost on clear dry-season nights at 1,500 to 2,000 m | no | The coldest nights at 1,750 m are 6.6 °C |
+| A rain shadow south-west of Mt. Weth | yes | 1,080 mm in its lee against 1,830 mm to windward |
+| A rain shadow south-west of Mt. Oplin and Mt. Danrich, round Menera | no | Menera has 2,106 mm: the trades reach it from the east coast up the inlet with no mountain in the way |
+| South Caren tropical wet and dry | yes | 1,405 mm a year with five to six dry months; Dree 1,388 mm with six |
+| Snow all year only above about 4,800 m; none in the lowlands | yes | None to 2,500 m; now and then, in cold, wet spells, from about 3,250 m; all year from 4,800 m |
+| The Molkath desert arid (100 to 250 mm), today and before the fall | no | Today 2,302 mm in the middle of its low ground (390 to 2,812); with the wall standing 1,840 mm (1,380 to 2,696) |
+
+*Dree's storms* were looked for in two years of the daily weather: no gale and no tropical storm came within 400 km of
+it (it lies under 7° from the equator, where such storms hardly form). Its wet season brings 220 to 265 mm a month.
+
+*What this means.* Six of the thirteen follow from the physics as built; seven do not. The largest is the Molkath
+desert: its country lies on the windward side of the Sondel's remnant under the easterly trades, on the warm western
+shore of the widest equatorial sea, and no mountain shuts it in across the wind, so the air rains over it. The canon
+says to report this and to tune nothing; the decision is the world's author's. If a place is to differ from what the
+physics gives, by a recorded nudge or by real magic, it can be set as a hand-authored exception with its reason
+(`data/eym/overrides.json`), which every change report lists.
+
+*The map still rules what is drawn.* Forest is where the map draws forest; the map's tan country is dry grassland
+whatever the rain (so the Molkath country is drawn as the map draws it); and country the map leaves open is open:
+savanna where the dry season is long (the south), woodland and grassland where it is short. A forest is rainforest
+only where its dry season is short; highland forest is called highland forest.
 
 ## Planet-wide (owner and the world's author, 20 November 2026)
 

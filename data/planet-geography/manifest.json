@@ -36,10 +36,10 @@
       "system": "Mitkear",
       "body": "Eym",
       "seed": "741343188e552de0",
-      "inputFingerprint": "ccc86a685a5e5f976c23",
+      "inputFingerprint": "15a2517f14db6b012a38",
       "path": "data/planet-geography/mitkear/eym.json",
       "summary": {
-        "waterFraction": 0.7986,
+        "waterFraction": 0.79859,
         "plates": 11,
         "coastSegments": 5,
         "rivers": 40,
@@ -55,8 +55,8 @@
           "savanna": 27,
           "steppe": 27,
           "tropical-ocean": 352,
-          "seasonal-forest": 63,
-          "tropical-rainforest": 17,
+          "seasonal-forest": 67,
+          "tropical-rainforest": 13,
           "temperate-rainforest": 5,
           "cold-desert": 1
         },

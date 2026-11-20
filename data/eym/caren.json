@@ -1,7 +1,635 @@
 {
  "schemaVersion": 1,
  "model": "eym-caren-relief-v1",
- "sourcesSha256": "b9aca996b3e72684621ea49b7a006e7386d66d9e02275b6b270bef8225d4084e",
+ "sourcesSha256": "e16a23e8152dabceda7e6fdff8c9516c8ecc07c9648c6faae36e417b2a45098a",
+ "climate": {
+  "model": "eym-caren-climate-v1",
+  "expectations": [
+   {
+    "expected": "a tongue of cold water toward Caren's west coast",
+    "found": true,
+    "measure": "the sea west of Caren is 0.7 °C colder than its latitude's, the year round"
+   },
+   {
+    "expected": "the western coasts' sea swings 5 to 8 °C through the year",
+    "found": false,
+    "measure": "0.5 °C"
+   },
+   {
+    "expected": "the rain belt south of the equator over Caren for more of the year",
+    "found": false,
+    "measure": "4 months of 12 (the sea draws it 0.7° north at most, not south: the cold water lies on both sides of the equator)"
+   },
+   {
+    "expected": "northern Caren cooler than the south",
+    "found": true,
+    "measure": "20.8 °C against 24.7 °C"
+   },
+   {
+    "expected": "northern Caren drier than the south",
+    "found": false,
+    "measure": "2206 mm against 1405 mm: the plateau's windward ramps wring rain from the trades; only its lee is drier (north-west 1771 mm, north-east 2519 mm)"
+   },
+   {
+    "expected": "a cool plateau with a mild rhythm of seasons",
+    "found": true,
+    "measure": "15.1 °C in the mean, the months 2.5 °C apart"
+   },
+   {
+    "expected": "a dry season on the plateau, with frost at night",
+    "found": false,
+    "measure": "0.2 dry months of 12; the coldest nights 5.6 °C (ground frost begins at 4 °C)"
+   },
+   {
+    "expected": "a rain shadow to the south-west of Mt. Weth",
+    "found": true,
+    "measure": "1080 mm in its lee against 1830 mm to windward"
+   },
+   {
+    "expected": "a rain shadow to the south-west of Mt. Oplin and Mt. Danrich, round Menera",
+    "found": false,
+    "measure": "Mt. Danrich: 3770 mm against 2864 mm; Mt. Oplin: 3402 mm against 1154 mm; Menera 2106 mm (the trades reach it from the east coast, up the inlet, with no mountain in the way)"
+   },
+   {
+    "expected": "south Caren tropical wet and dry",
+    "found": true,
+    "measure": "1405 mm a year with 5.5 dry months; Dree 1388 mm with 6 dry months"
+   },
+   {
+    "expected": "snow all year only above about 4,800 m; none in the lowlands",
+    "found": true,
+    "measure": "0 m: none; 1000 m: none; 1750 m: none; 2500 m: none; 3250 m: now and then, in cold, wet spells; 4000 m: now and then, in cold, wet spells; 4800 m: all year; 5400 m: all year"
+   },
+   {
+    "expected": "frost on clear dry-season nights at 1,500 to 2,000 m",
+    "found": false,
+    "measure": "the coldest nights at 1,750 m are 6.6 °C; ground frost begins near 2500 m and air frost near 3250 m"
+   },
+   {
+    "expected": "the Molkath desert arid (100 to 250 mm a year), today and before the Sondel fell",
+    "found": false,
+    "measure": "today 2302 mm in the middle of its low ground (390 to 2812); with the wall standing 1840 mm (1380 to 2696)"
+   }
+  ],
+  "rainBelt": {
+   "latByMonth": [
+    6.8,
+    11.2,
+    13.7,
+    13.7,
+    11.2,
+    6.8,
+    1.8,
+    -2.5,
+    -5,
+    -5,
+    -2.5,
+    1.8
+   ],
+   "monthsSouthOfTheEquator": 4,
+   "seaPullDegByMonth": [
+    0.4,
+    0.5,
+    0.7,
+    0.7,
+    0.5,
+    0.4,
+    0.3,
+    0.1,
+    0,
+    0,
+    0.1,
+    0.3
+   ]
+  },
+  "sea": {
+   "coldTongueCByMonth": [
+    -0.7,
+    -0.7,
+    -0.7,
+    -0.7,
+    -0.7,
+    -0.7,
+    -0.7,
+    -0.7,
+    -0.8,
+    -0.8,
+    -0.7,
+    -0.7
+   ],
+   "coldTongueC": -0.7,
+   "westCoastCByMonth": [
+    -0.6,
+    -0.6,
+    -0.6,
+    -0.6,
+    -0.6,
+    -0.6,
+    -0.7,
+    -0.9,
+    -1.1,
+    -1.1,
+    -0.9,
+    -0.7
+   ],
+   "westCoastSwingC": 0.5,
+   "overTheRidgeC": -1.1
+  },
+  "parts": {
+   "north": {
+    "places": 2698,
+    "annualMm": 2206,
+    "meanC": 20.8,
+    "dryMonths": 0.8
+   },
+   "northWest": {
+    "places": 831,
+    "annualMm": 1771,
+    "meanC": 21.1,
+    "dryMonths": 1.4
+   },
+   "northEast": {
+    "places": 766,
+    "annualMm": 2519,
+    "meanC": 21.8,
+    "dryMonths": 0.3
+   },
+   "centre": {
+    "places": 7365,
+    "annualMm": 1947,
+    "meanC": 22.5,
+    "dryMonths": 2.4
+   },
+   "south": {
+    "places": 3268,
+    "annualMm": 1405,
+    "meanC": 24.7,
+    "dryMonths": 5.5
+   }
+  },
+  "plateau": {
+   "places": 437,
+   "annualMm": 2642,
+   "meanC": 15.1,
+   "swingC": 2.5,
+   "coldestNightC": 5.6,
+   "wetMonths": 11.8,
+   "dryMonths": 0.2,
+   "groundFrostMonths": 0
+  },
+  "byHeight": [
+   {
+    "heightM": 0,
+    "meanC": 26.6,
+    "coldestNightC": 17.6,
+    "groundFrostMonths": 0,
+    "airFrostMonths": 0,
+    "snow": "none"
+   },
+   {
+    "heightM": 1000,
+    "meanC": 19.6,
+    "coldestNightC": 11.3,
+    "groundFrostMonths": 0,
+    "airFrostMonths": 0,
+    "snow": "none"
+   },
+   {
+    "heightM": 1750,
+    "meanC": 14.5,
+    "coldestNightC": 6.6,
+    "groundFrostMonths": 0,
+    "airFrostMonths": 0,
+    "snow": "none"
+   },
+   {
+    "heightM": 2500,
+    "meanC": 9.3,
+    "coldestNightC": 2.6,
+    "groundFrostMonths": 2,
+    "airFrostMonths": 0,
+    "snow": "none"
+   },
+   {
+    "heightM": 3250,
+    "meanC": 4.5,
+    "coldestNightC": -2.3,
+    "groundFrostMonths": 12,
+    "airFrostMonths": 4,
+    "snow": "now and then, in cold, wet spells"
+   },
+   {
+    "heightM": 4000,
+    "meanC": -0.4,
+    "coldestNightC": -7.2,
+    "groundFrostMonths": 12,
+    "airFrostMonths": 12,
+    "snow": "now and then, in cold, wet spells"
+   },
+   {
+    "heightM": 4800,
+    "meanC": -5.6,
+    "coldestNightC": -12.4,
+    "groundFrostMonths": 12,
+    "airFrostMonths": 12,
+    "snow": "all year"
+   },
+   {
+    "heightM": 5400,
+    "meanC": -9.5,
+    "coldestNightC": -16.3,
+    "groundFrostMonths": 12,
+    "airFrostMonths": 12,
+    "snow": "all year"
+   }
+  ],
+  "rainShadows": [
+   {
+    "name": "Mt. Danrich",
+    "leeMm": 3770,
+    "windwardMm": 2864,
+    "leeShare": 1.32
+   },
+   {
+    "name": "Mt. Weth",
+    "leeMm": 1080,
+    "windwardMm": 1830,
+    "leeShare": 0.59
+   },
+   {
+    "name": "Mt. Shila",
+    "leeMm": 2492,
+    "windwardMm": 1058,
+    "leeShare": 2.36
+   },
+   {
+    "name": "Mt. Oplin",
+    "leeMm": 3402,
+    "windwardMm": 1154,
+    "leeShare": 2.95
+   }
+  ],
+  "towns": [
+   {
+    "name": "Folo",
+    "at": [
+     5.1,
+     -4.33
+    ],
+    "groundM": 22,
+    "annualMm": 1002,
+    "monthsMm": [
+     157,
+     57,
+     39,
+     39,
+     57,
+     157,
+     117,
+     81,
+     50,
+     50,
+     81,
+     117
+    ],
+    "wetMonths": 6,
+    "dryMonths": 6,
+    "meanC": 25.8,
+    "swingC": 3.6,
+    "coldestNightC": 18.9,
+    "groundFrostMonths": 0
+   },
+   {
+    "name": "Bostain",
+    "at": [
+     6.05,
+     0.06
+    ],
+    "groundM": 1269,
+    "annualMm": 2946,
+    "monthsMm": [
+     393,
+     258,
+     173,
+     173,
+     258,
+     393,
+     338,
+     192,
+     119,
+     119,
+     192,
+     338
+    ],
+    "wetMonths": 12,
+    "dryMonths": 0,
+    "meanC": 17.2,
+    "swingC": 2.9,
+    "coldestNightC": 10.5,
+    "groundFrostMonths": 0
+   },
+   {
+    "name": "Rach",
+    "at": [
+     5.02,
+     -0.24
+    ],
+    "groundM": 1774,
+    "annualMm": 2028,
+    "monthsMm": [
+     280,
+     140,
+     95,
+     95,
+     140,
+     280,
+     258,
+     147,
+     94,
+     94,
+     147,
+     258
+    ],
+    "wetMonths": 12,
+    "dryMonths": 0,
+    "meanC": 14.5,
+    "swingC": 2.1,
+    "coldestNightC": 7,
+    "groundFrostMonths": 0
+   },
+   {
+    "name": "Aren",
+    "at": [
+     4.47,
+     -2
+    ],
+    "groundM": 878,
+    "annualMm": 1188,
+    "monthsMm": [
+     152,
+     66,
+     43,
+     43,
+     66,
+     152,
+     168,
+     100,
+     65,
+     65,
+     100,
+     168
+    ],
+    "wetMonths": 10,
+    "dryMonths": 2,
+    "meanC": 20.7,
+    "swingC": 2.3,
+    "coldestNightC": 12.6,
+    "groundFrostMonths": 0
+   },
+   {
+    "name": "Menera",
+    "at": [
+     5.46,
+     3.37
+    ],
+    "groundM": 38,
+    "annualMm": 2106,
+    "monthsMm": [
+     280,
+     208,
+     143,
+     143,
+     208,
+     280,
+     223,
+     122,
+     77,
+     77,
+     122,
+     223
+    ],
+    "wetMonths": 12,
+    "dryMonths": 0,
+    "meanC": 25.8,
+    "swingC": 2,
+    "coldestNightC": 19.5,
+    "groundFrostMonths": 0
+   },
+   {
+    "name": "Plangi",
+    "at": [
+     1.67,
+     1.23
+    ],
+    "groundM": 1955,
+    "annualMm": 3796,
+    "monthsMm": [
+     387,
+     202,
+     124,
+     124,
+     202,
+     387,
+     509,
+     390,
+     286,
+     286,
+     390,
+     509
+    ],
+    "wetMonths": 12,
+    "dryMonths": 0,
+    "meanC": 13.5,
+    "swingC": 2.5,
+    "coldestNightC": 7.9,
+    "groundFrostMonths": 0
+   },
+   {
+    "name": "Dubos",
+    "at": [
+     -2.86,
+     1.2
+    ],
+    "groundM": 188,
+    "annualMm": 2160,
+    "monthsMm": [
+     116,
+     50,
+     34,
+     34,
+     50,
+     116,
+     245,
+     317,
+     318,
+     318,
+     317,
+     245
+    ],
+    "wetMonths": 8,
+    "dryMonths": 4,
+    "meanC": 25,
+    "swingC": 1.7,
+    "coldestNightC": 17,
+    "groundFrostMonths": 0
+   },
+   {
+    "name": "Geniv",
+    "at": [
+     -0.84,
+     -2.95
+    ],
+    "groundM": 221,
+    "annualMm": 1868,
+    "monthsMm": [
+     138,
+     62,
+     38,
+     38,
+     62,
+     138,
+     237,
+     249,
+     210,
+     210,
+     249,
+     237
+    ],
+    "wetMonths": 10,
+    "dryMonths": 2,
+    "meanC": 24.6,
+    "swingC": 2.1,
+    "coldestNightC": 17.1,
+    "groundFrostMonths": 0
+   },
+   {
+    "name": "Lyla",
+    "at": [
+     -1.69,
+     3.19
+    ],
+    "groundM": 169,
+    "annualMm": 2422,
+    "monthsMm": [
+     162,
+     71,
+     45,
+     45,
+     71,
+     162,
+     303,
+     341,
+     289,
+     289,
+     341,
+     303
+    ],
+    "wetMonths": 10,
+    "dryMonths": 2,
+    "meanC": 25.6,
+    "swingC": 1.7,
+    "coldestNightC": 18.6,
+    "groundFrostMonths": 0
+   },
+   {
+    "name": "Dree",
+    "at": [
+     -6.79,
+     0.41
+    ],
+    "groundM": 217,
+    "annualMm": 1388,
+    "monthsMm": [
+     46,
+     25,
+     22,
+     22,
+     25,
+     46,
+     119,
+     217,
+     265,
+     265,
+     217,
+     119
+    ],
+    "wetMonths": 6,
+    "dryMonths": 6,
+    "meanC": 24.2,
+    "swingC": 2.6,
+    "coldestNightC": 16.3,
+    "groundFrostMonths": 0
+   },
+   {
+    "name": "Ewash",
+    "at": [
+     -5.81,
+     -1.64
+    ],
+    "groundM": 447,
+    "annualMm": 1726,
+    "monthsMm": [
+     66,
+     33,
+     27,
+     27,
+     33,
+     66,
+     169,
+     279,
+     289,
+     289,
+     279,
+     169
+    ],
+    "wetMonths": 8,
+    "dryMonths": 4,
+    "meanC": 22.9,
+    "swingC": 2.3,
+    "coldestNightC": 14.2,
+    "groundFrostMonths": 0
+   }
+  ],
+  "molkath": {
+   "box": {
+    "latDeg": [
+     0,
+     4
+    ],
+    "lonDeg": [
+     0.4,
+     2.2
+    ]
+   },
+   "targetMm": [
+    100,
+    250
+   ],
+   "today": {
+    "places": 20,
+    "annualMm": [
+     390,
+     2302,
+     2812
+    ]
+   },
+   "beforeTheFall": {
+    "places": 10,
+    "annualMm": [
+     1380,
+     1840,
+     2696
+    ]
+   },
+   "wall": {
+    "latDeg": 1.2,
+    "halfWidthKm": 120,
+    "crestM": 4500
+   },
+   "reached": false,
+   "why": "It lies on the windward side of the Sondel's remnant under the easterly trades, on the warm western shore of the widest equatorial sea, and is not shut in across the wind: the mountains round it wring rain out of the air over it, not before it."
+  }
+ },
  "latitudes": [
   -10.11,
   8.76

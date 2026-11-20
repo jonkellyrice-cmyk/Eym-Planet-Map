@@ -39,6 +39,14 @@ export const WORLD_INPUTS = deepFreeze({
       centers: [[-33.425, 154.562], [-15.44, -64.333], [-13.744, 60.808], [36.419, 115.164], [12.415, 95.444], [8.836, 39], [-21.136, -115.839], [20.432, -131.434], [-20.699, -163.072], [-16.488, 19.933]] },
 
     /**
+     * The island cluster west of Caren (canon of 20 November 2026): a plume under the Caren Plate at `center` has
+     * built `islands` volcanic islands of `areaKm2` each on a shallow ridge within `halfKm` of it ([east–west,
+     * north–south]), 800 to 1,200 km off Caren's west coast. A natural outlier among the plumes (it stands far
+     * from the margins of the mantle's upwellings, where the others rise). It is no part of the plate fit.
+     */
+    hotspotCluster: { id: "western-isles", center: [1.5, -14], halfKm: [210, 270], islands: 9, areaKm2: [40, 1600], minGapKm: 25 },
+
+    /**
      * How coarsely a continent too large for a flat frame is written into the shipped cartography
      * (scripts/eym-cartography.mjs). Such a continent is known only coarsely (22 km squares, no Region tiles), and
      * every kilobyte of it is loaded by the module, on phones too; so it is kept to what a whole-world or
@@ -151,6 +159,46 @@ export const WORLD_INPUTS = deepFreeze({
     crust: { lowlandKm: 36, lowlandM: 150, densityCrust: 2800, densityMantle: 3300 },
   },
 
+  /**
+   * Caren's climate by physical cause (scripts/eym-caren-climate.mjs; canon of 20 November 2026). These are the
+   * sizes of the causes, taken from what is measured on Earth; none is set to reach a wanted rainfall.
+   */
+  carenClimate: {
+    // The rain belt: rain falls under it and less with each `widthDeg` away. It keeps off cold water: it is drawn
+    // toward the warmer side of the equator by `degPerC` for each degree the sea is warmer there (the sea within
+    // `seaReachDeg` of longitude and `seaBandDeg` of the equator), by no more than `maxPullDeg`.
+    belt: { widthDeg: 9, seaReachDeg: 12, seaBandDeg: 9, degPerC: 2, maxPullDeg: 6 },
+    // The trades: an easterly of `easterlyMs` with a flow toward the belt of up to `towardBeltMs`, full `turnDeg` from it.
+    wind: { easterlyMs: 6, towardBeltMs: 2.5, turnDeg: 6 },
+    // Mountains. Air is followed `reachKm` upwind in steps. Crossing a barrier it loses the water below the barrier's
+    // top (the air's water thins out upward with a scale of `moistureScaleM`), of which `rainedOut` falls there;
+    // climbing a slope it rains `liftPerMPerKm` more for each metre per kilometre (over `slopeKm`), up to `liftMost`
+    // more; and it has less to give the farther it has come over land (a scale of `inlandKm`: forest gives much back).
+    orography: { stepKm: 30, reachKm: 600, moistureScaleM: 2000, rainedOut: 0.8, slopeKm: 90, liftPerMPerKm: 0.05, liftMost: 0.8, inlandKm: 3000 },
+    // The sea upwind: rain changes `rainPerC` for each degree it is warmer or colder than its latitude's (between
+    // `least` and `most`), fading over `reachKm` of land.
+    sea: { rainPerC: 0.09, reachKm: 600, least: 0.55, most: 1.45 },
+    // A wind channel: ground `wallM` higher on both sides, across the wind, within `widthKm` in all. The narrower,
+    // the faster and drier, down to `driest` less rain in the narrowest (as the Turkana channel on Earth).
+    channel: { stepKm: 30, widthKm: 450, wallM: 1000, driest: 0.6 },
+    // Rain in a month: `backgroundMm` anywhere and `beltMm` more right under the belt (together about 2,200 mm a
+    // year where the belt spends the year overhead, as over Earth's wettest equatorial lowlands). A month is wet
+    // from `wetMonthMm` and dry under `dryMonthMm`.
+    rain: { backgroundMm: 22, beltMm: 260, wetMonthMm: 60, dryMonthMm: 60 },
+    // Temperature: cooler by `lapseCPerKm` with height; the months swing by `sunSwingC` times how far the Sun
+    // stands from overhead (its cosine against `sunMean`); the sea upwind is felt within `seaReachKm` of the coast;
+    // a wet month (`cloudyMm` or more) is `rainCoolC` cooler. The day's range runs from `dayRangeC[0]` in a wet
+    // month or on the coast to `dayRangeC[1]` in a dry month `rangeFullKm` or more inland. Ground frost forms in
+    // hollows on a clear night when the air falls to `groundFrostC`.
+    temperature: { lapseCPerKm: 6.5, sunSwingC: 25, sunMean: 0.96, seaReachKm: 300, rainCoolC: 1.5, cloudyMm: 200, dayRangeC: [8, 16], rangeFullKm: 150, groundFrostC: 4 },
+    // The Sondel Range before it fell (real magic; for the climate of that time only): a wall across Caren from
+    // coast to coast along `latDeg`, `crestM` high and `halfWidthKm` to either side. Its line and height are taken
+    // from what is left of it; the world's author may correct them.
+    wallBeforeTheFall: { latDeg: 1.2, halfWidthKm: 120, crestM: 4500 },
+    // The Molkath desert's country (the map's tan ground round the Sondel's remnant), for the survey.
+    molkath: { latDeg: [0, 4], lonDeg: [0.4, 2.2] },
+  },
+
   /** The sea floor's shape (scripts/eym-seafloor.mjs): shelf widths (km) by margin, the slope's width, the abyss's run. */
   seaFloor: { shelfKm: { active: 50, passive: 220 }, slopeKm: 260, abyssKm: 1500 },
 
@@ -162,6 +210,15 @@ export const WORLD_INPUTS = deepFreeze({
     steering: 0.3,
     // The strength of upwelling along a continental slope (at 0.4 m/s) and over a seamount chain (at 0.3 m/s), on the wind-driven upwelling's scale.
     slopeUpwelling: 0.6, seamountUpwelling: 0.8,
+    // Along the equator a deep current runs east under the surface (the undercurrent, about a metre a second).
+    // Where a ridge or seamount chain stands in its way within `undercurrentLat` degrees of the equator it is forced
+    // up: `undercurrentUpwelling` on the same scale, for a cell wholly over the ridge (as west of the Galápagos).
+    undercurrentLat: 3, undercurrentUpwelling: 1.2,
+    // Within `offshoreLat` degrees of the equator the wind's drift is not turned aside (the Earth's turning is too
+    // weak there), so a trade wind blowing off a west-facing coast drags the surface water straight out to sea and
+    // cold water wells up at the coast: `offshoreUpwelling` at the trades' full strength, fading over the two
+    // cells next to the coast.
+    offshoreLat: 9, offshoreUpwelling: 0.9,
   },
 
   /** The weather's large-scale circulation (scripts/eym-weather.mjs): the belts' seasonal shift, the jet streams and blocking. */
@@ -186,6 +243,10 @@ export const WORLD_INPUTS = deepFreeze({
     // Earth's interiors swing by about 21 to 26 times the sine of their latitude (Winnipeg, Irkutsk, Kansas City,
     // Alice Springs) and its west coasts by about 6 to 10 (San Francisco, Lisbon, Paris). They were 4 and 10.
     continentality: { coastC: 5, inlandC: 20 },
+    // The yearly runoff (mm) at which a river's bed is as wide as its old channel's measure gave; wetter country
+    // gives wider rivers, drier narrower (scripts/eym-river-flow.mjs). Fixed, so that one land's climate never
+    // changes another land's rivers.
+    riverReferenceRunoffMm: 1000,
     /**
      * The land's hand on the large-scale atmosphere (scripts/eym-land-atmosphere.mjs; owner, 20 November 2026).
      */

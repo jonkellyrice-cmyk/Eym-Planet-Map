@@ -20,13 +20,13 @@
         "coasts": 84318
       }
     },
-    "tectonicsContentSha256": "c3dbfdd8c42ad3814155234225998688a5e630c3dc4f51593f4303feee2d367b",
-    "tectonicsNote": "Recorded anew on 20 November 2026 (canon: Caren in the plate record). The plates, their poles, speeds and boundaries, the continents, the rasters and the mantle are what they were; the history's entry for Caren, Caren's own record, the arc volcanoes of the Caren Plate's far edges and the name of two plates' speed rule changed."
+    "tectonicsContentSha256": "8ca5a62d8237b8c884b3691e836a79f736704223e822cf6dd0e34fa851f5994f",
+    "tectonicsNote": "Recorded anew on 20 November 2026 (canon: Caren in the plate record). The plates, their poles, speeds and boundaries, the continents, the rasters and the mantle are what they were; the history's entry for Caren, Caren's own record, the arc volcanoes of the Caren Plate's far edges and the name of two plates' speed rule changed. Recorded again the same day for the plume under the islands west of Caren (one volcano, its ridge of seamounts and one line of the history added; nothing else)."
   },
   "managed": {
     "registryCsvSha256": {
-      "value": "66b3088f5578e9d60e08077257f47f997e48734f1454b0c80baba0ad6254365e",
-      "note": "Caren's heights follow from its natural history (canon of 20 November 2026): the registry row's fingerprint follows the surface, Caren's dials and its relief rule."
+      "value": "fc3d6b841aea3444e69e1e5628f09950a0063bedeaf9191749d013c54de3eace",
+      "note": "The islands west of Caren, the sea's upwelling there and Caren's climate by physical cause (canon of 20 November 2026): the registry row's fingerprint follows the surface, the ocean climate, Caren's rules and dials."
     }
   }
 }

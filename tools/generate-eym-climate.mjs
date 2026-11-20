@@ -125,6 +125,8 @@ function potentialVorticity(land, depthM, H) {
 
 /** The strength of upwelling along a continental slope (at 0.4 m/s) and over a seamount chain (at 0.3 m/s), on the wind-driven upwelling's scale. */
 export const SLOPE_UPWELLING = WORLD_INPUTS.ocean.slopeUpwelling, SEAMOUNT_UPWELLING = WORLD_INPUTS.ocean.seamountUpwelling;
+/** The equator's undercurrent forced up over a ridge, and the trades' drag off a west-facing coast near the equator (see the dials). */
+export const UNDERCURRENT_LAT = WORLD_INPUTS.ocean.undercurrentLat, UNDERCURRENT_UPWELLING = WORLD_INPUTS.ocean.undercurrentUpwelling, OFFSHORE_LAT = WORLD_INPUTS.ocean.offshoreLat, OFFSHORE_UPWELLING = WORLD_INPUTS.ocean.offshoreUpwelling;
 
 /** One season: currents (m/s), upwelling (0–1.5) and the sea-surface temperature anomaly (°C), on the 2° grid. */
 export function solveSeason(land, f, floor = null) {
@@ -185,7 +187,21 @@ export function solveSeason(land, f, floor = null) {
     const along = speed && steep ? (v[i] * -hx - u[i] * -hy) / (speed * steep) * Math.sign(lat || 1) : 0;
     up[i] = clamp(up[i] + SLOPE_UPWELLING * floor.shelfBreak[i] * (speed / 0.4) * (0.3 + 0.7 * Math.max(0, along)) + SEAMOUNT_UPWELLING * floor.seamount[i] * (speed / 0.3), 0, 1.5);
   }
-  return { declinationDeg: decl, u, v, upwelling: up };
+  // The equator's undercurrent (a deep eastward current the surface model does not carry) is forced up where a
+  // ridge or seamount chain stands in its way: cold water at the surface over the ridge and to its west, all year.
+  if (floor) for (let r = 1; r < NLAT - 1; r += 1) { if (Math.abs(latOf(r)) > UNDERCURRENT_LAT) continue; for (let c = 0; c < NLON; c += 1) { const i = idx(r, c); if (ocean(r, c) && floor.seamount[i]) up[i] = clamp(up[i] + UNDERCURRENT_UPWELLING * floor.seamount[i], 0, 1.5); } }
+  // Close to the equator a trade wind blowing off a west-facing coast drags the surface water out to sea, and cold
+  // water wells up at the coast: strongest where and when the trades are (the belts follow the Sun, so north of the
+  // equator that is the northern winter), fading over two cells from the coast and toward `OFFSHORE_LAT`.
+  // (`offshore` keeps this part by itself: it is the one upwelling here that comes and goes with the season so
+  // near the equator, and the sea's temperature follows it month by month: see `seasonalAnomaly`.)
+  const offshore = new Float64Array(N);
+  for (let r = 1; r < NLAT - 1; r += 1) {
+    const lat = latOf(r); if (Math.abs(lat) > OFFSHORE_LAT) continue;
+    const trades = clamp(-tau[r] / 0.07, 0, 1.3), near = 1 - (Math.abs(lat) / OFFSHORE_LAT) ** 2;
+    for (let c = 0; c < NLON; c += 1) { if (!ocean(r, c)) continue; const share = !ocean(r, c + 1) ? 1 : !ocean(r, c + 2) ? 0.5 : 0; if (share) { const i = idx(r, c), before = up[i]; up[i] = clamp(up[i] + OFFSHORE_UPWELLING * trades * near * share, 0, 1.5); offshore[i] = up[i] - before; } }
+  }
+  return { declinationDeg: decl, u, v, upwelling: up, offshore };
 }
 
 /**
@@ -232,14 +248,19 @@ export function solveAnomaly(land, u, v, up) {
 /**
  * One season's anomaly: the lasting one, a quarter stronger in each hemisphere's winter (when the westerlies and
  * the contrasts are strongest) and a quarter weaker in its summer, softly capped (±5 °C in the tropics, ±3 °C
- * poleward of 40°), plus the trade winds' warm pool and cold tongue.
+ * poleward of 40°), plus the trade winds' warm pool and cold tongue. Where the trades' drag off a west-facing coast
+ * near the equator wells cold water up (`offshore`), the sea there is colder than its year's mean in the season
+ * the trades blow hardest and warmer in the season they slacken: by the same cooling the lasting anomaly uses
+ * (`UPWELLING_COOLS_C` for a full measure of upwelling over warm water), since the surface answers within a month.
  */
-function seasonalAnomaly(annual, tilt, land, f) {
+const UPWELLING_COOLS_C = 3.5;
+function seasonalAnomaly(annual, tilt, land, f, offshore = null, offshoreMean = null) {
   return Float64Array.from(annual, (a, i) => {
     if (land[i]) return 0;
     const lat = latOf(Math.floor(i / NLON)), winter = lat >= 0 ? 0.75 : 0.25, cap = Math.abs(lat) >= 40 ? 3 : 5;
     const scaled = a * (1 + 0.25 * Math.cos(2 * Math.PI * (f - winter)));
-    return clamp(cap * Math.tanh(scaled / cap) + tilt[i], -5, 5);
+    const comesAndGoes = offshore ? -UPWELLING_COOLS_C * clamp((seaLevelTemperatureC(lat) - 4) / 20, 0, 1) * (offshore[i] - offshoreMean[i]) : 0;
+    return clamp(cap * Math.tanh(scaled / cap) + tilt[i] + comesAndGoes, -5, 5);
   });
 }
 
@@ -308,9 +329,9 @@ export function buildClimate() {
   const land = landMask(), floor = bathymetry();
   const solved = SEASONS.map((f) => solveSeason(land, f, floor));
   const mean = (k) => Float64Array.from({ length: N }, (_, i) => solved.reduce((s, x) => s + x[k][i], 0) / solved.length);
-  const annual = solveAnomaly(land, mean("u"), mean("v"), mean("upwelling")), tilt = tradeTilt(land);
+  const annual = solveAnomaly(land, mean("u"), mean("v"), mean("upwelling")), tilt = tradeTilt(land), offshoreMean = mean("offshore");
   const seasons = solved.map((s, k) => {
-    const f = SEASONS[k], anomaly = seasonalAnomaly(annual, tilt, land, f);
+    const f = SEASONS[k], anomaly = seasonalAnomaly(annual, tilt, land, f, s.offshore, offshoreMean);
     return { yearFraction: f, declinationDeg: Math.round(s.declinationDeg * 10) / 10, u: round(coarsen(s.u, land, false), 100), v: round(coarsen(s.v, land, false), 100), upwelling: round(coarsen(s.upwelling, land, false), 100), sstAnomaly: round(coarsen(anomaly, land, true), 10) };
   });
   const enso = ensoPattern(land);

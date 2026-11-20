@@ -547,6 +547,24 @@ export function buildEymSurface(traced, layout = EYM_LAYOUT, tectonics = null, g
     frames.push(frame); addCoasts(frame, rings, kinds, areas);
   });
 
+  // The island cluster west of Caren (the dials' `hotspotCluster`): volcanic islands on a ridge over a plume, with
+  // draws of their own so that nothing else moves. (The plate fit is given a layout without it.)
+  if (layout.hotspotCluster) {
+    const hc = layout.hotspotCluster, hRng = createRng(`${layout.seed}|${hc.id}`), rings = [], kinds = [], areas = [], placed = [];
+    for (let tries = 0; tries < hc.islands * 12 && rings.length < hc.islands; tries += 1) {
+      const area = Math.exp(Math.log(hc.areaKm2[0]) + hRng() ** 1.6 * (Math.log(hc.areaKm2[1]) - Math.log(hc.areaKm2[0]))), radius = Math.sqrt(area / Math.PI) * 1.5;
+      const angle = hRng() * Math.PI * 2, reach = Math.sqrt(hRng()), cx = Math.cos(angle) * reach * hc.halfKm[0], cy = Math.sin(angle) * reach * hc.halfKm[1];
+      if (placed.some((p) => Math.hypot(p.x - cx, p.y - cy) < p.r + radius + hc.minGapKm)) continue;
+      placed.push({ x: cx, y: cy, r: radius });
+      const ring = seededRing(hRng, { areaKm2: area, elongation: 1 + hRng() * 0.8, orientationDeg: hRng() * 180, vertices: 18, subdivisions: 2, lobes: 1 }).map(([x, y]) => [x + cx, y + cy]);
+      rings.push(ring); kinds.push("island"); areas.push(ringAreaKm2(ring));
+    }
+    // Each island is a volcano: a cone over its middle (a ridge of two points; its height is eased near the shore).
+    const cones = placed.map((p) => ({ heightM: 2500 + hRng() * 1800, widthKm: Math.max(4, p.r * 0.55), points: [[p.x - 0.5, p.y], [p.x + 0.5, p.y]] }));
+    const frame = buildFrame({ id: hc.id, continent: null, origin: "seeded", center: hc.center, rings, ridges: cones, cellKm: 4, noise });
+    frames.push(frame); addCoasts(frame, rings, kinds, areas);
+  }
+
   const landAreaKm2 = coasts.reduce((sum, coast) => sum + coast.areaKm2, 0) - inlandWater.reduce((sum, water) => sum + water.areaKm2, 0);
   const surfaceKm2 = 4 * Math.PI * EYM_RADIUS_KM ** 2;
   const surface = {

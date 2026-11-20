@@ -23,7 +23,7 @@ const cellAt = (lat, lon) => { const [x, y] = toLocal(caren.center, lat, lon); r
 const within = (v, lo, hi) => v >= lo && v <= hi;
 
 test("the survey of Caren is in the chain: its file is the one the tool makes, from Caren's dials, and is the same every time", () => {
-  assert.deepEqual(CAREN_INPUTS, ["layout", "caren"]); assert.ok(CAREN_SOURCES.includes("scripts/eym-caren-relief.mjs") && CAREN_SOURCES.includes("data/eym/traced-continents.json"));
+  assert.deepEqual(CAREN_INPUTS, ["layout", "caren", "carenClimate"]); assert.ok(CAREN_SOURCES.includes("scripts/eym-caren-relief.mjs") && CAREN_SOURCES.includes("data/eym/traced-continents.json"));
   const made = JSON.parse(JSON.stringify(buildCaren()));
   assert.deepEqual(made, kept); assert.equal(kept.sourcesSha256, carenSourcesSha256()); assert.deepEqual(JSON.parse(JSON.stringify(buildCaren())), made);
   assert.ok(within(kept.latitudes[0], -10.5, -9.5) && within(kept.latitudes[1], 8.4, 9.1), "Caren spans about 9.9° S to 8.7° N");

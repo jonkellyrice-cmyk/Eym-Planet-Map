@@ -60,7 +60,8 @@ export function classifySetting({ shares, biome, elevationM, reliefFt, condition
   if (s("stream") + s("river") >= 8) return "riverside";
   if (biome === "hot-desert") return "hot-desert";
   if (biome === "cold-desert") return "cold-desert";
-  if (s("woods") >= 40) return biome === "tropical-rainforest" ? "jungle" : biome === "taiga" ? "taiga" : "forest";
+  // (Jungle is lowland rainforest: above about 1,000 m the same wet country carries cooler highland forest.)
+  if (s("woods") >= 40) return biome === "tropical-rainforest" && elevationM < 1000 ? "jungle" : biome === "taiga" ? "taiga" : "forest";
   if (s("farmland") >= 35) return "farmland";
   if (biome === "tundra") return "tundra";
   if (s("scrub") >= 30 || biome === "savanna" || biome === "steppe") return "savanna";
