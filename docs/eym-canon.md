@@ -295,8 +295,10 @@ three steps: outlines and relief; sea floor and currents, with the check of Care
   rainfall is smaller, not larger (its yearly wetness ranged from 0.70 to 1.43 of normal, and ranges from 0.90 to
   1.14 now), because the oscillation's basin is now the 132° of ocean east of Caren and Caren lies 5° outside its
   western edge.
-- *Open, for the owner:* whether Caren counts as the western shore of that basin (and so has dry years when the basin
-  warms). Nothing was changed for it.
+- *Decided (owner, 20 November 2026):* Caren is the western shore of that basin. The lands that shut the basin in
+  share in the side they stand on, so all of Caren (not only its east coast) has dry years when the basin warms and
+  wet years when it cools: its rivers' yearly wetness runs from 0.60 to about 1.4 of normal, with some eighteen dry
+  years (under 0.85) and twenty wet ones (over 1.15) in a century. Garyk has none of it (0.85 to 1.15).
 - *Left for Stage 5:* ice sheets on Khohalis and Demani and their feedback on the temperatures there. Until then the
   cold of Khohalis is from temperature alone (1,665 of its 3,494 climate cells class as ice cap).
 

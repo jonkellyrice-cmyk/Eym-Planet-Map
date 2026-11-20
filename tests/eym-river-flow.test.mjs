@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync, statSync } from "node:fs";
 import { attachDrainage, attachFlow, attachGeology, attachWind, flowFileName } from "../scripts/cartography-asset.mjs";
 import { buildLocalTile, localContext, riverHere } from "../scripts/eym-local-detail.mjs";
-import { battleRiver, describeRiver, flowClimate, riverStage, waterBalance, yearWetness } from "../scripts/eym-river-flow.mjs";
+import { ENSO_SHORE, battleRiver, describeRiver, flowClimate, riverStage, waterBalance, yearWetness } from "../scripts/eym-river-flow.mjs";
 import { buildBattleMap, waterLineScale } from "../scripts/eym-battle-rules.mjs";
 import { battleMapSpec } from "../scripts/eym-map-presets.mjs";
 import { fromLocal } from "../scripts/eym-surface.mjs";
@@ -59,6 +59,20 @@ test("rivers' beds follow the water they carry; some years are wetter than other
   // A river's stage follows its flow against its mean and its bankfull flow.
   const year = { flowM3s: new Array(12).fill(100), meanM3s: 100, bankfullM3s: 200 };
   assert.equal(riverStage(year, 50, YEAR54, 1).stage, "normal"); assert.equal(riverStage(year, 50, YEAR54, 0.4).stage, "low"); assert.equal(riverStage(year, 50, YEAR54, 2.2).stage, "flood");
+});
+
+test("Caren is the western shore of the oscillation's basin: all of it has dry years when the basin warms, and Garyk has none of it", () => {
+  const basin = asset.climate.enso.basin, years = 100, span = (lat, lon) => { const w = []; for (let k = 0; k < years; k += 1) w.push(yearWetness(asset, [lat, lon], YEAR54 + k * 350 * DAY_MS)); return { lo: Math.min(...w), hi: Math.max(...w), w }; };
+  // The basin is the ocean east of Caren; Caren's coasts lie within the shore's reach of its western end.
+  assert.ok(basin.westLon > 0 && basin.westLon < 10 && basin.widthDeg > 100); assert.equal(ENSO_SHORE, 0.15); assert.ok(7 + basin.westLon < ENSO_SHORE * basin.widthDeg);
+  const places = [[0, -6.5], [-7, 0.6], [0, 6.5], [12, 0], [-9, 0]].map(([lat, lon]) => span(lat, lon));
+  for (const p of places) { assert.ok(p.lo < 0.75 && p.hi > 1.3, `${p.lo} to ${p.hi}`); assert.ok(p.w.every((v) => v >= 0.6 && v <= 1.5)); }
+  // West coast and east coast swing together (one shore), dry in the same years.
+  const [west, , east] = places; let same = 0; for (let k = 0; k < years; k += 1) if ((west.w[k] < 1) === (east.w[k] < 1)) same += 1; assert.ok(same >= 0.7 * years, `${same}`);
+  // Garyk, far to the west, keeps only the ordinary year-to-year swing; so does the far side of the world beyond the eastern shore.
+  for (const [lat, lon] of [[9, -78], [15, -67], [15, -90], [0, basin.westLon + basin.widthDeg * (1 + ENSO_SHORE) + 10]]) { const p = span(lat, lon); assert.ok(p.lo >= 0.84 && p.hi <= 1.16, `${lat}, ${lon}: ${p.lo} to ${p.hi}`); }
+  // The eastern shore is wet when the western is dry.
+  const eastShore = span(0, basin.westLon + basin.widthDeg + 5); let opposite = 0; for (let k = 0; k < years; k += 1) if ((west.w[k] < 1) !== (eastShore.w[k] < 1)) opposite += 1; assert.ok(opposite >= 0.6 * years, `${opposite}`);
 });
 
 test("battle maps follow the stream's stage: a dry bed, a swollen stream, and floodwater over the low ground", () => {

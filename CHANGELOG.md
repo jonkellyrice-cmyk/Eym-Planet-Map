@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Caren is the western shore of the El Niño-like oscillation's basin (owner, 20 November 2026). The lands that shut the basin in now share in the side they stand on, for 15% of its width beyond each end (`ENSO_SHORE` in `scripts/eym-river-flow.mjs`); before, a river mouth just west of the basin's edge had no share, so only Caren's east coast felt it. All of Caren now has dry years when the basin warms and wet years when it cools: yearly wetness from 0.60 to about 1.4 of normal on every coast (the west coast and the middle were 0.85 to 1.15), with some eighteen dry and twenty wet years in a century. Garyk is unchanged (0.85 to 1.15). Only rivers' stages through the years change (how full, fordable or in flood a river is on a given date); the climate, the vegetation and every stored tile are as they were. A new test holds it; no existing test is changed.
+
 ## 0.30.0 (2026-11-20)
 
 Canon change from the world's author (20 November 2026): the wanderers move in resonant orbits, and every 68 Eym years all five worlds stand in one line with Mitkear, the Great Alignment (14 March of years 0, 68, 136). Eym's own orbit, year, calendar, seasons, moons, eclipses and tides are unchanged, and so is everything on its surface.
