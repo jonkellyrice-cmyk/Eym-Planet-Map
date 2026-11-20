@@ -17,6 +17,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { systemsBetween, systemAt, weatherAt } from "../scripts/eym-weather.mjs";
+import { landAtmosphere } from "../scripts/eym-land-atmosphere.mjs";
 import { destination, nearestSea, seaState, swellSources } from "../scripts/eym-sea.mjs";
 import { approximateDeclinationDeg, environmentField, yearFraction } from "../scripts/eym-seasons.mjs";
 import { attachGeology, attachOcean } from "../scripts/cartography-asset.mjs";
@@ -26,7 +27,7 @@ import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universa
 const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartography/abydos/eventide-wind.json", root);
 export const WIND_MODEL = "eym-wind-v1";
 /** What the wind climate is made from: this tool, the weather and sea models, and the data they read. */
-export const WIND_SOURCES = ["tools/generate-eym-wind.mjs", "scripts/eym-weather.mjs", "scripts/eym-sea.mjs", "scripts/eym-seasons.mjs", "scripts/eym-geology.mjs", "data/planet-cartography/abydos/eventide.json", "data/planet-cartography/abydos/eventide-geology.json", "data/planet-cartography/abydos/eventide-ocean.json", "data/eym/climate.json"];
+export const WIND_SOURCES = ["tools/generate-eym-wind.mjs", "scripts/eym-weather.mjs", "scripts/eym-land-atmosphere.mjs", "scripts/eym-sea.mjs", "scripts/eym-seasons.mjs", "scripts/eym-geology.mjs", "data/planet-cartography/abydos/eventide.json", "data/planet-cartography/abydos/eventide-geology.json", "data/planet-cartography/abydos/eventide-ocean.json", "data/eym/climate.json"];
 /** The dials it follows (scripts/eym-world-inputs.mjs): the weather's circulation. */
 export const WIND_INPUTS = ["weather"];
 export const windSourcesSha256 = () => { const h = createHash("sha256"); for (const p of WIND_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...WIND_INPUTS)); return h.digest("hex"); };
@@ -76,10 +77,10 @@ export function buildWind(asset) {
   const h0 = Math.round(NORTHWARD_EQUINOX_MS / HOUR_MS), hours = Math.round(YEARS * DAYS_PER_YEAR * 24);
   let samples = 0;
   for (let hour = h0; hour < h0 + hours; hour += STEP_HOURS) {
-    const systems = systemsBetween(hour - 120, hour, isOcean, field.sstC), sources = swellSources(systems, hour - 120, hour, landFraction);
+    const land = landAtmosphere(field), systems = systemsBetween(hour - 120, hour, isOcean, field.sstC, land), sources = swellSources(systems, hour - 120, hour, landFraction);
     const alive = []; for (const s of systems) { const at = systemAt(s, hour, landFraction); if (at) alive.push(at); }
     const timeMs = hour * HOUR_MS, declinationDeg = approximateDeclinationDeg(timeMs), season = Math.floor(yearFraction(timeMs) * 4) % 4;
-    const ctx = (cell) => ({ cell, timeMs, declinationDeg, solarHour: (((hour % 24) + cell.lon / 15) % 24 + 24) % 24, anomalyC: field.anomalyAt(cell.lat, cell.lon, timeMs) });
+    const ctx = (cell) => ({ cell, timeMs, declinationDeg, solarHour: (((hour % 24) + cell.lon / 15) % 24 + 24) % 24, anomalyC: field.anomalyAt(cell.lat, cell.lon, timeMs), land });
     seaList.forEach((cell, k) => {
       const w = weatherAt(alive, cell.lat, cell.lon, ctx(cell)), sea = seaState(field, sources, cell.lat, cell.lon, hour, w);
       wave[k][sectorOf(w.windFromDeg)] += sea.wind.hsM ** 2;

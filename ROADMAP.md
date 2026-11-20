@@ -164,6 +164,8 @@ Findings on main: the ocean climate (`tools/generate-eym-climate.mjs`) already u
 5. *Report the effect on Caren and Garyk:* the shift in their rainfall, trade winds and seasonal timing from the monsoon's pull, and any change in cyclone tracks. Confirm that the world's author's Caren canon still holds (tropical Dubos, mild seasons, forested, the enclosed desert basin).
 6. *Tests:* the rain belt reaches farther poleward over large summer-hemisphere land than over open ocean; jet troughs and ridges recur at the same longitudes across years; blocking concentrates where the stationary ridges sit; determinism; Caren's and Garyk's outputs change only through these documented mechanisms.
 
+**Done (items 1 to 3, 5 and 6):** `scripts/eym-land-atmosphere.mjs` and the `weather.land` and `weather.continentality` dials; the report on Caren and Garyk and the expectation checks are in the changelog. Item 4 waits for Stage 5. Open for the owner: whether Caren counts as the western shore of the El Niño basin (its yearly rain swing is smaller now, not larger).
+
 Where it sits in the work: the land-driven atmosphere is built on the grown world, so it comes after the growth is reworked onto main and its outlines and relief are shown (step 1), and before the revised climate is shown (step 3), so that the climate the owner sees already has monsoons, anchored jets and Earth-like seasons in it. Items 1 to 3 and 5 to 6 are that work; item 4 waits for Stage 5.
 
 ### Scope of detail (owner's decision, 17 November 2026)

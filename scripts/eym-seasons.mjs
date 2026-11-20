@@ -9,6 +9,9 @@ import { polygonize } from "./cartography-regions.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "./universal-time.mjs";
 import { elevationGrid } from "./cartography-asset.mjs";
 import { hasClimate, sstAnomalyAt } from "./eym-climate.mjs";
+import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
+
+const SWING = WORLD_INPUTS.weather.continentality;
 
 const DEG = Math.PI / 180;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -42,8 +45,8 @@ export function yearFraction(timeMs) { return ((((timeMs - NORTHWARD_EQUINOX_MS)
  * Temperature over the year and the day. The seasonal swing grows with latitude and with distance
  * from the sea; the warmest days lag the solstice by about a month (more at sea). The day is warmest
  * at 15:00 sun time.
- * Eym is nearly an aquaplanet: inland swings stay small (continentality weighs less than on Earth) and the
- * daily range on land is narrow. `anomalyC` is what the ocean currents add (scripts/eym-climate.mjs).
+ * The land's yearly swing is Earth-like (the `weather.continentality` dials: small on a coast, large deep inside
+ * a continent); the daily range on land is narrow. `anomalyC` is what the ocean currents add (scripts/eym-climate.mjs).
  * @param continentality 0 on the coast or at sea, 1 deep inland
  */
 export function seasonalTemperature({ annualMeanC, latDeg, continentality = 0, ocean = false, timeMs, solarHour = 15, anomalyC = 0 }) {
@@ -51,7 +54,7 @@ export function seasonalTemperature({ annualMeanC, latDeg, continentality = 0, o
   const peak = (latDeg >= 0 ? 0.25 : 0.75) + lagYears;
   // At sea the swing stays small except near the poles, where the ice comes and goes.
   const sinLat = Math.abs(Math.sin(latDeg * DEG));
-  const swing = sinLat * (ocean ? 2 + 7 * sinLat * sinLat : 4 + 10 * continentality);
+  const swing = sinLat * (ocean ? 2 + 7 * sinLat * sinLat : SWING.coastC + SWING.inlandC * continentality);
   const dayMeanC = annualMeanC + anomalyC + swing * Math.cos(2 * Math.PI * (yearFraction(timeMs) - peak));
   const daily = ocean ? 0.5 : 2 + 2 * continentality;
   return { dayMeanC, highC: dayMeanC + daily, lowC: dayMeanC - daily, nowC: dayMeanC + daily * Math.cos(2 * Math.PI * (solarHour - 15) / 24), swingC: swing };
