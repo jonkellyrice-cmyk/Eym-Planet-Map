@@ -24,8 +24,8 @@
   },
   "managed": {
     "registryCsvSha256": {
-      "value": "11b6909835127fc23606bf2d5851f4d987f887bd8bf948204fc564646db2c081",
-      "note": "The registry takes the names people use (owner, 20 November 2026): Mitkear, Eym, Bruthi, Esonth, Lilta, Iarn in the system, object, parent and owner columns, so the registry file's hash changed. No orbit and nothing of Eym's surface changed."
+      "value": "f8227700f8e54fb0dd3f84854263d11b616833ee6ba3ee2fa22dc6f7fca0ae66",
+      "note": "Caren's names as the world's author confirmed them, Folo among them (owner, 20 November 2026): the labels file changed, so the registry row's fingerprint did. Nothing of the land changed."
     }
   }
 }

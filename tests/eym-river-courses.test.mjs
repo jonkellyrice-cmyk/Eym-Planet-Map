@@ -31,13 +31,13 @@ test("a river stays in its old channel's country and keeps the towns on its bank
     for (const [lat, lon] of c.points) assert.ok(lat > Math.min(...lats) - 0.3 && lat < Math.max(...lats) + 0.3 && lon > Math.min(...lons) - 0.3 && lon < Math.max(...lons) + 0.3, `${c.id} wanders out of its valley`);
   }
   // Brandol and Augusta stood a few kilometres off the old channel's east bank: the river now passes beside them.
-  for (const name of ["Brandol", "Augusta"]) assert.ok(Math.min(...courses.map((c) => distanceKm(town(name), c))) < 2, `${name} is on its river`);
+  for (const name of ["Bhunhed", "Augaknoll"]) assert.ok(Math.min(...courses.map((c) => distanceKm(town(name), c))) < 2, `${name} is on its river`);
 });
 
 test("rivers are the same every time, and the old channel is land again", () => {
   assert.equal(riverCourses(asset), courses, "kept per asset");
   assert.deepEqual(riverCourses(read()), courses, "the same data gives the same rivers");
-  assert.deepEqual(channelCourses(channels[0], [town("Augusta")]), channelCourses(channels[0], [town("Augusta")]));
+  assert.deepEqual(channelCourses(channels[0], [town("Augaknoll")]), channelCourses(channels[0], [town("Augaknoll")]));
   const ctx = localContext(asset);
   assert.ok(courses.every((c) => ctx.rivers.some((r) => r.points === c.points)), "the ground detail draws them");
   const middle = channels.find((c) => c.id === "caren-water-34").polygon, [lat, lon] = middle[Math.floor(middle.length / 4)];

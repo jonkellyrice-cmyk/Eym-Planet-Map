@@ -1,14 +1,14 @@
 {
  "settlements": [
   {
-   "name": "Pelasmus",
+   "name": "Piramus",
    "kind": "town",
    "x": 550,
    "y": 230,
    "confidence": "low"
   },
   {
-   "name": "Kae Dylin",
+   "name": "Var Dylon",
    "kind": "town",
    "x": 261,
    "y": 324,
@@ -22,7 +22,7 @@
    "confidence": "high"
   },
   {
-   "name": "Lostrom",
+   "name": "Centarm",
    "kind": "city",
    "x": 706,
    "y": 190,
@@ -43,35 +43,35 @@
    "confidence": "high"
   },
   {
-   "name": "Alamok",
+   "name": "Alamak",
    "kind": "town",
    "x": 981,
    "y": 346,
    "confidence": "medium"
   },
   {
-   "name": "Pouk",
+   "name": "Folo",
    "kind": "town",
    "x": 85,
    "y": 421,
    "confidence": "low"
   },
   {
-   "name": "Ancial",
+   "name": "Andal",
    "kind": "city",
    "x": 307,
    "y": 380,
    "confidence": "low"
   },
   {
-   "name": "Arew",
+   "name": "Aren",
    "kind": "city",
    "x": 332,
    "y": 489,
    "confidence": "low"
   },
   {
-   "name": "Khorol",
+   "name": "Khovd",
    "kind": "city",
    "x": 431,
    "y": 496,
@@ -85,7 +85,7 @@
    "confidence": "high"
   },
   {
-   "name": "Vereane",
+   "name": "Vercome",
    "kind": "town",
    "x": 575,
    "y": 577,
@@ -99,14 +99,14 @@
    "confidence": "medium"
   },
   {
-   "name": "Naigaes",
+   "name": "Nalgari",
    "kind": "town",
    "x": 795,
    "y": 559,
    "confidence": "low"
   },
   {
-   "name": "Lamaele",
+   "name": "Zamerio",
    "kind": "city",
    "x": 980,
    "y": 426,
@@ -120,7 +120,7 @@
    "confidence": "medium"
   },
   {
-   "name": "Cyoa",
+   "name": "Cykon",
    "kind": "town",
    "x": 198,
    "y": 726,
@@ -141,35 +141,35 @@
    "confidence": "medium"
   },
   {
-   "name": "Mar'kom",
+   "name": "Mar'amu",
    "kind": "town",
    "x": 418,
    "y": 682,
    "confidence": "low"
   },
   {
-   "name": "Ogruun",
+   "name": "Ognum",
    "kind": "city",
    "x": 377,
    "y": 775,
    "confidence": "low"
   },
   {
-   "name": "Plama",
+   "name": "Plangi",
    "kind": "city",
    "x": 675,
    "y": 787,
    "confidence": "low"
   },
   {
-   "name": "Fort Dewar",
+   "name": "Fort Demak",
    "kind": "fort",
    "x": 711,
    "y": 652,
    "confidence": "low"
   },
   {
-   "name": "Esco",
+   "name": "Eern",
    "kind": "town",
    "x": 743,
    "y": 707,
@@ -190,56 +190,56 @@
    "confidence": "medium"
   },
   {
-   "name": "Val de Galler",
+   "name": "Val-de-Galles",
    "kind": "town",
    "x": 301,
    "y": 971,
    "confidence": "low"
   },
   {
-   "name": "Brandol",
+   "name": "Bhunhed",
    "kind": "town",
    "x": 443,
    "y": 1004,
    "confidence": "low"
   },
   {
-   "name": "Slew",
+   "name": "Slem",
    "kind": "town",
    "x": 788,
    "y": 846,
    "confidence": "low"
   },
   {
-   "name": "Faran",
+   "name": "Tarun",
    "kind": "town",
    "x": 714,
    "y": 863,
    "confidence": "low"
   },
   {
-   "name": "Dykal",
+   "name": "Dylal",
    "kind": "city",
    "x": 782,
    "y": 873,
    "confidence": "low"
   },
   {
-   "name": "Kymar",
+   "name": "Kelmat",
    "kind": "town",
    "x": 737,
    "y": 882,
    "confidence": "low"
   },
   {
-   "name": "Umate",
+   "name": "Umata",
    "kind": "town",
    "x": 767,
    "y": 914,
    "confidence": "low"
   },
   {
-   "name": "Regna",
+   "name": "Bejaa",
    "kind": "town",
    "x": 916,
    "y": 856,
@@ -253,49 +253,49 @@
    "confidence": "low"
   },
   {
-   "name": "Avlattar",
+   "name": "Andatias",
    "kind": "town",
    "x": 1067,
    "y": 1019,
    "confidence": "low"
   },
   {
-   "name": "Kelint",
+   "name": "Riefell",
    "kind": "town",
    "x": 62,
    "y": 1102,
    "confidence": "low"
   },
   {
-   "name": "Gowain",
+   "name": "Geniv",
    "kind": "capital",
    "x": 230,
    "y": 1055,
    "confidence": "low"
   },
   {
-   "name": "Winthar",
+   "name": "Winthur",
    "kind": "town",
    "x": 261,
    "y": 1129,
    "confidence": "low"
   },
   {
-   "name": "Augusta",
+   "name": "Augaknoll",
    "kind": "city",
    "x": 440,
    "y": 1093,
    "confidence": "low"
   },
   {
-   "name": "Merin",
+   "name": "Merios",
    "kind": "town",
    "x": 435,
    "y": 1159,
    "confidence": "low"
   },
   {
-   "name": "Shalum",
+   "name": "Malam",
    "kind": "city",
    "x": 552,
    "y": 1114,
@@ -309,63 +309,63 @@
    "confidence": "medium"
   },
   {
-   "name": "Arlune",
+   "name": "Arluna",
    "kind": "town",
    "x": 590,
    "y": 1260,
    "confidence": "low"
   },
   {
-   "name": "Dubor",
+   "name": "Dubos",
    "kind": "city",
    "x": 672,
    "y": 1270,
    "confidence": "medium"
   },
   {
-   "name": "Angalvoll",
+   "name": "Angoria",
    "kind": "town",
    "x": 730,
    "y": 1143,
    "confidence": "low"
   },
   {
-   "name": "Lyle",
+   "name": "Lyla",
    "kind": "capital",
    "x": 884,
    "y": 1145,
    "confidence": "low"
   },
   {
-   "name": "Arzalwa",
+   "name": "Betoban",
    "kind": "town",
    "x": 917,
    "y": 1043,
    "confidence": "low"
   },
   {
-   "name": "Tyde",
+   "name": "Telti",
    "kind": "city",
    "x": 1002,
    "y": 1099,
    "confidence": "low"
   },
   {
-   "name": "Yuldak",
+   "name": "Valdak",
    "kind": "town",
    "x": 926,
    "y": 1228,
    "confidence": "low"
   },
   {
-   "name": "Cloom",
+   "name": "Chom",
    "kind": "town",
    "x": 87,
    "y": 1340,
    "confidence": "low"
   },
   {
-   "name": "Ihemn",
+   "name": "Bemm",
    "kind": "city",
    "x": 239,
    "y": 1310,
@@ -379,21 +379,21 @@
    "confidence": "medium"
   },
   {
-   "name": "Nerra",
+   "name": "Nerin",
    "kind": "city",
    "x": 276,
    "y": 1391,
    "confidence": "low"
   },
   {
-   "name": "Dyason",
+   "name": "Quaton",
    "kind": "town",
    "x": 314,
    "y": 1478,
    "confidence": "low"
   },
   {
-   "name": "Sole",
+   "name": "Xoln",
    "kind": "town",
    "x": 466,
    "y": 1340,
@@ -407,49 +407,49 @@
    "confidence": "medium"
   },
   {
-   "name": "Binsade",
+   "name": "Blaudis",
    "kind": "town",
    "x": 497,
    "y": 1479,
    "confidence": "low"
   },
   {
-   "name": "Gevor",
+   "name": "Clenos",
    "kind": "city",
    "x": 788,
    "y": 1284,
    "confidence": "low"
   },
   {
-   "name": "Maithe",
+   "name": "Maitbe",
    "kind": "town",
    "x": 707,
    "y": 1374,
    "confidence": "medium"
   },
   {
-   "name": "Gorzyn",
+   "name": "Grazm",
    "kind": "town",
    "x": 853,
    "y": 1386,
    "confidence": "low"
   },
   {
-   "name": "Ila",
+   "name": "Ico",
    "kind": "town",
    "x": 987,
    "y": 1387,
    "confidence": "low"
   },
   {
-   "name": "Lalda",
+   "name": "Calda",
    "kind": "city",
    "x": 935,
    "y": 1494,
    "confidence": "low"
   },
   {
-   "name": "Tahat",
+   "name": "Yakat",
    "kind": "city",
    "x": 234,
    "y": 1595,
@@ -463,28 +463,28 @@
    "confidence": "high"
   },
   {
-   "name": "Shaetun",
+   "name": "Khaelum",
    "kind": "town",
    "x": 360,
    "y": 1663,
    "confidence": "low"
   },
   {
-   "name": "Ottila",
+   "name": "Chilla",
    "kind": "city",
    "x": 151,
    "y": 1708,
    "confidence": "low"
   },
   {
-   "name": "Oela'Ko",
+   "name": "Orlu'ka",
    "kind": "city",
    "x": 441,
    "y": 1720,
    "confidence": "low"
   },
   {
-   "name": "Lofana",
+   "name": "Colkirk",
    "kind": "village",
    "x": 635,
    "y": 1539,
@@ -505,63 +505,63 @@
    "confidence": "medium"
   },
   {
-   "name": "Patty",
+   "name": "Piety",
    "kind": "city",
    "x": 785,
    "y": 1507,
    "confidence": "low"
   },
   {
-   "name": "Seldon Br.",
+   "name": "Schlum Bi",
    "kind": "town",
    "x": 755,
    "y": 1606,
    "confidence": "low"
   },
   {
-   "name": "Viou",
+   "name": "Vlens",
    "kind": "town",
    "x": 788,
    "y": 1667,
    "confidence": "low"
   },
   {
-   "name": "Meknen",
+   "name": "Steknen",
    "kind": "town",
    "x": 354,
    "y": 1762,
    "confidence": "low"
   },
   {
-   "name": "Zorente",
+   "name": "Zorento",
    "kind": "town",
    "x": 680,
    "y": 1772,
    "confidence": "low"
   },
   {
-   "name": "Glaief",
+   "name": "Glaset",
    "kind": "town",
    "x": 749,
    "y": 1729,
    "confidence": "low"
   },
   {
-   "name": "Gorak",
+   "name": "Gorax",
    "kind": "city",
    "x": 818,
    "y": 1739,
    "confidence": "medium"
   },
   {
-   "name": "Yterj",
+   "name": "Ytery",
    "kind": "town",
    "x": 767,
    "y": 1777,
    "confidence": "low"
   },
   {
-   "name": "Fort Zarra",
+   "name": "Fort Zanix",
    "kind": "fort",
    "x": 928,
    "y": 1793,
@@ -591,7 +591,7 @@
    "confidence": "high"
   },
   {
-   "name": "Mt. Danrid",
+   "name": "Mt. Danrich",
    "class": "mountain",
    "x": 951,
    "y": 283,
@@ -794,7 +794,7 @@
    "confidence": "high"
   },
   {
-   "name": "Minsa Forest",
+   "name": "Minisa Forest",
    "class": "forest",
    "x": 258,
    "y": 1699,
@@ -808,7 +808,7 @@
    "confidence": "high"
   },
   {
-   "name": "Sanven Hills",
+   "name": "Sarven Hills",
    "class": "hills",
    "x": 617,
    "y": 1517,

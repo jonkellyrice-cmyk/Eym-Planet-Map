@@ -30,7 +30,7 @@ test("shapes: an L leaves a back corner as yard and keeps the front whole; cut c
 });
 
 test("towns get L-shaped and cut-corner houses; interiors, walls and scene follow the true outline", () => {
-  const map = buildBattleMap(asset, { center: at("Lyle", 0.2, 0.15), spec: battleMapSpec() });
+  const map = buildBattleMap(asset, { center: at("Lyla", 0.2, 0.15), spec: battleMapSpec() });
   const Ls = map.buildings.filter((b) => b.rects.length > 1), cuts = map.buildings.filter((b) => b.chamfers.length);
   assert.ok(Ls.length >= 2 && cuts.length >= 3, `${Ls.length} L, ${cuts.length} cut`);
   for (const b of cuts) for (const c of b.chamfers) assert.equal(map.grid.building[c.y * 24 + c.x] === b.id || c.x < 0 || c.y < 0 || c.x >= 24 || c.y >= 30, true, "a cut corner square stays inside");

@@ -13,7 +13,7 @@ const root = new URL("../", import.meta.url), read = (path) => readFileSync(new 
 const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
 attachOcean(asset, JSON.parse(read(`data/planet-cartography/mitkear/${asset.oceanFile}`)));
 const field = environmentField(asset), YEAR_MS = DAYS_PER_YEAR * DAY_MS, T0 = NORTHWARD_EQUINOX_MS + 2 * YEAR_MS;
-const port = (p) => asset.settlements.find((s) => s.id === p.id), pouk = port(CROSSING_PORTS.caren), garyk = port(CROSSING_PORTS.garyk);
+const port = (p) => asset.settlements.find((s) => s.id === p.id), folo = port(CROSSING_PORTS.caren), garyk = port(CROSSING_PORTS.garyk);
 /** The most inland place (in the tropics and mid-latitudes). */
 const inlandCell = () => field.cells.filter((c) => !c.ocean && Math.abs(c.lat) < 40).reduce((a, b) => (b.continentality > a.continentality ? b : a));
 const weatherAtMoment = (t) => { const subsolar = { latDeg: approximateDeclinationDeg(t), lonDeg: 0 }; return { state: buildWeatherState({ timeMs: t, subsolar, field }), subsolar }; };
@@ -27,7 +27,7 @@ test("waves grow with wind, fetch and time, up to the fully developed sea, and s
 });
 
 test("the fetch is the open water upwind: short with a wind off the land, long with one off the sea", () => {
-  const coast = nearestSea(field, pouk.lat, pouk.lon);
+  const coast = nearestSea(field, folo.lat, folo.lon);
   const fetches = [0, 90, 180, 270].map((from) => upwindFetchKm(field, ...coast, from));
   assert.ok(Math.min(...fetches) < 200 && Math.max(...fetches) > 1500, `fetches ${fetches.join(", ")} km`);
 });
@@ -62,7 +62,7 @@ test("the sea over a year: roughest in the westerlies, gentlest near the equator
 
 test("the sea at a place: words, swimming, and nothing inland", () => {
   const t = T0, { state, subsolar } = weatherAtMoment(t);
-  const w = placeWeatherNow(state, pouk.lat, pouk.lon, { subsolar, timeMs: t }), here = placeSea(state, pouk.lat, pouk.lon, { ...w, timeMs: t });
+  const w = placeWeatherNow(state, folo.lat, folo.lon, { subsolar, timeMs: t }), here = placeSea(state, folo.lat, folo.lon, { ...w, timeMs: t });
   assert.match(here.words, /^(calm|smooth|slight|moderate|rough|very rough|high|very high|phenomenal) \(\d+\.\d m\)/);
   assert.match(describeSea({ hsM: 3, swell: [{ hsM: 2.5, periodS: 14, fromDeg: 225 }] }), /^rough \(3\.0 m\); moderate swell 2\.5 m from the SW every 14 s$/);
   assert.deepEqual(swimConditions(0.5), { kind: "calm", dc: 10, surfM: 0.5 });
@@ -72,40 +72,40 @@ test("the sea at a place: words, swimming, and nothing inland", () => {
 });
 
 test("the Caren–Garyk crossing by steamer: about three weeks, quicker westward with the trades and the current", () => {
-  const route = seaRoute(field, [pouk.lat, pouk.lon], [garyk.lat, garyk.lon]);
+  const route = seaRoute(field, [folo.lat, folo.lon], [garyk.lat, garyk.lon]);
   assert.ok(route.every(([lat, lon], i) => i === 0 || i === route.length - 1 || field.cellAt(lat, lon).ocean), "the route keeps to the sea");
-  assert.ok(routeKm(route) > distanceKm(pouk.lat, pouk.lon, garyk.lat, garyk.lon) && routeKm(route) < 8400);
+  assert.ok(routeKm(route) > distanceKm(folo.lat, folo.lon, garyk.lat, garyk.lon) && routeKm(route) < 8400);
   const west = [], east = [];
   for (let k = 0; k < 6; k += 1) {
     const departMs = T0 + k * 61 * DAY_MS;
-    west.push(voyage({ asset, field, from: [pouk.lat, pouk.lon], to: [garyk.lat, garyk.lon], departMs, route }).days);
-    east.push(voyage({ asset, field, from: [garyk.lat, garyk.lon], to: [pouk.lat, pouk.lon], departMs, route: [...route].reverse() }).days);
+    west.push(voyage({ asset, field, from: [folo.lat, folo.lon], to: [garyk.lat, garyk.lon], departMs, route }).days);
+    east.push(voyage({ asset, field, from: [garyk.lat, garyk.lon], to: [folo.lat, folo.lon], departMs, route: [...route].reverse() }).days);
   }
   const mean = (v) => v.reduce((a, b) => a + b) / v.length, both = (mean(west) + mean(east)) / 2;
   assert.ok(mean(west) + 1 < mean(east), `westward ${mean(west).toFixed(1)} days, eastward ${mean(east).toFixed(1)}`);
   assert.ok(both > 19 && both < 23.5, `on average ${both.toFixed(1)} days (the layout's three weeks)`);
-  const again = voyage({ asset, field, from: [pouk.lat, pouk.lon], to: [garyk.lat, garyk.lon], departMs: T0, route });
+  const again = voyage({ asset, field, from: [folo.lat, folo.lon], to: [garyk.lat, garyk.lon], departMs: T0, route });
   assert.equal(again.days, west[0], "the same departure, the same voyage");
 });
 
 test("a sailing ship goes with the wind: slower than a steamer, far slower beating back against the trades", () => {
   const departMs = T0 + 40 * DAY_MS;
-  const west = bestVoyage({ asset, field, from: [pouk.lat, pouk.lon], to: [garyk.lat, garyk.lon], departMs, ship: "sail" });
-  const east = bestVoyage({ asset, field, from: [garyk.lat, garyk.lon], to: [pouk.lat, pouk.lon], departMs, ship: "sail" });
-  const steam = bestVoyage({ asset, field, from: [pouk.lat, pouk.lon], to: [garyk.lat, garyk.lon], departMs, ship: "steamer" });
+  const west = bestVoyage({ asset, field, from: [folo.lat, folo.lon], to: [garyk.lat, garyk.lon], departMs, ship: "sail" });
+  const east = bestVoyage({ asset, field, from: [garyk.lat, garyk.lon], to: [folo.lat, folo.lon], departMs, ship: "sail" });
+  const steam = bestVoyage({ asset, field, from: [folo.lat, folo.lon], to: [garyk.lat, garyk.lon], departMs, ship: "steamer" });
   assert.ok(west.arrived && east.arrived && steam.via === null);
   assert.ok(west.days > steam.days && east.days > west.days * 1.2, `sail west ${west.days.toFixed(1)}, east ${east.days.toFixed(1)}, steamer ${steam.days.toFixed(1)} days`);
-  const passage = crossingPassage({ asset, field, lat: pouk.lat, lon: pouk.lon, departMs });
+  const passage = crossingPassage({ asset, field, lat: folo.lat, lon: folo.lon, departMs });
   assert.match(passage.words, /^to Garyk's south-east port: \d+\.\d days by steamer, \d+\.\d by sailing ship/);
 });
 
 test("a coastal battle map says how rough the sea is and how hard it is to swim; an inland one does not", () => {
   const sea = { words: "rough (3.1 m); moderate swell 2.4 m from the SW every 14 s", hsM: 3.1, swim: swimConditions(3.1) };
   const seaNote = (m) => m.notes.find((n) => n.startsWith("The sea is"));
-  // Walk west from Pouk until the map holds some sea.
+  // Walk west from Folo until the map holds some sea.
   let shore = null;
-  for (let k = 0; k <= 40 && !shore; k += 1) { const m = buildBattleMap(asset, { center: [pouk.lat, pouk.lon - k * 0.01], spec: battleMapSpec(), conditions: { sea } }); if (seaNote(m)) shore = m; }
-  assert.ok(shore, "a battle map on Pouk's shore");
+  for (let k = 0; k <= 40 && !shore; k += 1) { const m = buildBattleMap(asset, { center: [folo.lat, folo.lon - k * 0.01], spec: battleMapSpec(), conditions: { sea } }); if (seaNote(m)) shore = m; }
+  assert.ok(shore, "a battle map on Folo's shore");
   assert.match(seaNote(shore), /^The sea is rough \(3\.1 m\); moderate swell 2\.4 m from the SW every 14 s: surf about 2\.8 m on the shore; the water is stormy \(Athletics to Swim, DC 20\)\.$/);
   const inland = inlandCell();
   assert.equal(seaNote(buildBattleMap(asset, { center: [inland.lat, inland.lon], spec: battleMapSpec(), conditions: { sea } })), undefined);

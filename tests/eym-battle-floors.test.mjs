@@ -9,8 +9,8 @@ import { fromLocal } from "../scripts/eym-surface.mjs";
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const asset = JSON.parse(read("data/planet-cartography/mitkear/eym.json"));
-const lyle = (() => { const s = asset.settlements.find((x) => x.properName === "Lyle"); return fromLocal([s.lat, s.lon], 0.2, 0.15); })();
-const map = buildBattleMap(asset, { center: lyle, spec: battleMapSpec() }), interiors = buildInteriors(map);
+const lyla = (() => { const s = asset.settlements.find((x) => x.properName === "Lyla"); return fromLocal([s.lat, s.lon], 0.2, 0.15); })();
+const map = buildBattleMap(asset, { center: lyla, spec: battleMapSpec() }), interiors = buildInteriors(map);
 const images = { ground: "g.png", roofs: { 0: "r0.png", 1: "r1.png" }, floors: { 1: "f1.png", "-1": "b.png" } };
 
 test("every building has rooms you can walk between, on each of its floors; stairs line up floor to floor", () => {
@@ -47,7 +47,7 @@ test("floor images: the ground floor opens every building; above, only buildings
 });
 
 test("the v14 scene: a Level per floor, the ground seen from upstairs but not from the basement, roofs revealed by sight, stairs that change level", () => {
-  const plan = battleScenePlan(map, interiors, { name: "Lyle", images });
+  const plan = battleScenePlan(map, interiors, { name: "Lyla", images });
   assert.deepEqual(plan.levels.map((l) => l.name), ["Basement", "Ground", "Upper floor"]);
   const [basement, ground, upper] = plan.levels;
   assert.ok(basement.elevation.top <= ground.elevation.bottom && ground.elevation.top <= upper.elevation.bottom, "floors stack");
