@@ -63,8 +63,9 @@ export const WORLD_INPUTS = deepFreeze({
     // Eym stays 98.6% ocean: the fit keeps the ocean's share between these.
     oceanFraction: [0.9855, 0.9865],
     // What drives a plate: with a sinking slab along at least `slabShare` of its edge it moves at `slabSpeedMmYr`
-    // (mm a year); without, at `freeSpeedMmYr`. The plates named in `speedExempt` keep their fitted speeds.
-    slabShare: 0.1, slabSpeedMmYr: [50, 100], freeSpeedMmYr: [10, 30], speedExempt: ["caren", "garyk"],
+    // (mm a year); without, at `freeSpeedMmYr`. The plates named in `speedKept` keep the speeds their fitted
+    // histories give them (Caren's and Garyk's: slow plates with no slab, about a centimetre a year).
+    slabShare: 0.1, slabSpeedMmYr: [50, 100], freeSpeedMmYr: [10, 30], speedKept: ["caren", "garyk"],
   },
 
   /**
@@ -167,10 +168,12 @@ export const WORLD_INPUTS = deepFreeze({
 
   /** The magnetic field and the auroras (scripts/eym-magnetic.mjs, tools/generate-eym-magnetic.mjs; canon: docs/eym-canon.md). */
   magnetic: {
-    // The north magnetic pole stays inside this box (degrees north, degrees east), over open sea; the south
-    // magnetic pole is its antipode (a dipole). The box is the canon's: anywhere in it every coast of the
-    // continents named below lies within `coastLatDeg` of the magnetic equator.
-    poleBox: { latDeg: [79, 80], lonDeg: [80, 100] },
+    // In the campaign's era the north magnetic pole stays inside this box (degrees north, degrees east), over open
+    // sea; the south magnetic pole is its antipode (a dipole). The box is the canon's: anywhere in it every coast of
+    // the continents named below lies within `coastLatDeg` of the magnetic equator. The era is `campaignEraYears`
+    // either side of the calendar's start; over longer spans the pole wanders naturally and the box does not hold
+    // (for the history engine).
+    poleBox: { latDeg: [79, 80], lonDeg: [80, 100] }, campaignEraYears: 1000,
     // The pole's wander: once round a long, narrow loop that fills this share of the box, in this many years,
     // starting (at the calendar's northward equinox) this far round it. With these it never moves slower than
     // `driftKmYr[0]` or faster than `driftKmYr[1]` kilometres a year.

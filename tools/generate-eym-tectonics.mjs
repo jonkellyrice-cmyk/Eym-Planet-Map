@@ -224,15 +224,19 @@ function globalPicture(state) {
     }
   }
   // Volcanoes: on the overriding side of convergent edges where a sea plate goes down, every ~300 km; and hotspots.
-  const vrng = createRng(`${seed}|volcanoes`), volcanoes = [], chosen = [];
+  const mainRng = createRng(`${seed}|volcanoes`), mainArcs = [], chosen = [], vrng = mainRng, volcanoes = mainArcs;
   const continental = (i) => plates[i].kind === "continental";
   const garykI = plates.findIndex((p) => p.id === "garyk");
-  for (const e of boundary) {
+  // (The Caren Plate's own edges are taken in a second pass with draws of their own, `carenEdge`: they were left
+  // out while Caren was kept apart from the plates, and the arcs drawn before then keep their draws.)
+  const carenArcs = [], crng = createRng(`${seed}|volcanoes|caren-plate`);
+  for (const carenEdge of [false, true]) for (const e of boundary) {
     // Arc volcanoes stand where sea floor goes down, not on a collision seam.
     if (e.type !== "convergent" || e.closingMmYr < 25 || e.a === garykI || e.b === garykI || (continental(e.a) && continental(e.b))) continue;
-    if (chosen.some((q) => arcKm(q, e.p) < 420)) continue;
     const over = continental(e.a) && !continental(e.b) ? e.a : continental(e.b) && !continental(e.a) ? e.b : (e.a < e.b ? e.a : e.b), down = over === e.a ? e.b : e.a;
-    if (plates[over].id === "caren" || plates[down].id === "caren") continue;
+    if ((plates[over].id === "caren" || plates[down].id === "caren") !== carenEdge) continue;
+    if (chosen.some((q) => arcKm(q, e.p) < 420)) continue;
+    const vrng = carenEdge ? crng : mainRng, volcanoes = carenEdge ? carenArcs : mainArcs;
     const awayTo = norm3(sub(plates[over].v, e.p)), spot = norm3([e.p[0] + awayTo[0] * 0.025, e.p[1] + awayTo[1] * 0.025, e.p[2] + awayTo[2] * 0.025]);
     if (plateOf(spot) !== over) continue;
     chosen.push(e.p);
@@ -258,7 +262,7 @@ function globalPicture(state) {
     ridgeKm[r * C + c] = near(ridges); trenchKm[r * C + c] = near(trenches); collideKm[r * C + c] = near(collisions);
   }
   const typed = (type) => boundary.filter((e) => e.type === type).length;
-  return { boundary, volcanoes: [...volcanoes, ...hotspots], mantle: { upwellings: mantle.upwellings, radiusDeg: mantle.radiusDeg, chains }, rasters: { resolutionDeg: 1, plate: b64(plateRaster), ridgeDistance10Km: b64(ridgeKm), trenchDistance10Km: b64(trenchKm), collisionDistance10Km: b64(collideKm) }, counts: { convergent: typed("convergent"), divergent: typed("divergent"), transform: typed("transform") }, lines: { ridges, trenches, collisions } };
+  return { boundary, volcanoes: [...volcanoes, ...hotspots, ...carenArcs], mantle: { upwellings: mantle.upwellings, radiusDeg: mantle.radiusDeg, chains }, rasters: { resolutionDeg: 1, plate: b64(plateRaster), ridgeDistance10Km: b64(ridgeKm), trenchDistance10Km: b64(trenchKm), collisionDistance10Km: b64(collideKm) }, counts: { convergent: typed("convergent"), divergent: typed("divergent"), transform: typed("transform") }, lines: { ridges, trenches, collisions } };
 }
 
 // ---------------------------------------------------------------- ranges
@@ -331,6 +335,8 @@ export function buildTectonics({ seeds = TECTONIC_SEEDS, inputs = tectonicInputs
       continue;
     }
     const speedOf = Object.fromEntries(state.speeds.map((s) => [s.id, s]));
+    // Where Caren sat on the First Land's rim, and the turn that has carried it to today (after the fit: it changes nothing above).
+    const origin = carenOrigin(state);
     const plates = state.plates.map((p) => ({ id: p.id, name: p.name, kind: p.kind, micro: Boolean(p.micro), seed: latLon(p.v).map(r3), weightKm: p.weightKm, pole: p.pole.map(r3), rateDegPerMyr: r3(p.rate), speedMmYrAtSeed: r1(Math.hypot(...plateVelocity(p, p.v))), speedMmYr: speedOf[p.id].speedMmYr, slabShare: speedOf[p.id].slabShare, driver: speedOf[p.id].driver }));
     const history = [
       { stage: "mantle", myrAgo: null, text: "Beneath the plates the mantle turns over in two broad upwellings on opposite sides of the world, with cold sinking sheets between them; plumes rise from the upwellings' margins and stay fixed while the plates pass over them." },
@@ -341,14 +347,14 @@ export function buildTectonics({ seeds = TECTONIC_SEEDS, inputs = tectonicInputs
       { stage: "hotspots", myrAgo: [80, 0], text: "Plumes rising from the upwellings' margins build the open-sea archipelagos; each plate carries the older volcanoes away along its motion, where they sink into lines of seamounts, oldest farthest from the plume." },
       { stage: "collision", myrAgo: [60, 0], text: "The Northern Garyk Sea Plate closes on Garyk; its northern ranges rise along the seam." },
       { stage: "erosion", myrAgo: [320, 0], text: "Wear and the slow rebound of the crust soften the old belts to rounded hills and lower the young ranges." },
-      { stage: "Caren", myrAgo: null, text: "Caren is set down whole by the gods into the sea where the First Land had broken apart. It takes no part in the turning of the plates." },
+      { stage: "Caren", myrAgo: [MYR, 0], text: `Caren, an old core with an ancient mountain belt from the assembly along it, is split off from the First Land's rim as a fragment and rides the Caren Plate some ${Math.round(origin.driftKm / 100) * 100} km to where it lies today. Its plate has no sinking slab left to pull it and has slowed to about a centimetre a year.` },
     ];
     const data = {
       schemaVersion: 1, model: EYM_TECTONICS_MODEL, sourcesSha256: tectonicSourcesSha256(), seed, seedsTried: tried.map((x) => x.seed), breakupMyrAgo: MYR,
       tolerance: TARGET_TOLERANCE, plates, warpSeed: `${seed}|plate-warp`,
       firstLand: { centre: latLon(state.first.S).map(r3), pieces: state.pieces.map((pc) => ({ id: pc.id, centre: pc.centroidThen.map(r3) })) },
       garyk: { rangeAxis: { centre: state.rangeAxis.center.map(r3), bearingDeg: r1(state.rangeAxis.bearing) }, convergentWith: "garyk-north", core: "old core of granite and gneiss under the interior (part of the First Land)" },
-      caren: CAREN_GEOLOGY, continents,
+      caren: { ...CAREN_GEOLOGY, origin, faults: carenFaults(seed, inputs.caren.ring) }, continents,
       boundaries: { counts: world.counts, ridges: world.lines.ridges.map((p) => latLon(p).map((v) => r1(v))), trenches: world.lines.trenches.map((p) => latLon(p).map((v) => r1(v))), collisions: world.lines.collisions.map((p) => latLon(p).map((v) => r1(v))) },
       volcanoes: world.volcanoes, mantle: world.mantle, rasters: world.rasters, history,
       report: { tried, chosen: seed, plateSpeeds: state.speeds },
@@ -361,9 +367,10 @@ export function buildTectonics({ seeds = TECTONIC_SEEDS, inputs = tectonicInputs
 // ---------------------------------------------------------------- the mantle (the owner's addenda, 18 November 2026, item 3)
 
 // What drives a plate: the pull of sea floor sinking at its edges. A plate with a slab along at least a tenth of its
-// edge moves at 5-10 cm a year; one without, at 1-3 (Forsyth and Uyeda's pattern on Earth). Caren's plate is the gods'
-// (exempt); Garyk's is kept at about 1 cm a year, the rate its fitted history gives it.
-export const SLAB_SHARE = WORLD_INPUTS.plates.slabShare, SLAB_SPEED_MM = WORLD_INPUTS.plates.slabSpeedMmYr, FREE_SPEED_MM = WORLD_INPUTS.plates.freeSpeedMmYr, SPEED_EXEMPT = WORLD_INPUTS.plates.speedExempt;
+// edge moves at 5-10 cm a year; one without, at 1-3 (Forsyth and Uyeda's pattern on Earth). Caren's plate and Garyk's
+// are kept at the rates their fitted histories give them, about 1 cm a year: the slowest of the plates without a
+// slab, as the plates that carry Africa and Antarctica are on Earth.
+export const SLAB_SHARE = WORLD_INPUTS.plates.slabShare, SLAB_SPEED_MM = WORLD_INPUTS.plates.slabSpeedMmYr, FREE_SPEED_MM = WORLD_INPUTS.plates.freeSpeedMmYr, SPEED_KEPT = WORLD_INPUTS.plates.speedKept;
 
 /** Each plate's speed (mm a year, root mean square over its area) and the share of its edge where its own sea floor sinks, on a 1° grid. */
 export function plateDrivers(plates, plateOf) {
@@ -393,7 +400,7 @@ export function plausibleSpeeds(plates, plateOf) {
   for (let round = 0; round < 8; round += 1) {
     let changed = false;
     plates.forEach((p, i) => {
-      if (SPEED_EXEMPT.includes(p.id) || !now[i].speed) return;
+      if (SPEED_KEPT.includes(p.id) || !now[i].speed) return;
       const [lo, hi] = now[i].slabShare >= SLAB_SHARE ? SLAB_SPEED_MM : FREE_SPEED_MM, target = now[i].speed < lo ? lo + 5 : now[i].speed > hi ? hi - 5 : null;
       if (target !== null) { p.rate *= target / now[i].speed; changed = true; }
     });
@@ -401,8 +408,8 @@ export function plausibleSpeeds(plates, plateOf) {
     now = plateDrivers(plates, plateOf);
   }
   return plates.map((p, i) => {
-    const driver = SPEED_EXEMPT.includes(p.id) ? "exempt" : now[i].slabShare >= SLAB_SHARE ? "slab" : "no slab", [lo, hi] = driver === "slab" ? SLAB_SPEED_MM : FREE_SPEED_MM;
-    return { id: p.id, kind: p.kind, driver, slabShare: r3(now[i].slabShare), speedMmYrBefore: r1(before[i].speed), speedMmYr: r1(now[i].speed), withinTarget: driver === "exempt" || (now[i].speed >= lo - 0.5 && now[i].speed <= hi + 0.5) };
+    const driver = SPEED_KEPT.includes(p.id) ? "kept" : now[i].slabShare >= SLAB_SHARE ? "slab" : "no slab", [lo, hi] = driver === "slab" ? SLAB_SPEED_MM : FREE_SPEED_MM;
+    return { id: p.id, kind: p.kind, driver, slabShare: r3(now[i].slabShare), speedMmYrBefore: r1(before[i].speed), speedMmYr: r1(now[i].speed), withinTarget: driver === "kept" || (now[i].speed >= lo - 0.5 && now[i].speed <= hi + 0.5) };
   });
 }
 
@@ -439,6 +446,54 @@ export function hotspotChain(plates, plateOf, at) {
     if (plateOf(q) !== index) break;
     // Older volcanoes have sunk further with the cooling sea floor: summits deepen with age.
     out.push({ at: latLon(q).map(r3), ageMyr: age, summitDepthM: -Math.round(200 + 25 * age) });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------- Caren in the plate record (canon of 20 November 2026)
+
+/**
+ * Where Caren sat on the First Land, and the single turn that has carried it to where it lies. Caren's outline is
+ * the owner's map and is not changed: it is turned back, whole, onto the First Land's rim. For each direction round
+ * the First Land (every 10°) and each of five turnings of the fragment, it is brought in until it stands just clear
+ * of the other pieces and of Garyk (the width of a rift); of those places the one where most of its coast faces
+ * land within 300 km is kept (the bay it was split out of), the smallest bearing and turning winning a tie.
+ */
+export function carenOrigin(state) {
+  const { first, continents, inputs } = state, { caren } = inputs, cNow = vec(caren.center), RIFT_KM = 60;
+  const ring = caren.ring.filter((_, i) => i % Math.max(1, Math.floor(caren.ring.length / 72)) === 0).map(vec);
+  // The fragment's own points: its coast, and points a third and two thirds of the way in to its centre.
+  const body = [...ring, ...ring.filter((_, i) => i % 3 === 0).flatMap((p) => [norm3([p[0] + cNow[0] * 0.5, p[1] + cNow[1] * 0.5, p[2] + cNow[2] * 0.5]), norm3([p[0] + cNow[0] * 2, p[1] + cNow[1] * 2, p[2] + cNow[2] * 2])]), cNow];
+  const levels = continents.map((c) => c.level), garyk = first.garykThen.filter((_, i) => i % Math.max(1, Math.floor(first.garykThen.length / 300)) === 0);
+  const landThen = (q, slackKm = 0) => first.pieces.some((_, k) => first.pieceField(k, q) > levels[k] - slackKm) || first.garykInside(q) || garyk.some((g) => arcKm(g, q) < 40 + slackKm);
+  const placed = (bearing, km, spinDeg) => { const C = destinationKm(first.S, bearing, km), a = rotationBetween(cNow, C); return { C, back: (p) => rotate(rotate(p, a.axis, a.angle), C, spinDeg * DEG), forward: (p) => rotate(rotate(p, C, -spinDeg * DEG), a.axis, -a.angle) }; };
+  const overlaps = (place) => body.some((p) => landThen(place.back(p), RIFT_KM));
+  let best = null;
+  for (let bearing = 0; bearing < 360; bearing += 10) for (const spinDeg of [0, -30, 30, -60, 60]) {
+    let lo = 0, hi = 9000; if (overlaps(placed(bearing, hi, spinDeg))) continue;
+    for (let it = 0; it < 10; it += 1) { const mid = (lo + hi) / 2; if (overlaps(placed(bearing, mid, spinDeg))) lo = mid; else hi = mid; }
+    const place = placed(bearing, hi, spinDeg);
+    const facing = ring.filter((p) => { const out = norm3(sub(p, cNow.map((x) => x * dotv(p, cNow)))), q = place.back(norm3([p[0] + out[0] * 300 / 6371, p[1] + out[1] * 300 / 6371, p[2] + out[2] * 300 / 6371])); return landThen(q); }).length / ring.length;
+    if (!best || facing > best.facing + 1e-9) best = { bearing, km: hi, spinDeg, facing, place };
+  }
+  if (!best) throw new Error("Caren has no place on the First Land's rim");
+  const { place } = best, pole = eulerPole([1, 0, 0], place.forward([1, 0, 0]), [0, 1, 0], place.forward([0, 1, 0])), driftKm = arcKm(place.C, cNow);
+  return {
+    firstLandCentre: latLon(place.C).map(r3), bearingFromFirstLandDeg: best.bearing, kmFromFirstLandCentre: Math.round(best.km), turnedDeg: best.spinDeg, coastFacingLand: r3(best.facing), riftWidthKm: RIFT_KM,
+    pole: latLon(pole.axis).map(r3), driftDeg: r1(pole.angle / DEG), driftKm: Math.round(driftKm), meanDriftMmYr: r1(driftKm / MYR), plate: "caren",
+  };
+}
+
+/**
+ * The small faults Caren's earthquakes come from (scripts/eym-quakes.mjs): old faults of the ancient belt and the
+ * swell's margins, spread over the whole of the land, about one to every 150 km, each a little off its grid place.
+ */
+export function carenFaults(seed, ring, spacingKm = 150) {
+  const rng = createRng(`${seed}|caren-faults`), lats = ring.map((p) => p[0]), lons = ring.map((p) => p[1]), step = spacingKm / 111.2, out = [];
+  const inside = (lat, lon) => { let k = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [ya, xa] = ring[i], [yb, xb] = ring[j]; if ((ya > lat) !== (yb > lat) && lon < (xb - xa) * (lat - ya) / (yb - ya) + xa) k = !k; } return k; };
+  for (let lat = Math.min(...lats) + step / 2; lat < Math.max(...lats); lat += step) for (let lon = Math.min(...lons) + step / 2; lon < Math.max(...lons); lon += step) {
+    const at = [lat + (rng() - 0.5) * step * 0.7, lon + (rng() - 0.5) * step * 0.7];
+    if (inside(at[0], at[1])) out.push(at.map(r1));
   }
   return out;
 }

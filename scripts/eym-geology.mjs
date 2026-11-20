@@ -48,28 +48,33 @@ export const ROCKS = Object.freeze({
     stone: "slate for roofs, schist rubble walls, and white or banded marble",
     ores: ["silver and lead", "copper veins", "garnet and emerald"],
   },
+  // (Caren's people call its white quartzite and its massive white leucogranite "the Godstone": natural rocks of
+  // the ancient belt, the hardest it has. The granite's own fluids left the veins round it; quartzite holds little.)
   "godstone-granite": {
-    name: "the Godstone (white granite)", colour: "#e6e2da", colourWords: "white",
-    landform: "smooth white granite domes and slopes, almost without seams, that do not weather into tors",
-    battle: "white Godstone: smooth, unbroken white granite with almost no cracks",
-    stone: "white Godstone in great seamless blocks: fit for temples and palaces",
-    ores: ["none: the Godstone holds no veins"],
+    name: "the Godstone (white leucogranite and quartzite)", colour: "#e6e2da", colourWords: "white",
+    landform: "smooth white domes and bare walls of massive granite and quartzite, with few joints, that weather very slowly",
+    battle: "white Godstone: smooth, massive white granite and quartzite with few cracks",
+    stone: "white Godstone in great blocks with few joints: fit for temples and palaces",
+    ores: ["tin and tungsten close to the granite", "silver, lead, zinc and copper in veins round it", "little in the quartzite"],
   },
   marble: {
     name: "Caren's marble", colour: "#d7d3cb", colourWords: "banded white and grey",
     landform: "smooth foothills of banded white and grey marble",
     battle: "banded white and grey marble: smooth outcrops and polished slabs",
     stone: "banded white and grey marble: Caren's classic building stone",
-    ores: ["marble", "lime"],
+    ores: ["marble", "lime", "coal in the old foothill basins"],
   },
   "caren-limestone": {
-    name: "limestone over the Godstone", colour: "#d9cfb4", colourWords: "pale cream",
-    landform: "even plains of thin, fertile limestone, with springs where it meets the granite",
+    name: "limestone and sandstone over Caren's old core", colour: "#d9cfb4", colourWords: "pale cream",
+    landform: "even plains of fertile limestone and sandstone, with caves, sinkholes and springs",
     battle: "pale cream limestone: low flat ledges and loose blocks",
     stone: "pale limestone and lime mortar",
-    ores: ["lime", "salt from the lowlands"],
+    ores: ["lime", "copper beds", "lead and zinc in the limestone", "ironstone", "salt from old dried-up seas"],
   },
 });
+
+/** The kinds of bedrock that shake least in an earthquake: hard and little broken (scripts/eym-quakes.mjs). */
+const HARD_GROUND = new Set(["granite-gneiss", "godstone-granite", "marble", "metamorphic"]);
 
 /** The soils, in words (the cartography's soil layer uses these keys). */
 export const SOILS = Object.freeze({
@@ -169,7 +174,7 @@ export function geologyAt(asset, lat, lon) {
   const climate = windClimate(asset), loessM = climate ? loessAt(climate, lat, lon) : 0;
   if (loessM >= 2) soil = "loess";
   const rock = ROCKS[kind] ?? null;
-  return { bedrock: kind, rock, soil, loessM: Math.round(loessM * 10) / 10, soilWords: SOILS[soil] ?? soil, onGodstone: ["godstone-granite", "marble", "caren-limestone"].includes(kind), volcanoes };
+  return { bedrock: kind, rock, soil, loessM: Math.round(loessM * 10) / 10, soilWords: SOILS[soil] ?? soil, onGodstone: ["godstone-granite", "marble", "caren-limestone"].includes(kind), hardRock: HARD_GROUND.has(kind), volcanoes };
 }
 
 /** The rock and ground at a place in one line, for the "Here and now" card. */

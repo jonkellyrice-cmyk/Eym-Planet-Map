@@ -1013,7 +1013,7 @@ export class ClusterMapApplication extends HandlebarsApplicationMixin(Applicatio
     const geo = geologyAt(this._eymGeography, latDeg, lonDeg);
     Object.assign(values, { rock: describeGround(geo), stone: describeStone(geo) });
     const key = `${latDeg.toFixed(3)},${lonDeg.toFixed(3)},${Math.floor(this._sun.t / DAY_MS)}`;
-    if (this._tremorKey !== key) { this._tremorKey = key; this._tremorText = describeTremors(tremorsAt(this._eymGeography?.geology, { lat: latDeg, lon: lonDeg, fromMs: this._sun.t - 30 * DAY_MS, toMs: this._sun.t, onGodstone: geo?.onGodstone }), this._sun.t); }
+    if (this._tremorKey !== key) { this._tremorKey = key; this._tremorText = describeTremors(tremorsAt(this._eymGeography?.geology, { lat: latDeg, lon: lonDeg, fromMs: this._sun.t - 30 * DAY_MS, toMs: this._sun.t, hardRock: geo?.hardRock }), this._sun.t); }
     values.tremors = this._tremorText;
     for (const [field, value] of Object.entries(values)) { const element = root.querySelector(`[data-place-field="${field}"]`); if (element && typeof value === "string") element.textContent = value; }
   }

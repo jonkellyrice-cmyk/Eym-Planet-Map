@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { ROCKS, SOILS, geologyAt, localStonePrompt, rockShares, soilFromRock } from "../scripts/eym-geology.mjs";
-import { FAULTS, boundaryPoints, describeTremors, feltIntensity, tremorsAt } from "../scripts/eym-quakes.mjs";
+import { FAULTS, boundaryPoints, describeTremors, faultQuakes, feltIntensity, tremorsAt } from "../scripts/eym-quakes.mjs";
 import { buildBattleMap } from "../scripts/eym-battle-rules.mjs";
 import { battleArtDirection, battlePacket } from "../scripts/eym-battle-render.mjs";
 import { battleMapSpec, atlasMapSpec } from "../scripts/eym-map-presets.mjs";
@@ -69,7 +69,7 @@ test("earthquakes are drawn by rule: the same catalogue for any window, felt by 
   assert.equal(boundaryPoints(asset.geology).trenches.length > 100, true);
 });
 
-test("active margins shake and erupt; the Godstone feels only faint tremors", () => {
+test("active margins shake and erupt", () => {
   const active = asset.geology.volcanoes.filter((v) => v.activity === "active");
   let felt = 0, strong = 0, eruptions = 0;
   for (const v of active.slice(0, 12)) {
@@ -78,12 +78,50 @@ test("active margins shake and erupt; the Godstone feels only faint tremors", ()
   }
   assert.ok(felt > 12 * 5 * 5, `about a felt quake a month or more near arc volcanoes (${felt})`);
   assert.ok(strong > 0 && eruptions > 3, `${strong} strong quakes, ${eruptions} eruptions`);
-  const caren = town("Caren");
-  for (const [lat, lon] of [[caren.lat, caren.lon], ...asset.settlements.filter((s) => s.continent === "Caren").slice(0, 20).map((s) => [s.lat, s.lon])]) {
-    const t = tremorsAt(asset.geology, { lat, lon, fromMs: T0, toMs: T0 + 3 * YEAR_MS, onGodstone: true });
-    assert.ok(t.quakes.every((x) => x.intensity <= 3), "never more than III on the Godstone");
-  }
   assert.equal(describeTremors({ quakes: [], eruptions: [] }, T0), "none felt in the last 30 days");
+});
+
+test("Caren's earthquakes are an old continent's: small, seldom and spread out, none of magnitude 6", () => {
+  // (Canon of 20 November 2026. This replaces the rule that a place on the Godstone never felt more than III: Caren
+  // now has small earthquakes of its own, and its rock damps shaking only as any hard rock does.)
+  const faults = boundaryPoints(asset.geology).intraplate, years = 400;
+  assert.ok(faults.length >= 50, `${faults.length} small faults`);
+  const all = faults.flatMap((at, index) => Array.from({ length: years }, (_, year) => faultQuakes("intraplate", index, at, year)).flat().map((q) => ({ ...q, fault: index })));
+  const count = (lo, hi) => all.filter((q) => q.magnitude >= lo && q.magnitude < hi).length, perYear = all.length / years;
+  assert.ok(Math.max(...all.map((q) => q.magnitude)) < 6 && FAULTS.intraplate.maxMagnitude < 6, "none of magnitude 6 or more");
+  assert.ok(perYear > 0.5 && perYear < 3, `${perYear.toFixed(2)} quakes of 3.5 or more a year over all Caren`);
+  assert.ok(count(3.5, 4) > all.length * 0.55, "mostly under 4");
+  assert.ok(count(4, 5) > 0 && count(4, 5) < count(3.5, 4) * 0.6, "now and then 4 to 5");
+  assert.ok(count(5, 6) > 0 && count(5, 6) / years < 0.1, `rarely 5 to 6 (${count(5, 6)} in ${years} years)`);
+  // Spread out: every fault has some, and none has more than a few times its share.
+  const byFault = faults.map((_, index) => all.filter((q) => q.fault === index).length), share = all.length / faults.length;
+  assert.ok(Math.min(...byFault) > 0 && Math.max(...byFault) < 2.5 * share, `between ${Math.min(...byFault)} and ${Math.max(...byFault)} a fault; the even share is ${share.toFixed(1)}`);
+  // Every epicentre lies on or beside Caren, and all are shallow.
+  assert.ok(all.every((q) => Math.abs(q.at[0]) < 12 && Math.abs(q.at[1]) < 8 && q.depthKm <= 15));
+  // The far sea floor's great quakes reach Caren only faintly: its nearest plate edge is over a thousand kilometres off.
+  const caren = town("Caren"), places = [[caren.lat, caren.lon], ...asset.settlements.filter((s) => s.continent === "Caren").slice(0, 20).map((s) => [s.lat, s.lon])];
+  for (const [lat, lon] of places) {
+    const t = tremorsAt(asset.geology, { lat, lon, fromMs: T0, toMs: T0 + 10 * YEAR_MS });
+    assert.ok(t.quakes.every((x) => x.magnitude < 6 || x.source !== "intraplate"));
+    assert.ok(t.quakes.filter((x) => x.source !== "intraplate").every((x) => x.intensity <= 5), "a plate edge's quake is no more than moderate on Caren");
+    assert.ok(t.quakes.every((x) => x.intensity <= 7.5), "nothing ruinous");
+    // Hard rock shakes one step less than soft ground.
+    const hard = tremorsAt(asset.geology, { lat, lon, fromMs: T0, toMs: T0 + 10 * YEAR_MS, hardRock: true });
+    assert.ok(hard.quakes.length <= t.quakes.length && hard.quakes.every((h) => t.quakes.some((q) => q.timeMs === h.timeMs && Math.abs(q.intensity - 1 - h.intensity) < 0.11)));
+  }
+});
+
+test("Caren's rocks: the Godstone is quartzite and leucogranite; the granites carry the veins, quartzite little; no volcanic rock", () => {
+  const god = ROCKS["godstone-granite"];
+  assert.match(god.name, /leucogranite and quartzite/);
+  assert.ok(god.ores.some((o) => /tin and tungsten/.test(o)) && god.ores.some((o) => /veins/.test(o)) && god.ores.some((o) => /little in the quartzite/.test(o)));
+  assert.doesNotMatch(JSON.stringify([god, ROCKS.marble, ROCKS["caren-limestone"]]), /holds no veins|seamless|volcan|lava|basalt/i);
+  assert.ok(ROCKS.marble.ores.some((o) => /coal/.test(o)) && ROCKS["caren-limestone"].ores.some((o) => /salt/.test(o)) && ROCKS["caren-limestone"].ores.some((o) => /ironstone/.test(o)));
+  // No cell of Caren carries volcanic rock.
+  const carenCells = bedrock.filter((_, i) => { const [lat, lon] = cellLatLon(i); return Math.abs(lat) < 11 && Math.abs(lon) < 7; });
+  assert.ok(!carenCells.includes("volcanic") && carenCells.includes("godstone-granite"));
+  const c = town("Caren"), geo = geologyAt(asset, c.lat, c.lon);
+  assert.equal(typeof geo.hardRock, "boolean");
 });
 
 test("battle maps, map packets and the Here-and-now card carry the local rock", () => {

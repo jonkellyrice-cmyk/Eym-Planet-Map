@@ -16,7 +16,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { inputsFingerprint, WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 import { buildEymSurface, EYM_LAYOUT, EYM_RADIUS_KM, fromLocal, greatCircleKm, sphericalRingAreaKm2, toLocal } from "../scripts/eym-surface.mjs";
-import { makeNoise, vec } from "../scripts/eym-tectonics.mjs";
+import { classifyBoundary, makeNoise, plateVelocity, vec } from "../scripts/eym-tectonics.mjs";
 import { contour } from "./generate-eym-tectonics.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/growth.json", root);
@@ -24,7 +24,7 @@ export const GROWTH_MODEL = "eym-growth-v1";
 /** What the growth is made from: this tool, the surface's geometry, the traced continents and the tectonic history. */
 export const GROWTH_SOURCES = ["tools/generate-eym-growth.mjs", "scripts/eym-surface.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json"];
 /** The dials it follows (scripts/eym-world-inputs.mjs). */
-export const GROWTH_INPUTS = ["layout", "growth"];
+export const GROWTH_INPUTS = ["layout", "growth", "seaFloor"];
 export const growthSourcesSha256 = () => { const h = createHash("sha256"); for (const p of GROWTH_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...GROWTH_INPUTS)); return h.digest("hex"); };
 
 /** A hash of the tectonic history itself: the file without its stamp of sources (which moves when a tool's text does). */
@@ -33,6 +33,18 @@ export const tectonicContentSha256 = ({ sourcesSha256, ...history }) => createHa
 const G = WORLD_INPUTS.growth, DEG = Math.PI / 180, EYM_KM2 = 4 * Math.PI * EYM_RADIUS_KM ** 2;
 const smooth = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t)), round1 = (v) => Math.round(v * 10) / 10;
 const insideRing = (ring, x, y) => { let inside = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [xi, yi] = ring[i], [xj, yj] = ring[j]; if ((yi > y) !== (yj > y) && x < xi + (y - yi) / (yj - yi) * (xj - xi)) inside = !inside; } return inside; };
+
+/** How far from a continent's core its own flooded margin reaches: a passive margin's shelf and slope (km). */
+const SHELF_REACH_KM = WORLD_INPUTS.seaFloor.shelfKm.passive + WORLD_INPUTS.seaFloor.slopeKm;
+/** The tectonic origins grown land can have, in words (each grown square has exactly one). */
+export const ORIGINS = Object.freeze({
+  "raised-shelf": "the continent's own flooded shelf and slope, raised above the sea",
+  "accretionary-belt": "terranes and island arcs swept up along the leading edge of its own plate",
+  "raised-margin": "stretched continental crust of its rifted margin, raised",
+  accreted: "crust of a neighbouring plate (terranes, microcontinents, island arcs) welded on where the plates meet, along a suture range",
+  "rift-shoulder": "continental crust on the far side of a rift that is opening within the continent, its shoulders raised",
+  "joined-alongside": "terranes and microcontinents of a neighbouring plate brought alongside and joined on, where the two plates now slide past each other",
+});
 
 /** The nearest of a set of [lat, lon] points to a place (km), searched by latitude bands. */
 function nearestKm(points) {
@@ -99,7 +111,22 @@ export function buildGrowth({ tectonics, traced, layout = EYM_LAYOUT, dials = G 
     const values = Float32Array.from(field, (v, i) => (seen[i] ? level - Math.min(v, level) + 1e-3 : -Math.min(1, v - level) - 1e-3));
     const rings = contour(values, n, n, x0, y0, cell, 0), main = rings[0].ring.map(([x, y]) => [round1(x), round1(y)]);
     let ownKm2 = 0; const off = {}, lats = [], clear = { caren: Infinity, garyk: Infinity, between: Infinity };
-    for (let i = 0; i < n * n; i += 1) { if (!seen[i]) continue; const r = Math.floor(i / n), c = i % n, [lat, lon] = fromLocal(spec.center, x0 + (c + 0.5) * cell, y0 - (r + 0.5) * cell), p = plateAt(lat, lon); if (p === plate) ownKm2 += areaKm2[i]; else off[tectonics.plates[p].id] = (off[tectonics.plates[p].id] ?? 0) + areaKm2[i]; lats.push(lat); }
+    // What made each piece of the grown land (canon of 20 November 2026: every area grown has a tectonic origin).
+    const origins = {}, coreNear = core.filter((_, k) => k % 4 === 0), motion = (id) => { const q = tectonics.plates[id]; return { pole: q.pole, rate: q.rateDegPerMyr }; }, credit = (key, km2, other) => { const o = origins[key] ?? (origins[key] = { areaKm2: 0, plates: new Set() }); o.areaKm2 += km2; if (other) o.plates.add(other); };
+    for (let i = 0; i < n * n; i += 1) {
+      if (!seen[i]) continue; const r = Math.floor(i / n), c = i % n, x = x0 + (c + 0.5) * cell, y = y0 - (r + 0.5) * cell, [lat, lon] = fromLocal(spec.center, x, y), p = plateAt(lat, lon); if (p === plate) ownKm2 += areaKm2[i]; else off[tectonics.plates[p].id] = (off[tectonics.plates[p].id] ?? 0) + areaKm2[i]; lats.push(lat);
+      if (insideRing(core, x, y)) continue;
+      const here = vec([lat, lon]), from = vec(fromLocal(spec.center, cx, cy)), out = here.map((v, k) => v - from[k]), outLength = Math.hypot(...out) || 1, outward = out.map((v) => v / outLength);
+      if (p !== plate) {
+        // Across a plate boundary: what the two plates do there says how the land came to be joined on.
+        const type = classifyBoundary(motion(plate), motion(p), here, outward).type;
+        credit(type === "convergent" ? "accreted" : type === "divergent" ? "rift-shoulder" : "joined-alongside", areaKm2[i], tectonics.plates[p].id);
+      } else {
+        let km = Infinity; for (const [qx, qy] of coreNear) { const d = Math.hypot(qx - x, qy - y); if (d < km) km = d; }
+        const v = plateVelocity(motion(plate), here), leading = (v[0] * outward[0] + v[1] * outward[1] + v[2] * outward[2]) / (Math.hypot(...v) || 1) > 0.2;
+        credit(km <= SHELF_REACH_KM ? "raised-shelf" : leading ? "accretionary-belt" : "raised-margin", areaKm2[i]);
+      }
+    }
     const coast = main.filter((_, i) => i % 3 === 0).map(([x, y]) => fromLocal(spec.center, x, y));
     for (const [lat, lon] of coast) { clear.caren = Math.min(clear.caren, toCaren(lat, lon)); clear.garyk = Math.min(clear.garyk, toGaryk(lat, lon)); if (toOthers) clear.between = Math.min(clear.between, toOthers(lat, lon)); }
     grownPts.push(...coast);
@@ -128,6 +155,7 @@ export function buildGrowth({ tectonics, traced, layout = EYM_LAYOUT, dials = G 
       latitudes: [Math.round(lats.reduce((a, b) => Math.min(a, b), 90)), Math.round(lats.reduce((a, b) => Math.max(a, b), -90))],
       clearanceKm: { caren: Math.round(clear.caren), garyk: Math.round(clear.garyk), ...(toOthers ? { between: Math.round(clear.between) } : {}) },
       ridges: [...fitted.ridges, ...sutures], rifts,
+      origins: Object.entries(origins).map(([origin, o]) => ({ origin, areaKm2: Math.round(o.areaKm2), ...(o.plates.size ? { plates: [...o.plates].sort() } : {}), how: ORIGINS[origin] })).sort((a, b) => b.areaKm2 - a.areaKm2),
     };
   }
   // Islands of the open ocean that the new land has taken in (accreted, means b).
