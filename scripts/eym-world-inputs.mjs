@@ -165,4 +165,28 @@ export const WORLD_INPUTS = deepFreeze({
     surgeDragCoefficient: 0.0025, surgeMinM: 0.3, surgeMaxM: 9,
   },
 
+  /** The magnetic field and the auroras (scripts/eym-magnetic.mjs, tools/generate-eym-magnetic.mjs; canon: docs/eym-canon.md). */
+  magnetic: {
+    // The north magnetic pole stays inside this box (degrees north, degrees east), over open sea; the south
+    // magnetic pole is its antipode (a dipole). The box is the canon's: anywhere in it every coast of the
+    // continents named below lies within `coastLatDeg` of the magnetic equator.
+    poleBox: { latDeg: [79, 80], lonDeg: [80, 100] },
+    // The pole's wander: once round a long, narrow loop that fills this share of the box, in this many years,
+    // starting (at the calendar's northward equinox) this far round it. With these it never moves slower than
+    // `driftKmYr[0]` or faster than `driftKmYr[1]` kilometres a year.
+    loop: { fill: 0.9, years: 26, phaseDeg: 0 }, driftKmYr: [10, 50],
+    // The field's strength at the magnetic equator, in microtesla (twice that at the poles).
+    equatorMicrotesla: 31,
+    // The continents the canon protects: their coasts stay within `coastLatDeg` of the magnetic equator, and the
+    // pole keeps at least `openSeaKm` of sea between itself and any land.
+    continents: ["Caren", "Garyk"], coastLatDeg: 12, openSeaKm: 150,
+    // Auroras. Activity runs from 0 (quiet) to 9 (a severe storm), and 10 is a great storm. The oval lies between
+    // `ovalDeg` of magnetic latitude when quiet; its equatorward edge moves `edgePerLevelDeg` toward the equator
+    // with each level. An aurora overhead is seen low in the sky from `horizonDeg` farther toward the equator
+    // (`greatHorizonDeg` in a great storm, whose red tops stand higher). A great storm is seen down to somewhere
+    // in `greatStormDeg` of magnetic latitude and never below it; there are about `greatStormsPerCentury`.
+    // Storms come oftener near the top of the sun's cycle of `cycleYears`.
+    aurora: { ovalDeg: [65, 75], edgePerLevelDeg: 2, horizonDeg: 7, greatHorizonDeg: 15, greatStormDeg: [20, 25], greatStormsPerCentury: 3, cycleYears: 11 },
+  },
+
 });

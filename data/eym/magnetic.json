@@ -1,0 +1,76 @@
+{
+ "schemaVersion": 1,
+ "model": "eym-magnetic-v1",
+ "sourcesSha256": "a5aa350a8a1c88c45cffaf94c41ee55de52674ddfb5205e9b92a54d6ea5b2cfa",
+ "poleBox": {
+  "latDeg": [
+   79,
+   80
+  ],
+  "lonDeg": [
+   80,
+   100
+  ]
+ },
+ "loopSteps": 72,
+ "loopYears": 26,
+ "poleLatDeg": [
+  79.05,
+  79.95
+ ],
+ "poleLonDeg": [
+  81,
+  99
+ ],
+ "driftKmYr": [
+  12.1,
+  45.9
+ ],
+ "nearestLand": {
+  "north": {
+   "km": 277,
+   "continent": "Khohalis",
+   "at": [
+    78.9,
+    111.9
+   ],
+   "pole": [
+    79.5,
+    99
+   ]
+  },
+  "south": {
+   "km": 2376,
+   "continent": "Demani",
+   "at": [
+    -67.4,
+    -169.6
+   ],
+   "pole": [
+    -79.5,
+    -99
+   ]
+  }
+ },
+ "auroraNeverBelowDeg": 20,
+ "continents": {
+  "Caren": {
+   "coastPoints": 2061,
+   "coastMagneticLatDeg": [
+    -11.6,
+    10.1
+   ],
+   "worstDeclinationDeg": 11.1,
+   "auroraMarginDeg": 8.4
+  },
+  "Garyk": {
+   "coastPoints": 2406,
+   "coastMagneticLatDeg": [
+    -3,
+    11.6
+   ],
+   "worstDeclinationDeg": 5.8,
+   "auroraMarginDeg": 8.4
+  }
+ }
+}

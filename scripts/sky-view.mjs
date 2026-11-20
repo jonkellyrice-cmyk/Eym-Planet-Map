@@ -7,7 +7,7 @@
 // pinch or scroll to look closer, and then drag to move about; tap a star, moon or wanderer to name it;
 // double-tap to reset. Looking closer only enlarges the chart: no new stars appear. Object sizes are
 // exaggerated for legibility, but a moon's disc over the Sun is drawn in true proportion so eclipses read correctly.
-import { LINE_LOOK, SKY_PALETTE, moonRadius, moonSprite, renderSkyBackground, renderSkyVeil, skyMarks, skyPoint, starSprite, sunSprite, wandererSprite, SUN_PIXELS } from "./eym-sky-pixels.mjs";
+import { LINE_LOOK, SKY_PALETTE, moonRadius, moonSprite, renderAurora, renderSkyBackground, renderSkyVeil, skyMarks, skyPoint, starSprite, sunSprite, wandererSprite, SUN_PIXELS } from "./eym-sky-pixels.mjs";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const CX = 450, CY = 340, HORIZON_RADIUS = 315;
@@ -88,6 +88,8 @@ export class SkyView {
   update(snapshot) { this.snapshot = snapshot; this.stamp += 1; this.render(); }
   /** Cloud cover (0–1) over the observer, from the weather. */
   setCloud(cloud) { if (cloud !== this.cloud) { this.cloud = cloud; this.stamp += 1; this.render(); } }
+  /** The aurora over this place now (scripts/eym-magnetic.mjs auroraAt), or null. */
+  setAurora(aurora) { const key = aurora && aurora.seen !== "none" ? `${aurora.seen}|${aurora.phase}|${aurora.strength}|${aurora.offsetDeg.toFixed(2)}|${aurora.towardDeg.toFixed(1)}` : ""; if (key !== this.auroraKey) { this.auroraKey = key; this.aurora = key ? aurora : null; this.lights = null; this.stamp += 1; this.render(); } }
   setLayerVisibility(layer, visible) { this.layers[layer] = Boolean(visible); this.stamp += 1; this.render(); }
   resetView() { Object.assign(this.state, { rotationDeg: 0, zoom: 1, panX: 0, panY: 0 }); this.render(); }
   clearSelection() { this.selection = null; this.stamp += 1; this.render(); }
@@ -222,13 +224,23 @@ export class SkyView {
     this.bg = { key, canvas }; return canvas;
   }
 
+  /** The aurora as the sky stands unturned (a canvas, or null): smooth, so made at half the screen's size, and kept until it, the cloud or the view changes. */
+  #aurora(W, H, dcx, dcy, R) {
+    if (!this.aurora) return null;
+    const key = [this.auroraKey, this.cloud.toFixed(2), Math.round(this.snapshot.sun.altDeg), W, H, dcx.toFixed(1), dcy.toFixed(1), R.toFixed(1)].join("|");
+    if (this.lights?.key === key) return this.lights.canvas;
+    const step = 2, bw = Math.ceil(W / step), bh = Math.ceil(H / step), data = renderAurora({ width: bw, height: bh, cx: dcx / step, cy: dcy / step, radius: R / step, rotationDeg: 0, snapshot: this.snapshot, aurora: this.aurora, cloud: this.cloud });
+    let canvas = null; if (data) { canvas = document.createElement("canvas"); canvas.width = W; canvas.height = H; this.#lay(canvas.getContext("2d"), data, bw, bh, W, H, this.lightScratch ??= document.createElement("canvas")); }
+    this.lights = { key, canvas }; return canvas;
+  }
+
   /** The whole sky, sharp, for the view as it is now: a canvas of the view's size at the screen's density. */
   #compose(W, H, k, dpr, oy) {
     const s = this.snapshot, { cx, cy, radius, rotationDeg } = this.#frameNow, X = (x) => (x - CX) * k + W / 2, Y = (y) => (y - CY) * k + H / 2 + oy;
     const dcx = X(cx), dcy = Y(cy), R = radius * k, colors = skyColors(s.sun.altDeg, s.sun.coverage), darkness = Math.min(1, Math.max(0, (s.limitingMagnitude + 1) / 6.6));
     const out = this.composite ??= document.createElement("canvas"); out.width = W; out.height = H;
     const ctx = out.getContext("2d"), step = Math.max(1, dpr), bw = Math.ceil(W / step), bh = Math.ceil(H / step);
-    ctx.save(); ctx.translate(dcx, dcy); ctx.rotate(-rotationDeg * Math.PI / 180); ctx.translate(-dcx, -dcy); ctx.drawImage(this.#background(W, H, dcx, dcy, R, colors, dpr), 0, 0); ctx.restore();
+    ctx.save(); ctx.translate(dcx, dcy); ctx.rotate(-rotationDeg * Math.PI / 180); ctx.translate(-dcx, -dcy); ctx.drawImage(this.#background(W, H, dcx, dcy, R, colors, dpr), 0, 0); const lights = this.#aurora(W, H, dcx, dcy, R); if (lights) ctx.drawImage(lights, 0, 0); ctx.restore();
     ctx.save(); ctx.beginPath(); ctx.arc(dcx, dcy, R, 0, Math.PI * 2); ctx.clip();
     const marks = skyMarks({ cx: dcx, cy: dcy, radius: R, rotationDeg, snapshot: s, sky: this.sky, lines: this.layers.lines, highlight: this.selection?.figure ?? null, density: dpr });
     // Figures: thin, continuous, muted gilt lines that stop short of their stars; a chosen one in bright gilt.
