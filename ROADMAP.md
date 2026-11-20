@@ -23,8 +23,8 @@ Part 1 retrofits work already done and comes first; item 7 (owner, 19 November 2
    - Plate speeds consistent with their drivers: plates attached to subducting slabs faster (about 5–10 cm a year); plates without slabs slower (about 1–3 cm a year). Check the fitted rates; report and fix outliers within the targets.
    - Plumes fixed in the deep mantle, rising from the margins of two broad antipodal upwellings. Each hotspot leaves an age-ordered chain of volcanoes and seamounts along its plate's motion (the Hawaii–Emperor pattern). These are the seamount chains for the sea floor below.
    - Explain the fitted history by that pattern: the old supercontinent assembled over a downwelling and rifted above upwelling. Added to the history text.
-   - Optional, ask the owner first: dynamic topography (a few hundred metres of broad uplift and subsidence).
-   - Caren stays exempt (shaped by the gods).
+   - Optional, ask the owner first: dynamic topography (a few hundred metres of broad uplift and subsidence). (Decided for northern Caren, 20 November 2026: a broad swell of the mantle raises its plateau; see the Caren block below.)
+   - Caren is part of the plate record like any other land (canon of 20 November 2026): a fragment of the First Land riding its own slow plate. Its plate and Garyk's keep the speeds their fitted histories give them.
 4. *The sea floor in the ocean model* (Stage 2, item 2; done: the steering of the currents and the upwelling at shelf breaks and over seamounts in 0.26.0; storm surge, funnel-bay tides, the fine sea floor on Caren's and Garyk's shelves and the fishing in the sea readout in 0.27.0. Not done: the funnel's gain is not yet fed to the Region layer's coast kinds, which still use the open-coast tide). Reason: Stage 1a built shelves, slopes, ridges, trenches and hotspots, but the current model does not use them, and on an ocean world with little land undersea ridges and plateaus are the main obstacles that steer the circumpolar flow.
    - Check Stage 2a's currents again with the bathymetry: steering by ridges, plateaus and continental slopes. Report how the currents, sea temperatures and cyclone birthplaces change.
    - Upwelling at shelf breaks and over seamounts (cold water, fog, rich fisheries).
@@ -39,8 +39,8 @@ Part 1 retrofits work already done and comes first; item 7 (owner, 19 November 2
    - Tested on a full-moon night against a double-dark night.
 7. *Caren canon and the weather addendum* (owner, 19 November 2026). **The weather model is done (0.28.0): the belts' seasonal shift, the jets and blocking. Dubos, Caren's main desert and the smaller deserts are left for later by the owner's decision (19 November 2026); Stage 6 comes next.** Done with the next climate and weather work, alongside items 4 and 5: the check on Caren's smaller deserts needs item 4's currents. The canon is in `docs/eym-canon.md` (Caren). Caren's coastline is unchanged; its mountains, rivers and lakes stay where the source map draws them.
    - *Dubos:* the city labelled "Dubor" is "Dubos" (the world's author's spelling). Correct the label (`data/eym/caren-labels.json`) and everything derived from it (the cartography asset, the atlas snapshot). No canon note says "Dubose". **Done (0.32.2, 20 November 2026), with every other label: Caren's names are the confirmed list in `docs/eym-canon.md`.**
-   - *Caren's main desert*, an enclosed basin north of the equator:
-     - Find the ring of ranges on the source map. Set crest heights and the basin floor so the ring is continuous and blocks moisture from every direction. Caren is god-shaped, so heights may be set without tectonic cause.
+   - *Caren's main desert* (**replaced, 20 November 2026**: it is the Molkath desert round the Sondel's remnant, by a natural cause; see the Caren block below. The notes that follow are kept as the earlier plan):
+     - Find the ring of ranges on the source map. Set crest heights and the basin floor so the ring is continuous and blocks moisture from every direction. (Heights now follow from Caren's natural history: canon of 20 November 2026.)
      - Drainage agrees with the traced rivers and lakes: if none leave the basin, it drains inward (rivers ending in salt lakes, marshes or salt flats); if the map shows an outflow, it is kept.
      - Landforms from the wind model: salt flats, dune fields, desert pavement, gravel plains; dust and loess downwind beyond the ranges.
      - Resources: evaporite salt. Settlement potential: oases where water reaches the surface.
@@ -54,6 +54,15 @@ Part 1 retrofits work already done and comes first; item 7 (owner, 19 November 2
      - Occasional blocking: rare, deterministic episodes where a meander stalls for one to three weeks, bringing persistent dry, wet, hot or cold spells under and beside it. Recorded for the history engine's timeline of shocks.
    - *Tests:* Dubos throughout; the main basin is drier than its ranges' outer slopes, and its drainage agrees with the traced rivers and lakes; seasons readouts for Caren places include a mild temperature cycle as well as wet and dry seasons; the weather changes are deterministic; the belts shift with the seasons; storm tracks follow the jet; blocking comes a few times a year per hemisphere; Caren's tropical weather is essentially unchanged by the jet and blocking except at its northern margin.
    - *Shown to the owner before submitting:* before-and-after biome and rainfall maps of Caren with the main basin and the smaller deserts marked; seasons readouts for a few Caren places, Dubos among them; a jet-stream and storm-track overlay for two contrasting seasons, with one blocking episode.
+
+### Caren and Eym: climate, geology, names and physical plausibility (owner and the world's author, 20 November 2026)
+
+Before Resources. The canon is in `docs/eym-canon.md` (the principle: Eym is natural first; the nudges; real magic; Caren's natural history; planet-wide). The work, in the order it is done, each step its own pull request:
+
+1. **Names** (**done, 0.32.2**): every label on Caren checked against the confirmed list; Folo for the port that read "Pouk".
+2. **Caren's natural history in the plate record** (**done, 0.33.0**): Caren a fragment of the First Land, turned back onto its rim and riding its plate, with no plate boundary, pole or speed changed; the Caren Plate's far edges given the arc volcanoes any such edge has; the rocks, ores and timeline; earthquakes of an old continent (66 small faults, none of magnitude 6; the far sea floor's great quakes reach it only faintly); a tectonic origin for every area grown on the far continents; the magnetic pole's box held only in the campaign's era; the sweep of "god-shaped", "exempt", "without cause", "placed by the gods" and "set down whole".
+3. **Heights**: the northern plateau (1,200 to 2,000 m) and its support by the crust and a swell of the mantle; long gentle ramps from every northern coast; the massifs' heights worked out and reported; the lakes as sags; the great rivers' real widths and tidal estuaries; the Arluna impact structure and its skymetal district; hills at hill heights; bedrock from the ancient belt, with quartzite its own kind. Shown to the owner before submitting.
+4. **The sea west of Caren and Caren's climate**: the island cluster on its ridge, inside the Caren Plate; upwelling at the ridge and on the western coasts; then checked, not assumed: the cold tongue, the cooler, drier north with its foggy season, the rain belt's months south of the equator, south Caren's wet and dry seasons, Dree's storms, the south-west rain shadows of Mt. Weth and Mt. Oplin and Danrich, the Molkath desert's rainfall before and after the fall (any shortfall reported, nothing tuned), snow and frost by height. Shown to the owner before submitting.
 
 ### Order of work after the Part 1 retrofits (owner's decision, 19 November 2026)
 
@@ -79,7 +88,7 @@ This is the order for everything after the Part 1 retrofits above, and it replac
      - coal in swamp basins of the last several hundred million years, placed with the plate history (which spans the last 420 million years): basins that lay in wet tropical latitudes;
      - oil and gas in suitable marine sedimentary basins of the same era.
    - Individual deposits are deterministic draws within provinces (size, grade, depth, accessibility).
-   - Caren is god-shaped: its deposits follow Europe's pattern, not tectonic rules (canon, 19 November 2026; the full rulebook is in `docs/eym-canon.md`): many small-to-medium deposits widely spread, gold modest; tin, tungsten and vein silver, lead, zinc, copper and cobalt in old granite highlands; a coal belt along the foothills of old ranges; iron in sedimentary basins and some rich iron in old hard rock; salt from old evaporite basins and the enclosed desert basin; copper and pyrite belts; building and fine stone; occasional specialities. Placed by analogous settings on Caren's own relief. Report the provinces and show them to the owner before finalising.
+   - Caren's deposits follow Europe's pattern, which follows from its own history: an ancient collision belt with granite bodies, worn down, and basins over an old core (canon of 19 and 20 November 2026; the rulebook and the history are in `docs/eym-canon.md`): many small-to-medium deposits widely spread, gold modest; tin, tungsten and vein silver, lead, zinc, copper and cobalt in old granite highlands; a coal belt along the foothills of old ranges; iron in sedimentary basins and some rich iron in old hard rock; salt from old evaporite basins and the enclosed desert basin; copper and pyrite belts; building and fine stone; occasional specialities. Placed by analogous settings on Caren's own relief. Report the provinces and show them to the owner before finalising.
    - A placeholder layer for supernatural places (dead-magic and wild-magic zones, ley lines, places where other planes press close): Eym has many, the owner supplies them; nothing is generated until then.
    - A resources lens on the globe and a readout by place. Test that each province lies on the right geology.
 3. **Stage 5: ice ages and old sea levels** (before ecology: its glacial landforms, lakes and soils feed it).
@@ -341,12 +350,12 @@ Already present (not redone): zonal rain bands with rain shadows and orographic 
 
 ### Invariants
 
-- *Caren:* unchanged, exactly as traced. Lore: the gods and angels shaped it deliberately, so its form and composition do not follow plate tectonics. It is masked out of the tectonic simulation (the sea floor around it is still tectonic) and given its own stated geology in the lore.
+- *Caren:* unchanged, exactly as traced. Since the canon of 20 November 2026 it is part of the plate record: a fragment of the First Land, split off when it rifted (the rift steered by the gods: a nudge) and riding the Caren Plate; its rocks and ores follow from that history (`docs/eym-canon.md`, "Caren's natural history"). (It was first kept out of the tectonic simulation, with a geology of its own given in the lore.)
 - *Garyk:* unchanged, exactly as traced. It formed naturally, so the simulation must explain it: a convergent plate edge along its existing mountains and an old core under its interior.
 - *Gaffa, Khohalis, Demani (eastern, northern, southern):* keep their current centres and target areas from `EYM_LAYOUT.seeded`, within ±10% of area and 3° of centre. Their shapes come from the simulation.
 - Eym stays 98.6% ocean. (Superseded by the canon change of 19 November 2026: about 80%. The plate fit still aims at the 98.6% world; the three far continents are grown from its cores afterwards, `data/eym/growth.json`.)
 - Everything is drawn by rule, with named seeds: same inputs, same world. Generators run offline in `tools/`; the module ships their output data.
-- Lore: life on Eym was placed by the gods, not evolved. No biosphere or evolution simulation.
+- Lore: life on Eym evolved naturally, steered by the gods so that it turned out as Earth's did (canon of 20 November 2026: a nudge, with an Earth-like fossil record). No biosphere or evolution simulation: the outcome is fixed.
 
 ### Addendum: Eym is nearly an aquaplanet (owner, 17 November 2026; revised 20 November 2026)
 
@@ -496,7 +505,7 @@ Agreed in the owner's planning conversations and written here in full; this reco
 
 ### 1. Ecology
 
-1. Life on Eym is Earth's animals and plants plus Pathfinder's monsters, placed by the gods, not evolved: no evolution or biosphere simulation.
+1. Life on Eym is Earth's animals and plants plus Pathfinder's monsters. It evolved naturally, steered by the gods to that outcome (canon of 20 November 2026): no evolution or biosphere simulation.
 2. Habitat ranges for Earth species from climate, biome, season, water, depth and altitude, including the wild ancestors of crops (wheat, barley, rice, maize, olives and others) and of livestock (horse, aurochs and cattle, sheep, goat, pig, camel, llama, chicken, dog and others).
 3. Placement rule (canon, 19 November 2026): species live wherever their habitat exists ("by habitat"), the wild ancestors of crops and livestock included.
 4. Optional, ask the owner first: Pathfinder creatures tagged with habitat, giving encounter suitability by place and season; tameable creatures (riding drakes, giant lizards and so on) listed beside Earth's domesticates.
@@ -596,7 +605,7 @@ Agreed in the owner's planning conversations and written here in full; this reco
 10. *Calibration:*
     - Canon about Caren and Garyk is evidence: unknown rules are calibrated by ensemble runs, keeping only settings whose results resemble the canon (approximate Bayesian computation), then applied to the rest of Eym, whose results are reported as ranges.
     - Canon seeds neighbouring regions through the travel network.
-    - Caren's land is god-shaped: its coastline and terrain are left out when calibrating rules for natural landscape. Its people and history are valid evidence. Northern Caren (ordinary development before the wall fell) is the clean calibration set; southern Caren shows the pacts' modifiers (`docs/eym-canon.md`, the previous campaign).
+    - Caren's land is natural (canon of 20 November 2026; only its outline was steered, and the Sondel Range was artificial): its terrain counts when calibrating rules for natural landscape, the Sondel's ruin left out. Its people and history are valid evidence. Northern Caren (ordinary development before the wall fell) is the clean calibration set; southern Caren shows the pacts' modifiers (`docs/eym-canon.md`, the previous campaign).
 11. *Output*, run as an ensemble (many runs, each deterministic from its seed; only runs consistent with the fixed history count), labelled as simulated odds:
     - likely cores and peripheries of empires;
     - frontiers and flashpoints;

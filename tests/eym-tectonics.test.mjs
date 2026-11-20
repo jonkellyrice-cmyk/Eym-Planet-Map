@@ -90,15 +90,52 @@ test("volcanoes stand at subduction margins and hotspots, each with an age and a
   for (const v of tect.volcanoes) {
     assert.ok(["subduction", "hotspot"].includes(v.setting) && ["active", "dormant", "extinct"].includes(v.activity) && v.ageMyr >= 0);
     if (v.setting === "subduction") assert.ok(nearestKm(v.at, convergent) < 250, `volcano at ${v.at} is ${Math.round(nearestKm(v.at, convergent))} km from a convergent edge`);
-    if (v.setting === "subduction") assert.notEqual(v.plate, "caren", "no subduction on Caren's plate");
   }
+  // The Caren Plate's own edges have their arcs like any other plate's (canon of 20 November 2026: Caren is part of
+  // the plate record), far out at sea: none within 1,000 km of Caren. The arcs drawn before that are what they were.
+  const carenArcs = tect.volcanoes.filter((v) => v.setting === "subduction" && v.plate === "caren");
+  assert.ok(carenArcs.length >= 10, `${carenArcs.length} arc volcanoes on the Caren Plate's edges`);
+  assert.equal(sha(tect.volcanoes.slice(0, 128)), "8c832e27e9717b6db5d5b4f2203bd5b933d9f6a4f43a0f40394a8d6ca670de02", "the first 128 volcanoes are the ones drawn before");
+  assert.deepEqual(tect.volcanoes.slice(128), carenArcs);
   // None on Caren itself (a hotspot may stand on the sea floor of its plate, far from its coast).
   const carenCoast = asset.terrain.coastlines.filter((c) => c.continent === "Caren").flatMap((c) => c.points.filter((_, i) => i % 10 === 0));
   assert.ok(tect.volcanoes.every((v) => nearestKm(v.at, carenCoast) > 300));
+  assert.ok(carenArcs.every((v) => nearestKm(v.at, carenCoast) > 1000));
   assert.ok(tect.volcanoes.some((v) => v.setting === "hotspot"));
 });
 
-test("Caren is masked out: its geology is stated, not simulated; elsewhere bedrock follows the plates", () => {
+test("Caren is in the plate record: a fragment of the First Land riding its plate, with nothing of the plates changed", () => {
+  // The plates, their poles and speeds, the boundaries, the continents, the rasters and the mantle are what they
+  // were before Caren was given its history (canon of 20 November 2026): pinned as they stood on main.
+  assert.equal(sha({ plates: tect.plates.map(({ driver, ...p }) => p), boundaries: tect.boundaries, continents: tect.continents, rasters: tect.rasters, mantle: tect.mantle, firstLand: tect.firstLand, garyk: tect.garyk }), "f25a5c410e24cdbeaaf421981897b3f674d0772059b28b183015b6a7bbc0050b");
+  // Turned back whole, it sat on the First Land's rim, clear of the other pieces by a rift's width, and has drifted
+  // to today no faster than they did; today it rides the Caren Plate at about a centimetre a year.
+  const o = tect.caren.origin, plate = tect.plates.find((p) => p.id === "caren");
+  assert.equal(o.plate, "caren");
+  assert.ok(o.kmFromFirstLandCentre > 500 && o.kmFromFirstLandCentre < 4000 && o.riftWidthKm === 60 && o.coastFacingLand > 0.1, JSON.stringify(o));
+  assert.ok(o.driftKm > 2000 && o.meanDriftMmYr > 10 && o.meanDriftMmYr <= 100, `drifted ${o.driftKm} km at ${o.meanDriftMmYr} mm a year`);
+  assert.ok(plate.speedMmYr >= 7 && plate.speedMmYr <= 11, `${plate.speedMmYr} mm a year today`);
+  // Every point of Caren's coast lies on the Caren Plate.
+  const plateRaster = Buffer.from(tect.rasters.plate, "base64"), carenIndex = tect.plates.findIndex((p) => p.id === "caren");
+  for (const c of asset.terrain.coastlines.filter((x) => x.continent === "Caren")) for (const [lat, lon] of c.points.filter((_, i) => i % 20 === 0)) assert.equal(plateRaster[Math.floor(90 - lat) * 360 + Math.floor(lon + 180)], carenIndex);
+  // Its history says how it came to be, and nothing in the record sets it apart from the plates.
+  const carenStage = tect.history.find((h) => h.stage === "Caren");
+  assert.match(carenStage.text, /split off from the First Land/);
+  assert.doesNotMatch(JSON.stringify([tect.history, tect.caren]), /set down|god-shaped|does not drift|placed by the gods|holds no veins/i);
+  assert.deepEqual(CAREN_GEOLOGY.timeline.map((s) => s.stage), ["core", "ancient belt", "wearing down", "rifting", "drift", "the Arluna impact", "northern uplift"]);
+  for (const s of CAREN_GEOLOGY.timeline) assert.ok(s.myrAgo[0] >= s.myrAgo[1], s.stage);
+  // Each nudge is tied to a stage of the timeline and says what evidence it left.
+  for (const n of CAREN_GEOLOGY.nudges) assert.ok(CAREN_GEOLOGY.timeline.some((s) => s.nudge === n.id) && n.evidence.length > 20, n.id);
+  // Every ore traces to a stage of the history; none needs a volcano; quartzite carries little.
+  for (const ore of CAREN_GEOLOGY.ores) assert.ok(CAREN_GEOLOGY.timeline.some((s) => s.stage === ore.stage) && !/volcan|erupt/i.test(ore.source), ore.ore);
+  assert.doesNotMatch(JSON.stringify(CAREN_GEOLOGY.timeline), /lava|volcanic/i);
+  // The small faults its earthquakes come from are spread over the whole land.
+  const faults = tect.caren.faults, lats = faults.map((f) => f[0]), lons = faults.map((f) => f[1]);
+  assert.ok(faults.length >= 50 && Math.min(...lats) < -6 && Math.max(...lats) > 6 && Math.min(...lons) < -3 && Math.max(...lons) > 3, `${faults.length} faults`);
+  assert.equal(asset.geology.caren.faults, undefined, "the faults are packed with the boundaries, not written twice");
+});
+
+test("Caren's rock is its own; elsewhere bedrock follows the plates", () => {
   assert.equal(tect.caren.summary, CAREN_GEOLOGY.summary);
   assert.equal(asset.geology.caren.summary, CAREN_GEOLOGY.summary);
   const kinds = asset.raster.bedrock.categories, values = [...Buffer.from(asset.raster.bedrock.valuesBase64, "base64")].map((i) => kinds[i]);
@@ -107,19 +144,20 @@ test("Caren is masked out: its geology is stated, not simulated; elsewhere bedro
   // Garyk formed naturally: an old core under its interior and a collision belt along its convergent edge.
   const garyk = values.filter((_, i) => { const lat = -89.5 + Math.floor(i / 360), lon = -179.5 + (i % 360); return lon > -105 && lon < -55 && lat > 0 && lat < 30; });
   assert.ok(garyk.filter((k) => k === "granite-gneiss").length >= 10 && garyk.filter((k) => k === "metamorphic").length >= 20);
-  assert.ok(!values.some((k, i) => ["godstone-granite", "marble", "caren-limestone"].includes(k) && Math.abs(-179.5 + (i % 360)) > 20), "Caren's stated rock is Caren's alone");
+  assert.ok(!values.some((k, i) => ["godstone-granite", "marble", "caren-limestone"].includes(k) && Math.abs(-179.5 + (i % 360)) > 20), "Caren's rock kinds are Caren's alone");
 });
 
 test("the mantle: plate speeds follow their drivers; plumes rise on the upwellings' margins and leave age-ordered seamount chains", () => {
   // Plates pulled by a sinking slab (a tenth of their edge or more) move at 5-10 cm a year; plates without, at 1-3.
-  // Caren's plate (the gods') and Garyk's are exempt; Gaffa, Khohalis and Demani have no slab and ride slowly.
+  // Caren's plate and Garyk's keep the speeds their fitted histories give them (about a centimetre a year: slow
+  // plates with no slab); Gaffa, Khohalis and Demani have no slab and ride slowly.
   for (const s of tect.report.plateSpeeds) {
     assert.ok(s.withinTarget, `${s.id}: ${s.speedMmYr} mm/yr, ${s.driver}`);
     if (s.driver === "slab") assert.ok(s.slabShare >= 0.1 && s.speedMmYr >= 49.5 && s.speedMmYr <= 100.5, JSON.stringify(s));
     if (s.driver === "no slab") assert.ok(s.slabShare < 0.1 && s.speedMmYr >= 9.5 && s.speedMmYr <= 30.5, JSON.stringify(s));
   }
   for (const id of ["eastern", "northern", "southern"]) assert.equal(tect.report.plateSpeeds.find((s) => s.id === id).driver, "no slab");
-  assert.equal(tect.report.plateSpeeds.find((s) => s.id === "caren").driver, "exempt");
+  assert.equal(tect.report.plateSpeeds.find((s) => s.id === "caren").driver, "kept");
   // Two broad upwellings on opposite sides of the world; the First Land rifted inside one of them.
   const [a, b] = tect.mantle.upwellings, R = tect.mantle.radiusDeg;
   assert.ok(Math.abs(greatCircleKm(a, b) / 111.195 - 180) < 0.5 && R >= 25 && R <= 45);
@@ -158,4 +196,21 @@ test("globe fixes: sea ice is not cloud white; highs and lows have their own lay
   assert.ok(template.includes('<input type="checkbox" data-body-layer="weather-centres"> Highs &amp; lows'));
   assert.match(css, /\.oscm-cartography-label \{[^}]*font-family: var\(--oscm-serif/);
   assert.match(core, /#hideOverlappingLabels\(\)/);
+});
+
+test("every area grown on the far continents has a tectonic origin in the plate record", async () => {
+  // (Canon of 20 November 2026.) Each grown square has exactly one origin, so the origins' areas add up to the land
+  // grown beyond the fitted core; each origin is one the plates there can make, and the outlines are what they were.
+  const { ORIGINS, GROWTH_INPUTS } = await import("../tools/generate-eym-growth.mjs"), growth = JSON.parse(read("data/eym/growth.json"));
+  assert.ok(GROWTH_INPUTS.includes("seaFloor"), "the shelf's reach comes from the sea-floor dials");
+  for (const c of Object.values(growth.continents)) {
+    assert.ok(c.origins.length >= 3, c.name);
+    for (const o of c.origins) { assert.ok(ORIGINS[o.origin] && o.how === ORIGINS[o.origin] && o.areaKm2 > 0, `${c.name}: ${o.origin}`); if (["accreted", "rift-shoulder", "joined-alongside"].includes(o.origin)) assert.ok(o.plates.length > 0 && o.plates.every((id) => id !== c.plate && tect.plates.some((p) => p.id === id)), `${c.name}: ${o.origin}`); else assert.equal(o.plates, undefined); }
+    const sum = c.origins.reduce((s, o) => s + o.areaKm2, 0), grown = c.gridAreaKm2 - c.coreAreaKm2;
+    assert.ok(Math.abs(sum / grown - 1) < 0.02, `${c.name}: origins cover ${Math.round(sum)} of ${Math.round(grown)} km² grown`);
+    // Land across a plate boundary is what the growth already counted there.
+    const across = Object.values(c.acrossBoundariesKm2).reduce((s, v) => s + v, 0), offPlate = c.origins.filter((o) => o.plates).reduce((s, o) => s + o.areaKm2, 0);
+    assert.ok(Math.abs(offPlate - across) < 0.03 * grown, `${c.name}: ${Math.round(offPlate)} km² off its plate by origin, ${Math.round(across)} km² counted`);
+  }
+  assert.equal(sha(Object.values(growth.continents).map(({ origins, ...c }) => c)), "c371fb7c4f72e1b1c25b505e3e85d6947c8dbbb8423d398a68a35154b710f4b2", "the grown continents are otherwise what they were");
 });

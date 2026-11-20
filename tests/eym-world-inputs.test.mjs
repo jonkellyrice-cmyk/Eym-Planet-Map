@@ -7,7 +7,7 @@ import { ABYSS_KM, SHELF_KM, SLOPE_KM } from "../scripts/eym-seafloor.mjs";
 import { buildEymGeography } from "../scripts/eym-cartography.mjs";
 import { describeOverrides, overrideProblems, prepareOverrides } from "../scripts/eym-overrides.mjs";
 import { parseCsv } from "../scripts/system-data.mjs";
-import { FREE_SPEED_MM, OCEAN_FRACTION, SLAB_SHARE, SLAB_SPEED_MM, SPEED_EXEMPT, TARGET_TOLERANCE, TECTONIC_INPUTS } from "../tools/generate-eym-tectonics.mjs";
+import { FREE_SPEED_MM, OCEAN_FRACTION, SLAB_SHARE, SLAB_SPEED_MM, SPEED_KEPT, TARGET_TOLERANCE, TECTONIC_INPUTS } from "../tools/generate-eym-tectonics.mjs";
 import { BELT_SHIFT, CLIMATE_INPUTS, SEAMOUNT_UPWELLING, SLOPE_UPWELLING, STEERING } from "../tools/generate-eym-climate.mjs";
 import { moduleClosure } from "../tools/generate-region-fingerprint.mjs";
 import { WIND_INPUTS } from "../tools/generate-eym-wind.mjs";
@@ -24,7 +24,7 @@ test("Eym's dials live in one file, and everything that uses one reads it from t
   for (const key of ["seed", "caren", "garyk", "archipelagos"]) assert.deepEqual(EYM_LAYOUT[key], WORLD_INPUTS.layout[key]);
   assert.ok(!("areaCarens" in EYM_LAYOUT.seeded[0]));
   // The other modules' named values are the inputs' own.
-  assert.deepEqual([SLAB_SHARE, SLAB_SPEED_MM, FREE_SPEED_MM, SPEED_EXEMPT, TARGET_TOLERANCE, OCEAN_FRACTION], [WORLD_INPUTS.plates.slabShare, WORLD_INPUTS.plates.slabSpeedMmYr, WORLD_INPUTS.plates.freeSpeedMmYr, WORLD_INPUTS.plates.speedExempt, WORLD_INPUTS.plates.targetTolerance, WORLD_INPUTS.plates.oceanFraction]);
+  assert.deepEqual([SLAB_SHARE, SLAB_SPEED_MM, FREE_SPEED_MM, SPEED_KEPT, TARGET_TOLERANCE, OCEAN_FRACTION], [WORLD_INPUTS.plates.slabShare, WORLD_INPUTS.plates.slabSpeedMmYr, WORLD_INPUTS.plates.freeSpeedMmYr, WORLD_INPUTS.plates.speedKept, WORLD_INPUTS.plates.targetTolerance, WORLD_INPUTS.plates.oceanFraction]);
   assert.deepEqual([SHELF_KM, SLOPE_KM, ABYSS_KM], [WORLD_INPUTS.seaFloor.shelfKm, WORLD_INPUTS.seaFloor.slopeKm, WORLD_INPUTS.seaFloor.abyssKm]);
   assert.deepEqual([BELT_SHIFT, STEERING, SLOPE_UPWELLING, SEAMOUNT_UPWELLING], [WORLD_INPUTS.ocean.beltShift, WORLD_INPUTS.ocean.steering, WORLD_INPUTS.ocean.slopeUpwelling, WORLD_INPUTS.ocean.seamountUpwelling]);
   // Nothing can change a dial by accident at run time.

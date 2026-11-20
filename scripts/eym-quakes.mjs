@@ -1,6 +1,7 @@
 // Earthquakes and eruptions on Eym, drawn by rule (Stage 1b of the physical history and climate programme).
 // Every stretch of plate boundary in the cartography's geology section is a fault with a yearly rate of
-// earthquakes; every volcano erupts at a rate set by its activity. Each (source, Eym year) pair seeds its own
+// earthquakes, and so is each of the small faults inside an old continent (Caren's: scattered, small and seldom);
+// every volcano erupts at a rate set by its activity. Each (source, Eym year) pair seeds its own
 // draws, so the catalogue is the same whenever and wherever it is asked for: a quake that shook a town on a
 // given day shook it on every map and in every session. Ask by place and date range; each event comes with
 // how strongly it was felt there (the Mercalli scale).
@@ -16,6 +17,11 @@ export const FAULTS = Object.freeze({
   trenches: { rate: 110, maxMagnitude: 9.1, depthKm: 35, words: "a subduction quake" },
   collisions: { rate: 40, maxMagnitude: 8.2, depthKm: 15, words: "a collision-belt quake" },
   ridges: { rate: 15, maxMagnitude: 6.8, depthKm: 10, words: "a mid-ocean-ridge quake" },
+  // Inside an old continent far from any plate edge (Caren; canon of 20 November 2026: as small as may be, then as
+  // seldom, and spread out). Each of some sixty-odd small faults gives a quake of 3.5 or more about once in fifty
+  // years: over the whole land about one a year of 3.5 to 4, one of 4 to 5 every two years, one of 5 or a little
+  // more in a generation, and none of 6.
+  intraplate: { rate: 0.02, maxMagnitude: 5.9, depthKm: 8, reachKm: 75, words: "a small quake on an old fault" },
 });
 /** Eruptions per year by activity, and the explosivity (VEI 0–6) they reach, by share. */
 const ERUPTION_RATE = { active: 1 / 5, dormant: 1 / 400, extinct: 0 };
@@ -59,7 +65,7 @@ export function boundaryPoints(geology) {
   if (unpacked.has(b)) return unpacked.get(b);
   const bytes = (b64) => (typeof Buffer !== "undefined" ? Uint8Array.from(Buffer.from(b64, "base64")) : Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)));
   const read = (b64) => { const u = bytes(b64), v = new DataView(u.buffer), out = []; for (let i = 0; i + 3 < u.length; i += 4) out.push([v.getInt16(i, true) / 10, v.getInt16(i + 2, true) / 10]); return out; };
-  const out = { trenches: read(b.trenches), collisions: read(b.collisions), ridges: read(b.ridges) };
+  const out = { trenches: read(b.trenches), collisions: read(b.collisions), ridges: read(b.ridges), intraplate: b.intraplate ? read(b.intraplate) : [] };
   unpacked.set(b, out);
   return out;
 }
@@ -79,10 +85,16 @@ function quakesOf(kind, index, at, year, band) {
     // Gutenberg–Richter within the band.
     const magnitude = Math.round(Math.min(hi - 0.05, lo - Math.log10(1 - rng() * (1 - 10 ** -(hi - lo)))) * 10) / 10;
     // Under a trench the sinking slab carries quakes up to 160 km inland, deeper the farther they are (a 30° dip).
-    const reachKm = kind === "trenches" ? 160 * rng() ** 1.5 : 40 * rng();
+    const reachKm = kind === "trenches" ? 160 * rng() ** 1.5 : (f.reachKm ?? 40) * rng();
     const epicentre = offset(at, rng() * 360, reachKm), depthKm = Math.round(f.depthKm * (0.5 + rng()) + (kind === "trenches" ? reachKm * 0.55 : 0));
     out.push({ kind: "earthquake", source: kind, timeMs, magnitude, depthKm, at: epicentre, words: f.words });
   }
+  return out;
+}
+
+/** Every quake of MIN_MAGNITUDE or more from one fault point in one Eym year (all its bands): the catalogue itself, wherever it is felt. */
+export function faultQuakes(kind, index, at, year) {
+  const out = []; for (let band = MIN_MAGNITUDE; band < FAULTS[kind].maxMagnitude; band += 1) out.push(...quakesOf(kind, index, at, year, band));
   return out;
 }
 
@@ -113,22 +125,22 @@ function eruptionEffect(e, d) {
 
 /**
  * Earthquakes felt and eruptions noticed at a place between two times (ms). `geology` is the cartography
- * asset's geology section. A place on Caren's Godstone feels only a little of the shaking from the sea floor
- * around it (at most intensity III). At most ten Eym years are searched.
+ * asset's geology section. A place on hard, unbroken rock (granite, quartzite, marble) shakes less than one on
+ * soft ground: one step of intensity less, as on Earth. At most ten Eym years are searched.
  */
-export function tremorsAt(geology, { lat, lon, fromMs, toMs, onGodstone = false }) {
+export function tremorsAt(geology, { lat, lon, fromMs, toMs, hardRock = false }) {
   const boundaries = boundaryPoints(geology); if (!boundaries) return { quakes: [], eruptions: [] };
   const firstYear = Math.floor(fromMs / YEAR_MS), lastYear = Math.min(Math.floor(toMs / YEAR_MS), firstYear + 9), here = [lat, lon];
   const quakes = [], eruptions = [];
   for (const kind of Object.keys(FAULTS)) {
     const f = FAULTS[kind];
-    boundaries[kind].forEach((at, index) => {
+    (boundaries[kind] ?? []).forEach((at, index) => {
       // Only the bands that could be felt here (allowing for the epicentre's spread round the source point).
       const k0 = Math.max(0, Math.floor(feltFromMagnitude(distanceKm(here, at) - 170) - MIN_MAGNITUDE));
       for (let band = MIN_MAGNITUDE + k0; band < f.maxMagnitude; band += 1) for (let year = firstYear; year <= lastYear; year += 1) for (const q of quakesOf(kind, index, at, year, band)) {
         if (q.timeMs < fromMs || q.timeMs > toMs) continue;
         const d = distanceKm(here, q.at); let intensity = feltIntensity(q.magnitude, d, q.depthKm);
-        if (onGodstone) intensity = Math.min(3, intensity - 1.5);
+        if (hardRock) intensity -= 1;
         if (intensity < 2) continue;
         const level = Math.min(12, Math.round(intensity));
         quakes.push({ ...q, distanceKm: Math.round(d), intensity: Math.round(intensity * 10) / 10, mercalli: ROMAN[level], felt: MERCALLI[level] });

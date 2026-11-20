@@ -8,7 +8,11 @@
 // Auroras come only around the two magnetic poles: an oval that widens toward the equator as the sun's storms
 // grow. How active the night is comes by rule from the date (no randomness: the same date gives the same sky).
 // A great storm, a few times a century, is seen far from the poles, but never within 20° of the magnetic equator,
-// and no coast of Caren or Garyk ever lies beyond 12°: neither sees an aurora, ever.
+// and no coast of Caren or Garyk lies beyond 12° in the campaign's era: neither sees an aurora then.
+//
+// The loop and its box are the campaign era's (`campaignEraYears` either side of the calendar's start). Over longer
+// spans the pole wanders naturally, as Earth's does, and nothing holds it to the box: `poleBoxAt` says which holds,
+// and the history engine is to draw its own slow wander outside the era.
 //
 // Everything here is pure: no clock, no data files. The dials are in scripts/eym-world-inputs.mjs (`magnetic`).
 
@@ -35,7 +39,9 @@ export function loopAngleDeg(timeMs, dials = MAGNETIC) {
   const turns = (timeMs - NORTHWARD_EQUINOX_MS) / (dials.loop.years * YEAR_MS) + dials.loop.phaseDeg / 360;
   return ((turns % 1) + 1) % 1 * 360;
 }
-/** The north magnetic pole at a date: { lat, lon }. The south magnetic pole is its antipode. */
+/** The box the pole keeps to at a date, or null outside the campaign's era, when it wanders freely (canon of 20 November 2026). */
+export const poleBoxAt = (timeMs, dials = MAGNETIC) => (Math.abs(timeMs - NORTHWARD_EQUINOX_MS) <= dials.campaignEraYears * YEAR_MS ? dials.poleBox : null);
+/** The north magnetic pole at a date in the campaign's era: { lat, lon }. The south magnetic pole is its antipode. */
 export const magneticPole = (timeMs, dials = MAGNETIC) => poleOnLoop(loopAngleDeg(timeMs, dials), dials);
 /** The antipode of a place. */
 export const antipode = ({ lat, lon }) => ({ lat: -lat, lon: lon > 0 ? lon - 180 : lon + 180 });

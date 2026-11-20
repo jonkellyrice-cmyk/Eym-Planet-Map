@@ -5,6 +5,144 @@ follows these; where a value had to be chosen to meet them, the measured values 
 be checked against the intent. Settings that are still the author's to decide are listed at the end, with the
 default the code uses until he answers.
 
+## The principle: Eym is natural first (owner and the world's author, 20 November 2026)
+
+> Eym is natural first. Tectonics, currents, weather, erosion, geology and life follow physics and
+> evolution. Dave's rationale: the gods prefer low-energy solutions. They spent aeons fighting the
+> Exilarchs and had little power to spare, so they nudged natural processes (a plume placed, a rift
+> steered, evolution guided, an event timed; one large event or several small ones) instead of working
+> real divine magic. A nudge looks natural and leaves ordinary geological or biological evidence. Real,
+> physically manifested magic is used only where no nudge could work (the Sondel Range; the old sea
+> barrier). Every "god-shaped", "exempt", "without cause", "placed by the gods" or "set down whole" in
+> canon, ROADMAP and code is replaced by the natural process plus any recorded nudge, or by the named
+> manifested phenomenon.
+
+Where physics gives a different number from the one in the data (a peak's height, a desert's rainfall), the number
+is reported and not forced. The source map of Caren is authoritative for its outline, names, rivers, lakes,
+forests, peaks and the desert's place.
+
+*The nudges* (each looks natural and leaves ordinary evidence):
+
+| Nudge | When | What it did | The evidence it left |
+|---|---|---|---|
+| The rift steered | 210 to 190 million years ago | As the First Land rifted apart, the gods steered the rift so that the fragment split off took Caren's shape and came to rest where Caren lies. | An ordinary rifted margin: smooth coasts and wide shelves all round Caren, and rocks that match the First Land's across the sea. |
+| The northern plume | 10 to 5 million years ago | A small plume was placed beneath northern Caren. Under the thick old crust it lifts the land into a plateau and never breaks through. | A broad dome of raised land with rivers cut down into it, warm springs, and no young volcanic rock. |
+| Evolution steered | from about 2.5 billion years ago | Life evolved naturally and was steered, in many small steps, so that Eym's plants and animals turned out as Earth's did, in spite of Eym's different ocean and climate. | An Earth-like fossil record: microbes from about 2.5 billion years ago, land plants by 470 to 420 million, forests and coal by 360 to 300 million. No horizon at which life was placed. |
+
+The plume under the islands west of Caren is recorded as a natural outlier, not a nudge: it stands far from the
+margins of the mantle's two upwellings, where the other plumes rise, as a few of Earth's do.
+
+*Real magic* (physically manifested, where no nudge could work):
+
+| What | Where and when | What it was | In the models |
+|---|---|---|---|
+| The Sondel Range | Across Caren from coast to coast, until it fell about 50 years before the campaign's present | An artificial mountain range. What is left is a ruin in the middle of Caren. | Drawn as recent ruin (rubble, landslides, dammed lakes, new passes), never as tectonic mountains. The coast-to-coast wall is rebuilt only for the terrain and climate before the fall. |
+| The old sea barrier | The seas at either end of the Sondel Range, until the fall | Storms that arose on each side only when a crossing was attempted. | Not in the climate or ocean models: it left no lasting mark on climate or currents. A hazard of the time before the fall, for the history engine. |
+
+## Caren's natural history (owner and the world's author, 20 November 2026)
+
+Caren is treated as Garyk is: its outline is the owner's map and never changes, and the plate record explains it.
+It replaces the earlier "shaped by the gods and set down whole". Caren spans about **9.9° S to 8.7° N** (an earlier
+note said its north end reached about 16° N; that was wrong).
+
+*Timeline* (it fits the plate history: assembly 420 to 320 million years ago, break-up 210 to 190):
+
+- *The core* (about 1.5 to 2 billion years old): old continental crust with a thick, cold, buoyant root (a craton).
+- *The ancient belt* (about 380 to 300 million years ago): the core is caught in the First Land's assembly and an
+  ancient mountain belt rises along it (as Europe's Variscan belt did). Deep in the thickened crust, rock melts into
+  great bodies of granite that cool underground and never erupt (as in Cornwall).
+- *Wearing down* (from about 320 million years ago): the belt erodes; limestone and sandstone gather in basins,
+  marble where they were baked and squeezed.
+- *Rifting* (210 to 190 million years ago): the First Land rifts and Caren is a fragment split off (the rift
+  steered: a nudge). Since then it rides the Caren Plate, today at about 9 mm a year.
+- *The Arluna impact* (before any people; tens of millions to about 200 million years ago): see below.
+- *The northern uplift* (about 10 to 5 million years ago to the present): see below.
+
+*As built (`data/eym/tectonics.json`, `caren`):* turned back whole onto the First Land, Caren sat on its rim about
+2,100 km from its centre, a rift's width (60 km) from its neighbours; it has drifted about 9,000 km since, 43 mm a
+year on average (the three far continents drifted farther and as fast), and its plate has slowed to 8.9 mm a year.
+No plate boundary, pole or speed changed.
+
+*Rocks.* "The Godstone" is the people's name for Caren's white quartzite and its massive white leucogranite: natural
+rocks, the hardest of the ancient belt. The granites carry veins round them; quartzite carries little ore.
+
+*Ores* (none needs a volcano; Europe's pattern of deposits, which the canon of 19 November gave Caren as its
+rulebook, now follows from this history):
+
+- tin, tungsten, and silver, lead, zinc and copper in veins, round the granite bodies (from the granites' own fluids);
+- coal in the foothill basins of the ancient belt (about 320 to 300 million years old);
+- copper beds, lead and zinc from basin brines, ironstone, and salt from dried-up seas, in the old basins;
+- skymetals at the Arluna structure, and as the skymetal model gives.
+
+*Earthquakes* (the world's author: as small as may be first, as seldom as may be second, and spread out). Caren lies
+far inside its plate, as Australia does. The young uplift is taken up on many small faults across a broad zone (old
+faults of the ancient belt, the swell's margins), not on one great fault: mostly under magnitude 4, now and then 4
+to 5, rarely 5 to 6, never more; spread over the whole land, with no one place that shakes most. *As built:* 66
+small faults over Caren, together about one quake of 3.5 to 4 a year, one of 4 to 5 every two years, one over 5
+in a generation, none of 6 (`scripts/eym-quakes.mjs`).
+
+*Erosion* follows each rock: quartzite and massive granite wear very slowly; limestone weathers to caves and
+sinkholes; rivers, deltas and soils follow.
+
+*The northern plateau and its peaks* (to be built: heights). North of the Sondel the interior is a plateau of about
+1,200 to 2,000 m: the buoyant old root, and a broad swell of the mantle over the last 5 to 10 million years (the
+northern plume: a nudge), as southern Africa was raised. Every northern coast rises to it by a long, gentle ramp
+over 100 to 300 km (a slope of 0.4 to 2%), with no escarpment and no cliff coast but where the map shows one: a broad
+dome. The Myra, Thran and Palma (and the Drong and Molkath) are drawn wide on the map: real channels a few
+kilometres wide, navigable far inland, their lowest 50 to 100 km wide tidal estuaries; long and gentle, with rapids
+and no great falls. Mt. Weth and Mt. Shila (each alone) and Mt. Oplin and Mt. Danrich (a short range) are massifs of
+quartzite and massive granite from the ancient belt, raised as blocks on the swell (as the Rwenzori is: a range on
+the equator, not volcanic, with glaciers), kept high by their hardness and by the crust's rebound as the valleys
+round them are cut. Mt. Weth is not a volcano. Their heights are worked out from that and reported. The lakes (Luin,
+Surnet, Whitswell, Havamere, Nal, Rochest, Conera) lie in shallow sags of the warped plateau, as Lake Victoria does.
+The Trate Hills and the Sarven Hills are hills (about 500 to 1,500 m).
+
+*The Arluna Lakes* (to be built: heights and resources): one great impact structure 150 to 200 km across (as
+Manicouagan is), on the old core, from before any people. The lakes lie in its ring trough round a central uplift,
+and Dubos stands near the centre. It is a skymetal district: the ore lies in the melt sheet under the uplift and
+the ring. Optional, for the world's author: that this was the impact that left Eym's worldwide trace of skymetal.
+
+*The Molkath desert* (to be checked against the models; it replaces the earlier "basin north of the equator ringed
+by mountains"). A desert of sand and rock in the tan country of the Molkath Confederation round what is left of the
+Sondel Range, at about 0° to 4° N, between the Drong and the Molkath. It was there before the range fell. The cause
+is natural (as for the Chalbi Desert by Lake Turkana, at 3° N, with 150 to 250 mm of rain a year): a low, hot basin;
+a low wind jet funnelled between the northern plateau and the southern uplands, its air sinking and drying; rain
+shadows of the higher ground round it; and a surface of quartz sand and bare rock from weathered quartzite. Before
+the fall the coast-to-coast wall made the funnel and the shadow stronger. The aim is 100 to 250 mm a year in both
+eras; if the models cannot reach it by natural means the shortfall is reported, and nothing is tuned or made magical
+without the world's author's word.
+
+*Climate* (to be checked against the models). South Caren is tropical wet and dry: savanna with patches of forest
+(the Arluna, Calmond, Ewash and Holy Grove forests), the Minisa Forest's conifers being tropical pines on sandy or
+high ground, palms on the Chom Islands and the eastern islets, and Dree often stormy. North of the Sondel the plateau
+has a mild rhythm of four seasons: a warm rainy season, leaf fall, a cool dry season with frost at night, and
+green-up before the rains; the coasts stay hot and humid, the foothills warm. Mt. Weth and Mt. Oplin and Danrich cast
+dry rain shadows to their south-west, in the lee of the north-east trade winds. Snow and frost go by height (the air
+cools 6.5 °C for each kilometre): the lowlands never see snow; at 1,500 to 2,000 m there is frost on clear nights of
+the dry season and almost no snow; at 2,500 to 4,000 m snow now and then in cold, wet spells; above about 4,800 m
+snow all year and small glaciers, if the summits are that high. Forest of a temperate kind grows only where height
+makes it cool enough, and is called highland forest.
+
+*The sea west of Caren* (to be built). A plume under the Caren Plate at about 1° N, 14° W has built a cluster of
+volcanic islands on a shallow ridge (1° S to 4° N, 12° to 16° W), 800 to 1,200 km off Caren's west coast: a cluster
+and not a chain, because the plate moves so slowly (as at Cape Verde). Cold water wells up where the equator's deep
+current meets the ridge, and along Caren's western coasts when the north-east trades blow hardest. Expected, and to
+be checked, not assumed: a tongue of cold water toward Caren's west coast; northern Caren cooler and drier, with a
+cool, foggy season of drizzle on its western coasts; the rain belt south of the equator over Caren for more of the
+year.
+
+## Planet-wide (owner and the world's author, 20 November 2026)
+
+- *Life* evolved naturally and was steered (a nudge, above). There is no evolution simulation: the outcome is fixed,
+  Earth's species by habitat.
+- *The far continents' growth:* every area added to Gaffa, Khohalis and Demani for the 80%-water world has a
+  tectonic origin in the plate record (`data/eym/growth.json`, `origins`): a raised shelf, a belt of terranes swept
+  up on a leading edge, a raised rifted margin, crust of a neighbouring plate welded on along a suture, or the far
+  shoulder of a rift.
+- *The magnetic pole* wanders naturally over long spans. The loop and the box below are the campaign era's (a
+  thousand years either side of the calendar's start, until the world's author says otherwise); the history engine's
+  long spans are not held to them. In the campaign's era neither Caren nor Garyk sees an aurora.
+
 ## The wanderers' resonant orbits and the Great Alignment (canon change from the world's author, 20 November 2026)
 
 Every 68 Eym years all four wanderers and Eym stand in one line with Mitkear: the **Great Alignment**. It falls on
@@ -69,7 +207,8 @@ Austarm and Chatarm.
 ## Eym's magnetic field (confirmed by the world's author; recorded 18 November 2026)
 
 *The author's intent:* the north magnetic pole lies over open ocean; there are no compass oddities at Garyk; there
-are never auroras over Caren or Garyk.
+are never auroras over Caren or Garyk. (Since 20 November 2026 this holds for the campaign's era; over the history
+engine's long spans the pole wanders naturally: see "Planet-wide", above.)
 
 *The field:* an Earth-like dipole, as in Eym's data (`docs/system-orbital-distances.csv`: a geodynamo with a liquid
 iron outer core around a solid inner core, about 25–65 µT at the surface). The magnetic axis is tilted about 10° from
@@ -159,17 +298,17 @@ matches still to be checked against the map, are in the changelog (0.32.2).
 
 - The Dubos area is tropical, along the equator.
 - Most of Caren is forest: rainforest, seasonal dry forest and cooler highland forest, with savanna between.
-- Seasons exist but are much milder than on Earth's temperate lands: a small yearly swing of temperature (larger toward
-  Caren's north end, about 16° N) together with wet and dry seasons. This follows from Caren's latitudes; nothing is
-  forced.
-- Caren's main desert lies north of the equator, in a basin ringed by mountains: an enclosed desert (the Tarim, Great
-  Basin and central-Iran pattern), dry because the ranges block moisture from every direction.
+- Seasons exist but are much milder than on Earth's temperate lands: a small yearly swing of temperature (larger
+  toward Caren's north end, at 8.7° N, and on its northern plateau) together with wet and dry seasons. This follows
+  from Caren's latitudes and heights; nothing is forced.
+- Caren's main desert is the Molkath desert, round what is left of the Sondel Range at about 0° to 4° N (see
+  "Caren's natural history", above; an earlier note placed it in a basin ringed by mountains north of the equator).
 - Smaller deserts occur elsewhere, as around Ecuador and Peru: rain shadows behind single ranges that block the moist
   trade winds, and coastal desert where a cold upwelling current runs offshore in their lee.
 
 How the model meets this (the enclosed basin, the smaller deserts, the tests and what is shown first) is in
 `ROADMAP.md`, consolidated addenda, item 7. Caren's coastline is unchanged; its mountains, rivers and lakes stay where
-the source map draws them, though Caren is god-shaped, so heights may be set without tectonic cause.
+the source map draws them, and their heights follow from Caren's natural history (above).
 
 ## The previous campaign (public to the owner)
 
@@ -205,8 +344,8 @@ The history engine starts from this.
   (`system_age_gyr_est`) is 3.5 for Mitkear, Eym and the three other rocky planets (it was 5.8; nothing in the
   system is older than its star).
 - **Life began about 2.5 billion years ago.**
-- **Forests and complex life** (the plants and animals the gods placed) have existed long enough for coal and oil to
-  have formed as on Earth: they are treated as present for the last several hundred million years.
+- **Forests and complex life** evolved (steered by the gods: see the nudges, above): land plants by 470 to 420 million
+  years ago, forests and coal by 360 to 300 million, so coal and oil have formed as on Earth.
 - **Mitkear's brightness stays exactly 1.00 solar luminosity** (the climate is calibrated to it). A Sun-like star 3.5
   billion years old would be about 9% dimmer than today's Sun, so Mitkear's mass is recorded as about **1.02 solar
   masses**: a star that much heavier is about as bright at 3.5 billion years as the Sun is now. Luminosity, orbits,
@@ -217,14 +356,15 @@ The history engine starts from this.
   - coal in swamp basins of the last several hundred million years, placed with the plate history (which spans the
     last 420 million years);
   - oil and gas in suitable marine sedimentary basins of the same era;
-  - Caren's resources follow its own rulebook (below), not these rules.
+  - Caren's resources follow from its own history (below, and "Caren's natural history").
 
 ## Canon update of 19 November 2026 (from the world's author)
 
 Applied in the Resources, climate and Ecology steps.
 
-*Caren's ores and minerals: European-style deposits.* Caren is god-shaped, so Europe's pattern of deposits is its
-rulebook instead of tectonic rules, placed by analogous settings on Caren's own relief:
+*Caren's ores and minerals: European-style deposits.* Europe's pattern of deposits is Caren's rulebook: since 20
+November 2026 it follows from Caren's own history (an ancient collision belt with granite bodies, worn down, and
+basins over an old core, as Europe's is), placed by the matching settings on Caren's own relief:
 
 - varied and moderate: many small-to-medium deposits widely spread, rather than a few giant ones; gold modest;
 - old granite highlands and ranges: tin and tungsten (the Cornwall pattern); silver, lead, zinc, copper and cobalt in

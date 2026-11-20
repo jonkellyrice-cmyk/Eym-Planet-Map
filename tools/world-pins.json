@@ -20,12 +20,13 @@
         "coasts": 84318
       }
     },
-    "tectonicsContentSha256": "3ace10ee9afc5d651e8c730ca6063311cdb463fbbbbb1cc15c871478df59cad6"
+    "tectonicsContentSha256": "c3dbfdd8c42ad3814155234225998688a5e630c3dc4f51593f4303feee2d367b",
+    "tectonicsNote": "Recorded anew on 20 November 2026 (canon: Caren in the plate record). The plates, their poles, speeds and boundaries, the continents, the rasters and the mantle are what they were; the history's entry for Caren, Caren's own record, the arc volcanoes of the Caren Plate's far edges and the name of two plates' speed rule changed."
   },
   "managed": {
     "registryCsvSha256": {
-      "value": "f8227700f8e54fb0dd3f84854263d11b616833ee6ba3ee2fa22dc6f7fca0ae66",
-      "note": "Caren's names as the world's author confirmed them, Folo among them (owner, 20 November 2026): the labels file changed, so the registry row's fingerprint did. Nothing of the land changed."
+      "value": "b681a0ba8e3694d3df8168604da4591042393356f41c4d10af03216b0f148aee",
+      "note": "Canon of 20 November 2026 (Caren in the plate record): the registry row's fingerprint follows the plate record, the growth and the dials. No coast, height, river or climate changed."
     }
   }
 }

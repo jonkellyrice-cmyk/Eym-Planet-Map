@@ -2,7 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { MAGNETIC, antipode, auroraActivity, auroraAt, auroraEverSeen, auroraNeverBelowDeg, auroraOval, describeAurora, driftKmPerYear, fieldAt, greatCircleKm, loopAngleDeg, magneticAt, magneticPole, poleOnLoop } from "../scripts/eym-magnetic.mjs";
+import { MAGNETIC, poleBoxAt, antipode, auroraActivity, auroraAt, auroraEverSeen, auroraNeverBelowDeg, auroraOval, describeAurora, driftKmPerYear, fieldAt, greatCircleKm, loopAngleDeg, magneticAt, magneticPole, poleOnLoop } from "../scripts/eym-magnetic.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universal-time.mjs";
 import { WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 import { LOOP_STEPS, MAGNETIC_INPUTS, buildMagnetic, magneticSourcesSha256 } from "../tools/generate-eym-magnetic.mjs";
@@ -25,6 +25,14 @@ test("the north magnetic pole stays in its box of open sea in every century, mov
   assert.ok(Math.abs(loopAngleDeg(E + MAGNETIC.loop.years * YEAR_MS / 4) - 90) < 1e-6);
   // No land in the box, nor near it: the nearest coast of any land is beyond the dial's margin from every pole on the loop.
   for (let k = 0; k < LOOP_STEPS; k += 1) { const p = poleOnLoop(k * 360 / LOOP_STEPS); for (const c of asset.terrain.coastlines) for (const [lat, lon] of c.points) assert.ok(greatCircleKm(p.lat, p.lon, lat, lon) >= MAGNETIC.openSeaKm, `${c.continent} within ${MAGNETIC.openSeaKm} km of the pole`); }
+});
+
+test("the pole's box is the campaign era's: over longer spans the pole wanders freely", () => {
+  // (Canon of 20 November 2026: the history engine's long timescales are not held to the box.)
+  const era = MAGNETIC.campaignEraYears;
+  assert.ok(era >= 100);
+  for (const years of [0, 1, -1, era - 1, -(era - 1)]) assert.equal(poleBoxAt(E + years * YEAR_MS), MAGNETIC.poleBox);
+  for (const years of [era + 1, -(era + 1), 50_000, -2_000_000]) assert.equal(poleBoxAt(E + years * YEAR_MS), null);
 });
 
 test("a dipole: magnetic latitude, the compass, the needle's dip and the field's strength", () => {

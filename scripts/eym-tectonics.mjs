@@ -5,8 +5,10 @@
 // laid out around Garyk (which was part of it), cut along noise-warped rifts, and each piece is turned to where
 // its continent stands today, so the pieces' rifted edges still fit one another and Garyk's coast. Leading edges
 // gather accreted terranes, coastal ranges and island arcs; old sutures inside each piece are the inland ranges.
-// Caren is not part of any of this: the gods set it down whole, so it is masked out (its plate is all sea floor
-// around it), and its geology is stated in CAREN_GEOLOGY.
+// Caren has a history of the same kind: an old core caught in the First Land's assembly, with an ancient mountain
+// belt along it, split off as a fragment when the First Land rifted, and riding the Caren Plate since. Its outline
+// is the owner's map; where it sat on the First Land is found by tools/generate-eym-tectonics.mjs, and its rocks,
+// ores, faults and timeline are stated in CAREN_GEOLOGY (canon: docs/eym-canon.md).
 //
 // Pure and deterministic. Nothing here reads files; tools/generate-eym-tectonics.mjs runs the fit and writes
 // data/eym/tectonics.json, which scripts/eym-surface.mjs and scripts/eym-cartography.mjs read.
@@ -152,7 +154,7 @@ export function layoutFirstLand({ seed, garyk, caren, targets }) {
   // Distance from Garyk's old coast, for the rift between it and the pieces (a coarse sample of its ring).
   const garySample = garykThen.filter((_, i) => i % Math.max(1, Math.floor(garykThen.length / 400)) === 0);
   const garyNear = (p) => { if (garykInside(p)) return -1; let best = Infinity; for (const q of garySample) best = Math.min(best, arcKm(p, q)); return best; };
-  return { S, twist, gRot, toNowGaryk, toThenGaryk, garykThen, pieces, pieceField, noise, rng };
+  return { S, twist, gRot, toNowGaryk, toThenGaryk, garykThen, garykInside, pieces, pieceField, noise, rng };
 }
 
 /**
@@ -179,16 +181,44 @@ export function presentCrust(first, k, back, plate, p) {
   return f;
 }
 
-// ---------------------------------------------------------------- Caren's stated geology (lore)
+// ---------------------------------------------------------------- Caren's geology and history (canon)
 
-/** Caren was set down whole by the gods: its rock is stated, not simulated. */
+/**
+ * Caren's natural history (canon of 20 November 2026, docs/eym-canon.md). Its outline is the owner's map; this is
+ * what the plate record says made it. `nudges` are the places where the gods steered a natural process: each
+ * looks natural and leaves ordinary evidence. Ages in millions of years before the present.
+ */
 export const CAREN_GEOLOGY = Object.freeze({
-  summary: "Caren is the Godstone: a single block laid down by the gods and their angels, not raised by the turning of the plates. It has no fault, no volcano and no rift, and it does not drift with the plate it rests on.",
+  summary: "Caren is a fragment of the First Land: an old continental core (a craton) with the worn roots of an ancient mountain belt along it, split off when the First Land rifted and carried since by the Caren Plate at about a centimetre a year. It lies far inside its plate: no plate edge, no volcano and no active rift, only the small, scattered earthquakes of an old continent.",
+  timeline: [
+    { stage: "core", myrAgo: [2000, 1500], text: "Caren's core forms: old continental crust with a thick, cold, buoyant root (a craton)." },
+    { stage: "ancient belt", myrAgo: [380, 300], text: "The core is caught in the First Land's assembly and an ancient mountain belt rises along it. Deep in the thickened crust rock melts into great bodies of granite that cool underground and never erupt; their fluids leave veins of tin, tungsten, silver, lead, zinc and copper around them. Coal swamps fill the basins at the belt's foot (320 to 300)." },
+    { stage: "wearing down", myrAgo: [320, 0], text: "The belt wears down to its roots. Limestone and sandstone gather in the basins (marble where they were baked and squeezed), with beds of copper, lead and zinc from basin brines, ironstone and salt." },
+    { stage: "rifting", myrAgo: [210, 190], text: "The First Land rifts apart and Caren is split off as a fragment.", nudge: "rift" },
+    { stage: "drift", myrAgo: [190, 0], text: "Caren rides the Caren Plate to where it lies today; the plate has slowed to about a centimetre a year." },
+    { stage: "the Arluna impact", myrAgo: [200, 20], text: "A great body from the sky strikes the old core and leaves a ringed structure 150 to 200 km across, long before any people: the Arluna Lakes lie in its trough." },
+    { stage: "northern uplift", myrAgo: [10, 0], text: "A broad swell of the mantle lifts northern Caren into a plateau, without a volcano; the hard massifs of the old belt stand above it.", nudge: "plume" },
+  ],
+  nudges: [
+    { id: "rift", myrAgo: [210, 190], what: "The gods steered the rift, so that the fragment split off took Caren's shape and came to rest where Caren lies.", evidence: "an ordinary rifted margin: smooth coasts and wide shelves all round, and rocks that match the First Land's across the sea" },
+    { id: "plume", myrAgo: [10, 5], what: "The gods placed a small plume beneath northern Caren; under the thick old crust it lifts the land and never breaks through.", evidence: "a broad dome of raised land, rivers cut down into it, warm springs, and no young volcanic rock" },
+  ],
   rocks: [
-    { where: "highlands and spine", rock: "white granite (godstone)", note: "fine, even, almost without seams; it does not weather into tors" },
-    { where: "foothills", rock: "marble", note: "banded white and grey; the classic building stone" },
-    { where: "lowlands and plains", rock: "limestone over godstone", note: "thin, fertile, with springs where it meets the granite" },
+    { where: "massifs and high ground", rock: "white quartzite and massive white leucogranite (the Godstone, as Caren's people call it)", note: "the hardest rocks of the ancient belt: they weather very slowly, into smooth domes and bare white walls" },
+    { where: "round the granites", rock: "veined and baked country rock", note: "tin and tungsten nearest the granite; silver, lead, zinc and copper in veins farther out" },
+    { where: "foothills", rock: "marble, slate and coal-bearing sandstone", note: "banded white and grey marble, the classic building stone; coal in the old foothill basins" },
+    { where: "lowlands and plains", rock: "limestone and sandstone over the old core", note: "fertile; caves, sinkholes and springs in the limestone; copper beds, lead and zinc, ironstone and salt in the old basins" },
     { where: "coasts", rock: "limestone and sand", note: "even coasts with few cliffs" },
   ],
-  earthquakes: "none: the Godstone does not move; tremors from the sea floor around it are felt only faintly on its coasts",
+  ores: [
+    { ore: "tin and tungsten", source: "the granites' own fluids, close to the granite", stage: "ancient belt" },
+    { ore: "silver, lead, zinc and copper in veins", source: "the granites' own fluids, farther from the granite", stage: "ancient belt" },
+    { ore: "coal", source: "swamp forests in the foothill basins of the ancient belt", stage: "ancient belt" },
+    { ore: "copper beds", source: "copper carried by brines into the basins' shales", stage: "wearing down" },
+    { ore: "lead and zinc in limestone", source: "warm basin brines", stage: "wearing down" },
+    { ore: "ironstone", source: "iron settled in shallow seas", stage: "wearing down" },
+    { ore: "salt", source: "seas that dried up in closed basins", stage: "wearing down" },
+    { ore: "skymetals", source: "the melt sheet under the Arluna structure's central uplift and ring", stage: "the Arluna impact" },
+  ],
+  earthquakes: "small and scattered, as on any old continent far from a plate edge: the young uplift is taken up on many small faults (old faults of the ancient belt, and the swell's margins), mostly under magnitude 4, now and then 4 to 5, rarely 5 to 6, never more",
 });

@@ -537,9 +537,9 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
       model: tectonics.model, seed: tectonics.seed,
       plates: tectonics.plates.map(({ id, name, kind, micro, pole, rateDegPerMyr }) => ({ id, name, kind, micro, pole, rateDegPerMyr })),
       // (Volcanoes without their plate id and at 0.01°, to keep the asset within its mobile budget.)
-      volcanoes: tectonics.volcanoes.map(({ plate, at, ...v }) => ({ at: at.map((x) => Math.round(x * 100) / 100), ...v })), history: tectonics.history, caren: tectonics.caren, garyk: tectonics.garyk,
+      volcanoes: tectonics.volcanoes.map(({ plate, at, ...v }) => ({ at: at.map((x) => Math.round(x * 100) / 100), ...v })), history: tectonics.history, caren: (({ faults, ...caren }) => caren)(tectonics.caren), garyk: tectonics.garyk,
       // The plate boundaries, for earthquakes (scripts/eym-quakes.mjs).
-      boundaries: packBoundaries(tectonics.boundaries),
+      boundaries: packBoundaries(tectonics.boundaries, tectonics.caren?.faults),
       // The mantle (owner's addenda, 18 November 2026, item 3): its two upwellings and the plumes' seamount chains.
       ...(tectonics.mantle ? { mantle: { upwellings: tectonics.mantle.upwellings, radiusDeg: tectonics.mantle.radiusDeg, chains: tectonics.mantle.chains.map(({ hotspot, seamounts }) => ({ hotspot, seamounts: seamounts.map(({ at, ageMyr, summitDepthM }) => ({ at: at.map((x) => Math.round(x * 100) / 100), ageMyr, summitDepthM })) })) } } : {}),
     } } : {}),
@@ -606,12 +606,12 @@ export const BEDROCK_KINDS = Object.freeze({
   limestone: "basin: limestone (warm shallow seas)",
   volcanic: "active margin: basalt, andesite and tuff",
   metamorphic: "collision belt: schist, slate and marble",
-  "godstone-granite": "Caren: white granite (the Godstone)",
+  "godstone-granite": "Caren: white leucogranite and quartzite of the ancient belt (the Godstone)",
   marble: "Caren: banded marble",
-  "caren-limestone": "Caren: limestone over the Godstone",
+  "caren-limestone": "Caren: limestone and sandstone over the old core",
 });
 
-/** Bedrock by origin. Caren's is stated (the Godstone); elsewhere it follows the plates and the ranges they raised. */
+/** Bedrock by origin: Caren's from its ancient belt (its hard massifs high, marble in the foothills, basin cover low); elsewhere from the plates and the ranges they raised. */
 function bedrockFor(cell) {
   if (!cell.landCovered) return "sea-floor";
   const high = cell.elevationMaxM;
@@ -626,9 +626,10 @@ function bedrockFor(cell) {
 }
 
 /** The plate boundaries packed small (the asset has a mobile budget): each kind's points as int16 tenths of a degree, lat then lon, base64. */
-function packBoundaries(boundaries) {
+function packBoundaries(boundaries, intraplate = null) {
   const pack = (points) => { const v = new Int16Array(points.length * 2); points.forEach(([lat, lon], i) => { v[2 * i] = Math.round(lat * 10); v[2 * i + 1] = Math.round(lon * 10); }); return Buffer.from(v.buffer).toString("base64"); };
-  return { encoding: "int16-le-tenth-degree", trenches: pack(boundaries.trenches), collisions: pack(boundaries.collisions), ridges: pack(boundaries.ridges) };
+  // (`intraplate`: the small faults inside an old continent, Caren's, for its own scattered earthquakes.)
+  return { encoding: "int16-le-tenth-degree", trenches: pack(boundaries.trenches), collisions: pack(boundaries.collisions), ridges: pack(boundaries.ridges), ...(intraplate?.length ? { intraplate: pack(intraplate) } : {}) };
 }
 
 /** Points every `stepKm` along a [lat, lon] line. */
