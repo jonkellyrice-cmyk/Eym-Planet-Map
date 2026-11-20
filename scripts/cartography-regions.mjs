@@ -64,7 +64,19 @@ function adjacencyScore(cell, category, assigned, cells) {
   return score;
 }
 
-export function polygonize(cells, field, resolutionDeg, grid) {
+/** A closed ring of cell corners without the corners that lie on a straight run between their neighbours. */
+function dropStraightCorners(ring) {
+  const points = ring.slice(0, -1), n = points.length;
+  const kept = points.filter((p, i) => { const a = points[(i - 1 + n) % n], b = points[(i + 1) % n]; return (p[0] - a[0]) * (b[1] - p[1]) !== (p[1] - a[1]) * (b[0] - p[0]); });
+  return kept.length >= 3 ? [...kept, [...kept[0]]] : ring;
+}
+
+/**
+ * Regions of equal `field` as rings of cell corners. `compact(cells)`, when given, is asked for each region: where it
+ * says yes the region's rings keep only the corners where they turn (the same outline in far fewer points), and the
+ * region carries a hidden `compact: true` (not enumerable, so it is never written out) for the caller to read.
+ */
+export function polygonize(cells, field, resolutionDeg, grid, compact = null) {
   const { latCount, lonCount } = grid, byId = new Map(cells.map((cell) => [cell.id, cell])), visited = new Set(), regions = [];
   const neighborIds = (cell) => [[-1, 0], [1, 0], [0, -1], [0, 1]].flatMap(([dy, dx]) => { const y = cell.latIndex + dy; return y < 0 || y >= latCount ? [] : [y * lonCount + mod(cell.lonIndex + dx, lonCount)]; });
   for (const origin of cells) {
@@ -93,7 +105,12 @@ export function polygonize(cells, field, resolutionDeg, grid) {
         rings.push(coordinates);
       }
     }
-    if (rings.length) regions.push({ id: `${field}-${regions.length + 1}`, category, cellCount: component.length, polygons: rings });
+    if (rings.length) {
+      const slim = Boolean(compact?.(component)), region = { id: `${field}-${regions.length + 1}`, category, cellCount: component.length, polygons: slim ? rings.map(dropStraightCorners) : rings };
+      // Marked for the caller (not written out with the region): it was asked to be compact.
+      if (slim) Object.defineProperty(region, "compact", { value: true });
+      regions.push(region);
+    }
   }
   return regions.sort((a, b) => b.cellCount - a.cellCount || a.category.localeCompare(b.category));
 }

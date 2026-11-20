@@ -9,7 +9,7 @@
 //     report, and `node tools/world.mjs --accept-pins` records the new value; nothing updates them silently.
 
 import { readFileSync } from "node:fs";
-import { cellContinents, heights, sha256, summarizeWorld } from "./world-snapshot.mjs";
+import { WORLD_FILES, cellContinents, heights, sha256, summarizeWorld } from "./world-snapshot.mjs";
 import { overrideProblems } from "../scripts/eym-overrides.mjs";
 
 const PINS = new URL("world-pins.json", import.meta.url);
@@ -18,6 +18,21 @@ export const readPins = () => JSON.parse(readFileSync(PINS, "utf8"));
 export const managedPinsOf = (world) => ({ registryCsvSha256: world.registry == null ? null : sha256(world.registry) });
 
 const isSea = (biome) => /ocean|sea-ice/.test(biome);
+
+/**
+ * The size of each shipped data file against the budget: [{ id, rule, ok, detail, bytes, limit }], the total last.
+ * A file the world does not have is left out; a world read without its texts gives no lines.
+ */
+export function dataBudget(world, pins = readPins()) {
+  const budget = pins.fixed.dataBudget, out = []; if (!budget || !world.text) return out;
+  const kb = (n) => `${(n / 1000).toFixed(0)} kB`; let total = 0, before = 0;
+  for (const [key, was] of Object.entries(budget.preGrowthBytes)) {
+    if (world.text[key] == null) continue; const bytes = Buffer.byteLength(world.text[key]), limit = Math.round(was * budget.factor); total += bytes; before += was;
+    out.push({ id: `size-${key}`, rule: `${WORLD_FILES[key]} is no more than ${budget.factor} times its size before the land grew`, ok: bytes <= limit, detail: `${kb(bytes)} of ${kb(limit)} allowed (${kb(was)} before)`, bytes, limit });
+  }
+  if (out.length) out.push({ id: "size-total", rule: `the shipped data files together are no more than ${budget.factor} times their size before the land grew`, ok: total <= Math.round(before * budget.factor), detail: `${kb(total)} of ${kb(before * budget.factor)} allowed (${kb(before)} before)`, bytes: total, limit: Math.round(before * budget.factor) });
+  return out;
+}
 
 /**
  * Check a world (tools/world-snapshot.mjs loadWorld) against the rules. `current` adds the rules that only make
@@ -34,6 +49,10 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
 
   // The owner's maps.
   for (const [name, pin] of Object.entries(pins.fixed.coastSha256)) rule(`coast-${name.toLowerCase()}`, `${name}'s coastline is the owner's map, unchanged`, summary.continents[name]?.coastSha256 === pin, summary.continents[name] ? "" : "no such continent");
+
+  // What is shipped stays small enough to load: each data file, and all together, within the budget set against
+  // their sizes before the land grew (tools/world-pins.json; land-growth scaling, Fix 7).
+  for (const line of dataBudget(world, pins)) rule(line.id, line.rule, line.ok, line.detail);
 
   // An ocean world with its continents.
   rule("ocean-share", "the ocean covers 98% to 99% of the world", summary.waterFraction >= 0.98 && summary.waterFraction <= 0.99, `${(summary.waterFraction * 100).toFixed(2)}%`);

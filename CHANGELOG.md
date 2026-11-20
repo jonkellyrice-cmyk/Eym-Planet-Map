@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+Land-growth scaling fixes, Fix 7: the size of the shipped data, and what is shipped for which land. Today's data is what it was in content (stamps and fingerprints change because the layout dials gained a group, which fits the plate history again; it came out the same).
+
+- Sizes, in bytes, before the land grew (commit 306c3a7), now, and as the stopped rebuild left them (kept aside, comparison only):
+
+  | file | read by | holds | before | now | grown, unmended |
+  |---|---|---|---|---|---|
+  | `eventide.json` (the cartography) | the module (globe, atlas, maps) and the web app, always | the whole world coarsely; coasts, relief, water and names in full for every land | 1,468,861 | 1,468,861 | 2,690,260 |
+  | `eventide-drainage.json` | local detail, Region tiles, battle maps | Caren and Garyk only (Fix 1) | 313,441 | 108,339 | not made |
+  | `eventide-coasts.json` | shelf seas, tides in bays | Caren and Garyk only | 84,318 | 84,318 | 82,050 |
+  | `eventide-flow.json`, `eventide-wind.json` | rivers through the year; wind's work | Caren and Garyk only | 17,823; 37,135 | the same | the same |
+  | `eventide-geology.json`, `eventide-ocean.json` | rock and sea overlays | the world on the one-degree grid | 125,616; 65,251 | the same | the same |
+  | `data/eym/tectonics.json`, `climate.json` | the build (shipped in the archive, not loaded by the module) | the world | 427,831; 284,417 | the same | 427,831; 271,501 |
+  | all nine together | | | 2,824,693 | 2,619,591 | about 3,762,000 |
+
+  So the files only the detailed layers read already hold nothing for the far continents, and the growth lands almost wholly in the cartography: 1.83 times its size, of which rivers were 476 kB more (1,192 of them), the soil, biome and resource regions 528 kB, lakes 115 kB, coasts 50 kB.
+- The budget, proposed and now checked: no shipped data file more than 1.5 times its size before the land grew, nor all together more than 1.5 times their sum (`fixed.dataBudget` in `tools/world-pins.json`; `dataBudget` in `tools/world-checks.mjs`, ten lines among the world's standing rules, so `npm run world` and the tests refuse a world that passes it). Today every file is within it; the stopped rebuild's cartography would have been refused.
+- A continent on a grid of the sphere (Fix 4) is written coarsely, by four dials (`layout.farLand` in `scripts/eym-world-inputs.mjs`): a river is drawn where it drains at least one part in 800 of its continent (never less than the 18,000 km² that holds everywhere); a lake is kept from 12 squares, not 5; courses are thinned to 6 km and coasts to 5 km (Douglas–Peucker measured on the sphere, `thinLine`, so the same across ±180° and near a pole); soil and resource regions that lie wholly on such a continent are drawn by their corners only, and its biome regions have their corners rounded once, not twice. No land on a flat frame is touched: Caren, Garyk and today's Gaffa, Khohalis and Demani are written exactly as before.
+- Measured on the grown outlines (comparison only): rivers 1,189 (451 kB) to 546 (120 kB): Gaffa 779 to 206, Khohalis 230 to 168, Demani 180 to 172; lakes 378 to 260; coasts 4,156 points (73 kB) to 771 (13 kB), straying at most 5.0 km, their areas changed by 0.007%, 0.061% and 0.004%. With the rules applied to the stopped rebuild's file as nearly as can be done without making the world again: 2,174,508 bytes (1.48 times), before the halving of the far biome regions' points, which should bring it near 1.4. The true figure comes with the one-pass rebuild, and the budget check will hold it.
+- Loading on a phone-sized device (Chromium showing a Pixel 5's screen with its processor slowed four times: an emulation, not a phone in the hand): reading and parsing the cartography takes about 126 ms today, 226 ms as the stopped rebuild left it, about 151 ms with the rules. Over the wire, compressed: 309 kB, 666 kB and 514 kB.
+- Tests (`tests/eym-far-land.test.mjs`): a line thinned to a stated distance across ±180° and a closed coast that keeps its area; a region kept by its corners only, the same outline and area, only where asked; a continent on a sphere grid routed coarsely by the dials, with a height for each point kept, and no flat frame touched; the budget, file by file and together, refusing the stopped rebuild's cartography.
+
 Land-growth scaling fixes, Fix 6: Region frames. Caren's, Garyk's and the strait's frames are what they were, and so is every tile.
 
 - The guard: `scripts/eym-region-layer.mjs` refuses a frame for land outside the detailed scope, twice over. By name: only Caren and Garyk (and the sea between them) have frames; asking for Gaffa's is an error that says so. By size: a land that reaches past the flat-frame limit of Fix 4 (stretched more than 2% at its edge) is refused whatever it is called, so a far continent cannot be given 300 m tiles by a slip of configuration. (At 76.8 km a tile, the grown Gaffa would have been some 60,000 tiles.)
