@@ -11,6 +11,7 @@
 import { bboxWrap } from "./geo-wrap.mjs";
 import { FRAME_STRETCH_LIMIT, frameStretch, fromLocal, greatCircleKm, toLocal } from "./eym-surface.mjs";
 import { annualMeanTemperatureC } from "./eym-seasons.mjs";
+import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
 import { COVER, coarseAt, coastDistanceKm, globeNoise, hashUnit, landformsOf, localContext, roadsNear } from "./eym-local-detail.mjs";
 import { blendedShoreAt, cliffLiftM, nearestRiver, valleyAt, windWorkAt } from "./eym-landforms.mjs";
 
@@ -282,7 +283,8 @@ export function buildRegionTile(asset, frame, tx, ty) {
     const arable = (BIOME_FARMS[f.biome] ?? 0) * (1 + 0.8 * (f.wind?.fertility ?? 0)) * clamp(1 - e / 1400, 0, 1) * clamp(1 - Math.max(0, f.relief - 0.4), 0, 1) * clamp((f.precipMm - 350) / 400, 0, 1);
     farming = Math.max(farming, 0.42 * arable * clamp(1 - townKm / HINTERLAND_KM, 0, 1));
     const rugged = Math.max(f.relief, f.reliefClass);
-    if (temp < -3 || (f.relief > 2.4 && temp < 1)) cover[i] = COVER.snow;
+    // (On Caren snow lies all year only above its snow line: canon of 20 November 2026, scripts/eym-world-inputs.mjs.)
+    if (frame.id === "caren" ? e >= WORLD_INPUTS.caren.snowLineM : temp < -3 || (f.relief > 2.4 && temp < 1)) cover[i] = COVER.snow;
     else if (slope > 0.45 || (rugged > 1.8 && n1 > 0.25)) cover[i] = COVER.rock;
     else if (settled < 1 + 0.35 * n1) cover[i] = COVER.built;
     else if (f.shore && SHORE_COVER[f.shore] !== undefined) cover[i] = SHORE_COVER[f.shore];

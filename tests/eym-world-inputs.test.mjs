@@ -13,6 +13,7 @@ import { moduleClosure } from "../tools/generate-region-fingerprint.mjs";
 import { WIND_INPUTS } from "../tools/generate-eym-wind.mjs";
 import { FLOW_INPUTS } from "../tools/generate-eym-flow.mjs";
 import { GROWTH_INPUTS } from "../tools/generate-eym-growth.mjs";
+import { CAREN_INPUTS } from "../tools/generate-eym-caren.mjs";
 import { eymFingerprintFromRepo } from "../tools/eym-world.mjs";
 
 const root = new URL("../", import.meta.url), read = (path) => readFileSync(new URL(path, root), "utf8"), json = (path) => JSON.parse(read(path));
@@ -36,7 +37,7 @@ test("Eym's dials live in one file, and everything that uses one reads it from t
   assert.ok(inputsFingerprint("ocean").includes(`"steering":${WORLD_INPUTS.ocean.steering}`) && !inputsFingerprint("ocean").includes("slabShare"));
   assert.notEqual(inputsFingerprint("layout", "plates"), inputsFingerprint("layout", "ocean"));
   assert.throws(() => inputsFingerprint("nonsense"), /no such group of dials/);
-  for (const group of Object.keys(WORLD_INPUTS)) assert.ok([...TECTONIC_INPUTS, ...CLIMATE_INPUTS, ...WIND_INPUTS, ...FLOW_INPUTS, ...GROWTH_INPUTS, "shelfSeas", "magnetic"].includes(group), `the group ${group} is fingerprinted by a generator`);
+  for (const group of Object.keys(WORLD_INPUTS)) assert.ok([...TECTONIC_INPUTS, ...CLIMATE_INPUTS, ...WIND_INPUTS, ...FLOW_INPUTS, ...GROWTH_INPUTS, ...CAREN_INPUTS, "shelfSeas", "magnetic"].includes(group), `the group ${group} is fingerprinted by a generator`);
   assert.ok(moduleClosure("scripts/eym-region-layer.mjs").includes("scripts/eym-world-inputs.mjs"));
   // The dials are not repeated as numbers where they are used.
   assert.doesNotMatch(read("tools/generate-eym-climate.mjs"), /export const STEERING = \d/);

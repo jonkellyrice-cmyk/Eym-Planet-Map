@@ -2,9 +2,11 @@
 // water 5 to 40 km wide (a "river-channel" in the hydrology). Seen from the Region layer down, that is a
 // strait, not a river. Here each channel becomes the river that ran down it: a course along the middle of
 // the channel, from source to mouth and through every fork, with
-//   - a width from 60 m to 1.2 km: the main stem (the channel's broadest run) grows with the square of the
-//     old channel's half-width (a 3 km half-width gives 225 m, 7 km or more the full 1.2 km), and every
-//     other run narrows with the square of its half-width's share of the stem's,
+//   - a width from 60 m to 3 km: the main stem (the channel's broadest run) grows with the square of the
+//     old channel's half-width (a 3 km half-width gives 225 m, 7 km gives 1.2 km, 11 km or more the full 3 km:
+//     the great rivers are a few kilometres wide, canon of 20 November 2026), and every other run narrows with
+//     the square of its half-width's share of the stem's,
+//   - a tidal estuary on a great river: its lowest reach to the sea is a course of its own, several times as wide,
 //   - meanders at two scales (bends of 10 to 60 km, loops of about fourteen widths), each with its own
 //     irregular rhythm, kept inside the old channel,
 //   - every town that stood on the old channel's bank kept on the river, the course drawn to pass half a
@@ -13,9 +15,12 @@
 // always gives the same rivers. Pure: no canvas, no storage, nothing read but the arguments.
 
 import { fromLocal, toLocal } from "./eym-surface.mjs";
+import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
 
 export const RIVER_COURSES_MODEL = "eym-river-courses-v1";
-const GRID_KM = 0.5, STEP_KM = 0.25;
+const GRID_KM = 0.5, STEP_KM = 0.25, RIVERS = WORLD_INPUTS.caren.rivers;
+/** The widest a channel's river may be (km): Caren's great rivers are a few kilometres wide (its canon); elsewhere 1.2 km, as before. */
+const maxKm = (water) => (water.continent === "Caren" ? RIVERS.channelMaxKm : 1.2);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
 // ---------------------------------------------------------------- primitives
@@ -186,11 +191,11 @@ export function channelCourses(water, towns = []) {
     kept.push({ line, halfKm, meanHalf });
   }
   // The broadest run is the main stem, as wide as its channel allows; the others narrow with the square of their share of it.
-  const stemHalf = Math.max(...kept.map((r) => r.meanHalf)), stemKm = clamp(0.025 * stemHalf * stemHalf, 0.06, 1.2);
+  const stemHalf = Math.max(...kept.map((r) => r.meanHalf)), MAX_KM = maxKm(water), stemKm = clamp(0.025 * stemHalf * stemHalf, 0.06, MAX_KM);
   for (const { line, halfKm, meanHalf } of kept) {
     const rs = resample(line.map((i, k) => [x0 + ((i % w) + 0.5) * GRID_KM, y0 + (((i / w) | 0) + 0.5) * GRID_KM, halfKm[k]]));
     if (rs.length < 2) continue;
-    const widthKm = clamp(stemKm * (meanHalf / stemHalf) ** 2, 0.06, 1.2), key = `${water.id}|${line[0]}`;
+    const widthKm = clamp(stemKm * (meanHalf / stemHalf) ** 2, 0.06, MAX_KM), key = `${water.id}|${line[0]}`;
     const course = meander(rs, key, widthKm, meanHalf, bankTowns(rs, rings, localTowns));
     out.push({ id: `${water.id}-${out.length + 1}`, channel: water.id, widthM: Math.round(widthKm * 1000), points: course.filter((_, k) => k % 2 === 0 || k === course.length - 1).map(([x, y]) => fromLocal(center, x, y).map((v) => Math.round(v * 1e5) / 1e5)) });
   }
@@ -199,10 +204,32 @@ export function channelCourses(water, towns = []) {
 
 const cache = new WeakMap();
 
+/**
+ * A great river's tidal estuary (canon of 20 November 2026). A channel whose main stem is at least `estuaryFromM`
+ * wide is a great river: of its courses, the one that ends nearest the sea (within 40 km of it: a course runs down
+ * the middle of its old channel and stops short of the coast by about the channel's half-width) has its lowest
+ * `estuaryKm` made a course of their own (`tidal: true`, its id ending "-estuary"), `estuaryWidens` times as wide
+ * as the main stem (no wider than `estuaryMaxKm`), the two meeting end to end. Other channels are returned as they are.
+ */
+function withEstuary(courses, asset) {
+  const stemM = Math.max(...courses.map((c) => c.widthM)); if (stemM < RIVERS.estuaryFromM) return courses;
+  const km = ([a, b], [c, d]) => Math.hypot((a - c) * 111.2, (b - d) * 111.2 * Math.cos(a * Math.PI / 180));
+  const seaKm = (p) => { let best = Infinity; for (const line of asset.terrain.coastlines) for (let i = 0; i < line.points.length; i += 2) { const q = line.points[i]; if (Math.abs(q[0] - p[0]) > 0.45 || Math.abs(q[1] - p[1]) > 0.45) continue; const d = km(p, q); if (d < best) best = d; } return best; };
+  let lowest = null; for (const course of courses) { if (course.points.length < 4) continue; const first = seaKm(course.points[0]), last = seaKm(course.points.at(-1)), near = Math.min(first, last); if (near <= 40 && (!lowest || near < lowest.near)) lowest = { course, near, mouthLast: last <= first }; }
+  if (!lowest) return courses;
+  const { course, mouthLast } = lowest, widthM = Math.min(RIVERS.estuaryMaxKm * 1000, Math.round(stemM * RIVERS.estuaryWidens));
+  // Counted from the mouth: the points within the tidal reach.
+  const fromMouth = mouthLast ? course.points.slice().reverse() : course.points; let run = 0, cut = fromMouth.length - 1;
+  for (let i = 1; i < fromMouth.length; i += 1) { run += km(fromMouth[i - 1], fromMouth[i]); if (run >= RIVERS.estuaryKm) { cut = i; break; } }
+  const order = (points) => (mouthLast ? points.slice().reverse() : points), estuary = { ...course, id: `${course.id}-estuary`, widthM, points: order(fromMouth.slice(0, cut + 1)), tidal: true };
+  // (A course wholly within the tidal reach is all estuary.)
+  return courses.flatMap((c) => (c !== course ? [c] : cut >= fromMouth.length - 2 ? [{ ...estuary, points: course.points }] : [{ ...course, points: order(fromMouth.slice(cut)) }, estuary]));
+}
+
 /** Every river channel of an asset turned into courses (cached per asset). */
 export function riverCourses(asset) {
   if (cache.has(asset)) return cache.get(asset);
   const towns = (asset.settlements ?? []).filter((s) => s.lat != null).map((s) => [s.lat, s.lon]);
-  const courses = (asset.hydrology?.lakes ?? []).filter((l) => l.waterKind === "river-channel").flatMap((l) => channelCourses(l, towns));
+  const courses = (asset.hydrology?.lakes ?? []).filter((l) => l.waterKind === "river-channel").flatMap((l) => withEstuary(channelCourses(l, towns), asset));
   cache.set(asset, courses); return courses;
 }

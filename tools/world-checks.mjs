@@ -126,6 +126,20 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
     rule("magnetic-no-aurora", `no aurora is ever seen from ${d.continents.join(" or ")}, however great the storm`, m.auroraNeverBelowDeg === d.aurora.greatStormDeg[0] && lands.every(([, c]) => c.auroraMarginDeg > 0), lands.map(([name, c]) => `${name} ${c.auroraMarginDeg}° clear`).join("; "));
   }
 
+  // Caren's land follows from its natural history (canon of 20 November 2026, docs/eym-canon.md): the survey of it
+  // (tools/generate-eym-caren.mjs) stays within what the canon and the physics allow.
+  if (world.caren) {
+    const c = world.caren, d = WORLD_INPUTS.caren, s = c.support, sides = Object.entries(c.ramps), within = (v, lo, hi) => v >= lo && v <= hi;
+    rule("caren-latitudes", "Caren spans about 9.9° S to 8.7° N (with its islands, a little more)", within(c.latitudes[0], -10.5, -9.5) && within(c.latitudes[1], 8.4, 9.1), `${c.latitudes[0]}° to ${c.latitudes[1]}°`);
+    rule("caren-plateau", "the plateau north of the Sondel stands at 1,200 to 2,000 m", c.plateau.squares > 100 && c.plateau.heightM[1] >= 1200 && c.plateau.heightM[3] <= 2000, `${c.plateau.heightM[1]} to ${c.plateau.heightM[3]} m (the middle four fifths; the middle ${c.plateau.heightM[2]} m)`);
+    rule("caren-support", "the plateau is held up: crust of 34 to 45 km, a mantle swell pushing no more than 1,100 m, nothing left unsupported; the massifs' rock bears their weight", within(s.crustKm[0], 34, 45) && within(s.crustKm[1], 34, 45) && s.swellPushM <= 1100 && s.unsupportedM <= 1 && s.massifLoadMpa < s.rockStrengthMpa, `crust ${s.crustKm.join(" to ")} km; swell's push ${s.swellPushM} m; unsupported ${s.unsupportedM} m; massifs ${s.massifLoadMpa} of ${s.rockStrengthMpa} MPa`);
+    rule("caren-ramps", "every northern coast rises to the plateau by a long, gentle ramp (100 to 300 km, 0.4 to 2%, rising all the way), with no cliff coast", sides.every(([, r]) => r.risesAllTheWay && within(r.rampKm, 100, 300) && within(r.meanPercent, 0.4, 2) && r.steepestPercent <= 2) && c.northernShoreM.highest <= 250, `${sides.map(([side, r]) => `${side}: ${r.rampKm} km at ${r.meanPercent}% (steepest ${r.steepestPercent}%)`).join("; ")}; the land within 12 km of the sea no higher than ${c.northernShoreM.highest} m`);
+    rule("caren-peaks", "no natural summit stands higher than hard rock, small faults and the crust's rebound can hold it above the plateau, and none below the snow line is counted as snowy", c.peaks.every((p) => p.heightM <= p.plateauRoundM + s.massifReliefM * 1.15 && p.snowAllYear === (p.heightM >= c.snowLineM)), `${c.peaks.map((p) => `${p.name} ${p.heightM} m`).join(", ")}; snow all year above ${c.snowLineM} m`);
+    rule("caren-hills", "the Trate Hills and the Sarven Hills are hills (their tops between 500 and 1,500 m)", c.hills.length === d.hills.length && c.hills.every((h) => within(h.heightM[2], 500, 1500)), c.hills.map((h) => `${h.name} ${h.heightM[2]} m`).join(", "));
+    rule("caren-arluna", "the Arluna lakes lie in the ring trough of one impact structure 150 to 200 km across, a skymetal district", c.arluna && within(c.arluna.diameterKm, 150, 200) && c.arluna.skymetal && c.arluna.lakes.length >= 4, c.arluna ? `${c.arluna.diameterKm} km across, centred ${c.arluna.centre.join("°, ")}°` : "none");
+    rule("caren-rivers", "the great rivers of the north are tidal in their lowest reach and climb gently above it (no falls)", c.rivers.length >= 3 && c.rivers.every((r) => r.tidalKm >= 50 && r.tidalKm <= 100 && r.gradientMPerKm <= 0.5), c.rivers.map((r) => `${r.id.replace("caren-water-", "water ")}: ${r.lengthKm} km, ${r.headM} m at its head`).join("; "));
+  }
+
   // Everything derived is up to date with what it is made from (the working tree only).
   if (current) {
     const [{ tectonicSourcesSha256 }, { climateSourcesSha256 }, { drainageSourcesSha256 }, { windSourcesSha256 }, { flowSourcesSha256 }, { eymFingerprintFromRepo }, { regionFingerprint }, { coastSourcesSha256 }] = await Promise.all([
@@ -140,6 +154,7 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
     if (world.flow?.sourcesSha256 !== flowSourcesSha256()) stale.push("river flow");
     if (world.coasts?.sourcesSha256 !== coastSourcesSha256()) stale.push("coast survey");
     const { magneticSourcesSha256 } = await import("./generate-eym-magnetic.mjs"); if (world.magnetic?.sourcesSha256 !== magneticSourcesSha256()) stale.push("magnetic survey");
+    const { carenSourcesSha256 } = await import("./generate-eym-caren.mjs"); if (world.caren?.sourcesSha256 !== carenSourcesSha256()) stale.push("Caren's survey");
     const fp = regionFingerprint(); if (world.regionFingerprint?.shapes !== fp.shapes || world.regionFingerprint?.paint !== fp.paint) stale.push("Region fingerprint");
     rule("up-to-date", "every derived file is up to date with what it is made from", stale.length === 0, stale.length ? `stale: ${stale.join(", ")} (run npm run world)` : "");
     const managed = managedPinsOf(world), moved = Object.keys(managed).filter((k) => pins.managed[k]?.value !== managed[k]);

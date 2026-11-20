@@ -1,0 +1,582 @@
+{
+ "schemaVersion": 1,
+ "model": "eym-caren-relief-v1",
+ "sourcesSha256": "b9aca996b3e72684621ea49b7a006e7386d66d9e02275b6b270bef8225d4084e",
+ "latitudes": [
+  -10.11,
+  8.76
+ ],
+ "plateau": {
+  "squares": 1023,
+  "heightM": [
+   1151,
+   1342,
+   1630,
+   1865,
+   1918
+  ],
+  "coolerThanTheCoastC": 10.6
+ },
+ "support": {
+  "crustKm": [
+   35.4,
+   41.2
+  ],
+  "lowlandCrustKm": 36,
+  "swellPushM": 960,
+  "swellLiftM": 1685,
+  "unsupportedM": 0,
+  "massifReliefM": 2897,
+  "massifLoadMpa": 80,
+  "rockStrengthMpa": 150,
+  "massifReliefFrom": {
+   "hardRockOnAnOldContinentM": 2300,
+   "smallFaultsM": 300,
+   "reboundM": 297
+  }
+ },
+ "ramps": {
+  "west": {
+   "steps": [
+    {
+     "km": 5,
+     "m": 35
+    },
+    {
+     "km": 15,
+     "m": 88
+    },
+    {
+     "km": 25,
+     "m": 150
+    },
+    {
+     "km": 35,
+     "m": 225
+    },
+    {
+     "km": 45,
+     "m": 305
+    },
+    {
+     "km": 55,
+     "m": 412
+    },
+    {
+     "km": 65,
+     "m": 529
+    },
+    {
+     "km": 75,
+     "m": 644
+    },
+    {
+     "km": 85,
+     "m": 779
+    },
+    {
+     "km": 95,
+     "m": 911
+    },
+    {
+     "km": 105,
+     "m": 1056
+    },
+    {
+     "km": 115,
+     "m": 1181
+    },
+    {
+     "km": 125,
+     "m": 1324
+    },
+    {
+     "km": 135,
+     "m": 1360
+    },
+    {
+     "km": 145,
+     "m": 1456
+    },
+    {
+     "km": 155,
+     "m": 1522
+    },
+    {
+     "km": 165,
+     "m": 1550
+    }
+   ],
+   "risesAllTheWay": true,
+   "steepestPercent": 1.45,
+   "meanPercent": 1.02,
+   "rampKm": 145,
+   "topM": 1550
+  },
+  "north": {
+   "steps": [
+    {
+     "km": 5,
+     "m": 37
+    },
+    {
+     "km": 15,
+     "m": 114
+    },
+    {
+     "km": 25,
+     "m": 225
+    },
+    {
+     "km": 35,
+     "m": 355
+    },
+    {
+     "km": 45,
+     "m": 495
+    },
+    {
+     "km": 55,
+     "m": 643
+    },
+    {
+     "km": 65,
+     "m": 812
+    },
+    {
+     "km": 75,
+     "m": 977
+    },
+    {
+     "km": 85,
+     "m": 1124
+    },
+    {
+     "km": 95,
+     "m": 1297
+    },
+    {
+     "km": 105,
+     "m": 1448
+    },
+    {
+     "km": 115,
+     "m": 1580
+    },
+    {
+     "km": 125,
+     "m": 1712
+    },
+    {
+     "km": 135,
+     "m": 1802
+    },
+    {
+     "km": 145,
+     "m": 1863
+    },
+    {
+     "km": 155,
+     "m": 1894
+    },
+    {
+     "km": 165,
+     "m": 1696
+    }
+   ],
+   "risesAllTheWay": true,
+   "steepestPercent": 1.73,
+   "meanPercent": 1.4,
+   "rampKm": 125,
+   "topM": 1894
+  },
+  "east": {
+   "steps": [
+    {
+     "km": 5,
+     "m": 33
+    },
+    {
+     "km": 15,
+     "m": 84
+    },
+    {
+     "km": 25,
+     "m": 139
+    },
+    {
+     "km": 35,
+     "m": 199
+    },
+    {
+     "km": 45,
+     "m": 271
+    },
+    {
+     "km": 55,
+     "m": 361
+    },
+    {
+     "km": 65,
+     "m": 468
+    },
+    {
+     "km": 75,
+     "m": 600
+    },
+    {
+     "km": 85,
+     "m": 737
+    },
+    {
+     "km": 95,
+     "m": 857
+    },
+    {
+     "km": 105,
+     "m": 1011
+    },
+    {
+     "km": 115,
+     "m": 1143
+    },
+    {
+     "km": 125,
+     "m": 1229
+    },
+    {
+     "km": 135,
+     "m": 1360
+    },
+    {
+     "km": 145,
+     "m": 1457
+    },
+    {
+     "km": 155,
+     "m": 1506
+    },
+    {
+     "km": 165,
+     "m": 1487
+    }
+   ],
+   "risesAllTheWay": true,
+   "steepestPercent": 1.54,
+   "meanPercent": 1.02,
+   "rampKm": 135,
+   "topM": 1506
+  }
+ },
+ "northernShoreM": {
+  "highest": 124,
+  "squares": 930
+ },
+ "peaks": [
+  {
+   "name": "Mt. Danrich",
+   "heightM": 3582,
+   "at": [
+    6.23,
+    3.61
+   ],
+   "snowAllYear": false,
+   "plateauRoundM": 934
+  },
+  {
+   "name": "Mt. Weth",
+   "heightM": 3437,
+   "at": [
+    4.56,
+    -2.45
+   ],
+   "snowAllYear": false,
+   "plateauRoundM": 1125
+  },
+  {
+   "name": "Mt. Shila",
+   "heightM": 3992,
+   "at": [
+    4.4,
+    1.01
+   ],
+   "snowAllYear": false,
+   "plateauRoundM": 1331
+  },
+  {
+   "name": "Mt. Oplin",
+   "heightM": 4567,
+   "at": [
+    5.69,
+    2.74
+   ],
+   "snowAllYear": false,
+   "plateauRoundM": 1464
+  }
+ ],
+ "snowLineM": 4800,
+ "highestNaturalM": 4567,
+ "summits": [
+  {
+   "name": "Sondel Range",
+   "kind": "the Sondel Range's remnant (artificial)",
+   "heightM": 5608,
+   "at": [
+    1.21,
+    0.85
+   ]
+  },
+  {
+   "name": "Mt. Oplin",
+   "kind": "massif of the ancient belt",
+   "heightM": 4567,
+   "at": [
+    5.69,
+    2.74
+   ]
+  },
+  {
+   "name": "Mt. Shila",
+   "kind": "massif of the ancient belt",
+   "heightM": 3992,
+   "at": [
+    4.4,
+    1.01
+   ]
+  },
+  {
+   "name": "Mt. Danrich",
+   "kind": "massif of the ancient belt",
+   "heightM": 3582,
+   "at": [
+    6.23,
+    3.61
+   ]
+  },
+  {
+   "name": "Mt. Weth",
+   "kind": "massif of the ancient belt",
+   "heightM": 3437,
+   "at": [
+    4.56,
+    -2.45
+   ]
+  },
+  {
+   "name": "Sarven Hills",
+   "kind": "hills",
+   "heightM": 1366,
+   "at": [
+    -4.88,
+    0.9
+   ]
+  },
+  {
+   "name": "Trate Hills",
+   "kind": "hills",
+   "heightM": 1312,
+   "at": [
+    -5.21,
+    -2.18
+   ]
+  }
+ ],
+ "hills": [
+  {
+   "name": "Trate Hills",
+   "heightM": [
+    365,
+    558,
+    1312
+   ]
+  },
+  {
+   "name": "Sarven Hills",
+   "heightM": [
+    451,
+    899,
+    1366
+   ]
+  }
+ ],
+ "sondel": {
+  "heightM": [
+   1379,
+   2472,
+   5608
+  ],
+  "natural": false
+ },
+ "dryCountryM": [
+  240,
+  353,
+  1896
+ ],
+ "lakes": [
+  {
+   "id": "caren-water-4",
+   "name": "Lake Luin",
+   "levelM": 1290,
+   "at": [
+    5.87,
+    -2.84
+   ]
+  },
+  {
+   "id": "caren-water-9",
+   "name": "Nal Lakes",
+   "levelM": 361,
+   "at": [
+    3.48,
+    1.94
+   ]
+  },
+  {
+   "id": "caren-water-10",
+   "name": "Nal Lakes",
+   "levelM": 245,
+   "at": [
+    3.29,
+    2.39
+   ]
+  },
+  {
+   "id": "caren-water-17",
+   "name": "Lake Whitswell",
+   "levelM": 177,
+   "at": [
+    0.74,
+    -3.07
+   ]
+  },
+  {
+   "id": "caren-water-23",
+   "name": "Lake Havamere",
+   "levelM": 176,
+   "at": [
+    -1.5,
+    -2.55
+   ]
+  },
+  {
+   "id": "caren-water-24",
+   "name": "Lake Havamere",
+   "levelM": 170,
+   "at": [
+    -1.57,
+    -2.74
+   ]
+  },
+  {
+   "id": "caren-water-26",
+   "name": "Arluna Lakes",
+   "levelM": 163,
+   "at": [
+    -2.78,
+    0.81
+   ]
+  },
+  {
+   "id": "caren-water-8",
+   "name": "Nal Lakes",
+   "levelM": 157,
+   "at": [
+    3.57,
+    2.59
+   ]
+  },
+  {
+   "id": "caren-water-11",
+   "name": "Nal Lakes",
+   "levelM": 147,
+   "at": [
+    3.01,
+    2.36
+   ]
+  },
+  {
+   "id": "caren-water-37",
+   "name": "Xel Lakes",
+   "levelM": 145,
+   "at": [
+    -6.7,
+    1.74
+   ]
+  },
+  {
+   "id": "caren-water-14",
+   "name": "Lake Surnet",
+   "levelM": 108,
+   "at": [
+    2.12,
+    -3.37
+   ]
+  },
+  {
+   "id": "caren-water-38",
+   "name": "Xel Lakes",
+   "levelM": 103,
+   "at": [
+    -7.03,
+    1.97
+   ]
+  }
+ ],
+ "rivers": [
+  {
+   "id": "caren-water-1",
+   "lengthKm": 310,
+   "tidalKm": 75,
+   "headM": 73,
+   "gradientMPerKm": 0.3
+  },
+  {
+   "id": "caren-water-2",
+   "lengthKm": 142,
+   "tidalKm": 75,
+   "headM": 22,
+   "gradientMPerKm": 0.3
+  },
+  {
+   "id": "caren-water-3",
+   "lengthKm": 277,
+   "tidalKm": 75,
+   "headM": 62,
+   "gradientMPerKm": 0.3
+  },
+  {
+   "id": "caren-water-6",
+   "lengthKm": 109,
+   "tidalKm": 75,
+   "headM": 12,
+   "gradientMPerKm": 0.3
+  }
+ ],
+ "arluna": {
+  "centre": [
+   -3.252,
+   0.791
+  ],
+  "troughKm": 78,
+  "diameterKm": 195,
+  "upliftM": 250,
+  "troughM": -60,
+  "rimM": 150,
+  "ageMyr": [
+   20,
+   200
+  ],
+  "lakes": [
+   "caren-water-26",
+   "caren-water-27",
+   "caren-water-28",
+   "caren-water-31",
+   "caren-water-32"
+  ],
+  "skymetal": {
+   "kind": "great-impact skymetal district",
+   "oreBody": "the melt sheet under the central uplift and the ring",
+   "withinKm": 98
+  }
+ }
+}

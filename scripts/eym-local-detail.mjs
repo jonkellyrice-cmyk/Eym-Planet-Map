@@ -16,6 +16,8 @@ import { annualMeanTemperatureC, environmentField, zonalPrecipitationMm } from "
 import { blendedShoreAt, cliffLiftM, landformContext, nearestRiver, valleyAt, windWorkAt } from "./eym-landforms.mjs";
 import { daysUntilFordable, groundwaterMm, riverStage, riverYear, widthFactor, yearWetness } from "./eym-river-flow.mjs";
 import { geologyAt } from "./eym-geology.mjs";
+import { carenRelief, inCarenBox } from "./eym-caren-relief.mjs";
+import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
 import { COVER, COVER_COLORS, COVER_NAMES, hashUnit } from "./eym-cover.mjs";
 
 export const LOCAL_DETAIL_MODEL = "eym-local-detail-v1";
@@ -155,6 +157,10 @@ export function localContext(asset) {
   const settlements = asset.settlements.filter((s) => s.lat != null);
   const peakM = (lat, lon) => { const c = asset.terrain.coastlines.find((line) => line.kind === "mainland" && line.continent && greatCircleKm(line.points[0], [lat, lon]) < 4000); return c?.continent === "Caren" ? 5200 : c?.continent === "Garyk" ? 3900 : 3500; };
   const ctx = { asset, coasts, waters, detail, coastSegments, rivers, settlements, field, lattice: new Map(), smoothed: new Map(), peakM, flow: asset.flow ?? null };
+  // Caren's heights follow from its natural history (scripts/eym-caren-relief.mjs): the same rule the surface uses,
+  // over the same mapped waters (river channels among them: the great rivers' valleys follow their drawn bands).
+  const carenWaters = asset.hydrology.lakes.filter((l) => l.continent === "Caren" && /^caren-water-/.test(l.id)).map((l) => ({ id: l.id, lake: l.waterKind !== "river-channel", ring: l.polygon.slice(0, -1) }));
+  ctx.caren = carenWaters.length ? { dials: WORLD_INPUTS.caren, rule: carenRelief(WORLD_INPUTS.caren, carenWaters, (lat, lon) => coastKm(ctx, lat, lon)) } : null;
   contextCache.set(asset, ctx);
   return ctx;
 }
@@ -185,7 +191,7 @@ function node(ctx, i, j) {
   const forest = land && insideAny(ctx.detail.forest, lat, lon);
   const coast = coastKm(ctx, lat, lon), cell = ctx.field.cellAt(lat, lon);
   const reliefM = [0, 750, 2300, ctx.peakM(lat, lon)][relief];
-  const elevationM = land ? 12 + 300 * (1 - Math.exp(-coast / 140)) + reliefM : -Math.min(200, 15 + coast * 1.6);
+  const elevationM = !land ? -Math.min(200, 15 + coast * 1.6) : ctx.caren && inCarenBox(lat, lon, ctx.caren.dials) ? ctx.caren.rule.heightM(lat, lon, coast, relief) : 12 + 300 * (1 - Math.exp(-coast / 140)) + reliefM;
   v = { land, water, relief, forest, coastKm: coast, elevationM, biome: cell.biome, annualMeanC: cell.annualMeanC, precipMm: zonalPrecipitationMm(lat) };
   ctx.lattice.set(key, v);
   return v;
@@ -481,7 +487,8 @@ export function buildLocalTile(asset, { center, sizeKm = 8, resolutionM = 25, ma
     const rugged = Math.max(f.relief, f.reliefClass);
     if (pondDepth[i] > 3 + 6 * rugged) { cover[i] = COVER.lake; continue; }
     if (pondDepth[i] > 1 + 2 * rugged && f.precipMm > 900) { cover[i] = COVER.marsh; continue; }
-    if (temp < -3 || (f.relief > 2.4 && temp < 1)) cover[i] = COVER.snow;
+    // (On Caren snow lies all year only above its snow line: canon of 20 November 2026, scripts/eym-world-inputs.mjs.)
+    if (inCarenBox(lat, lon, WORLD_INPUTS.caren) ? e >= WORLD_INPUTS.caren.snowLineM : temp < -3 || (f.relief > 2.4 && temp < 1)) cover[i] = COVER.snow;
     else if (slope > 0.75 || (Math.max(f.relief, f.reliefClass) > 1.8 && n1 > 0.25)) cover[i] = COVER.rock;
     else if (settled < 1 + 0.35 * n1) cover[i] = COVER.built;
     else if (f.shore && SHORE_COVER[f.shore] !== undefined) cover[i] = SHORE_COVER[f.shore];
