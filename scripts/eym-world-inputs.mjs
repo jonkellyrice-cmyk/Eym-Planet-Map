@@ -192,9 +192,28 @@ export const WORLD_INPUTS = deepFreeze({
     // The overturning of the air: gathering under the rain belt, spreading round it, gathering along the storm
     // tracks (each per day, with a width in degrees). Fitted to the all-ocean rain by latitude; shapes, not places.
     overturning: { beltPerDay: 0.229, beltWidthDeg: 10.1, dryPerDay: 0.0632, dryOffsetDeg: 6.36, dryWidthDeg: 44.2, stormPerDay: 0.366, stormLat: 58.1, stormWidthDeg: 16.1, polarPerDay: 0 },
+    // The east–west circulation (see scripts/eym-rain.mjs, `zonalHeat`): the tropics' heating is taken `acrossDeg`
+    // to either side of the rain belt, by `binDeg` of longitude, land counting as a sea `landAsWarmC` warmer, and
+    // smoothed over `smoothDeg`. Where a longitude is 1 °C warmer than the world's mean the column gathers by
+    // `perDayPerC` a day more (and spreads as much where it is cooler), within `widthDeg` of the belt. Earth's
+    // eastern Pacific, some 2 °C cooler than the mean of its latitude's heating, sinks about as fast as the dry
+    // belts do (`overturning.dryPerDay`): hence 0.03.
+    zonal: { binDeg: 10, acrossDeg: 12, landAsWarmC: 1, smoothDeg: 30, perDayPerC: 0.03, widthDeg: 15 },
+    // The trade-wind inversion: a lid on the moist air away from the rain belt (none within about `beltClearDeg`
+    // of it), `baseM` high over a sea at its latitude's own temperature (Earth's: about 2,000 m; 1,500 m and less
+    // over the cold eastern oceans, 2,500 m and more toward the warm west), `perSeaC` higher for each degree the sea
+    // is warmer and `perZonalC` for each degree of the east–west circulation's heating, between `leastM` and
+    // `mostM`. Over land it lifts by `landLiftMPerKm` (it is gone some 500 km inland by day's heating). Under a full lid the shallow clouds give no more than
+    // `shallowMmDay` of showers and drizzle (trade-wind cumulus: 1 to 2 mm a day), and `turnedAside` of the low air that
+    // meets high ground goes round it instead of over. Ground above
+    // the lid stands in dry air (as Hawaii's summits do above their wet windward slopes).
+    lid: { baseM: 2000, perSeaC: 250, perZonalC: 300, leastM: 1000, mostM: 3500, beltClearDeg: 9, landLiftMPerKm: 3, turnedAside: 0.7, shallowMmDay: 1.5 },
     // The rain belt stands over the warmest water within `pullMostDeg` of its seasonal place, the sea's anomaly
     // taken along `pullReachDeg` of longitude to either side.
-    belt: { pullReachDeg: 12, pullMostDeg: 12 },
+    // Land in its summer counts as water `landSummerC` warmer at midsummer from `landFullLat` degrees of latitude
+    // on (Earth's tropical lands stand some 3 °C above the sea beside them in their high-sun season), less nearer
+    // the equator, and up to `plateauGain` more over high ground; as much cooler in its winter.
+    belt: { pullReachDeg: 12, pullMostDeg: 12, landSummerC: 3, landFullLat: 15, plateauGain: 0.3 },
     // The season's wind: trades of `easterlyMs` from the east (slack by `doldrums` under the belt) blowing toward
     // the belt at up to `towardBeltMs` (full `turnDeg` from it); air that has crossed the equator to a belt more than
     // `monsoonFromDeg` from it is turned to a westerly of up to `monsoonWestMs` (full when the belt is `monsoonFullDeg`
@@ -355,7 +374,7 @@ export const WORLD_INPUTS = deepFreeze({
     // 2026 ("Caren climate: decision + next steps"): the balance is worked out and recorded, and the band's mean
     // stays where it was (`bandMeanLatUntilThen`, the old fixed 4° N) until the land's own swing and the trade-wind
     // inversion are in; then it is switched on (step 6).
-    bandFollowsBalance: false, bandMeanLatUntilThen: 4,
+    bandFollowsBalance: true, bandMeanLatUntilThen: 4,
   },
 
   /** The weather's large-scale circulation (scripts/eym-weather.mjs): the belts' seasonal shift, the jet streams and blocking. */

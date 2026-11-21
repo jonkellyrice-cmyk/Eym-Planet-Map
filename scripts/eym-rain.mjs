@@ -28,8 +28,8 @@
 import { beltWind } from "./eym-winds.mjs";
 import { BELT_SWING_MEAN } from "./eym-rain-band.generated.mjs";
 
-export const RAIN_MODEL = "eym-rain-v1";
-export const RAIN_CAUSES = Object.freeze({ sea: true, beltPull: true, orography: true, recycling: true, jets: true, seasonalWinds: true, mixing: true });
+export const RAIN_MODEL = "eym-rain-v2";
+export const RAIN_CAUSES = Object.freeze({ sea: true, beltPull: true, orography: true, recycling: true, jets: true, seasonalWinds: true, mixing: true, zonal: true, lid: true, landPull: true });
 const DEG = Math.PI / 180, KM = 111.195, MONTHS = 12, DAY_S = 86400, MONTH_DAYS = 365.25 / 12;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const bell = (x, width) => Math.exp(-((x / width) ** 2));
@@ -47,7 +47,7 @@ export const monthDeclinationDeg = (month) => 23.44 * Math.sin(2 * Math.PI * (mo
  *   openBeltLat(declination)      the same over open ocean, far from any land (if not given, beltLatAt at 0°).
  */
 export function rainModel(dials, world, causes = RAIN_CAUSES) {
-  const d = dials, { heightAt, seaAnomalyAt, seaLevelC, beltLatAt, openBeltLat = (declinationDeg) => beltLatAt(0, declinationDeg) } = world, on = { ...RAIN_CAUSES, ...causes };
+  const d = dials, { heightAt, seaAnomalyAt, seaLevelC, beltLatAt, openBeltLat = (declinationDeg) => beltLatAt(0, declinationDeg), landHeatedAt = () => 0 } = world, on = { ...RAIN_CAUSES, ...causes };
   const groundAt = (lat, lon) => { const m = heightAt(lat, lon); return m == null ? null : on.orography ? Math.max(0, m) : 0; };
   /** What a full column of air holds (mm of water) over ground at sea level where the air at sea level is `c` °C. */
   const fullMm = (c) => d.column.fullMmAt27 * Math.exp(d.column.perC * (c - 27));
@@ -65,9 +65,18 @@ export function rainModel(dials, world, causes = RAIN_CAUSES) {
     for (const [a, b] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-0.7, -0.7], [-0.7, 0.7], [0.7, -0.7], [0.7, 0.7]]) { const la = lat + a * R, lo = lon + b * R; if (Math.abs(la) < 88 && heightAt(la, lo) == null) { sum += seaAnomalyAt(la, lo, month); n += 1; } }
     return n ? sum / n : null;
   });
+  /**
+   * Land in its summer is warmer than the sea at its latitude and draws the rain belt over it (owner's direction
+   * of 20 November 2026: the band swings farther over land): by `landSummerC` at midsummer from `landFullLat`
+   * degrees of latitude on (near the equator there is little summer, and little of this), more over high ground
+   * (`plateauGain`, a heat source lifted into the air), and as much cooler in its winter. Where the land's heating
+   * is already counted in the belt's seasonal place (`landHeatedAt`, the great continents' monsoons), only the rest.
+   */
+  const landSummerC = (lat, lon, heightM, month) => { const b = d.belt, season = monthDeclinationDeg(month) / 23.44 * Math.sign(lat); return b.landSummerC * season * clamp(Math.abs(lat) / b.landFullLat, 0, 1) * (1 + b.plateauGain * clamp(Math.max(0, heightM) / 3000, 0, 1)) * (1 - clamp(landHeatedAt(lat, lon), 0, 1)); };
   const bandAnomaly = (atLat, atLon, month) => keep(1, month, Math.round(atLat * 2), Math.round(wrap(atLon) / 4), () => {
-    let sum = 0, n = 0; const lat = Math.round(atLat * 2) / 2, lon = Math.round(wrap(atLon) / 4) * 4 - 180; for (let dl = -d.belt.pullReachDeg; dl <= d.belt.pullReachDeg; dl += 4) if (heightAt(lat, lon + dl) == null) { sum += seaAnomalyAt(lat, lon + dl, month); n += 1; }
-    return n >= 2 ? sum / n : null;
+    let sum = 0, n = 0, seas = 0; const lat = Math.round(atLat * 2) / 2, lon = Math.round(wrap(atLon) / 4) * 4 - 180;
+    for (let dl = -d.belt.pullReachDeg; dl <= d.belt.pullReachDeg; dl += 4) { const h = heightAt(lat, lon + dl); if (h == null) { sum += seaAnomalyAt(lat, lon + dl, month); n += 1; seas += 1; } else if (on.landPull) { sum += landSummerC(lat, lon + dl, h, month); n += 1; } }
+    return (on.landPull ? n >= 2 : seas >= 2) ? sum / n : null;
   });
   /**
    * The broad lie of the land round a place (m): its height averaged over some 300 km (the sea counts as nought).
@@ -119,6 +128,42 @@ export function rainModel(dials, world, causes = RAIN_CAUSES) {
   const openBelt = (month) => openBeltLat(monthDeclinationDeg(month)), openWindAt = (lat, month) => windFor(lat, openBelt(month));
   const openWater = (lat, month) => keep(7, month, Math.round(lat), 0, () => pathMonth(Math.round(lat), 0, month, 0, true).waterMm);
 
+  /**
+   * The tropics' heating by longitude, and the east–west circulation it drives (owner's direction of 20 November
+   * 2026: the real continents drive the circulation). Along the rain belt's latitudes each longitude is as warm as
+   * its sea's anomaly, with land counted as a sea `landAsWarmC` warmer (tropical land sets the air rising); smoothed
+   * round the world over `smoothDeg` and taken from the world's mean. Air rises over the warmest longitudes and
+   * sinks over the coolest (as Earth's rises over Indonesia and sinks over the eastern Pacific).
+   * `zonalHeat(lon, month)` is in °C: positive where the air rises.
+   */
+  const rawHeat = (bin, month) => keep(9, month, 0, bin, () => {
+    const z = d.zonal, lon = -180 + (bin + 0.5) * z.binDeg, mid = openBelt(month); let sum = 0, n = 0;
+    for (let lat = mid - z.acrossDeg; lat <= mid + z.acrossDeg + 1e-9; lat += 2) for (const dl of [-z.binDeg / 3, 0, z.binDeg / 3]) { sum += heightAt(lat, lon + dl) == null ? seaAnomalyAt(lat, lon + dl, month) : z.landAsWarmC; n += 1; }
+    return sum / n;
+  });
+  const zonalHeat = (lon, month) => { if (!on.zonal) return 0; const z = d.zonal, bins = Math.round(360 / z.binDeg), at = Math.floor(wrap(lon) / z.binDeg); return keep(10, month, 0, at, () => {
+    const reach = Math.ceil(2.5 * z.smoothDeg / z.binDeg); let here = 0, weight = 0, all = 0;
+    for (let k = -reach; k <= reach; k += 1) { const w = bell(k * z.binDeg, z.smoothDeg); here += w * rawHeat(((at + k) % bins + bins) % bins, month); weight += w; }
+    for (let b = 0; b < bins; b += 1) all += rawHeat(b, month);
+    return here / weight - all / bins;
+  }); };
+  /**
+   * The trade-wind inversion (owner's direction of 20 November 2026): away from the rain belt the air above the
+   * trades sinks and is dry, and the moist air lies under a lid, at `baseM` over a sea at its latitude's own
+   * temperature, lower over colder water and where the east–west circulation sinks, higher over warmer water and
+   * where it rises. Under the belt itself there is no lid (the air rises through the whole column). `lidShare` is
+   * how much of the lid is there (0 under the belt, 1 far from it); `lidM` its height over a sea with anomaly `a`.
+   */
+  // (The lid belongs to the trades: it fades out where the westerlies begin.)
+  const lidShare = (lat, belt) => (on.lid ? (1 - bell(lat - belt, d.lid.beltClearDeg)) * (1 - smoothstep(d.wind.westerliesFromDeg, d.wind.westerliesFromDeg + 10, Math.abs(lat))) : 0);
+  const lidM = (a, lon, month) => clamp(d.lid.baseM + d.lid.perSeaC * a + d.lid.perZonalC * zonalHeat(lon, month), d.lid.leastM, d.lid.mostM);
+  /** The share of a sea-level column's water that the column over ground `h` m high holds: all of the air above it, or only what lies under a lid at `lid` m, by `share`. */
+  const columnOver = (h, lid, share) => {
+    const s = d.column.scaleM, whole = Math.exp(-h / s); if (!share || !(h > 0)) return whole;
+    const top = Math.exp(-lid / s), under = h >= lid ? 0 : (whole - top) / (1 - top);
+    return (1 - share) * whole + share * under;
+  };
+
   /** The overturning's gathering (+) and spreading (−) of the column's water, per day, at a latitude with the belt at `belt`. */
   const overturning = (lat, belt) => {
     const o = d.overturning, y = lat - belt, a = Math.abs(lat);
@@ -137,16 +182,22 @@ export function rainModel(dials, world, causes = RAIN_CAUSES) {
       path.push({ lat: la, lon: lo, w, ground, broad, narrow: ground == null ? 0 : ground - broad, speed: w.speed * (1 + d.jet.speedUp * squeeze), squeeze });
       [la, lo] = step(la, lo, -w.north / w.speed, -w.east / w.speed, d.path.stepKm);
     }
-    const far = path[path.length - 1]; let water = d.path.startFull * fullMm(airC(far.lat, month)) * Math.exp(-far.broad / d.column.scaleM);
+    const far = path[path.length - 1]; let water = d.path.startFull * fullMm(airC(far.lat, month)) * Math.exp(-far.broad / d.column.scaleM), lid = d.lid.baseM;
     const blockSteps = Math.round(d.wind.blockKm / d.path.stepKm); let rainDay = 0, rainBefore = 0, fullness = 0, crossedM = 0, landKm = 0, seaC = null, fastest = 0, lostToHeight = 0, lowest = Infinity;
     for (let k = path.length - 1; k >= 0; k -= 1) {
-      const p = path[k], sea = p.ground == null, air = airC(p.lat, month), holds = fullMm(air) * Math.exp(-p.broad / d.column.scaleM);
+      const p = path[k], sea = p.ground == null, air = airC(p.lat, month);
+      // The lid over the moist air: set over the sea by its temperature; over land it lifts as the ground heats
+      // the air under it (by `landLiftMPerKm`), and is gone after some hundreds of kilometres.
+      if (!open && on.lid) lid = sea ? lidM(on.sea ? seaAnomalyAt(p.lat, p.lon, month) : 0, p.lon, month) : lid + d.lid.landLiftMPerKm * d.path.stepKm;
+      const lidHere = open ? 0 : lidShare(p.lat, p.w.belt), column = open ? Math.exp(-p.broad / d.column.scaleM) : columnOver(p.broad, lid, lidHere), holds = Math.max(0.5, fullMm(air) * column);
       // Low air does not all climb high ground: of a layer moving at U against the air's layering (N), only what
       // lies within U/N of the top gets over; the rest is turned aside. So less air, and less water, arrives the
       // higher the ground stands above where the air has lately been (the lowest ground of the last `blockKm`).
       let low = p.ground ?? 0; for (let b = 1; b <= blockSteps && k + b < path.length; b += 1) low = Math.min(low, path[k + b].ground ?? 0);
       const over = p.speed / d.wind.layeringPerS, passing = over / (over + Math.max(0, (p.ground ?? 0) - low)), days = d.path.stepKm * 1000 / (p.speed * passing * DAY_S);
       let gather = overturning(p.lat, p.w.belt);
+      // The east–west circulation: gathering where the tropics' air rises, spreading where it sinks.
+      if (!open && on.zonal) gather += d.zonal.perDayPerC * zonalHeat(p.lon, month) * bell(p.lat - p.w.belt, d.zonal.widthDeg);
       if (sea) {
         const a = on.sea && !open ? seaAnomalyAt(p.lat, p.lon, month) : 0, ring = on.sea && !open ? ringAnomaly(p.lat, p.lon, month) : null;
         // Taking up water toward what the sea's own temperature allows.
@@ -164,12 +215,22 @@ export function rainModel(dials, world, causes = RAIN_CAUSES) {
       water = Math.max(0.5, water * (1 + clamp(gather * days, -0.6, 0.6)));
       // Rain by how full the column is; what the column cannot hold at all falls at once.
       fullness = water / holds;
-      let rain = Math.min(d.rain.mmPerDay * Math.exp(d.rain.steepness * (Math.min(1, fullness) - d.rain.fromFull)) * days, 0.5 * water);
+      // (Under the lid the clouds are shallow and cannot grow into deep storms: they give showers and drizzle of no
+      // more than `shallowMmDay`, however full the low air is.)
+      // Deep storms need the whole column moist, so their share of the rain goes by how full the whole column is.
+      const law = (full) => d.rain.mmPerDay * Math.exp(d.rain.steepness * (Math.min(1, full) - d.rain.fromFull)), byFullness = law(fullness);
+      const deep = lidHere ? law(water / Math.max(0.5, fullMm(air) * Math.exp(-p.broad / d.column.scaleM))) : byFullness;
+      let rain = Math.min(((1 - lidHere) * deep + lidHere * Math.min(byFullness, d.lid.shallowMmDay)) * days, 0.5 * water);
       // (What the column cannot hold condenses at once, and falls within the next `spillKm` or so.)
-      if (water - rain > holds) { const forced = (water - rain - holds) * (1 - Math.exp(-d.path.stepKm / d.rain.spillKm)); lostToHeight += forced; rain += forced; }
+      // (Under the lid the low air cannot all climb: `turnedAside` of what would be wrung out is carried round the
+      // high ground with its water instead, as the trades part round a high island, and does not rain here.)
+      if (water - rain > holds) { const forced = (water - rain - holds) * (1 - Math.exp(-d.path.stepKm / d.rain.spillKm)), aside = open ? 0 : forced * lidHere * d.lid.turnedAside; lostToHeight += forced - aside; rain += forced - aside; water -= aside; }
       // Climbing a narrow range, the low air (what lies below its top and within speed/N above it) is lifted and
       // wrung out by as much as the climb; the air above passes over with its water.
-      const climb = k + 1 < path.length ? p.narrow - path[k + 1].narrow : 0;
+      // (Under the lid only the climb below it wrings the air, and `turnedAside` of the low air goes round instead.)
+      const before = k + 1 < path.length ? path[k + 1] : null, rise = before ? p.narrow - before.narrow : 0, from = before?.ground ?? 0;
+      const belowLid = p.ground == null || p.ground <= lid ? 1 : from >= lid ? 0 : (lid - from) / Math.max(1, p.ground - from);
+      const climb = rise > 0 ? rise * (1 - lidHere + lidHere * belowLid * (1 - d.lid.turnedAside)) : 0;
       if (climb > 0) { const forced = (water - rain) * (1 - Math.exp(-climb / d.column.scaleM)) * (1 - Math.exp(-(p.narrow + over) / d.column.scaleM)); lostToHeight += forced; rain += forced; }
       water -= rain; rainBefore = rainDay; rainDay = rain / days;
       // The land gives rain back to the air from soil and leaf: nearly all of it where rain is scarce, and no more
@@ -177,7 +238,7 @@ export function rainModel(dials, world, causes = RAIN_CAUSES) {
       if (!sea && on.recycling && rain > 0) { const dry = d.land.evaporationMmDay * days / rain; water += rain * Math.sqrt(dry * Math.tanh(1 / dry) * (1 - Math.exp(-dry))); }
       // The air mixes with the air round and above it, which has not come the same way: toward what the open
       // ocean's air holds at this latitude in this month (as much of it as the column over this ground can hold).
-      if (!open && on.mixing) water += (openWater(p.lat, month) * Math.exp(-p.broad / d.column.scaleM) - water) * Math.min(1, days / d.mixing.days);
+      if (!open && on.mixing) water += (openWater(p.lat, month) * column - water) * Math.min(1, days / d.mixing.days);
     }
     const here = path[0]; rainDay = (rainDay + rainBefore) / 2;
     return { rainMm: rainDay * MONTH_DAYS, rainMmDay: rainDay, fullness, beltLat: here.w.belt, windFromDeg: (Math.atan2(-here.w.east, -here.w.north) / DEG + 360) % 360, windMs: here.speed, landKm, seaC: seaC ?? 0, crossedM: here.ground == null ? 0 : Math.max(0, crossedM - here.ground), squeeze: here.squeeze, squeezeUpwind: fastest, waterMm: water };
@@ -199,7 +260,7 @@ export function rainModel(dials, world, causes = RAIN_CAUSES) {
     const months = Array.from({ length: MONTHS }, (_, month) => monthAt(lat, lon, month)), rain = months.map((m) => m.rainMm);
     return { months, monthsMm: rain, annualMm: rain.reduce((a, b) => a + b, 0), driestMm: Math.min(...rain), wettestMm: Math.max(...rain), dryMonths: rain.filter((r) => r < d.rain.dryMonthMm).length, wetMonths: rain.filter((r) => r >= d.rain.wetMonthMm).length };
   }
-  return { model: RAIN_MODEL, causes: on, beltLat, windAt, monthAt, yearAt, overturning, fullMm, airC, squeezeAt };
+  return { model: RAIN_MODEL, causes: on, beltLat, windAt, monthAt, yearAt, overturning, fullMm, airC, squeezeAt, zonalHeat, lidM, lidShare, columnOver };
 }
 
 /** The sea's anomaly (°C) at a place in a month, read from the ocean climate document (four seasons on a grid; a month lies between two of them). */
@@ -229,9 +290,9 @@ export function feltHeights(sampler, wall = null) {
 }
 
 /** The rain rule made ready for a world: the surface's sampler, the ocean climate document and the seasons' own rules. */
-export function rainFor({ dials, sampler, climate, seaLevelC, beltLatAt, openBeltLat, wall = null, causes = RAIN_CAUSES }) {
+export function rainFor({ dials, sampler, climate, seaLevelC, beltLatAt, openBeltLat, landHeatedAt = undefined, wall = null, causes = RAIN_CAUSES }) {
   const heightAt = feltHeights(sampler, wall), seaAnomalyAt = seaAnomalyReader(climate);
-  return { ...rainModel(dials, { heightAt, seaAnomalyAt, seaLevelC, beltLatAt, openBeltLat }, causes), heightAt, seaAnomalyAt };
+  return { ...rainModel(dials, { heightAt, seaAnomalyAt, seaLevelC, beltLatAt, openBeltLat, landHeatedAt }, causes), heightAt, seaAnomalyAt };
 }
 
 /**

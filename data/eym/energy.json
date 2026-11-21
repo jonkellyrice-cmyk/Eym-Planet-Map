@@ -1,6 +1,6 @@
 {
  "schemaVersion": 1,
- "sourcesSha256": "b0b07fff4651dd759a8fcd0b9cadc2442a10f25b525120dfba265568ecf9a510",
+ "sourcesSha256": "559abd4685eda2c58236a45a269b0a823716437d5683f0aa88d70b5ea0adde7a",
  "model": "eym-energy-v1",
  "reflectedPW": {
   "north": {
@@ -37,8 +37,8 @@
  "keptNorthLessSouthPW": -0.264,
  "airCarriesNorthPW": 0.066,
  "bandMeanLat": -0.18,
- "bandFollowsBalance": false,
- "bandMeanLatInUse": 4,
+ "bandFollowsBalance": true,
+ "bandMeanLatInUse": -0.18,
  "beltSwing": {
   "overOpenOcean": 0.2,
   "overTheMostLand": 1.144,

@@ -31,7 +31,7 @@ export function eymRain({ wall = null, causes = undefined, dials = WORLD_INPUTS.
   const { sampler } = surface ?? buildEymSurface(J("data/eym/traced-continents.json"), EYM_LAYOUT, J("data/eym/tectonics.json"), J("data/eym/growth.json"));
   const cells = []; for (let r = 0; r < 180; r += 1) for (let c = 0; c < 360; c += 1) { const lat = -89.5 + r, lon = -179.5 + c, s = sampler(lat, lon), land = Boolean(s?.land && !s.inlandWater); cells.push({ lat, lon, ocean: !land, elevationM: land ? Math.max(0, s.elevationM) : 0 }); }
   const atmosphere = landAtmosphere({ cells });
-  return { ...rainFor({ dials, sampler, climate, seaLevelC: seaLevelTemperatureC, beltLatAt: (lon, declinationDeg) => atmosphere.rainBeltLatAt(lon, declinationDeg), openBeltLat: rainBeltLat, wall, causes }), sampler };
+  return { ...rainFor({ dials, sampler, climate, seaLevelC: seaLevelTemperatureC, beltLatAt: (lon, declinationDeg) => atmosphere.rainBeltLatAt(lon, declinationDeg), openBeltLat: rainBeltLat, landHeatedAt: (lat, lon) => atmosphere.heatingAt(lat >= 0 ? 1 : -1, lon), wall, causes }), sampler };
 }
 
 const b64 = (bytes) => Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString("base64");

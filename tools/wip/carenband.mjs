@@ -1,0 +1,10 @@
+import { readFileSync } from "node:fs";
+const c = JSON.parse(readFileSync(process.argv[2], "utf8")).climate;
+const b = c.rainBelt.latByMonth, mean = b.reduce((x, y) => x + y, 0) / 12;
+console.log("band over Caren by month:", b.join(" "), "| mean", mean.toFixed(1), "range", Math.min(...b), "to", Math.max(...b), "| months south of equator", b.filter((x) => x < 0).length);
+console.log("parts:", Object.entries(c.parts).map(([k, v]) => `${k} ${v.annualMm} mm, ${v.dryMonths} dry`).join("; "));
+console.log("plateau:", JSON.stringify(c.plateau));
+const m = c.molkath; for (const era of ["today", "beforeTheFall"]) console.log("molkath", era, m[era].annualMm.join("/"), "dry months", m[era].dryMonths, "arid share", m[era].aridShare, "| west", m[era].sides.west.annualMm.join("/"), "east", m[era].sides.east.annualMm.join("/"));
+console.log("sea:", c.sea.coldTongueC, "swing", c.sea.westCoastSwingC);
+for (const e of c.expectations) console.log(e.found ? "FOUND" : "not  ", e.expected, "|", e.measure.slice(0, 170));
+console.log("towns:", c.towns.map((t) => `${t.name ?? t.label ?? "?"} ${t.annualMm} mm ${t.dryMonths ?? ""}`).join("; ").slice(0, 600));
