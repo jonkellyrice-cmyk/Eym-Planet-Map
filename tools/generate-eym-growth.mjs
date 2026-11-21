@@ -18,13 +18,15 @@ import { inputsFingerprint, WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs
 import { buildEymSurface, EYM_LAYOUT, EYM_RADIUS_KM, fromLocal, greatCircleKm, sphericalRingAreaKm2, toLocal } from "../scripts/eym-surface.mjs";
 import { classifyBoundary, makeNoise, plateVelocity, vec } from "../scripts/eym-tectonics.mjs";
 import { contour } from "./generate-eym-tectonics.mjs";
+import { rangeHistory } from "../scripts/eym-orogeny.mjs";
+import { zonalPrecipitationMm } from "../scripts/eym-seasons.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/growth.json", root);
 export const GROWTH_MODEL = "eym-growth-v1";
 /** What the growth is made from: this tool, the surface's geometry, the traced continents and the tectonic history. */
-export const GROWTH_SOURCES = ["tools/generate-eym-growth.mjs", "scripts/eym-surface.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json"];
+export const GROWTH_SOURCES = ["tools/generate-eym-growth.mjs", "scripts/eym-orogeny.mjs", "scripts/eym-surface.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json"];
 /** The dials it follows (scripts/eym-world-inputs.mjs). */
-export const GROWTH_INPUTS = ["layout", "growth", "seaFloor"];
+export const GROWTH_INPUTS = ["layout", "growth", "seaFloor", "orogeny"];
 export const growthSourcesSha256 = () => { const h = createHash("sha256"); for (const p of GROWTH_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...GROWTH_INPUTS)); return h.digest("hex"); };
 
 /** A hash of the tectonic history itself: the file without its stamp of sources (which moves when a tool's text does). */
@@ -144,10 +146,19 @@ export function buildGrowth({ tectonics, traced, layout = EYM_LAYOUT, dials = G 
       }
       return out.sort((a, b) => b.length - a.length);
     };
-    const height = (line, base, more) => Math.round(base + more * (0.5 + 0.5 * noise(vec(fromLocal(spec.center, ...line[Math.floor(line.length / 2)])), 3, 2, 5)));
+    // A range's height follows from its history (scripts/eym-orogeny.mjs): how fast the two plates that meet along
+    // it close (their own motions, at its middle), for how long, and the rain it wears under.
+    const O = WORLD_INPUTS.orogeny, raised = (line, kind, activeMyr, widthKm) => {
+      const [lat, lon] = fromLocal(spec.center, ...line[Math.floor(line.length / 2)]), here = vec([lat, lon]), count = new Map();
+      for (let k = 0; k < 8; k += 1) { const a = k * Math.PI / 4, p = plateAt(lat + 2 * Math.cos(a), lon + 2 * Math.sin(a) / Math.max(0.2, Math.cos(lat * Math.PI / 180))); count.set(p, (count.get(p) ?? 0) + 1); }
+      const two = [...count].sort((a, b) => b[1] - a[1] || a[0] - b[0]).slice(0, 2).map(([p]) => p), other = two.length > 1 ? two : [two[0], plate];
+      const va = plateVelocity(motion(other[0]), here), vb = other[1] === other[0] ? [0, 0, 0] : plateVelocity(motion(other[1]), here);
+      const history = { kind, convergenceMmYr: Math.round(Math.hypot(va[0] - vb[0], va[1] - vb[1], va[2] - vb[2]) * 10) / 10, activeMyr, endedMyrAgo: 0, widthKm, rainMm: Math.round(zonalPrecipitationMm(lat)) }, h = rangeHistory(O, history);
+      return { heightM: h.peakM, meanM: h.meanM, crustKm: h.crustKm, unroofedKm: h.exhumedKm, shedKmPerMyr: h.shedKmPerMyr, history };
+    };
     const sutures = [
-      ...chains(tectonics.boundaries.collisions).map((points) => ({ kind: "suture range", origin: "collision", heightM: height(points, 4300, 1500), widthKm: 120, points })),
-      ...chains(tectonics.boundaries.trenches).map((points) => ({ kind: "suture range", origin: "accretion", heightM: height(points, 2500, 1100), widthKm: 95, points })),
+      ...chains(tectonics.boundaries.collisions).map((points) => ({ kind: "suture range", origin: "collision", ...raised(points, "collision", O.collisionMyr, 120), widthKm: 120, points })),
+      ...chains(tectonics.boundaries.trenches).map((points) => ({ kind: "suture range", origin: "accretion", ...raised(points, "accretion", O.accretionMyr, 95), widthKm: 95, points })),
     ], rifts = chains(tectonics.boundaries.ridges).map((points) => ({ kind: "rift", widthKm: 70, points }));
     continents[id] = {
       id, name: spec.name, center: spec.center, plate: fitted.plate, rings: [main], kinds: ["mainland"], coreAreaKm2: fitted.mainlandAreaKm2, areaKm2: Math.round(sphericalRingAreaKm2(main.map(([x, y]) => fromLocal(spec.center, x, y)))), gridAreaKm2: Math.round(area), targetAreaKm2: target, level: Number(level.toFixed(3)),

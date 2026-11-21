@@ -13,13 +13,15 @@ import { buildEymSurface, EYM_LAYOUT, fromLocal, toLocal, ringAreaKm2, greatCirc
 import { bboxWrap, normLon } from "../scripts/geo-wrap.mjs";
 import { createRng } from "../scripts/planet-geography.mjs";
 import { inputsFingerprint, WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
+import { rangeHistory } from "../scripts/eym-orogeny.mjs";
+import { zonalPrecipitationMm } from "../scripts/eym-seasons.mjs";
 import { CAREN_GEOLOGY, EYM_TECTONICS_MODEL, arcKm, classifyBoundary, latLon, layoutFirstLand, makeNoise, plateAt, plateVelocity, presentCrust, rotate, rotationBetween, vec } from "../scripts/eym-tectonics.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/tectonics.json", root);
 /** What the tectonic history is made from: this tool, the model, the surface and the traced continents. */
-export const TECTONIC_SOURCES = ["tools/generate-eym-tectonics.mjs", "scripts/eym-tectonics.mjs", "scripts/eym-surface.mjs", "scripts/planet-geography.mjs", "data/eym/traced-continents.json"];
+export const TECTONIC_SOURCES = ["tools/generate-eym-tectonics.mjs", "scripts/eym-tectonics.mjs", "scripts/eym-orogeny.mjs", "scripts/eym-surface.mjs", "scripts/planet-geography.mjs", "data/eym/traced-continents.json"];
 /** The groups of dials (scripts/eym-world-inputs.mjs) the plate fit follows. */
-export const TECTONIC_INPUTS = ["layout", "plates"];
+export const TECTONIC_INPUTS = ["layout", "plates", "orogeny"];
 export const tectonicSourcesSha256 = () => { const h = createHash("sha256"); for (const path of TECTONIC_SOURCES) h.update(readFileSync(new URL(path, root))); h.update(inputsFingerprint(...TECTONIC_INPUTS)); return h.digest("hex"); };
 export const TECTONIC_SEEDS = Array.from({ length: 40 }, (_, i) => `eym-tectonics|${String(i + 1).padStart(2, "0")}`);
 export const TARGET_TOLERANCE = WORLD_INPUTS.plates.targetTolerance;
@@ -276,8 +278,11 @@ function globalPicture(state) {
 function rangesFor(state, cont) {
   const { pieces, plates } = state, pc = cont.piece, t = pc.target, plate = plates.find((p) => p.id === t.id), c = vec(t.center), ridges = [];
   const ring = cont.main.ring, lead = ring.map(([x, y]) => { const p = vec(fromLocal(t.center, x, y)), out = norm3(sub(p, c)), v = plateVelocity(plate, p), s = Math.hypot(...v) || 1; return (out[0] * v[0] + out[1] * v[1] + out[2] * v[2]) / s; });
+  // A range's height follows from its history (scripts/eym-orogeny.mjs): how fast the plates close across it, for
+  // how long, how long ago it stopped, and the rain it wears under (its latitude's on an all-ocean Eym).
+  const raised = (pts, history) => { const mid = pts[Math.floor(pts.length / 2)], rainMm = Math.round(zonalPrecipitationMm(fromLocal(t.center, mid[0], mid[1])[0])), h = rangeHistory(WORLD_INPUTS.orogeny, { ...history, rainMm }); return { heightM: h.peakM, meanM: h.meanM, crustKm: h.crustKm, unroofedKm: h.exhumedKm, shedKmPerMyr: h.shedKmPerMyr, history: { ...history, rainMm } }; };
   let run = [];
-  const flush = () => { if (run.length > ring.length * 0.08) { const step = Math.max(1, Math.floor(run.length / 9)), pts = run.filter((_, i) => i % step === 0).map(([x, y]) => { const l = Math.hypot(x, y) || 1; return [r1(x - x / l * 105), r1(y - y / l * 105)]; }); ridges.push({ kind: "coastal range", origin: "subduction", heightM: Math.round(3000 + 1500 * Math.min(1, Math.hypot(...plateVelocity(plate, c)) / 60)), widthKm: 75, points: pts }); } run = []; };
+  const flush = () => { if (run.length > ring.length * 0.08) { const step = Math.max(1, Math.floor(run.length / 9)), pts = run.filter((_, i) => i % step === 0).map(([x, y]) => { const l = Math.hypot(x, y) || 1; return [r1(x - x / l * 105), r1(y - y / l * 105)]; }); ridges.push({ kind: "coastal range", origin: "subduction", ...raised(pts, { kind: "subduction", convergenceMmYr: Math.round(Math.hypot(...plateVelocity(plate, c)) * 10) / 10, activeMyr: MYR, endedMyrAgo: 0, widthKm: 75 }), widthKm: 75, points: pts }); } run = []; };
   for (let i = 0; i < ring.length * 2; i += 1) { const k = i % ring.length; if (lead[k] > 0.5) run.push(ring[k]); else if (run.length) { flush(); if (i >= ring.length) break; } }
   flush();
   // The suture: where the piece's two old cores were joined when the First Land was assembled (~320 Myr ago).
@@ -290,7 +295,7 @@ function rangesFor(state, cont) {
     const now = pc.forward(then), [lat, lon] = latLon(now), [x, y] = toLocal(t.center, lat, lon);
     if (insideRing(ring, [x, y])) pts.push([r1(x), r1(y)]);
   }
-  if (pts.length >= 3) ridges.push({ kind: "old collision belt", origin: "suture", heightM: Math.round(1700 + srng() * 900), widthKm: 110, points: pts });
+  if (pts.length >= 3) ridges.push({ kind: "old collision belt", origin: "suture", ...raised(pts, { kind: "collision", ...WORLD_INPUTS.orogeny.assembly, widthKm: 110 }), widthKm: 110, points: pts });
   const seen = new Set(), unique = ridges.filter((r) => { const k = JSON.stringify(r.points[0]); if (seen.has(k)) return false; seen.add(k); return true; });
   return unique.sort((a, b) => b.heightM - a.heightM).slice(0, 3);
 }

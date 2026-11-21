@@ -111,7 +111,12 @@ test("volcanoes stand at subduction margins and hotspots, each with an age and a
 test("Caren is in the plate record: a fragment of the First Land riding its plate, with nothing of the plates changed", () => {
   // The plates, their poles and speeds, the boundaries, the continents, the rasters and the mantle are what they
   // were before Caren was given its history (canon of 20 November 2026): pinned as they stood on main.
-  assert.equal(sha({ plates: tect.plates.map(({ driver, ...p }) => p), boundaries: tect.boundaries, continents: tect.continents, rasters: tect.rasters, mantle: { ...tect.mantle, chains: tect.mantle.chains.filter((c) => !c.outlier) }, firstLand: tect.firstLand, garyk: tect.garyk }), "f25a5c410e24cdbeaaf421981897b3f674d0772059b28b183015b6a7bbc0050b");
+  // (Pinned anew on 21 November 2026 without the ranges' heights and histories, which now follow from each range's
+  // own history, scripts/eym-orogeny.mjs, and are tested there; everything else, the ranges' courses included, was
+  // verified the same as under the pin before it.)
+  const bare = ({ heightM, meanM, crustKm, unroofedKm, shedKmPerMyr, history, ...ridge }) => ridge, byCourse = (a, b) => (JSON.stringify(a.points) < JSON.stringify(b.points) ? -1 : 1);
+  const continents = Object.fromEntries(Object.entries(tect.continents).map(([key, c]) => [key, { ...c, ridges: c.ridges.map(bare).sort(byCourse) }]));
+  assert.equal(sha({ plates: tect.plates.map(({ driver, ...p }) => p), boundaries: tect.boundaries, continents, rasters: tect.rasters, mantle: { ...tect.mantle, chains: tect.mantle.chains.filter((c) => !c.outlier) }, firstLand: tect.firstLand, garyk: tect.garyk }), "c27f0bb8423a0933c992f186300a35df64e5334ba7b61f7b639ccc8eac7c7867");
   // Turned back whole, it sat on the First Land's rim, clear of the other pieces by a rift's width, and has drifted
   // to today no faster than they did; today it rides the Caren Plate at about a centimetre a year.
   const o = tect.caren.origin, plate = tect.plates.find((p) => p.id === "caren");
@@ -218,5 +223,7 @@ test("every area grown on the far continents has a tectonic origin in the plate 
     const across = Object.values(c.acrossBoundariesKm2).reduce((s, v) => s + v, 0), offPlate = c.origins.filter((o) => o.plates).reduce((s, o) => s + o.areaKm2, 0);
     assert.ok(Math.abs(offPlate - across) < 0.03 * grown, `${c.name}: ${Math.round(offPlate)} km² off its plate by origin, ${Math.round(across)} km² counted`);
   }
-  assert.equal(sha(Object.values(growth.continents).map(({ origins, ...c }) => c)), "c371fb7c4f72e1b1c25b505e3e85d6947c8dbbb8423d398a68a35154b710f4b2", "the grown continents are otherwise what they were");
+  // (Pinned anew on 21 November 2026 without the ranges' heights and histories: see the pin of the plate record above.)
+  const plain = ({ heightM, meanM, crustKm, unroofedKm, shedKmPerMyr, history, ...ridge }) => ridge;
+  assert.equal(sha(Object.values(growth.continents).map(({ origins, ...c }) => ({ ...c, ridges: c.ridges.map(plain) }))), "0acd3c873e061a0da10c53cb6c020093efb3e288352be0c087f6df4c93b684fa", "the grown continents are otherwise what they were");
 });
