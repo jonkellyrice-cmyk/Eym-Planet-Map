@@ -162,7 +162,8 @@ export function environmentField(asset) {
   const climate = hasClimate(asset);
   const anomalyAt = (lat, lon, timeMs) => { if (!climate) return 0; const cell = cellAt(lat, lon); return sstAnomalyAt(asset, lat, lon, timeMs) * (cell.ocean ? 1 : Math.exp(-3 * cell.continentality)); };
   const sstC = (lat, lon, timeMs) => seasonalTemperature({ annualMeanC: annualMeanTemperatureC(lat), latDeg: lat, ocean: true, timeMs, anomalyC: climate ? sstAnomalyAt(asset, lat, lon, timeMs) : 0 }).dayMeanC;
-  const field = { grid: { latCount, lonCount }, resolutionDeg: res, cells, cellAt, anomalyAt, sstC };
+  // (The geology goes with the field, where it is attached: great eruptions cool the weather, scripts/eym-weather.mjs.)
+  const field = { grid: { latCount, lonCount }, resolutionDeg: res, cells, cellAt, anomalyAt, sstC, geology: asset.geology ?? null };
   fieldCache.set(asset, field);
   return field;
 }

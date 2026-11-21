@@ -16,6 +16,7 @@ import { annualMeanTemperatureC, approximateDeclinationDeg, rainBeltLat, seasona
 import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
 import { landAtmosphere } from "./eym-land-atmosphere.mjs";
 import { DAY_MS, DAYS_PER_YEAR } from "./universal-time.mjs";
+import { volcanicCoolingC } from "./eym-quakes.mjs";
 
 export const WEATHER_SEED = "eym-weather|v1";
 export const STEP_HOURS = 3;
@@ -310,7 +311,9 @@ export function weatherAt(systems, lat, lon, ctx) {
   const diurnal = (seasonal.nowC - seasonal.dayMeanC) * (1 - 0.6 * cloud);
   // Under a block the weather holds: clear skies day after day warm a summer and chill a winter.
   const spell = blocked * W.blockTempC * clamp((ctx.declinationDeg ?? 0) * (lat >= 0 ? 1 : -1) / 12, -1, 1);
-  const tempC = seasonal.dayMeanC + diurnal + advection + spell - (precipMmH > 0.3 ? 1.5 : 0);
+  // A great eruption's veil cools the whole air for a year or three (scripts/eym-quakes.mjs).
+  const volcanicC = ctx.geology ? volcanicCoolingC(ctx.geology, ctx.timeMs, lat) : 0;
+  const tempC = seasonal.dayMeanC + diurnal + advection + spell - (precipMmH > 0.3 ? 1.5 : 0) + volcanicC;
   const kind = precipMmH < 0.05 ? null : tempC < 0.5 ? "snow" : tempC < 2 ? "sleet" : "rain";
   const thunder = kind === "rain" && precipMmH > 3 && tempC > 16 && cloud > 0.8;
   const fog = lowCloud > 0.62 && coolSea > 0.25 && windMs < 7 && Math.abs(lat) > 12; // warm air over cold water, away from the doldrums
@@ -357,7 +360,7 @@ export function placeWeatherNow(state, lat, lon, { subsolar, timeMs } = {}) {
   const exactHour = t / HOUR_MS, systems = [];
   for (const s of systemsBetween(exactHour, exactHour, (a, b) => (state.field ? state.field.cellAt(a, b).ocean : true), state.field?.sstC ?? null, state.land ?? null)) { const at = systemAt(s, exactHour, landFraction); if (at) systems.push(at); }
   const sub = subsolar ?? { latDeg: state.steps[state.nowIndex].declinationDeg, lonDeg: state.steps[state.nowIndex].subsolarLonDeg };
-  return weatherAt(systems, lat, lon, { cell, declinationDeg: sub.latDeg, solarHour: solarHourAt(lon, sub.lonDeg), timeMs: t, anomalyC: state.field?.anomalyAt?.(lat, lon, t) ?? 0, land: state.land ?? null });
+  return weatherAt(systems, lat, lon, { cell, declinationDeg: sub.latDeg, solarHour: solarHourAt(lon, sub.lonDeg), timeMs: t, anomalyC: state.field?.anomalyAt?.(lat, lon, t) ?? 0, land: state.land ?? null, geology: state.field?.geology ?? null });
 }
 
 /**
@@ -374,7 +377,7 @@ export function placeHistory(state, lat, lon) {
   const hours = [];
   for (let i = 0; i < state.steps.length; i += 1) {
     const step = state.steps[i];
-    const w = weatherAt(step.systems, lat, lon, { cell, declinationDeg: step.declinationDeg, solarHour: solarHourAt(lon, step.subsolarLonDeg), timeMs: step.timeMs, anomalyC: state.field?.anomalyAt?.(lat, lon, step.timeMs) ?? 0, land: state.land ?? null });
+    const w = weatherAt(step.systems, lat, lon, { cell, declinationDeg: step.declinationDeg, solarHour: solarHourAt(lon, step.subsolarLonDeg), timeMs: step.timeMs, anomalyC: state.field?.anomalyAt?.(lat, lon, step.timeMs) ?? 0, land: state.land ?? null, geology: state.field?.geology ?? null });
     hours.push({ hour: step.hour, w });
     if (i > state.nowIndex) continue; // the forecast does not build up yet
     const mm = w.precipMmH * STEP_HOURS;
@@ -432,7 +435,7 @@ export function globeWeather(state, { landCells = 5000 } = {}) {
   const step = state.steps[state.nowIndex], cells = [];
   for (let lat = -87; lat < 90; lat += 6) for (let lon = -177; lon < 180; lon += 6) {
     const cell = state.field?.cellAt(lat, lon) ?? null;
-    const w = weatherAt(step.systems, lat, lon, { cell, declinationDeg: step.declinationDeg, solarHour: solarHourAt(lon, step.subsolarLonDeg), timeMs: step.timeMs, anomalyC: state.field?.anomalyAt?.(lat, lon, step.timeMs) ?? 0, land: state.land ?? null });
+    const w = weatherAt(step.systems, lat, lon, { cell, declinationDeg: step.declinationDeg, solarHour: solarHourAt(lon, step.subsolarLonDeg), timeMs: step.timeMs, anomalyC: state.field?.anomalyAt?.(lat, lon, step.timeMs) ?? 0, land: state.land ?? null, geology: state.field?.geology ?? null });
     cells.push({ lat, lon, cloud: w.cloud, precipMmH: w.precipMmH, precipKind: w.precipKind, thunder: w.thunder, windMs: w.windMs, windE: w.windE, windN: w.windN });
   }
   const centres = step.systems.filter((s) => s.kind !== "tropical" && Math.abs(s.amp) >= 6).map((s) => ({ lat: s.lat, lon: s.lon, kind: s.amp < 0 ? "low" : "high", ...(s.block ? { block: true } : {}), pressureHpa: Math.round(backgroundPressure(s.lat, step.declinationDeg) + s.amp) }));

@@ -12,6 +12,7 @@ import { polygonize } from "./cartography-regions.mjs";
 import { EYM_LAYOUT, EYM_SURFACE_MODEL, frameEastScale, frameToLatLon, fromLocal, greatCircleKm } from "./eym-surface.mjs";
 import { normLon, unwrapRing } from "./geo-wrap.mjs";
 import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
+import { plateVelocity, vec as tectonicVec } from "./eym-tectonics.mjs";
 import { waterKept, yearRunoffOf } from "./eym-river-flow.mjs";
 import { carenRelief } from "./eym-caren-relief.mjs";
 import { rainReader } from "./eym-rain.mjs";
@@ -574,7 +575,7 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
       // (Volcanoes without their plate id and at 0.01°, to keep the asset within its mobile budget.)
       volcanoes: tectonics.volcanoes.map(({ plate, at, ...v }) => ({ at: at.map((x) => Math.round(x * 100) / 100), ...v })), history: tectonics.history, caren: (({ faults, ...caren }) => caren)(tectonics.caren), garyk: tectonics.garyk,
       // The plate boundaries, for earthquakes (scripts/eym-quakes.mjs).
-      boundaries: packBoundaries(tectonics.boundaries, tectonics.caren?.faults),
+      boundaries: packBoundaries(tectonics.boundaries, tectonics.caren?.faults, tectonics),
       // The mantle (owner's addenda, 18 November 2026, item 3): its two upwellings and the plumes' seamount chains.
       ...(tectonics.mantle ? { mantle: { upwellings: tectonics.mantle.upwellings, radiusDeg: tectonics.mantle.radiusDeg, chains: tectonics.mantle.chains.map(({ hotspot, seamounts }) => ({ hotspot, seamounts: seamounts.map(({ at, ageMyr, summitDepthM }) => ({ at: at.map((x) => Math.round(x * 100) / 100), ageMyr, summitDepthM })) })) } } : {}),
     } } : {}),
@@ -683,10 +684,23 @@ function bedrockFor(cell) {
 }
 
 /** The plate boundaries packed small (the asset has a mobile budget): each kind's points as int16 tenths of a degree, lat then lon, base64. */
-function packBoundaries(boundaries, intraplate = null) {
+function packBoundaries(boundaries, intraplate = null, tectonics = null) {
   const pack = (points) => { const v = new Int16Array(points.length * 2); points.forEach(([lat, lon], i) => { v[2 * i] = Math.round(lat * 10); v[2 * i + 1] = Math.round(lon * 10); }); return Buffer.from(v.buffer).toString("base64"); };
   // (`intraplate`: the small faults inside an old continent, Caren's, for its own scattered earthquakes.)
-  return { encoding: "int16-le-tenth-degree", trenches: pack(boundaries.trenches), collisions: pack(boundaries.collisions), ridges: pack(boundaries.ridges), ...(intraplate?.length ? { intraplate: pack(intraplate) } : {}) };
+  // How fast the two plates that meet at each boundary point move against each other there (mm a year, one byte a
+  // point, in the points' order): the earthquakes' rate follows it (scripts/eym-quakes.mjs).
+  const rates = tectonics?.rasters?.plate && tectonics.plates ? (() => {
+    const raster = Buffer.from(tectonics.rasters.plate, "base64"), plateAt = (lat, lon) => raster[Math.min(179, Math.max(0, Math.floor(90 - lat))) * 360 + ((Math.floor(lon + 180) % 360) + 360) % 360];
+    const speedAt = ([lat, lon]) => {
+      const count = new Map(); for (let k = 0; k < 8; k += 1) { const a = k * Math.PI / 4, p = plateAt(lat + 1.5 * Math.cos(a), lon + 1.5 * Math.sin(a) / Math.max(0.2, Math.cos(lat * DEG))); count.set(p, (count.get(p) ?? 0) + 1); }
+      const two = [...count].sort((a, b) => b[1] - a[1] || a[0] - b[0]).slice(0, 2).map(([p]) => tectonics.plates[p]); if (two.length < 2 || !two[0] || !two[1]) return 0;
+      const here = tectonicVec([lat, lon]), va = plateVelocity({ pole: two[0].pole, rate: two[0].rateDegPerMyr }, here), vb = plateVelocity({ pole: two[1].pole, rate: two[1].rateDegPerMyr }, here);
+      return Math.min(255, Math.round(Math.hypot(va[0] - vb[0], va[1] - vb[1], va[2] - vb[2])));
+    };
+    const of = (points) => Buffer.from(Uint8Array.from(points, speedAt)).toString("base64");
+    return { trenches: of(boundaries.trenches), collisions: of(boundaries.collisions), ridges: of(boundaries.ridges) };
+  })() : null;
+  return { encoding: "int16-le-tenth-degree", trenches: pack(boundaries.trenches), collisions: pack(boundaries.collisions), ridges: pack(boundaries.ridges), ...(intraplate?.length ? { intraplate: pack(intraplate) } : {}), ...(rates ? { ratesMmYr: rates } : {}) };
 }
 
 /** Points every `stepKm` along a [lat, lon] line. */
