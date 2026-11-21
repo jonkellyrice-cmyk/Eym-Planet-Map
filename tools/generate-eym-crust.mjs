@@ -26,7 +26,7 @@ import { carenRelief } from "../scripts/eym-caren-relief.mjs";
 import { fromLocal } from "../scripts/eym-surface.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/crust.json", root), DIR = "data/planet-cartography/mitkear/";
-export const CRUST_SOURCES = ["tools/generate-eym-crust.mjs", "scripts/eym-sediment.mjs", "scripts/eym-river-flow.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-seasons.mjs", `${DIR}eym.json`, `${DIR}eym-geology.json`, "data/eym/growth.json", "data/eym/tectonics.json"];
+export const CRUST_SOURCES = ["tools/generate-eym-crust.mjs", "scripts/eym-sediment.mjs", "scripts/eym-river-flow.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-seasons.mjs", "scripts/eym-rain-band.generated.mjs", `${DIR}eym.json`, `${DIR}eym-geology.json`, "data/eym/growth.json", "data/eym/tectonics.json"];
 /** The dial groups it follows (scripts/eym-world-inputs.mjs). */
 export const CRUST_INPUTS = ["sediment", "orogeny", "caren", "rivers"];
 export const crustSourcesSha256 = () => { const h = createHash("sha256"); for (const p of CRUST_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...CRUST_INPUTS)); return h.digest("hex"); };

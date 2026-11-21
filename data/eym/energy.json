@@ -1,0 +1,46 @@
+{
+ "schemaVersion": 1,
+ "sourcesSha256": "08506a7f9dc3afbb4c5ecedd837dca06cf0356b00f87e59fb8bed50463e4d108",
+ "model": "eym-energy-v1",
+ "reflectedPW": {
+  "north": {
+   "sea": 1.548,
+   "seaIce": 0.646,
+   "land": 1.271,
+   "snow": 0.303,
+   "ice": 0.156
+  },
+  "south": {
+   "sea": 1.629,
+   "seaIce": 0.759,
+   "land": 1.083,
+   "snow": 0.148,
+   "ice": 0.039
+  }
+ },
+ "areaMkm2": {
+  "north": {
+   "sea": 173.55,
+   "seaIce": 23.45,
+   "land": 46.76,
+   "snow": 8.98,
+   "ice": 2.29
+  },
+  "south": {
+   "sea": 183.1,
+   "seaIce": 27.23,
+   "land": 39.81,
+   "snow": 4.46,
+   "ice": 0.43
+  }
+ },
+ "keptNorthLessSouthPW": -0.266,
+ "airCarriesNorthPW": 0.066,
+ "bandMeanLat": -0.18,
+ "causes": {
+  "allSeaBandLat": 0,
+  "landAddsDeg": -0.18,
+  "highGroundAddsDeg": -0.08,
+  "snowAndIceOnLandAddDeg": -0.13
+ }
+}

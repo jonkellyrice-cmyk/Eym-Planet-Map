@@ -27,7 +27,7 @@ import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universa
 const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartography/mitkear/eym-wind.json", root);
 export const WIND_MODEL = "eym-wind-v1";
 /** What the wind climate is made from: this tool, the weather and sea models, and the data they read. */
-export const WIND_SOURCES = ["tools/generate-eym-wind.mjs", "scripts/eym-weather.mjs", "scripts/eym-land-atmosphere.mjs", "scripts/eym-sea.mjs", "scripts/eym-seasons.mjs", "scripts/eym-geology.mjs", "data/planet-cartography/mitkear/eym.json", "data/planet-cartography/mitkear/eym-geology.json", "data/planet-cartography/mitkear/eym-ocean.json", "data/eym/climate.json"];
+export const WIND_SOURCES = ["tools/generate-eym-wind.mjs", "scripts/eym-weather.mjs", "scripts/eym-land-atmosphere.mjs", "scripts/eym-sea.mjs", "scripts/eym-seasons.mjs", "scripts/eym-rain-band.generated.mjs", "scripts/eym-geology.mjs", "data/planet-cartography/mitkear/eym.json", "data/planet-cartography/mitkear/eym-geology.json", "data/planet-cartography/mitkear/eym-ocean.json", "data/eym/climate.json"];
 /** The dials it follows (scripts/eym-world-inputs.mjs): the weather's circulation. */
 export const WIND_INPUTS = ["weather"];
 export const windSourcesSha256 = () => { const h = createHash("sha256"); for (const p of WIND_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...WIND_INPUTS)); return h.digest("hex"); };

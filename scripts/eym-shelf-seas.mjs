@@ -13,7 +13,7 @@
 // Pure functions; the dials are in scripts/eym-world-inputs.mjs.
 
 import { elevationGrid } from "./cartography-asset.mjs";
-import { marginOf, seaFloorHeightM } from "./eym-seafloor.mjs";
+import { floorOverBanks, marginOf, seaFloorHeightM } from "./eym-seafloor.mjs";
 import { boundaryPoints } from "./eym-quakes.mjs";
 import { destination, distanceKm } from "./eym-sea.mjs";
 import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
@@ -42,7 +42,7 @@ export function fineSeaFloor(asset, coastKmAt) {
   };
   return (lat, lon) => {
     const d = coastKmAt(lat, lon), far = coarse(lat, lon); if (d >= 160) return far;
-    const e = edgeKm(lat, lon), fine = clamp(seaFloorHeightM(d, 5000, e.trench, marginOf(e.trench, e.collide)), -9500, -5), w = clamp((160 - d) / 40, 0, 1);
+    const e = edgeKm(lat, lon), fine = clamp(floorOverBanks(lat, lon, d, seaFloorHeightM(d, 5000, e.trench, marginOf(e.trench, e.collide))), -9500, -5), w = clamp((160 - d) / 40, 0, 1);
     return fine * w + far * (1 - w);
   };
 }

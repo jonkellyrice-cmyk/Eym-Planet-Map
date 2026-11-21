@@ -12,7 +12,7 @@
 import { fromLocal, greatCircleKm, toLocal } from "./eym-surface.mjs";
 import { bboxWrap, lonInExtent, normLon, splitRingAtAntimeridian } from "./geo-wrap.mjs";
 import { riverCourses } from "./eym-river-courses.mjs";
-import { annualMeanTemperatureC, environmentField, zonalPrecipitationMm } from "./eym-seasons.mjs";
+import { annualMeanTemperatureC, environmentField, RAIN_BAND_MEAN, zonalPrecipitationMm } from "./eym-seasons.mjs";
 import { blendedShoreAt, cliffLiftM, landformContext, nearestRiver, valleyAt, windWorkAt } from "./eym-landforms.mjs";
 import { daysUntilFordable, groundwaterMm, riverStage, riverYear, widthFactor, yearWetness } from "./eym-river-flow.mjs";
 import { geologyAt } from "./eym-geology.mjs";
@@ -192,7 +192,7 @@ function node(ctx, i, j) {
   const coast = coastKm(ctx, lat, lon), cell = ctx.field.cellAt(lat, lon);
   const reliefM = [0, 750, 2300, ctx.peakM(lat, lon)][relief];
   const elevationM = !land ? -Math.min(200, 15 + coast * 1.6) : ctx.caren && inCarenBox(lat, lon, ctx.caren.dials) ? ctx.caren.rule.heightM(lat, lon, coast, relief) : 12 + 300 * (1 - Math.exp(-coast / 140)) + reliefM;
-  v = { land, water, relief, forest, coastKm: coast, elevationM, biome: cell.biome, annualMeanC: cell.annualMeanC, precipMm: zonalPrecipitationMm(lat) };
+  v = { land, water, relief, forest, coastKm: coast, elevationM, biome: cell.biome, annualMeanC: cell.annualMeanC, precipMm: zonalPrecipitationMm(lat, RAIN_BAND_MEAN) };
   ctx.lattice.set(key, v);
   return v;
 }

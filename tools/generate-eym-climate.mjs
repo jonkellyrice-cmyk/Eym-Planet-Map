@@ -19,7 +19,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { buildEymSurface, EYM_LAYOUT } from "../scripts/eym-surface.mjs";
-import { marginOf, seaFloorHeightM, seamountsOf, shoalOverSeamounts, tectonicDistances } from "../scripts/eym-seafloor.mjs";
+import { floorOverBanks, marginOf, seaFloorHeightM, seamountsOf, shoalOverSeamounts, tectonicDistances } from "../scripts/eym-seafloor.mjs";
 import { inputsFingerprint, WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 import { rainBeltLat, seaLevelTemperatureC, seasonalTemperature } from "../scripts/eym-seasons.mjs";
 import { landAtmosphere } from "../scripts/eym-land-atmosphere.mjs";
@@ -29,7 +29,7 @@ import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universa
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/climate.json", root);
 export const EYM_CLIMATE_MODEL = "eym-climate-v3";
 /** What the climate is made from: this tool, the surface (its land) and the seasons (base temperatures). */
-export const CLIMATE_SOURCES = ["tools/generate-eym-climate.mjs", "scripts/eym-surface.mjs", "scripts/eym-seafloor.mjs", "scripts/eym-seasons.mjs", "scripts/eym-winds.mjs", "scripts/eym-land-atmosphere.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json", "data/eym/growth.json"];
+export const CLIMATE_SOURCES = ["tools/generate-eym-climate.mjs", "scripts/eym-surface.mjs", "scripts/eym-seafloor.mjs", "scripts/eym-seasons.mjs", "scripts/eym-rain-band.generated.mjs", "scripts/eym-winds.mjs", "scripts/eym-land-atmosphere.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json", "data/eym/growth.json"];
 /** The groups of dials (scripts/eym-world-inputs.mjs) the ocean climate follows. */
 export const CLIMATE_INPUTS = ["layout", "seaFloor", "ocean", "rain", "weather"];
 export const climateSourcesSha256 = () => { const h = createHash("sha256"); for (const p of CLIMATE_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...CLIMATE_INPUTS)); return h.digest("hex"); };
@@ -46,7 +46,9 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 /** Zonal wind stress (N/m²) at a latitude in a season: trades, westerlies (stronger in the south), polar easterlies. */
 export function windStress(lat, declinationDeg) {
-  const p = lat - BELT_SHIFT * declinationDeg, a = Math.abs(p);
+  // (The belts stand about the rain band's mean latitude in the tropics, where the trades meet; the westerlies and
+  // the polar winds keep their places.)
+  const tropics = 1 - clamp((Math.abs(lat) - 20) / 20, 0, 1), p = lat - rainBeltLat(0) * tropics - BELT_SHIFT * declinationDeg, a = Math.abs(p);
   return -0.07 * g(a, 13, 10) + 0.13 * (p < 0 ? 1.15 : 1) * g(a, 48, 10) - 0.03 * g(a, 75, 7);
 }
 
@@ -126,19 +128,22 @@ export function bathymetry() {
     }
   }
   const tect = tectonicDistances(tectonics, rows, cols), seamounts = seamountsOf(tectonics);
-  const depth = new Float64Array(N), shelfBreak = new Float64Array(N), seamount = new Float64Array(N);
+  const depth = new Float64Array(N), shelfBreak = new Float64Array(N), seamount = new Float64Array(N), shallow = new Float64Array(N);
   for (let R2 = 0; R2 < NLAT; R2 += 1) for (let C2 = 0; C2 < NLON; C2 += 1) {
-    let sum = 0, k = 0, brk = 0, mount = 0;
+    let sum = 0, k = 0, brk = 0, mount = 0, low = 0;
     for (const dr of [0, 1]) for (const dc of [0, 1]) {
       const r = 2 * R2 + dr, c = 2 * C2 + dc; if (land[at(r, c)]) continue;
       const t = tect.index(r, c), margin = marginOf(tect.trenchKm[t], tect.collideKm[t]);
-      const plain = seaFloorHeightM(dist[at(r, c)], tect.ridgeKm[t], tect.trenchKm[t], margin), h = Math.max(-9500, Math.min(-20, shoalOverSeamounts(seamounts, lat1(r), lon1(c), plain)));
-      sum += -h; k += 1; if (dist[at(r, c)] < 450 && -h > 150 && -h < 3300) brk += 1; if (h - plain >= 300) mount += 1;
+      const plain = seaFloorHeightM(dist[at(r, c)], tect.ridgeKm[t], tect.trenchKm[t], margin), shoaled = shoalOverSeamounts(seamounts, lat1(r), lon1(c), plain), h = Math.max(-9500, Math.min(-20, floorOverBanks(lat1(r), lon1(c), dist[at(r, c)], shoaled)));
+      sum += -h; k += 1; // (A slope: within 450 km of a coast, or the edge of a broad bank farther out.)
+      if (-h > 150 && -h < 3300 && (dist[at(r, c)] < 450 || h > shoaled + 300)) brk += 1; if (shoaled - plain >= 300) mount += 1; if (-h < SHALLOW_M) low += 1;
     }
-    const i = R2 * NLON + C2; depth[i] = k ? sum / k : 0; shelfBreak[i] = k ? brk / k : 0; seamount[i] = k ? mount / k : 0;
+    const i = R2 * NLON + C2; depth[i] = k ? sum / k : 0; shelfBreak[i] = k ? brk / k : 0; seamount[i] = k ? mount / k : 0; shallow[i] = k ? low / k : 0;
   }
-  return { depthM: depth, shelfBreak, seamount };
+  return { depthM: depth, shelfBreak, seamount, shallow };
 }
+/** A shallow sea (less than `SHALLOW_M` deep) in warm latitudes is warmer than the open sea beside it by up to `SHALLOW_WARM_C` (see the dials). */
+export const SHALLOW_M = WORLD_INPUTS.ocean.shallowM, SHALLOW_WARM_C = WORLD_INPUTS.ocean.shallowWarmC;
 const percentile = (values, q) => { const v = values.filter(Number.isFinite).sort((a, b) => a - b); return v.length ? v[Math.min(v.length - 1, Math.floor(q * v.length))] : 0; };
 
 /** How much of the sea floor's shape the upper ocean feels (0 = a flat floor, 1 = one unlayered sea). */
@@ -256,7 +261,7 @@ export function solveSeason(land, f, floor = null, winds = null) {
  * faster where the westerlies blow hard (about 30 days to forget an anomaly in the tropics, 12 days at 60°), and
  * eddies in the westerly jets stir harder, so wakes behind the continents fade within some 20-30° downstream.
  */
-export function solveAnomaly(land, u, v, up) {
+export function solveAnomaly(land, u, v, up, floor = null) {
   const ocean = (r, c) => !land[idx(r, c)], dy = R * RES * DEG;
   const base = Float64Array.from({ length: N }, (_, i) => seaLevelTemperatureC(latOf(Math.floor(i / NLON))));
   let T = Float64Array.from(base);
@@ -264,6 +269,15 @@ export function solveAnomaly(land, u, v, up) {
   // Upwelled water cools the surface by how much colder the deep is: fully where the surface is 24 °C or warmer,
   // not at all where it is already as cold as the deep (about 4 °C), as in the far north and south.
   const contrast = Array.from({ length: NLAT }, (_, r) => clamp((seaLevelTemperatureC(latOf(r)) - 4) / 20, 0, 1));
+  // A broad shallow sea keeps the Sun's heat in its few tens of metres instead of stirring it down: in warm latitudes
+  // it stands warmer than the open sea. A narrow shelf is flushed by the ocean beside it, so the warmth grows with how
+  // much of the sea round about is shallow too (land beside it shuts it in).
+  const warm = new Float64Array(N);
+  if (floor?.shallow) for (let r = 1; r < NLAT - 1; r += 1) for (let c = 0; c < NLON; c += 1) {
+    const i = idx(r, c); if (!ocean(r, c) || !floor.shallow[i]) continue;
+    let round = floor.shallow[i]; for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) round += ocean(r + dr, c + dc) ? floor.shallow[idx(r + dr, c + dc)] : 1;
+    warm[i] = SHALLOW_WARM_C * floor.shallow[i] * round / 5;
+  }
   for (let step = 0; step < 2400; step += 1) {
     const next = Float64Array.from(T);
     for (let r = 1; r < NLAT - 1; r += 1) {
@@ -275,7 +289,7 @@ export function solveAnomaly(land, u, v, up) {
         const t = T[i], tw = ocean(r, c - 1) ? T[idx(r, c - 1)] : t, te = ocean(r, c + 1) ? T[idx(r, c + 1)] : t, ts = ocean(r - 1, c) ? T[idx(r - 1, c)] : t, tn = ocean(r + 1, c) ? T[idx(r + 1, c)] : t;
         const adv = -(u[i] > 0 ? u[i] * (t - tw) : u[i] * (te - t)) / dx - (v[i] > 0 ? v[i] * (t - ts) : v[i] * (tn - t)) / dy;
         const diff = kappa * ((te + tw - 2 * t) / (dx * dx) + (tn + ts - 2 * t) / (dy * dy));
-        next[i] = t + dt * (adv + diff + (base[i] - t) / relax - cool * contrast[r] * up[i] / relax);
+        next[i] = t + dt * (adv + diff + (base[i] + warm[i] * contrast[r] - t) / relax - cool * contrast[r] * up[i] / relax);
       }
     }
     T = next;
@@ -374,7 +388,7 @@ export function buildClimate() {
   const land = landMask(), floor = bathymetry(), winds = WORLD_INPUTS.ocean.seasonalWinds ? seasonalWinds() : null;
   const solved = SEASONS.map((f) => solveSeason(land, f, floor, winds));
   const mean = (k) => Float64Array.from({ length: N }, (_, i) => solved.reduce((s, x) => s + x[k][i], 0) / solved.length);
-  const annual = solveAnomaly(land, mean("u"), mean("v"), mean("upwelling")), tilt = tradeTilt(land), offshoreMean = mean("offshore");
+  const annual = solveAnomaly(land, mean("u"), mean("v"), mean("upwelling"), floor), tilt = tradeTilt(land), offshoreMean = mean("offshore");
   const seasons = solved.map((s, k) => {
     const f = SEASONS[k], anomaly = seasonalAnomaly(annual, tilt, land, f, s.offshore, offshoreMean);
     return { yearFraction: f, declinationDeg: Math.round(s.declinationDeg * 10) / 10, u: round(coarsen(s.u, land, false), 100), v: round(coarsen(s.v, land, false), 100), upwelling: round(coarsen(s.upwelling, land, false), 100), sstAnomaly: round(coarsen(anomaly, land, true), 10) };

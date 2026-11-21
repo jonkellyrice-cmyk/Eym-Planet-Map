@@ -27,6 +27,27 @@ export function seaFloorHeightM(coastKm, ridgeKm, trenchKm, margin) {
   return shelf + slope + abyss + ridge + trench;
 }
 
+/** The broad shallow banks (dials `seaFloor.banks`). */
+export const BANKS = WORLD_INPUTS.seaFloor.banks;
+/**
+ * The floor over a broad shallow bank: where a place lies in a bank's bearings from its centre and within its reach
+ * of the nearest land (`coastKm`), the floor is the bank's (tens of metres), falling to the ocean's floor `heightM`
+ * beyond its edge. Never deeper than the floor without the bank. `banks` empty: the floor as it was.
+ */
+export function floorOverBanks(lat, lon, coastKm, heightM, banks = BANKS) {
+  let e = heightM;
+  for (const b of banks) {
+    if (coastKm >= b.reachKm + b.edgeKm) continue;
+    const km = greatCircleKm(b.center, [lat, lon]); if (km > b.withinKm) continue;
+    const bearing = (Math.atan2((lon - b.center[1]) * Math.cos((lat + b.center[0]) / 2 * Math.PI / 180), lat - b.center[0]) * 180 / Math.PI + 360) % 360;
+    const inside = Math.min(bearing - b.bearingDeg[0], b.bearingDeg[1] - bearing); if (inside <= -b.fadeDeg) continue;
+    const sector = Math.min(1, (inside + b.fadeDeg) / b.fadeDeg), out = coastKm <= b.reachKm ? 1 : 1 - (coastKm - b.reachKm) / b.edgeKm, far = Math.min(1, (b.withinKm - km) / b.edgeKm);
+    const bank = -(b.depthM[0] + (b.depthM[1] - b.depthM[0]) * Math.min(1, coastKm / b.reachKm)), w = Math.max(0, Math.min(1, sector, out, far));
+    e = Math.max(e, e + (bank - e) * w);
+  }
+  return e;
+}
+
 /**
  * The floor raised over the hotspot chains' seamounts (each some 50 km across, its summit deeper the older it is):
  * a 1° cell holds about a fifth of one, so it rises about a third of the way toward a summit at its centre.

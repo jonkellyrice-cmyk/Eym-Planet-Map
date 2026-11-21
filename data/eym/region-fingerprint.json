@@ -1,5 +1,5 @@
 {
-  "shapes": "b6ef9c18c85601e8639bfc37fc3721f65a21c22cf25dd802d8f67b20b3f04d94",
+  "shapes": "13841860344982961a9d31ee148c15310fc429c26ee2dc4e9c404e9aba124542",
   "paint": "2d71b3a902992d9c0135c24c043286623d0ead09420f7495b38b7ae813704558",
   "shapesFiles": [
     "scripts/astronomy.mjs",
@@ -15,6 +15,7 @@
     "scripts/eym-landforms.mjs",
     "scripts/eym-local-detail.mjs",
     "scripts/eym-quakes.mjs",
+    "scripts/eym-rain-band.generated.mjs",
     "scripts/eym-region-layer.mjs",
     "scripts/eym-river-courses.mjs",
     "scripts/eym-river-flow.mjs",

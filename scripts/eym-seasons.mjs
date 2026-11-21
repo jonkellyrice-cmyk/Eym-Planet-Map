@@ -4,6 +4,7 @@
 // and daily temperature, the outline of night and twilight on the globe, and seasonal snow and sea ice.
 
 import { bodyFrame, twilightPhase } from "./ground-sky.mjs";
+import { RAIN_BAND_MEAN_LAT } from "./eym-rain-band.generated.mjs";
 import { normalize } from "./sky-frame.mjs";
 import { polygonize } from "./cartography-regions.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "./universal-time.mjs";
@@ -27,10 +28,12 @@ const SUNRISE_ALTITUDE_DEG = -0.833;
 /** Annual mean sea-level temperature (°C) on an Earth-like, mostly ocean world. */
 export function seaLevelTemperatureC(lat) { const s2 = Math.sin(lat * DEG) ** 2; return 27.5 - 30 * s2 - 10 * s2 * s2; }
 
-/** Zonal annual precipitation (mm): wet equatorial belt, dry subtropics, wet mid-latitudes, dry poles. */
-export function zonalPrecipitationMm(lat) {
+/** Zonal annual precipitation (mm): wet equatorial belt, dry subtropics, wet mid-latitudes, dry poles. The wet belt
+ * is centred on `bandMeanLat` (4° N unless given: the reference the ranges' histories were worked with; the weather
+ * and the maps give the rain band's own mean, `RAIN_BAND_MEAN`). */
+export function zonalPrecipitationMm(lat, bandMeanLat = 4) {
   const a = Math.abs(lat);
-  const p = 700 + 1500 * Math.exp(-(((lat - 4) / 11) ** 2)) + 550 * Math.exp(-(((a - 48) / 13) ** 2)) - 300 * Math.exp(-(((a - 27) / 7) ** 2));
+  const p = 700 + 1500 * Math.exp(-(((lat - bandMeanLat) / 11) ** 2)) + 550 * Math.exp(-(((a - 48) / 13) ** 2)) - 300 * Math.exp(-(((a - 27) / 7) ** 2));
   const polar = a > 60 ? 1 - 0.6 * Math.min(1, (a - 60) / 25) : 1;
   return Math.max(150, p * polar);
 }
@@ -104,9 +107,12 @@ export function sunTimes(latDeg, declinationDeg) {
 
 // ---------------------------------------------------------------- seasons
 
-/** Where the tropical rain belt lies: it follows the Sun, a few degrees north of the equator, but on a world of
- * so much sea it moves less than Earth's (0.4 of the Sun's declination, as the wind belts in the climate model). */
-export const rainBeltLat = (declinationDeg) => 4 + 0.4 * declinationDeg;
+/** Where the tropical rain belt lies over open ocean: about its mean latitude (which follows the warmer half of the
+ * world: scripts/eym-energy.mjs, worked out from the land, snow and ice as they are) it follows the Sun, but on a
+ * world of so much sea it moves less than Earth's (0.4 of the Sun's declination, as the wind belts in the climate model). */
+export const rainBeltLat = (declinationDeg, meanLat = RAIN_BAND_MEAN_LAT) => meanLat + 0.4 * declinationDeg;
+/** The rain band's mean latitude over open ocean (degrees north), from the hemispheres' balance. */
+export const RAIN_BAND_MEAN = RAIN_BAND_MEAN_LAT;
 /** The Sun's approximate declination from the date alone (for when no model snapshot is at hand). */
 export const approximateDeclinationDeg = (timeMs) => 23.44 * Math.sin(2 * Math.PI * yearFraction(timeMs));
 

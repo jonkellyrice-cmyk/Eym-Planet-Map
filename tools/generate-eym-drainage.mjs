@@ -170,7 +170,7 @@ export function landMassFingerprint(asset, coast) {
   const box = bboxWrap(coast.points), near = (points) => points.some(([lat, lon]) => lat >= box.minLat - 3 && lat <= box.maxLat + 3 && lonInExtent(lon, box.lonExtent, 3));
   const h = createHash("sha256");
   if (existsSync(FLOW)) h.update(readFileSync(FLOW));
-  for (const p of ["tools/generate-eym-drainage.mjs", "scripts/eym-river-flow.mjs", "scripts/eym-local-detail.mjs", "scripts/geo-wrap.mjs", "scripts/eym-river-courses.mjs", "scripts/eym-surface.mjs", "scripts/eym-seasons.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-world-inputs.mjs"]) h.update(readFileSync(new URL(p, root)));
+  for (const p of ["tools/generate-eym-drainage.mjs", "scripts/eym-river-flow.mjs", "scripts/eym-local-detail.mjs", "scripts/geo-wrap.mjs", "scripts/eym-river-courses.mjs", "scripts/eym-surface.mjs", "scripts/eym-seasons.mjs", "scripts/eym-rain-band.generated.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-world-inputs.mjs"]) h.update(readFileSync(new URL(p, root)));
   h.update(JSON.stringify([
     coast.points, asset.terrain.coastlines.filter((c) => near(c.points)).map((c) => [c.kind, c.continent, c.points]),
     asset.hydrology.lakes.filter((l) => near(l.polygon)), (asset.terrain.detail ?? []).map((d) => [d.kind, d.rings.filter(near)]),

@@ -16,10 +16,10 @@ import { plateVelocity, vec as tectonicVec } from "./eym-tectonics.mjs";
 import { waterKept, yearRunoffOf } from "./eym-river-flow.mjs";
 import { carenRelief } from "./eym-caren-relief.mjs";
 import { rainReader } from "./eym-rain.mjs";
-import { seaLevelTemperatureC, zonalPrecipitationMm } from "./eym-seasons.mjs";
+import { seaLevelTemperatureC, RAIN_BAND_MEAN, zonalPrecipitationMm } from "./eym-seasons.mjs";
 import { soilFromRock } from "./eym-geology.mjs";
 import { prepareOverrides } from "./eym-overrides.mjs";
-import { marginOf, seaFloorHeightM, seamountsOf, shoalOverSeamounts, tectonicDistances } from "./eym-seafloor.mjs";
+import { floorOverBanks, marginOf, seaFloorHeightM, seamountsOf, shoalOverSeamounts, tectonicDistances } from "./eym-seafloor.mjs";
 
 const DEG = Math.PI / 180;
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -398,7 +398,7 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
       cell.boundary = Number(Math.max(Math.exp(-((ridgeKm / 250) ** 2)), Math.exp(-((trenchKm / 250) ** 2)), Math.exp(-((collideKm / 250) ** 2))).toFixed(3));
       cell.margin = marginOf(trenchKm, collideKm);
       if (cell.ocean) {
-        cell.elevationM = Math.round(clamp(shoalOverSeamounts(seamounts, cell.lat, cell.lon, seaFloorHeightM(d, ridgeKm, trenchKm, cell.margin)), -9500, -20));
+        cell.elevationM = Math.round(clamp(floorOverBanks(cell.lat, cell.lon, d, shoalOverSeamounts(seamounts, cell.lat, cell.lon, seaFloorHeightM(d, ridgeKm, trenchKm, cell.margin))), -9500, -20));
       } else cell.elevationM = Math.round(Math.max(1, cell.landElevationM));
       continue;
     }
@@ -423,7 +423,7 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
     const surfaceM = cell.landCovered ? Math.max(0, cell.landElevationM) : 0;
     const reach = annualAnomaly ? (cell.ocean ? 1 : Math.exp(-(cell.coastKm ?? 0) / 600)) : 0, anomalyC = annualAnomaly ? annualAnomaly(cell.lat, cell.lon) * reach : 0;
     cell.temperatureC = Number((seaLevelTemperatureC(cell.lat) - surfaceM * 0.0065 + anomalyC).toFixed(1));
-    let p = zonalPrecipitationMm(cell.lat) * clamp(1 + 0.09 * anomalyC, 0.55, 1.45);
+    let p = zonalPrecipitationMm(cell.lat, RAIN_BAND_MEAN) * clamp(1 + 0.09 * anomalyC, 0.55, 1.45);
     if (cell.landCovered) {
       const step = upwindStep(cell.lat); let barrier = 0;
       for (let k = 1; k <= 6; k += 1) { const up = at(cell.latIndex, cell.lonIndex + step * k); if (up?.landCovered) barrier = Math.max(barrier, up.elevationMaxM - surfaceM); }

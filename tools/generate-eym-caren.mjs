@@ -23,7 +23,7 @@ import { rainBeltLat, seaLevelTemperatureC } from "../scripts/eym-seasons.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/caren.json", root);
 /** What the survey is made from: this tool, the relief rule, the surface, the traced map and its labels (and the dials, below). */
-export const CAREN_SOURCES = ["tools/generate-eym-caren.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-caren-climate.mjs", "scripts/eym-rain.mjs", "scripts/eym-land-atmosphere.mjs", "tools/generate-eym-rain.mjs", "data/eym/rain.json", "scripts/eym-surface.mjs", "scripts/eym-seasons.mjs", "data/eym/traced-continents.json", "data/eym/caren-labels.json", "data/eym/climate.json"];
+export const CAREN_SOURCES = ["tools/generate-eym-caren.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-caren-climate.mjs", "scripts/eym-rain.mjs", "scripts/eym-land-atmosphere.mjs", "tools/generate-eym-rain.mjs", "data/eym/rain.json", "scripts/eym-surface.mjs", "scripts/eym-seasons.mjs", "scripts/eym-rain-band.generated.mjs", "data/eym/traced-continents.json", "data/eym/caren-labels.json", "data/eym/climate.json"];
 /** The groups of dials (scripts/eym-world-inputs.mjs) the survey follows. */
 export const CAREN_INPUTS = ["layout", "caren", "carenClimate", "rain", "weather"];
 export const carenSourcesSha256 = () => { const h = createHash("sha256"); for (const p of CAREN_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...CAREN_INPUTS)); return h.digest("hex"); };

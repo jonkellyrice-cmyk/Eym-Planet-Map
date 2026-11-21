@@ -283,7 +283,17 @@ export const WORLD_INPUTS = deepFreeze({
   rivers: { aridMm: 25, aridLossPer100Km: 0.2, farReferenceRunoffMm: 650, valleyFloorM: 60 },
 
   /** The sea floor's shape (scripts/eym-seafloor.mjs): shelf widths (km) by margin, the slope's width, the abyss's run. */
-  seaFloor: { shelfKm: { active: 50, passive: 220 }, slopeKm: 260, abyssKm: 1500 },
+  seaFloor: {
+    shelfKm: { active: 50, passive: 220 }, slopeKm: 260, abyssKm: 1500,
+    // Broad shallow banks (owner's direction of 20 November 2026, lever 1 of "Shifting Caren's rain band south,
+    // naturally"): a shelf sea tens of metres deep round the islets and islands drawn south and east of Caren, a
+    // drowned platform of the continent's own shelf built up by reefs and their sands. Sea-floor only: no drawn
+    // land or coast is changed. Each bank lies round `center`, in the bearings `bearingDeg` from it (clockwise from
+    // north, fading over `fadeDeg` at either end), out to `reachKm` from the nearest land and no farther than
+    // `withinKm` from the centre; its floor is `depthM[0]` deep by the land and `depthM[1]` at its edge, where it
+    // falls to the ocean's floor over `edgeKm`.
+    banks: [{ name: "the southern and eastern banks of Caren", center: [0, 0.5], bearingDeg: [70, 205], fadeDeg: 12, reachKm: 500, withinKm: 1500, depthM: [25, 60], edgeKm: 120 }],
+  },
 
   /** The ocean climate (tools/generate-eym-climate.mjs). */
   ocean: {
@@ -307,6 +317,29 @@ export const WORLD_INPUTS = deepFreeze({
     // dragging on the water by `dragNumber` (air's density × this × speed × wind; about 0.0013 over open sea).
     // With `seasonalWinds` false the sea is driven by belts that are the same at every longitude, as it was before.
     seasonalWinds: true, dragNumber: 0.0013,
+    // A broad sea less than `shallowM` deep keeps the Sun's heat in its few tens of metres instead of stirring it
+    // down: in warm latitudes it stands up to `shallowWarmC` warmer than the open sea beside it (Earth's Sunda and
+    // Sahul shelf seas are about a degree warmer than the ocean off them). A narrow shelf is flushed by the ocean
+    // and hardly warmer.
+    shallowM: 100, shallowWarmC: 1,
+  },
+
+  /**
+   * The sunlight each half of the world keeps, and the rain band's mean latitude from it (scripts/eym-energy.mjs;
+   * owner's direction of 20 November 2026). `albedo` is the share of sunlight each kind of surface throws back
+   * (open sea, sea ice, snow-free land, snow on land, an ice cap); `topOfAirShare` is how much of a difference at
+   * the surface shows at the top of the air, through cloud and haze (about a third on Earth). Land is under snow
+   * in a month colder than `snowBelowC` and under an ice cap where its warmest month is colder than `iceCapBelowC`;
+   * the sea freezes in a month colder than `seaIceBelowC`. The air carries `airShare` of the difference between
+   * the halves across the equator (the rest is lost to space from the warmer half), and the rain band stands
+   * `degPerPW` degrees toward the warmer half for each petawatt carried (Earth's measured relation, about 2.7),
+   * never more than `mostDeg` from the equator. `seaCarriesSouthPW` is heat carried south across the equator by
+   * the sea (none: an overturning ocean circulation is a planet-wide change kept for the world's author's yes).
+   */
+  energy: {
+    albedo: { sea: 0.07, seaIce: 0.55, land: 0.2, snow: 0.6, ice: 0.7 }, topOfAirShare: 0.35,
+    snowBelowC: 0, iceCapBelowC: 0, seaIceBelowC: -1.8,
+    airShare: 0.5, degPerPW: 2.7, mostDeg: 8, seaCarriesSouthPW: 0,
   },
 
   /** The weather's large-scale circulation (scripts/eym-weather.mjs): the belts' seasonal shift, the jet streams and blocking. */

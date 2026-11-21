@@ -30,6 +30,12 @@ const { growthSourcesSha256 } = await import("./generate-eym-growth.mjs");
 const readGrowth = () => { try { return JSON.parse(readFileSync(new URL("data/eym/growth.json", root), "utf8")); } catch { return null; } };
 if (readGrowth()?.sourcesSha256 !== growthSourcesSha256()) { run("tools/generate-eym-growth.mjs"); changed = true; }
 
+// The sunlight each half of the world keeps, and the rain band's mean latitude from it (tools/generate-eym-energy.mjs)
+// follow the land and its heights: made again (a few seconds) when they changed. The ocean, the rain and the surveys
+// read the band's place, so this comes before them (it is its own process: they import what it writes).
+const energyCheck = () => { try { execFileSync(process.execPath, ["--input-type=module", "-e", 'import { readFileSync } from "node:fs"; const { energySourcesSha256 } = await import("./tools/generate-eym-energy.mjs"); let d = null; try { d = JSON.parse(readFileSync("data/eym/energy.json", "utf8")); } catch {} process.exit(d?.sourcesSha256 === energySourcesSha256() ? 0 : 1);'], { cwd, stdio: "ignore" }); return true; } catch { return false; } };
+if (!energyCheck()) { run("tools/generate-eym-energy.mjs"); changed = true; }
+
 // The survey of Caren against its natural history (tools/generate-eym-caren.mjs: the plateau and what holds it up,
 // the ramps, the peaks' heights, the lakes, the Arluna structure) follows the traced map and Caren's dials: made
 // again (under a second) when either changed.

@@ -16,7 +16,7 @@ import { landAtmosphere } from "../scripts/eym-land-atmosphere.mjs";
 import { rainBeltLat, seaLevelTemperatureC } from "../scripts/eym-seasons.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/rain.json", root);
-export const RAIN_SOURCES = ["tools/generate-eym-rain.mjs", "scripts/eym-rain.mjs", "scripts/eym-land-atmosphere.mjs", "scripts/eym-surface.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-seasons.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json", "data/eym/growth.json", "data/eym/climate.json"];
+export const RAIN_SOURCES = ["tools/generate-eym-rain.mjs", "scripts/eym-rain.mjs", "scripts/eym-land-atmosphere.mjs", "scripts/eym-surface.mjs", "scripts/eym-caren-relief.mjs", "scripts/eym-seasons.mjs", "scripts/eym-rain-band.generated.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json", "data/eym/growth.json", "data/eym/climate.json"];
 /** The dial groups the rain is made from (scripts/eym-world-inputs.mjs). */
 export const RAIN_INPUTS = ["layout", "caren", "rain", "weather"];
 export const rainSourcesSha256 = () => { const h = createHash("sha256"); for (const p of RAIN_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...RAIN_INPUTS)); return h.digest("hex"); };

@@ -12,7 +12,7 @@
 // mid-latitude storms travel along it; now and then a meander stalls for one to three weeks (a block), holding a
 // high in place with persistent weather under and beside it. All of it is a direct function of the clock.
 
-import { annualMeanTemperatureC, approximateDeclinationDeg, rainBeltLat, seasonalTemperature, yearFraction, zonalPrecipitationMm } from "./eym-seasons.mjs";
+import { annualMeanTemperatureC, approximateDeclinationDeg, rainBeltLat, seasonalTemperature, yearFraction, RAIN_BAND_MEAN, zonalPrecipitationMm } from "./eym-seasons.mjs";
 import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
 import { landAtmosphere } from "./eym-land-atmosphere.mjs";
 import { DAY_MS, DAYS_PER_YEAR } from "./universal-time.mjs";
@@ -219,7 +219,7 @@ export const BIOME_RAIN = Object.freeze({ "hot-desert": 0.25, "cold-desert": 0.3
  * (Within 35° of the equator the land's afternoon storms add to the lift's yield, which was measured over the sea:
  * the budget's figure already counts all the rain, so it is divided by that excess, the dial `landAfternoonYield`.)
  */
-export const wetnessOf = (cell, lat) => (!cell || cell.ocean ? 1 : cell.rainMm != null ? clamp(cell.rainMm / zonalPrecipitationMm(lat) / (Math.abs(lat) < 35 ? W.landAfternoonYield : 1), 0.02, 5) : BIOME_RAIN[cell.biome] ?? 0.8);
+export const wetnessOf = (cell, lat) => (!cell || cell.ocean ? 1 : cell.rainMm != null ? clamp(cell.rainMm / zonalPrecipitationMm(lat, RAIN_BAND_MEAN) / (Math.abs(lat) < 35 ? W.landAfternoonYield : 1), 0.02, 5) : BIOME_RAIN[cell.biome] ?? 0.8);
 /** Normalization of the rain-producing lift by latitude (2.5° bands from 90°S), from calibrate-eym-weather. */
 export const RAIN_NORMALIZATION = Object.freeze([
   45.67, 51.06, 23.05, 20.15, 11.7, 7.86, 6.37, 4.88, 4.45, 4.28, 4, 4.24, 4.4, 4.58, 5.25, 5.51, 6.13, 6.96,
@@ -298,7 +298,7 @@ export function weatherAt(systems, lat, lon, ctx) {
   const stratus = 0.2 * Math.exp(-(((Math.abs(lat) - 55) / 15) ** 2)); // the grey skies of the stormy mid-latitude seas
   const lowCloud = marine * clamp(0.3 + 0.3 * sinking + 0.45 * coolSea + stratus + 0.12 * night - 0.5 * Math.max(0, lift - 0.7), 0, 0.95);
   const cloud = Math.max(clamp(baseCloud + 0.55 * (lift - 0.1), 0, 1), lowCloud);
-  const climateMmH = zonalPrecipitationMm(lat) * wetness / YEAR_HOURS;
+  const climateMmH = zonalPrecipitationMm(lat, RAIN_BAND_MEAN) * wetness / YEAR_HOURS;
   let precipMmH = Math.min(60, Math.max(0, lift - 0.3) ** 1.4 * rainNormalization(lat) * climateMmH);
   // A thick marine layer drizzles when nothing heavier is falling; on cool water with light winds it lies as fog.
   const drizzle = precipMmH < 0.05 && lowCloud > 0.62;
@@ -369,7 +369,7 @@ export function placeWeatherNow(state, lat, lon, { subsolar, timeMs } = {}) {
  */
 export function placeHistory(state, lat, lon) {
   const cell = state.field?.cellAt(lat, lon) ?? null, land = cell ? !cell.ocean : false;
-  const climateWet = cell ? clamp(zonalPrecipitationMm(lat) * wetnessOf(cell, lat) / 2000, 0.15, 0.9) : 0.5;
+  const climateWet = cell ? clamp(zonalPrecipitationMm(lat, RAIN_BAND_MEAN) * wetnessOf(cell, lat) / 2000, 0.15, 0.9) : 0.5;
   const firstSeason = seasonalTemperature({ annualMeanC: cell?.annualMeanC ?? annualMeanTemperatureC(lat), latDeg: lat, continentality: cell?.continentality ?? 0, ocean: !land, timeMs: state.steps[0].timeMs, anomalyC: state.field?.anomalyAt?.(lat, lon, state.steps[0].timeMs) ?? 0 });
   let snowCm = land && firstSeason.dayMeanC < -1 ? clamp(-firstSeason.dayMeanC * 7, 4, 150) : 0;
   const capacity = 100; let water = capacity * climateWet;

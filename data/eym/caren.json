@@ -1,7 +1,7 @@
 {
  "schemaVersion": 1,
  "model": "eym-caren-relief-v1",
- "sourcesSha256": "4c8ca94c228a36c11eac1294a02ca8545b285d05c0718c9fca2a1578270c397a",
+ "sourcesSha256": "167b5abe619840ede4272bcb10dd4daa85c1c850b5ca6526a549b38e505cabfd",
  "climate": {
   "model": "eym-caren-climate-v2",
   "rainModel": "eym-rain-v1",
@@ -9,7 +9,7 @@
    {
     "expected": "a tongue of cold water toward Caren's west coast",
     "found": true,
-    "measure": "the sea west of Caren is 0.7 °C colder than its latitude's, the year round"
+    "measure": "the sea west of Caren is 0.6 °C colder than its latitude's, the year round"
    },
    {
     "expected": "the western coasts' sea swings 5 to 8 °C through the year",
@@ -18,43 +18,43 @@
    },
    {
     "expected": "the rain belt south of the equator over Caren for more of the year",
-    "found": false,
-    "measure": "4 months of 12 (the sea and the land draw it between -1.4° and 3.2° from the open ocean's place)"
+    "found": true,
+    "measure": "6 months of 12 (the sea and the land draw it between -3.7° and 0.1° from the open ocean's place)"
    },
    {
     "expected": "northern Caren cooler than the south",
     "found": true,
-    "measure": "21 °C against 24.5 °C"
+    "measure": "21.1 °C against 24.8 °C"
    },
    {
     "expected": "northern Caren drier than the south",
     "found": false,
-    "measure": "2575 mm against 1671 mm (north-west 2207 mm, north-east 3249 mm): the rain belt stands over the north for more of the year, and the high ground wrings the air"
+    "measure": "2639 mm against 1958 mm (north-west 2040 mm, north-east 3322 mm): the rain belt stands over the north for more of the year, and the high ground wrings the air"
    },
    {
     "expected": "a cool plateau with a mild rhythm of seasons",
     "found": true,
-    "measure": "14.9 °C in the mean, the months 3.2 °C apart"
+    "measure": "15 °C in the mean, the months 2.9 °C apart"
    },
    {
     "expected": "a dry season on the plateau, with frost at night",
     "found": false,
-    "measure": "0 dry months of 12; the coldest nights 5.5 °C (ground frost begins at 4 °C)"
+    "measure": "0 dry months of 12; the coldest nights 5.3 °C (ground frost begins at 4 °C)"
    },
    {
     "expected": "a rain shadow to the south-west of Mt. Weth",
     "found": false,
-    "measure": "1760 mm in its lee against 1220 mm to windward"
+    "measure": "1880 mm in its lee against 1472 mm to windward"
    },
    {
     "expected": "a rain shadow to the south-west of Mt. Oplin and Mt. Danrich, round Menera",
     "found": false,
-    "measure": "Mt. Danrich: 3850 mm against 4226 mm; Mt. Oplin: 2584 mm against 3822 mm; Menera 1972 mm"
+    "measure": "Mt. Danrich: 4272 mm against 4260 mm; Mt. Oplin: 2536 mm against 4048 mm; Menera 2228 mm"
    },
    {
     "expected": "south Caren tropical wet and dry",
-    "found": true,
-    "measure": "1671 mm a year with 3.7 dry months; Dree 1746 mm with 4 dry months"
+    "found": false,
+    "measure": "1958 mm a year with 1.5 dry months; Dree 2038 mm with 0 dry months"
    },
    {
     "expected": "snow all year only above about 4,800 m; none in the lowlands",
@@ -64,74 +64,74 @@
    {
     "expected": "frost on clear dry-season nights at 1,500 to 2,000 m",
     "found": false,
-    "measure": "the coldest nights at 1,750 m are 7.3 °C; ground frost begins near 2500 m and air frost near 3250 m"
+    "measure": "the coldest nights at 1,750 m are 7 °C; ground frost begins near 2500 m and air frost near 3250 m"
    },
    {
     "expected": "the Molkath desert arid (100 to 250 mm a year), today and before the Sondel fell",
     "found": false,
-    "measure": "the map's tan ground round the Sondel's remnant: today 2532 mm in the middle (442 to 8162; west 1610 mm, east 4374 mm, north 2516 mm, south 2674 mm; 0% of it under 250 mm); with the wall standing 2022 mm (250 to 9780; west 1164 mm, east 2180 mm, north 2322 mm, south 2304 mm; 3% under 250 mm)"
+    "measure": "the map's tan ground round the Sondel's remnant: today 2564 mm in the middle (722 to 9612; west 1384 mm, east 4380 mm, north 2862 mm, south 2350 mm; 0% of it under 250 mm); with the wall standing 2074 mm (408 to 8240; west 1196 mm, east 2154 mm, north 2632 mm, south 2074 mm; 0% under 250 mm)"
    }
   ],
   "rainBelt": {
    "latByMonth": [
-    5,
-    13.8,
-    13.8,
-    13.8,
-    13.8,
-    5,
-    2,
-    -1.8,
-    -6.3,
-    -6.3,
-    -1.8,
-    2
+    2.3,
+    5.1,
+    6.6,
+    6.6,
+    5.1,
+    2.3,
+    -4.7,
+    -10.5,
+    -10.5,
+    -10.5,
+    -10.5,
+    -4.7
    ],
-   "monthsSouthOfTheEquator": 4,
+   "monthsSouthOfTheEquator": 6,
    "seaPullDegByMonth": [
-    -1.4,
-    3.2,
-    0.7,
-    0.7,
-    3.2,
-    -1.4,
-    0.4,
-    0.8,
+    0.1,
+    -1.3,
+    -2.3,
+    -2.3,
+    -1.3,
+    0.1,
+    -2.1,
+    -3.7,
     -1.3,
     -1.3,
-    0.8,
-    0.4
+    -3.7,
+    -2.1
    ]
   },
   "sea": {
    "coldTongueCByMonth": [
+    -0.5,
     -0.6,
+    -0.6,
+    -0.6,
+    -0.6,
+    -0.5,
     -0.6,
     -0.7,
+    -0.8,
+    -0.8,
     -0.7,
-    -0.6,
-    -0.6,
-    -0.6,
-    -0.8,
-    -0.9,
-    -0.9,
-    -0.8,
     -0.6
    ],
-   "coldTongueC": -0.7,
+   "coldTongueC": -0.6,
    "westCoastCByMonth": [
-    -0.5,
     -0.4,
+    -0.3,
+    -0.2,
+    -0.2,
+    -0.3,
     -0.4,
-    -0.4,
-    -0.4,
-    -0.5,
-    -0.7,
-    -1,
-    -1.4,
-    -1.4,
-    -1,
-    -0.7
+    -0.6,
+    -0.9,
+    -1.2,
+    -1.2,
+    -0.9,
+    -0.6
    ],
    "westCoastSwingC": 1,
    "overTheRidgeC": -1.1
@@ -139,41 +139,41 @@
   "parts": {
    "north": {
     "places": 338,
-    "annualMm": 2575,
-    "meanC": 21,
-    "dryMonths": 1
+    "annualMm": 2639,
+    "meanC": 21.1,
+    "dryMonths": 1.2
    },
    "northWest": {
     "places": 103,
-    "annualMm": 2207,
-    "meanC": 21,
-    "dryMonths": 1.3
+    "annualMm": 2040,
+    "meanC": 21.2,
+    "dryMonths": 2.5
    },
    "northEast": {
     "places": 97,
-    "annualMm": 3249,
-    "meanC": 21.9,
-    "dryMonths": 0.6
+    "annualMm": 3322,
+    "meanC": 22,
+    "dryMonths": 0.2
    },
    "centre": {
     "places": 920,
-    "annualMm": 2267,
-    "meanC": 22.5,
-    "dryMonths": 3
+    "annualMm": 2328,
+    "meanC": 22.7,
+    "dryMonths": 2.9
    },
    "south": {
     "places": 409,
-    "annualMm": 1671,
-    "meanC": 24.5,
-    "dryMonths": 3.7
+    "annualMm": 1958,
+    "meanC": 24.8,
+    "dryMonths": 1.5
    }
   },
   "plateau": {
    "places": 148,
-   "annualMm": 2878,
-   "meanC": 14.9,
-   "swingC": 3.2,
-   "coldestNightC": 5.5,
+   "annualMm": 2933,
+   "meanC": 15,
+   "swingC": 2.9,
+   "coldestNightC": 5.3,
    "wetMonths": 12,
    "dryMonths": 0,
    "groundFrostMonths": 0
@@ -181,64 +181,64 @@
   "byHeight": [
    {
     "heightM": 0,
-    "meanC": 25.4,
-    "coldestNightC": 18.7,
+    "meanC": 25.5,
+    "coldestNightC": 18.4,
     "groundFrostMonths": 0,
     "airFrostMonths": 0,
     "snow": "none"
    },
    {
     "heightM": 1000,
-    "meanC": 18.8,
-    "coldestNightC": 12.2,
+    "meanC": 19,
+    "coldestNightC": 11.9,
     "groundFrostMonths": 0,
     "airFrostMonths": 0,
     "snow": "none"
    },
    {
     "heightM": 1750,
-    "meanC": 14,
-    "coldestNightC": 7.3,
+    "meanC": 14.1,
+    "coldestNightC": 7,
     "groundFrostMonths": 0,
     "airFrostMonths": 0,
     "snow": "none"
    },
    {
     "heightM": 2500,
-    "meanC": 9.1,
-    "coldestNightC": 2.4,
-    "groundFrostMonths": 2,
+    "meanC": 9.2,
+    "coldestNightC": 2.1,
+    "groundFrostMonths": 4,
     "airFrostMonths": 0,
     "snow": "none"
    },
    {
     "heightM": 3250,
-    "meanC": 4.2,
-    "coldestNightC": -2.4,
+    "meanC": 4.4,
+    "coldestNightC": -2.8,
     "groundFrostMonths": 12,
     "airFrostMonths": 4,
     "snow": "now and then, in cold, wet spells"
    },
    {
     "heightM": 4000,
-    "meanC": -0.6,
-    "coldestNightC": -7.3,
+    "meanC": -0.5,
+    "coldestNightC": -7.6,
     "groundFrostMonths": 12,
     "airFrostMonths": 12,
     "snow": "now and then, in cold, wet spells"
    },
    {
     "heightM": 4800,
-    "meanC": -5.8,
-    "coldestNightC": -12.5,
+    "meanC": -5.7,
+    "coldestNightC": -12.8,
     "groundFrostMonths": 12,
     "airFrostMonths": 12,
     "snow": "all year"
    },
    {
     "heightM": 5400,
-    "meanC": -9.7,
-    "coldestNightC": -16.4,
+    "meanC": -9.6,
+    "coldestNightC": -16.7,
     "groundFrostMonths": 12,
     "airFrostMonths": 12,
     "snow": "all year"
@@ -247,27 +247,27 @@
   "rainShadows": [
    {
     "name": "Mt. Danrich",
-    "leeMm": 3850,
-    "windwardMm": 4226,
-    "leeShare": 0.91
+    "leeMm": 4272,
+    "windwardMm": 4260,
+    "leeShare": 1
    },
    {
     "name": "Mt. Weth",
-    "leeMm": 1760,
-    "windwardMm": 1220,
-    "leeShare": 1.44
+    "leeMm": 1880,
+    "windwardMm": 1472,
+    "leeShare": 1.28
    },
    {
     "name": "Mt. Shila",
-    "leeMm": 2102,
-    "windwardMm": 2720,
-    "leeShare": 0.77
+    "leeMm": 2570,
+    "windwardMm": 2728,
+    "leeShare": 0.94
    },
    {
     "name": "Mt. Oplin",
-    "leeMm": 2584,
-    "windwardMm": 3822,
-    "leeShare": 0.68
+    "leeMm": 2536,
+    "windwardMm": 4048,
+    "leeShare": 0.63
    }
   ],
   "towns": [
@@ -278,26 +278,26 @@
      -4.33
     ],
     "groundM": 22,
-    "annualMm": 1136,
+    "annualMm": 1280,
     "monthsMm": [
-     240,
-     103,
-     90,
-     90,
-     103,
-     240,
-     89,
-     28,
-     18,
-     18,
-     28,
-     89
+     96,
+     223,
+     267,
+     267,
+     223,
+     96,
+     27,
+     14,
+     13,
+     13,
+     14,
+     27
     ],
-    "wetMonths": 8,
-    "dryMonths": 4,
-    "meanC": 25.5,
-    "swingC": 3.3,
-    "coldestNightC": 18.3,
+    "wetMonths": 6,
+    "dryMonths": 6,
+    "meanC": 25.7,
+    "swingC": 3.7,
+    "coldestNightC": 18.5,
     "groundFrostMonths": 0
    },
    {
@@ -307,20 +307,20 @@
      0.06
     ],
     "groundM": 1269,
-    "annualMm": 3986,
+    "annualMm": 4074,
     "monthsMm": [
-     399,
-     163,
-     154,
-     154,
-     163,
-     399,
-     581,
-     385,
-     311,
-     311,
-     385,
-     581
+     587,
+     404,
+     229,
+     229,
+     404,
+     587,
+     382,
+     242,
+     193,
+     193,
+     242,
+     382
     ],
     "wetMonths": 12,
     "dryMonths": 0,
@@ -336,26 +336,26 @@
      -0.24
     ],
     "groundM": 1774,
-    "annualMm": 2652,
+    "annualMm": 2686,
     "monthsMm": [
-     270,
-     165,
-     154,
-     154,
-     165,
-     270,
-     270,
-     259,
-     208,
-     208,
-     259,
-     270
+     250,
+     253,
+     268,
+     268,
+     253,
+     250,
+     248,
+     174,
+     150,
+     150,
+     174,
+     248
     ],
     "wetMonths": 12,
     "dryMonths": 0,
-    "meanC": 13.8,
-    "swingC": 3.4,
-    "coldestNightC": 7.6,
+    "meanC": 13.9,
+    "swingC": 3,
+    "coldestNightC": 7,
     "groundFrostMonths": 0
    },
    {
@@ -365,26 +365,26 @@
      -2
     ],
     "groundM": 878,
-    "annualMm": 1794,
+    "annualMm": 1752,
     "monthsMm": [
+     204,
      226,
-     163,
-     137,
-     137,
-     163,
+     236,
+     236,
      226,
-     167,
-     129,
-     75,
-     75,
-     129,
-     167
+     204,
+     102,
+     58,
+     50,
+     50,
+     58,
+     102
     ],
-    "wetMonths": 12,
-    "dryMonths": 0,
-    "meanC": 20,
-    "swingC": 2.4,
-    "coldestNightC": 12.1,
+    "wetMonths": 8,
+    "dryMonths": 4,
+    "meanC": 20.2,
+    "swingC": 2.3,
+    "coldestNightC": 11.8,
     "groundFrostMonths": 0
    },
    {
@@ -394,25 +394,25 @@
      3.37
     ],
     "groundM": 38,
-    "annualMm": 1972,
+    "annualMm": 2228,
     "monthsMm": [
-     315,
-     149,
-     36,
-     36,
-     149,
-     315,
+     248,
+     324,
      222,
-     140,
-     124,
-     124,
-     140,
-     222
+     222,
+     324,
+     248,
+     150,
+     103,
+     67,
+     67,
+     103,
+     150
     ],
-    "wetMonths": 10,
-    "dryMonths": 2,
-    "meanC": 25.7,
-    "swingC": 2.8,
+    "wetMonths": 12,
+    "dryMonths": 0,
+    "meanC": 25.8,
+    "swingC": 2.1,
     "coldestNightC": 19.2,
     "groundFrostMonths": 0
    },
@@ -423,26 +423,26 @@
      1.23
     ],
     "groundM": 1955,
-    "annualMm": 5262,
+    "annualMm": 7568,
     "monthsMm": [
-     287,
-     362,
-     120,
-     120,
-     362,
-     287,
-     438,
-     728,
-     696,
-     696,
-     728,
-     438
+     349,
+     285,
+     341,
+     341,
+     285,
+     349,
+     805,
+     1082,
+     922,
+     922,
+     1082,
+     805
     ],
     "wetMonths": 12,
     "dryMonths": 0,
-    "meanC": 13.6,
+    "meanC": 13.7,
     "swingC": 2.2,
-    "coldestNightC": 7.9,
+    "coldestNightC": 8.5,
     "groundFrostMonths": 0
    },
    {
@@ -452,26 +452,26 @@
      1.2
     ],
     "groundM": 188,
-    "annualMm": 2452,
+    "annualMm": 2058,
     "monthsMm": [
-     134,
-     98,
-     55,
-     55,
-     98,
-     134,
-     238,
-     353,
-     348,
-     348,
-     353,
-     238
+     239,
+     135,
+     114,
+     114,
+     135,
+     239,
+     357,
+     135,
+     49,
+     49,
+     135,
+     357
     ],
     "wetMonths": 10,
     "dryMonths": 2,
-    "meanC": 24.9,
+    "meanC": 25.2,
     "swingC": 1.8,
-    "coldestNightC": 17.1,
+    "coldestNightC": 18.3,
     "groundFrostMonths": 0
    },
    {
@@ -481,25 +481,25 @@
      -2.95
     ],
     "groundM": 221,
-    "annualMm": 1268,
+    "annualMm": 984,
     "monthsMm": [
-     123,
-     58,
-     48,
-     48,
-     58,
-     123,
-     216,
-     159,
-     30,
-     30,
-     159,
-     216
+     214,
+     113,
+     90,
+     90,
+     113,
+     214,
+     44,
+     16,
+     15,
+     15,
+     16,
+     44
     ],
     "wetMonths": 6,
     "dryMonths": 6,
-    "meanC": 24.9,
-    "swingC": 1.4,
+    "meanC": 25.2,
+    "swingC": 2.3,
     "coldestNightC": 17.2,
     "groundFrostMonths": 0
    },
@@ -510,26 +510,26 @@
      3.19
     ],
     "groundM": 169,
-    "annualMm": 3088,
+    "annualMm": 3258,
     "monthsMm": [
-     172,
-     133,
-     82,
-     82,
-     133,
-     172,
-     291,
-     439,
-     427,
-     427,
-     439,
-     291
+     334,
+     177,
+     148,
+     148,
+     177,
+     334,
+     466,
+     340,
+     164,
+     164,
+     340,
+     466
     ],
     "wetMonths": 12,
     "dryMonths": 0,
-    "meanC": 25.5,
-    "swingC": 1.6,
-    "coldestNightC": 19,
+    "meanC": 25.6,
+    "swingC": 1.8,
+    "coldestNightC": 19.8,
     "groundFrostMonths": 0
    },
    {
@@ -539,26 +539,26 @@
      0.41
     ],
     "groundM": 217,
-    "annualMm": 1746,
+    "annualMm": 2038,
     "monthsMm": [
-     67,
-     55,
-     46,
-     46,
-     55,
-     67,
-     104,
+     111,
+     70,
+     63,
+     63,
+     70,
+     111,
+     297,
      242,
-     359,
-     359,
+     236,
+     236,
      242,
-     104
+     297
     ],
-    "wetMonths": 8,
-    "dryMonths": 4,
-    "meanC": 24.1,
-    "swingC": 3.2,
-    "coldestNightC": 16.3,
+    "wetMonths": 12,
+    "dryMonths": 0,
+    "meanC": 24.3,
+    "swingC": 2.2,
+    "coldestNightC": 17.1,
     "groundFrostMonths": 0
    },
    {
@@ -568,26 +568,26 @@
      -1.64
     ],
     "groundM": 447,
-    "annualMm": 1948,
+    "annualMm": 2164,
     "monthsMm": [
-     100,
-     73,
-     63,
-     63,
-     73,
-     100,
-     149,
-     277,
-     312,
-     312,
-     277,
-     149
+     145,
+     98,
+     85,
+     85,
+     98,
+     145,
+     323,
+     221,
+     210,
+     210,
+     221,
+     323
     ],
     "wetMonths": 12,
     "dryMonths": 0,
     "meanC": 22.7,
-    "swingC": 2.8,
-    "coldestNightC": 14.3,
+    "swingC": 2.5,
+    "coldestNightC": 14.8,
     "groundFrostMonths": 0
    }
   ],
@@ -596,202 +596,217 @@
    "forestInDryCountry": {
     "underMm": 900,
     "squares": 24,
-    "middleMm": 2402,
-    "disagree": []
+    "middleMm": 2438,
+    "disagree": [
+     {
+      "at": [
+       -1.5,
+       -1.5
+      ],
+      "annualMm": 814
+     }
+    ]
    },
    "openInVeryWetCountry": {
     "overMm": 2500,
     "squares": 50,
-    "middleMm": 1744,
+    "middleMm": 1996,
     "disagree": [
      {
       "at": [
-       5.5,
-       -2.5
+       7.5,
+       -1.5
       ],
-      "annualMm": 2564
+      "annualMm": 2808
      },
      {
       "at": [
        5.5,
        3.5
       ],
-      "annualMm": 3616
+      "annualMm": 3744
      },
      {
       "at": [
        4.5,
        3.5
       ],
-      "annualMm": 3432
+      "annualMm": 3426
      },
      {
       "at": [
        3.5,
        2.5
       ],
-      "annualMm": 3746
+      "annualMm": 3756
      },
      {
       "at": [
        3.5,
        3.5
       ],
-      "annualMm": 3172
+      "annualMm": 3142
      },
      {
       "at": [
        2.5,
        2.5
       ],
-      "annualMm": 3090
+      "annualMm": 3002
      },
      {
       "at": [
        0.5,
        2.5
       ],
-      "annualMm": 3572
+      "annualMm": 3564
      },
      {
       "at": [
        0.5,
        3.5
       ],
-      "annualMm": 3206
+      "annualMm": 3234
      },
      {
       "at": [
        0.5,
        4.5
       ],
-      "annualMm": 3032
+      "annualMm": 3168
      },
      {
       "at": [
        -0.5,
        2.5
       ],
-      "annualMm": 3622
+      "annualMm": 3710
      },
      {
       "at": [
        -0.5,
        3.5
       ],
-      "annualMm": 3180
+      "annualMm": 3292
      },
      {
       "at": [
        -0.5,
        4.5
       ],
-      "annualMm": 2914
+      "annualMm": 3104
      },
      {
       "at": [
        -1.5,
        2.5
       ],
-      "annualMm": 3202
+      "annualMm": 3282
      },
      {
       "at": [
        -1.5,
        3.5
       ],
-      "annualMm": 2828
+      "annualMm": 2972
      },
      {
       "at": [
        -2.5,
        3.5
       ],
-      "annualMm": 2634
+      "annualMm": 2804
      },
      {
       "at": [
        -3.5,
        3.5
       ],
-      "annualMm": 2528
+      "annualMm": 2592
      }
     ]
    },
    "tanInWetCountry": {
     "overMm": 1000,
     "squares": 11,
-    "middleMm": 2234,
+    "middleMm": 2464,
     "disagree": [
      {
       "at": [
        3.5,
        -0.5
       ],
-      "annualMm": 2076
+      "annualMm": 2244
+     },
+     {
+      "at": [
+       2.5,
+       -1.5
+      ],
+      "annualMm": 1170
      },
      {
       "at": [
        2.5,
        1.5
       ],
-      "annualMm": 3620
+      "annualMm": 3682
      },
      {
       "at": [
        1.5,
        1.5
       ],
-      "annualMm": 4632
+      "annualMm": 5218
      },
      {
       "at": [
        -0.5,
        -0.5
       ],
-      "annualMm": 2018
+      "annualMm": 1734
      },
      {
       "at": [
        -0.5,
        1.5
       ],
-      "annualMm": 5708
+      "annualMm": 5868
      },
      {
       "at": [
        -1.5,
        -0.5
       ],
-      "annualMm": 1834
+      "annualMm": 1544
      },
      {
       "at": [
        -1.5,
        0.5
       ],
-      "annualMm": 3934
+      "annualMm": 3330
      },
      {
       "at": [
        -1.5,
        1.5
       ],
-      "annualMm": 4456
+      "annualMm": 4448
      },
      {
       "at": [
        -5.5,
        -1.5
       ],
-      "annualMm": 1848
+      "annualMm": 1994
      },
      {
       "at": [
        -5.5,
        1.5
       ],
-      "annualMm": 2234
+      "annualMm": 2464
      }
     ]
    }
@@ -818,39 +833,39 @@
    "today": {
     "places": 40,
     "annualMm": [
-     442,
-     2532,
-     8162
+     722,
+     2564,
+     9612
     ],
-    "dryMonths": 1.8,
+    "dryMonths": 1.9,
     "aridShare": 0,
     "sides": {
      "west": {
       "places": 10,
       "annualMm": [
-       442,
-       1610,
-       1980
+       722,
+       1384,
+       1992
       ],
-      "dryMonths": 5.4,
+      "dryMonths": 4.4,
       "aridShare": 0
      },
      "east": {
       "places": 11,
       "annualMm": [
-       2278,
-       4374,
-       8162
+       2736,
+       4380,
+       9612
       ],
-      "dryMonths": 0.4,
+      "dryMonths": 0,
       "aridShare": 0
      },
      "north": {
       "places": 6,
       "annualMm": [
-       2020,
-       2516,
-       3192
+       2248,
+       2862,
+       3988
       ],
       "dryMonths": 0,
       "aridShare": 0
@@ -858,11 +873,11 @@
      "south": {
       "places": 13,
       "annualMm": [
-       1024,
-       2674,
-       6894
+       938,
+       2350,
+       6920
       ],
-      "dryMonths": 0.9,
+      "dryMonths": 2.3,
       "aridShare": 0
      }
     }
@@ -870,51 +885,51 @@
    "beforeTheFall": {
     "places": 40,
     "annualMm": [
-     250,
-     2022,
-     9780
+     408,
+     2074,
+     8240
     ],
-    "dryMonths": 2.7,
-    "aridShare": 0.03,
+    "dryMonths": 2.4,
+    "aridShare": 0,
     "sides": {
      "west": {
       "places": 10,
       "annualMm": [
-       250,
-       1164,
-       2022
+       408,
+       1196,
+       1664
       ],
-      "dryMonths": 6.4,
-      "aridShare": 0.1
+      "dryMonths": 5,
+      "aridShare": 0
      },
      "east": {
       "places": 11,
       "annualMm": [
-       1574,
-       2180,
-       4828
+       1736,
+       2154,
+       6298
       ],
-      "dryMonths": 1.3,
+      "dryMonths": 0,
       "aridShare": 0
      },
      "north": {
       "places": 6,
       "annualMm": [
-       1980,
-       2322,
-       3764
+       2212,
+       2632,
+       4332
       ],
-      "dryMonths": 1,
+      "dryMonths": 0,
       "aridShare": 0
      },
      "south": {
       "places": 13,
       "annualMm": [
-       866,
-       2304,
-       9780
+       764,
+       2074,
+       8240
       ],
-      "dryMonths": 1.8,
+      "dryMonths": 3.4,
       "aridShare": 0
      }
     }

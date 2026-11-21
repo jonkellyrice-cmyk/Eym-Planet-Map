@@ -199,6 +199,7 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
     const { magneticSourcesSha256 } = await import("./generate-eym-magnetic.mjs"); if (world.magnetic?.sourcesSha256 !== magneticSourcesSha256()) stale.push("magnetic survey");
     const { carenSourcesSha256 } = await import("./generate-eym-caren.mjs"); if (world.caren?.sourcesSha256 !== carenSourcesSha256()) stale.push("Caren's survey");
     const { rainSourcesSha256 } = await import("./generate-eym-rain.mjs"); if (world.rain?.sourcesSha256 !== rainSourcesSha256()) stale.push("the rain");
+    const { energySourcesSha256 } = await import("./generate-eym-energy.mjs"); if (world.energy?.sourcesSha256 !== energySourcesSha256()) stale.push("the hemispheres' energy balance");
     const { crustSourcesSha256 } = await import("./generate-eym-crust.mjs"); if (world.crust?.sourcesSha256 !== crustSourcesSha256()) stale.push("the crust and sediment");
     const fp = regionFingerprint(); if (world.regionFingerprint?.shapes !== fp.shapes || world.regionFingerprint?.paint !== fp.paint) stale.push("Region fingerprint");
     rule("up-to-date", "every derived file is up to date with what it is made from", stale.length === 0, stale.length ? `stale: ${stale.join(", ")} (run npm run world)` : "");
