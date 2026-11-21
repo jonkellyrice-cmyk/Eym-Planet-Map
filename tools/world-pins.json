@@ -25,8 +25,8 @@
   },
   "managed": {
     "registryCsvSha256": {
-      "value": "cd4f973d5687310bbebbd2d5ab87e58f56009c47e5ca8aedcae2d5514bbf9113",
-      "note": "Earthquakes by plate rate; great eruptions cool the weather"
+      "value": "6c599dad188ad3582d65343d331bda495a889590004c3396255745d361c7ae0a",
+      "note": "ocean driven by seasonal winds (check 6)"
     }
   }
 }

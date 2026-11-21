@@ -302,6 +302,11 @@ export const WORLD_INPUTS = deepFreeze({
     // cold water wells up at the coast: `offshoreUpwelling` at the trades' full strength, fading over the two
     // cells next to the coast.
     offshoreLat: 9, offshoreUpwelling: 0.9,
+    // The wind that drives the sea is the season's wind over each longitude (scripts/eym-winds.mjs, the rain's own:
+    // the belt carried on over heated land, the monsoon's westerlies where air has crossed the equator to reach it),
+    // dragging on the water by `dragNumber` (air's density × this × speed × wind; about 0.0013 over open sea).
+    // With `seasonalWinds` false the sea is driven by belts that are the same at every longitude, as it was before.
+    seasonalWinds: true, dragNumber: 0.0013,
   },
 
   /** The weather's large-scale circulation (scripts/eym-weather.mjs): the belts' seasonal shift, the jet streams and blocking. */

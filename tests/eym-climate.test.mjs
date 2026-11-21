@@ -101,3 +101,39 @@ test("the sea floor steers the currents and feeds upwelling at shelf breaks and 
   const at = [-90 + 2 * (Math.floor(best / 180) + 0.5), -180 + 2 * (best % 180 + 0.5)], rich = fishingAt(withOcean, at[0], at[1], T0), open = fishingAt(withOcean, 28, -150, T0);
   assert.ok(rich.richness > open.richness + 0.2 && /fishing/.test(rich.words), `${JSON.stringify(rich)} against ${JSON.stringify(open)} at ${at}`);
 });
+
+test("the sea is driven by the season's winds over each longitude: where a land draws the rain belt on, the trades give way to the monsoon", async () => {
+  const { bathymetry, landMask, seasonalWinds, solveSeason, stressField, CLIMATE_INPUTS, CLIMATE_SOURCES } = await import("../tools/generate-eym-climate.mjs");
+  const { beltWind, windDrag } = await import("../scripts/eym-winds.mjs");
+  const { WORLD_INPUTS } = await import("../scripts/eym-world-inputs.mjs");
+  const { rainBeltLat } = await import("../scripts/eym-seasons.mjs");
+  assert.ok(CLIMATE_INPUTS.includes("rain") && CLIMATE_INPUTS.includes("weather") && CLIMATE_SOURCES.includes("scripts/eym-winds.mjs") && CLIMATE_SOURCES.includes("scripts/eym-land-atmosphere.mjs") && WORLD_INPUTS.ocean.seasonalWinds === true);
+  const W = WORLD_INPUTS.rain.wind, NLON = 180, at = (lat, lon) => Math.round((lat + 89) / 2) * NLON + Math.round((lon + 179) / 2), summer = 23.44;
+  // The wind rule itself: with the belt far north the air between the equator and the belt blows from the west; with
+  // the monsoon switched off, or the belt near the equator, it blows from the east. A faster wind drags harder (by its square).
+  assert.ok(beltWind(W, 12, 28).east > 2 && beltWind(W, 12, 28, false).east < -3 && beltWind(W, 12, 3).east < -3 && beltWind(W, -12, 28).east < -3);
+  assert.ok(Math.abs(windDrag({ north: 0, east: 8 }).east / windDrag({ north: 0, east: 4 }).east - 4) < 1e-9 && windDrag({ north: -3, east: 0 }).north < 0);
+  // Without the winds: the belts, the same at every longitude, and no wind along a meridian.
+  const winds = seasonalWinds(), belts = stressField(summer), field = stressField(summer, winds);
+  for (const lat of [-31, -11, 1, 13, 45]) { assert.equal(belts.east[at(lat, -161)], belts.east[at(lat, 61)]); assert.equal(belts.north[at(lat, 61)], 0); }
+  // The longitude where the land carries the belt farthest in the northern summer, and one over open ocean.
+  let far = 0, open = 0; for (let lon = -179; lon < 180; lon += 2) { if (winds.beltLatAt(lon, summer) > winds.beltLatAt(far, summer)) far = lon; if (winds.beltLatAt(lon, summer) < winds.beltLatAt(open, summer)) open = lon; }
+  assert.ok(winds.beltLatAt(far, summer) > rainBeltLat(summer) + 8 && winds.beltLatAt(open, summer) < rainBeltLat(summer) + 0.3, `belt at ${winds.beltLatAt(far, summer)}° over ${far}°, ${winds.beltLatAt(open, summer)}° over ${open}°`);
+  // Over the open ocean the stress is the belts'; where the belt is carried on, the easterly stress between 10° and
+  // 20° north is all but gone or turned about, by a meaningful amount (more than 0.02 N/m²), in that season only.
+  for (const lat of [-31, -11, 1, 13, 45]) assert.ok(Math.abs(field.east[at(lat, open)] - belts.east[at(lat, open)]) < 0.003);
+  for (const lat of [13, 17]) assert.ok(field.east[at(lat, far)] > belts.east[at(lat, far)] + 0.02 && field.east[at(lat, far)] > -0.012, `${lat}°: ${field.east[at(lat, far)]} against ${belts.east[at(lat, far)]}`);
+  const winter = stressField(-summer, winds), winterBelts = stressField(-summer);
+  assert.ok(Math.abs(winter.east[at(13, far)] - winterBelts.east[at(13, far)]) < 0.02 && field.north[at(9, far)] > 0 && field.north[at(45, far)] === 0);
+  // In the sea: with the winds, the summer's upwelling differs where the belt is carried on and hardly at all
+  // far from any land's reach; the wind along a shore brings up water at coasts the belts alone do not reach.
+  const land = landMask(), floor = bathymetry(), before = solveSeason(land, 0.25, floor), after = solveSeason(land, 0.25, floor, winds);
+  const change = (lon0, lon1) => { let sum = 0, k = 0; for (let lat = -19; lat <= 25; lat += 2) for (let lon = lon0; lon <= lon1; lon += 2) { const i = at(lat, lon); if (!land[i]) { sum += Math.abs(after.upwelling[i] - before.upwelling[i]); k += 1; } } return k ? sum / k : 0; };
+  const near = change(far - 12, far + 12), away = change(open - 12, open + 12);
+  assert.ok(near > 0.01 && near > 4 * away, `upwelling changes by ${near} near, ${away} far away`);
+  // (Most at the equinoxes, when the trades blow hardest along the shores on either side of the equator.)
+  const calm = solveSeason(land, 0, floor), blown = solveSeason(land, 0, floor, winds);
+  let coasts = 0; for (let i = 0; i < land.length; i += 1) if (!land[i] && blown.offshore[i] > calm.offshore[i] + 0.2) coasts += 1;
+  assert.ok(coasts >= 5, `${coasts} coastal cells with new upwelling`);
+  for (let i = 0; i < land.length; i += 1) if (!land[i]) assert.ok(Number.isFinite(after.u[i]) && Math.hypot(after.u[i], after.v[i]) < 3 && after.upwelling[i] >= 0 && after.upwelling[i] <= 1.5);
+});

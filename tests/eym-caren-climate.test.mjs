@@ -52,8 +52,10 @@ test("the sea west of Caren: the undercurrent wells up at the ridge, the trades'
   // Upwelling over the ridge and at Caren's west coast in every season; stronger at the coast north of the equator in the northern winter.
   for (const s of climate.seasons) assert.ok(at(s.upwelling, 2, -14) > 0.3 && at(s.upwelling, 2, -6) > 0.2, `season ${s.yearFraction}`);
   assert.ok(at(climate.seasons[3].upwelling, 6, -6) > at(climate.seasons[1].upwelling, 6, -6), "the north-east trades of the northern winter");
-  // The sea is colder than its latitude's from the ridge to the coast, all year, and colder still over the ridge.
-  for (const s of climate.seasons) for (const lon of [-14, -10, -6]) assert.ok(at(s.sstAnomaly, 2, lon) < -0.3, `${lon}°, season ${s.yearFraction}: ${at(s.sstAnomaly, 2, lon)} °C`);
+  // The sea is colder than its latitude's from the ridge to the coast, all year (by more than 0.3 °C in the year's
+  // mean, and in every season by at least 0.2 °C: since the sea is driven by the season's winds, 0.43.0, it swings
+  // more through the year, coldest in the northern winter), and colder still over the ridge.
+  for (const lon of [-14, -10, -6]) { const year = climate.seasons.map((s) => at(s.sstAnomaly, 2, lon)); assert.ok(year.every((c) => c <= -0.2) && year.reduce((x, y) => x + y, 0) / 4 < -0.3, `${lon}°: ${year.join(", ")} °C`); }
   assert.ok(C.sea.coldTongueC <= -0.5 && C.sea.overTheRidgeC <= C.sea.coldTongueC, JSON.stringify(C.sea));
   // East of Caren the sea is warm (the western shore of the widest equatorial sea).
   assert.ok(at(climate.seasons[0].sstAnomaly, 2, 10) > 0.3);
