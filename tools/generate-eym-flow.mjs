@@ -23,8 +23,8 @@ const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartogr
 export const FLOW_MODEL = "eym-flow-v1";
 /** What the monthly climate is made from: this tool, the weather and seasons, and the data they read. */
 export const FLOW_SOURCES = ["tools/generate-eym-flow.mjs", "scripts/eym-rain.mjs", "data/eym/rain.json", "scripts/eym-weather.mjs", "scripts/eym-land-atmosphere.mjs", "scripts/eym-seasons.mjs", "data/planet-cartography/mitkear/eym.json", "data/planet-cartography/mitkear/eym-ocean.json", "data/eym/climate.json"];
-/** The dials it follows (scripts/eym-world-inputs.mjs): the weather's circulation. */
-export const FLOW_INPUTS = ["weather"];
+/** The dials it follows (scripts/eym-world-inputs.mjs): the weather's circulation, and the rivers' (which the drainage, made next from this file, follows). */
+export const FLOW_INPUTS = ["weather", "rivers"];
 export const flowSourcesSha256 = () => { const h = createHash("sha256"); for (const p of FLOW_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...FLOW_INPUTS)); return h.digest("hex"); };
 export const CONTINENTS = ["Caren", "Garyk"];
 export const YEARS = 4, STEP_HOURS = 5, MONTHS = 12;

@@ -212,6 +212,13 @@ export const tropicalMaxWindMs = (deficitHpa) => 3.45 * Math.abs(deficitHpa) ** 
 
 /** Rainfall relative to the zonal climate, by biome (dry country gets less). */
 export const BIOME_RAIN = Object.freeze({ "hot-desert": 0.25, "cold-desert": 0.3, steppe: 0.65, savanna: 0.75, tundra: 0.6, "ice-cap": 0.35, taiga: 0.9, "temperate-forest": 1, "seasonal-forest": 1, "temperate-rainforest": 1.4, "tropical-rainforest": 1.35 });
+/**
+ * How wet a place is against its latitude's rain: over land, the rain budget's yearly rain for its square
+ * (scripts/eym-rain.mjs, carried by the asset) over the latitude's; without it, a figure for its kind of country.
+ * (Within 35° of the equator the land's afternoon storms add to the lift's yield, which was measured over the sea:
+ * the budget's figure already counts all the rain, so it is divided by that excess, the dial `landAfternoonYield`.)
+ */
+export const wetnessOf = (cell, lat) => (!cell || cell.ocean ? 1 : cell.rainMm != null ? clamp(cell.rainMm / zonalPrecipitationMm(lat) / (Math.abs(lat) < 35 ? W.landAfternoonYield : 1), 0.02, 5) : BIOME_RAIN[cell.biome] ?? 0.8);
 /** Normalization of the rain-producing lift by latitude (2.5° bands from 90°S), from calibrate-eym-weather. */
 export const RAIN_NORMALIZATION = Object.freeze([
   45.67, 51.06, 23.05, 20.15, 11.7, 7.86, 6.37, 4.88, 4.45, 4.28, 4, 4.24, 4.4, 4.58, 5.25, 5.51, 6.13, 6.96,
@@ -279,7 +286,7 @@ export function weatherAt(systems, lat, lon, ctx) {
   const itcz = Math.exp(-(((lat - (ctx.land ? ctx.land.rainBeltLatAt(lon, ctx.declinationDeg) : rainBeltLat(ctx.declinationDeg))) / 9) ** 2));
   const afternoon = land && Math.abs(lat) < 35 ? Math.max(0, Math.cos(2 * Math.PI * (ctx.solarHour - 15.5) / 24)) : 0;
   const lift = 0.12 - Math.min(anomaly, 30) / 11 + 0.85 * itcz + 0.4 * afternoon * (0.4 + itcz) + 0.6 * showers + tcRain;
-  const wetness = cell ? (cell.ocean ? 1 : BIOME_RAIN[cell.biome] ?? 0.8) : 1;
+  const wetness = wetnessOf(cell, lat);
   const baseCloud = cell?.ocean === false ? 0.15 + 0.3 * Math.min(1.2, wetness) : 0.42;
   // Low cloud over the sea (the aquaplanet addendum): a marine layer under sinking air (high pressure, the
   // subtropical belts) and over cool water (upwelling, cold currents: the ocean climate's anomaly), thickest at
@@ -359,7 +366,7 @@ export function placeWeatherNow(state, lat, lon, { subsolar, timeMs } = {}) {
  */
 export function placeHistory(state, lat, lon) {
   const cell = state.field?.cellAt(lat, lon) ?? null, land = cell ? !cell.ocean : false;
-  const climateWet = cell ? clamp(zonalPrecipitationMm(lat) * (cell.ocean ? 1 : BIOME_RAIN[cell.biome] ?? 0.8) / 2000, 0.15, 0.9) : 0.5;
+  const climateWet = cell ? clamp(zonalPrecipitationMm(lat) * wetnessOf(cell, lat) / 2000, 0.15, 0.9) : 0.5;
   const firstSeason = seasonalTemperature({ annualMeanC: cell?.annualMeanC ?? annualMeanTemperatureC(lat), latDeg: lat, continentality: cell?.continentality ?? 0, ocean: !land, timeMs: state.steps[0].timeMs, anomalyC: state.field?.anomalyAt?.(lat, lon, state.steps[0].timeMs) ?? 0 });
   let snowCm = land && firstSeason.dayMeanC < -1 ? clamp(-firstSeason.dayMeanC * 7, 4, 150) : 0;
   const capacity = 100; let water = capacity * climateWet;

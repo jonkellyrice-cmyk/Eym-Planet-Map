@@ -2,6 +2,7 @@
 // the cartography holds, and on a grid of the sphere they are measured truly and run unbroken across ±180°.
 import test from "node:test";
 import assert from "node:assert/strict";
+import { WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 import { readFileSync } from "node:fs";
 import { buildEymSurface, buildSphereFrame, destination, EYM_LAYOUT, frameEastScale, greatCircleKm } from "../scripts/eym-surface.mjs";
 import { frameCoarseWater, frameHydrology } from "../scripts/eym-cartography.mjs";
@@ -9,17 +10,32 @@ import { frameCoarseWater, frameHydrology } from "../scripts/eym-cartography.mjs
 const read = (path) => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), "utf8"));
 const asset = read("data/planet-cartography/mitkear/eym.json");
 
-test("the routed rivers are the ones in the accepted cartography, point for point", () => {
-  // (The grown continents, data/eym/growth.json, are on grids of the sphere and routed coarsely by the farLand dials.)
+test("the far continents' rivers carry the climate: counted by the water the land sheds, more in wet country, fewer in dry, dying in a dry basin", () => {
+  // (The grown continents, data/eym/growth.json, are on grids of the sphere and routed coarsely by the farLand dials.
+  // That the shipped rivers are exactly what the build routes is held by the cartography's own up-to-date check.)
   const { frames } = buildEymSurface(read("data/eym/traced-continents.json"), EYM_LAYOUT, read("data/eym/tectonics.json"), read("data/eym/growth.json"));
-  let rivers = 0;
+  const REF = WORLD_INPUTS.rivers.farReferenceRunoffMm; let shippedAll = 0, dry = 0, died = 0;
   for (const frame of frames.filter((f) => f.origin === "seeded" && f.continent)) {
-    const stats = {}, routed = frameHydrology(frame, frameCoarseWater(frame), stats), shipped = asset.hydrology.rivers.filter((river) => river.continent === frame.continent);
-    assert.equal(routed.rivers.length, shipped.length, frame.continent); assert.equal(stats.rivers, shipped.length); assert.ok(stats.land > 5000 && stats.land < stats.squares);
-    const courses = new Set(shipped.map((river) => JSON.stringify(river.points)));
-    for (const river of routed.rivers) { assert.ok(courses.has(JSON.stringify(river.points)), `${frame.continent}: a course that is not in the cartography`); rivers += 1; }
+    const options = frameCoarseWater(frame), byLand = frameHydrology(frame, options), shipped = asset.hydrology.rivers.filter((river) => river.continent === frame.continent);
+    shippedAll += shipped.length; dry += shipped.filter((river) => river.mouth === "dry-basin").length;
+    for (const river of shipped) assert.ok(river.points.length >= 2 && ["ocean", "river", "dry-basin"].includes(river.mouth), `${river.id} → ${river.mouth}`);
+    // Land that everywhere sheds the reference runoff has exactly the rivers the land drained alone gives.
+    const even = frameHydrology(frame, { ...options, runoffAt: () => REF });
+    assert.deepEqual(even.rivers.map((r) => r.points), byLand.rivers.map((r) => r.points), `${frame.continent}: the reference runoff changes nothing`);
+    // Twice the runoff everywhere: more rivers, each carrying more. Half: fewer.
+    const wet = frameHydrology(frame, { ...options, runoffAt: () => 2 * REF }), thin = frameHydrology(frame, { ...options, runoffAt: () => REF / 2 });
+    assert.ok(wet.rivers.length > byLand.rivers.length * 1.3 && thin.rivers.length < byLand.rivers.length * 0.8, `${frame.continent}: ${thin.rivers.length} < ${byLand.rivers.length} < ${wet.rivers.length} rivers`);
+    assert.ok(Math.max(...wet.rivers.map((r) => r.dischargeKm2)) > 1.9 * Math.max(...byLand.rivers.map((r) => r.dischargeKm2)));
+    // A land wet in its northern half and bone dry in its southern: rivers rise in the wet half only, and those
+    // that run into the dry half dwindle; some die there, short of the sea.
+    const midY = frame.grid.y0 - frame.grid.rows * frame.grid.cellKm / 2, half = frameHydrology(frame, { ...options, runoffAt: (lat) => (lat > frame.center[0] ? 2 * REF : 0) });
+    died += half.rivers.filter((r) => r.mouth === "dry-basin").length;
+    assert.ok(half.rivers.every((r) => r.points[0][0] > frame.center[0] - 3), `${frame.continent}: no river rises in the dry half`); void midY;
+    // The shipped rivers lie between what a far drier and a far wetter land would have.
+    assert.ok(shipped.length > 20 && shipped.length < wet.rivers.length * 1.5, `${frame.continent}: ${shipped.length} rivers shipped`);
   }
-  assert.ok(rivers >= 40, `${rivers} rivers`);
+  assert.ok(died >= 1, "on some continent a river runs into the dry half and dies there");
+  assert.ok(shippedAll >= 300 && shippedAll <= 800 && dry >= 1, `${shippedAll} rivers on the far continents, ${dry} ending in a dry basin`);
 });
 
 test("on a grid of the sphere rivers run unbroken across ±180°, and catchments and lakes are measured on the ground", () => {

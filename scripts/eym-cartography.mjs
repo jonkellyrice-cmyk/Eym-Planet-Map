@@ -12,6 +12,7 @@ import { polygonize } from "./cartography-regions.mjs";
 import { EYM_LAYOUT, EYM_SURFACE_MODEL, frameEastScale, frameToLatLon, fromLocal, greatCircleKm } from "./eym-surface.mjs";
 import { normLon, unwrapRing } from "./geo-wrap.mjs";
 import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
+import { waterKept, yearRunoffOf } from "./eym-river-flow.mjs";
 import { carenRelief } from "./eym-caren-relief.mjs";
 import { rainReader } from "./eym-rain.mjs";
 import { seaLevelTemperatureC, zonalPrecipitationMm } from "./eym-seasons.mjs";
@@ -108,7 +109,7 @@ class MinHeap {
  * queue sifts step for step as the array heap it replaces did, so squares of equal height leave it in the same
  * order and today's rivers are, point for point, what they were.
  */
-function seededHydrology(frame, { riverAreaKm2 = 18_000, lakeDepthM = 25, lakeMinCells = 5, thinKm = 0 } = {}, stats = null) {
+function seededHydrology(frame, { riverAreaKm2 = 18_000, lakeDepthM = 25, lakeMinCells = 5, thinKm = 0, runoffAt = null, referenceMm = WORLD_INPUTS.rivers.farReferenceRunoffMm } = {}, stats = null) {
   const { grid, outline, elevation } = frame, { cols, rows, cellKm } = grid, n = cols * rows;
   const filled = new Float32Array(n), receiver = new Int32Array(n).fill(-1), done = new Uint8Array(n);
   let land = 0; for (let i = 0; i < n; i += 1) land += outline[i];
@@ -137,15 +138,21 @@ function seededHydrology(frame, { riverAreaKm2 = 18_000, lakeDepthM = 25, lakeMi
   // Each square's own area: the same everywhere on a flat frame, less by its row's narrowing on a sphere grid.
   const squareKm2 = frame.sphere ? Float64Array.from({ length: rows }, (_, r) => cellKm * cellKm * frameEastScale(frame, grid.y0 - (r + 0.5) * cellKm)) : null;
   const areaOf = (i) => (squareKm2 ? squareKm2[Math.floor(i / cols)] : cellKm * cellKm);
+  const local = (i) => [grid.x0 + (i % cols + 0.5) * cellKm, grid.y0 - (Math.floor(i / cols) + 0.5) * cellKm];
+  const place = (x, y) => (frame.sphere ? frameToLatLon(frame, x, y) : fromLocal(frame.center, x, y));
   const acc = new Float32Array(n);
-  for (let k = ordered - 1; k >= 0; k -= 1) { const i = order[k]; acc[i] += areaOf(i); if (receiver[i] >= 0 && outline[receiver[i]]) acc[receiver[i]] += acc[i]; }
+  // What a square passes on is the land it drains. With the runoff (`runoffAt(lat, lon)`, mm a year: rivers carry
+  // the climate), it is that land counted by the water it sheds against the reference runoff, so wet country makes
+  // rivers of small catchments and dry country none; and what crosses ground that sheds none dwindles on the way
+  // (scripts/eym-river-flow.mjs `waterKept`), so a river can die in a dry basin.
+  const own = runoffAt ? Float32Array.from({ length: n }, (_, i) => (outline[i] ? runoffAt(...place(...local(i))) ?? referenceMm : 0)) : null;
+  for (let k = ordered - 1; k >= 0; k -= 1) { const i = order[k]; if (own) acc[i] = acc[i] * waterKept(own[i], cellKm) + areaOf(i) * own[i] / referenceMm; else acc[i] += areaOf(i); if (receiver[i] >= 0 && outline[receiver[i]]) acc[receiver[i]] += acc[i]; }
   const isRiver = (i) => outline[i] && acc[i] >= riverAreaKm2;
   const upstreamRivers = new Int32Array(n);
   for (let i = 0; i < n; i += 1) if (isRiver(i) && receiver[i] >= 0 && isRiver(receiver[i])) upstreamRivers[receiver[i]] += 1;
   const heads = []; for (let i = 0; i < n; i += 1) if (isRiver(i) && !upstreamRivers[i]) heads.push(i);
   heads.sort((a, b) => acc[b] - acc[a] || a - b);
-  const traced = new Uint8Array(n), local = (i) => [grid.x0 + (i % cols + 0.5) * cellKm, grid.y0 - (Math.floor(i / cols) + 0.5) * cellKm];
-  const place = (x, y) => (frame.sphere ? frameToLatLon(frame, x, y) : fromLocal(frame.center, x, y));
+  const traced = new Uint8Array(n);
   const rivers = [];
   for (const head of heads) {
     const path = []; let i = head, mouth = "ocean";
@@ -153,6 +160,8 @@ function seededHydrology(frame, { riverAreaKm2 = 18_000, lakeDepthM = 25, lakeMi
       path.push(i);
       if (!outline[i]) break;
       if (traced[i] && path.length > 1) { mouth = "river"; break; }
+      // (With the runoff: a river whose water has dwindled below a river's ends there, in a dry basin.)
+      if (own && path.length > 1 && !isRiver(i)) { mouth = "dry-basin"; break; }
       traced[i] = 1; i = receiver[i];
     }
     if (path.length < 4) continue;
@@ -429,10 +438,12 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
     }
   }
 
-  // Seeded continents get routed rivers and basin lakes; Caren and Garyk keep their authored water.
+  // Seeded continents get routed rivers and basin lakes; Caren and Garyk keep their authored water. Their rivers
+  // carry the climate: each square sheds the runoff its rain and warmth leave (scripts/eym-river-flow.mjs).
+  const cellRunoffAt = (lat, lon) => { const cell = at(Math.floor((lat + 90) / res), Math.floor((lon + 180) / res)); return cell?.landCovered ? yearRunoffOf(cell.precipitationMm, cell.temperatureC) : null; };
   const generatedRivers = [], generatedLakes = [];
   for (const frame of frames.filter((f) => f.origin === "seeded" && f.continent)) {
-    const { rivers, lakes } = seededHydrology(frame, coarseWater(frame));
+    const { rivers, lakes } = seededHydrology(frame, { ...coarseWater(frame), runoffAt: rainOf ? cellRunoffAt : null });
     for (const river of rivers) generatedRivers.push({ ...river, continent: frame.continent });
     for (const lake of lakes) generatedLakes.push({ ...lake, continent: frame.continent });
   }
@@ -550,6 +561,9 @@ export function buildEymGeography({ surface, sampler, frames, traced, labels, ro
     raster: {
       elevationM: cells.map((cell) => cell.elevationM),
       oceanMaskBase64: Buffer.from(cells.map((cell) => (cell.ocean ? 1 : 0))).toString("base64"),
+      // The land's yearly rain (the rain budget's), for the daily weather: one byte for each land square in the
+      // raster's order, 2.5 × the square root of the millimetres (so 255 is about 10,400 mm).
+      ...(rainOf ? { landRainSqrtBase64: Buffer.from(cells.filter((cell) => !cell.ocean).map((cell) => Math.min(255, Math.round(2.5 * Math.sqrt(cell.precipitationMm))))).toString("base64") } : {}),
       biome: encodeByteField("biome"), soil: encodeByteField("soil"), resource: encodeByteField("resource"),
       ...(tect ? { bedrock: encodeByteField("bedrock") } : {}),
     },

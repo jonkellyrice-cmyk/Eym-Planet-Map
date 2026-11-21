@@ -78,6 +78,24 @@ function cellBalance(climate, cellId, elevationM) {
   return hit;
 }
 
+/**
+ * How much of the water coming down to a place is passed on across `stepKm` of ground whose own yearly runoff is
+ * `ownMm`: all of it where the land itself sheds water (`aridMm` or more), and up to `aridLossPer100Km` less for
+ * each 100 km where it sheds none (lost to the air and the bed).
+ */
+export const waterKept = (ownMm, stepKm, dials = WORLD_INPUTS.rivers) => (ownMm >= dials.aridMm ? 1 : Math.max(0, 1 - dials.aridLossPer100Km * (1 - ownMm / dials.aridMm) * stepKm / 100));
+
+/**
+ * A year's runoff (mm) from a year's rain (mm) and mean temperature (°C), where the months are not known: what the
+ * rain leaves after soil and plant by Budyko's curve of the world's catchments (nearly nothing where the warmth
+ * could lift far more than falls, most of it where far more falls than the warmth could lift). The warmth lifts
+ * some 5.5 mm a month for each degree above freezing, as in the monthly balance.
+ */
+export function yearRunoffOf(rainMm, meanC) {
+  if (!(rainMm > 0)) return 0; const pet = 12 * Math.min(160, 5.5 * Math.max(0, meanC)); if (pet <= 0) return rainMm;
+  const dry = pet / rainMm; return rainMm * (1 - Math.sqrt(dry * Math.tanh(1 / dry) * (1 - Math.exp(-dry))));
+}
+
 /** The year's runoff (mm) of a climate cell at a height (m): what its rain leaves to the streams after soil and plant. Null without the climate or the cell. */
 export function yearRunoffMm(asset, cellId, elevationM) {
   const climate = flowClimate(asset); if (!climate) return null;

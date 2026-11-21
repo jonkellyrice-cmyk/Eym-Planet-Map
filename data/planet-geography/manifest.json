@@ -36,7 +36,7 @@
       "system": "Mitkear",
       "body": "Eym",
       "seed": "741343188e552de0",
-      "inputFingerprint": "1482d526f0af01a4bac4",
+      "inputFingerprint": "3b3a6553d8a8bb3dd6fa",
       "path": "data/planet-geography/mitkear/eym.json",
       "summary": {
         "waterFraction": 0.79859,
@@ -63,11 +63,11 @@
         },
         "resources": {
           "marine-biological": 1332,
-          "hydrothermal-seafloor": 147,
-          "sedimentary-basin": 296,
+          "hydrothermal-seafloor": 145,
+          "sedimentary-basin": 302,
           "orogenic-metallic": 18,
-          "alluvial-agricultural": 3,
-          "upland-mineral": 4
+          "alluvial-agricultural": 1,
+          "upland-mineral": 2
         }
       }
     },

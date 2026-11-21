@@ -3,6 +3,7 @@
 // markers transcribed from their maps, the layout in scripts/eym-surface.mjs
 // and Eym's registry row. Shared by the geography and cartography generators
 // and validators; the result is cached per process.
+import { WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 import { existsSync, readFileSync } from "node:fs";
 import { buildEymSurface, EYM_LAYOUT, EYM_SURFACE_MODEL } from "../scripts/eym-surface.mjs";
 import { buildEymGeography, eymInputFingerprint } from "../scripts/eym-cartography.mjs";
@@ -46,7 +47,7 @@ function overridesInput() {
 }
 
 /** The code the cartography is made by, Caren's relief rule and the rain it reads (scripts/eym-cartography.mjs, eym-caren-relief.mjs, data/eym/rain.json): a change to any of them is a change of input, so the build makes the cartography again. */
-const carenRuleText = () => readFileSync(new URL("scripts/eym-cartography.mjs", root), "utf8") + readFileSync(new URL("scripts/eym-caren-relief.mjs", root), "utf8") + rainInput().text;
+const carenRuleText = () => readFileSync(new URL("scripts/eym-cartography.mjs", root), "utf8") + readFileSync(new URL("scripts/eym-caren-relief.mjs", root), "utf8") + rainInput().text + JSON.stringify(WORLD_INPUTS.rivers);
 
 export const isEymRow = (row) => row?.geography_model_version === EYM_SURFACE_MODEL;
 

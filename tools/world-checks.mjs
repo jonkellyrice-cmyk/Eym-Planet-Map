@@ -79,8 +79,8 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
   rule("height-range", "no mountain above 9,000 m and no trench below 11,000 m", top <= 9000 && deep >= -11000, `${deep} m to ${top} m`);
 
   // Water runs somewhere.
-  const ends = new Set(["ocean", "river", "lake"]), strays = asset.hydrology.rivers.filter((r) => !ends.has(String(r.mouth).replace(/[-:].*$/, "")) || (r.points?.length ?? 0) < 2);
-  rule("rivers-end", "every river has a course and ends in the sea, a lake or another river", strays.length === 0, strays.slice(0, 5).map((r) => `${r.id} → ${r.mouth}`).join(", "));
+  const ends = new Set(["ocean", "river", "lake", "dry"]), strays = asset.hydrology.rivers.filter((r) => !ends.has(String(r.mouth).replace(/[-:].*$/, "")) || (r.points?.length ?? 0) < 2);
+  rule("rivers-end", "every river has a course and ends in the sea, a lake, another river or a dry basin", strays.length === 0, strays.slice(0, 5).map((r) => `${r.id} → ${r.mouth}`).join(", "));
   const uphill = asset.hydrology.rivers.filter((r) => r.elevationsM?.length > 1 && r.elevationsM.at(-1) > r.elevationsM[0]);
   rule("rivers-downhill", "every river ends lower than it starts", uphill.length === 0, uphill.map((r) => `${r.id} (${r.continent}, +${r.elevationsM.at(-1) - r.elevationsM[0]} m)`).join(", "), "should");
 

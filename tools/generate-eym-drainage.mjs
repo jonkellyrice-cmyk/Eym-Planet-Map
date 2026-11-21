@@ -23,7 +23,8 @@ import { pathToFileURL } from "node:url";
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
 import { LATTICE_DEG, globeNoise, latticeNode, localContext } from "../scripts/eym-local-detail.mjs";
 import { bboxWrap, lonInExtent, lonOffset, normLon } from "../scripts/geo-wrap.mjs";
-import { yearRunoffMm } from "../scripts/eym-river-flow.mjs";
+import { waterKept, yearRunoffMm } from "../scripts/eym-river-flow.mjs";
+export { waterKept };
 import { WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/planet-cartography/mitkear/eym-drainage.json", root), ASSET = new URL("data/planet-cartography/mitkear/eym.json", root), FLOW = new URL("data/planet-cartography/mitkear/eym-flow.json", root);
@@ -51,13 +52,6 @@ export class MinHeap {
   push(i) { const a = this.a, keys = this.keys; let n = this.size; a[n] = i; this.size += 1; while (n) { const p = (n - 1) >> 1; if (keys[a[p]] <= keys[a[n]]) break; const t = a[p]; a[p] = a[n]; a[n] = t; n = p; } }
   pop() { const a = this.a, keys = this.keys, top = a[0]; this.size -= 1; const size = this.size; if (size) { a[0] = a[size]; let n = 0; for (;;) { const l = 2 * n + 1, r = l + 1; let m = n; if (l < size && keys[a[l]] < keys[a[m]]) m = l; if (r < size && keys[a[r]] < keys[a[m]]) m = r; if (m === n) break; const t = a[m]; a[m] = a[n]; a[n] = t; n = m; } } return top; }
 }
-
-/**
- * How much of the water coming down to a place is passed on across `stepKm` of ground whose own yearly runoff is
- * `ownMm`: all of it where the land itself sheds water (`aridMm` or more), and up to `aridLossPer100Km` less for
- * each 100 km where it sheds none (lost to the air and the bed).
- */
-export const waterKept = (ownMm, stepKm, dials = WORLD_INPUTS.weather.rivers) => (ownMm >= dials.aridMm ? 1 : Math.max(0, 1 - dials.aridLossPer100Km * (1 - ownMm / dials.aridMm) * stepKm / 100));
 
 /**
  * The channels of one land mass (its outline's box, with a margin of sea). `stats`, when given, is filled with what
@@ -108,7 +102,7 @@ export function drainLand(ctx, outline, nearRiver, stats = null, runoffAt = null
   // The water each node passes on (km² × mm a year): its own runoff (what the rain leaves after soil and plant, by
   // its climate and height) and what comes down to it. Crossing arid ground (runoff under `aridMm`) a stream loses
   // water to the air and its bed: up to `aridLossPer100Km` of it for each 100 km, so a river can dwindle and die.
-  const water = new Float64Array(n), W = WORLD_INPUTS.weather.rivers;
+  const water = new Float64Array(n), W = WORLD_INPUTS.rivers;
   if (runoffAt) for (let k = ordered - 1; k >= 0; k -= 1) {
     const i = order[k]; if (!land[i]) continue; const r = (i / cols) | 0, own = runoffAt((i0 + r) * LATTICE_DEG, (j0 + (i - r * cols)) * LATTICE_DEG, z[i]) ?? 0;
     const kept = waterKept(own, CELL_KM, W);

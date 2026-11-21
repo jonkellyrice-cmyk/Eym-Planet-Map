@@ -162,3 +162,20 @@ test("the islands' ridge west of Caren is in the sea's temperatures, and colder 
   const withRidge = rule(() => null, (lat, lon) => (Math.abs(lat - 2) < 3 && Math.abs(lon + 14) < 3 ? -1.0 : -0.5)), without = rule(() => null, () => -0.5);
   assert.ok(year(withRidge, 3, -14) < year(without, 3, -14) * 0.93, `${Math.round(year(withRidge, 3, -14))} mm against ${Math.round(year(without, 3, -14))} mm`);
 });
+
+test("the daily weather rains the budget's rain: a place's yearly total in the weather is its square's in the rain file", async () => {
+  const { wetnessOf } = await import("../scripts/eym-weather.mjs"), { environmentField } = await import("../scripts/eym-seasons.mjs");
+  const asset = json("data/planet-cartography/mitkear/eym.json"), field = environmentField(asset), reader = rainReader(json("data/eym/rain.json")), yieldOver = WORLD_INPUTS.weather.landAfternoonYield;
+  // Every land square of the asset carries its yearly rain (to the byte's rounding), and the sea none.
+  const cell = field.cellAt(-5.5, 0.5), own = reader.landYear(cell.latIndex, cell.lonIndex).annualMm;
+  assert.ok(cell.rainMm != null && Math.abs(cell.rainMm - own) < 0.03 * own + 5 && field.cellAt(0, -40).rainMm == null, `${cell.rainMm} mm in the asset, ${own} mm in the rain file`);
+  // Wetter square, wetter weather, in proportion; the sea and a land without the figure are as before.
+  const at = (rainMm) => wetnessOf({ ocean: false, rainMm, biome: "savanna" }, 5);
+  assert.ok(Math.abs(at(2000) / at(1000) - 2) < 1e-9 && Math.abs(at(zonalPrecipitationMm(5)) - 1 / yieldOver) < 1e-9 && at(50) < 0.05);
+  assert.equal(wetnessOf({ ocean: true }, 5), 1); assert.equal(wetnessOf({ ocean: false, biome: "hot-desert" }, 5), 0.25);
+  // Four years of the weather over Caren and Garyk (the wind file's yearly rain) against the budget, square by square.
+  const wind = json("data/planet-cartography/mitkear/eym-wind.json"), mm = Buffer.from(wind.land.annualMmU16Base64, "base64"), ratios = [];
+  wind.land.cells.forEach((id, k) => { const y = reader.landYear(Math.floor(id / 360), id % 360); if (y && y.annualMm > 100) ratios.push(mm.readUInt16LE(k * 2) / y.annualMm); });
+  ratios.sort((a, b) => a - b); const q = (p) => ratios[Math.floor(p * (ratios.length - 1))];
+  assert.ok(ratios.length > 200 && q(0.5) > 0.93 && q(0.5) < 1.07 && q(0.1) > 0.85 && q(0.9) < 1.2, `the weather's rain is ${q(0.1).toFixed(2)} to ${q(0.9).toFixed(2)} of the budget's (middle ${q(0.5).toFixed(2)})`);
+});
