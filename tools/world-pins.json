@@ -20,13 +20,13 @@
         "coasts": 84318
       }
     },
-    "tectonicsContentSha256": "8ca5a62d8237b8c884b3691e836a79f736704223e822cf6dd0e34fa851f5994f",
-    "tectonicsNote": "Recorded anew on 20 November 2026 (canon: Caren in the plate record). The plates, their poles, speeds and boundaries, the continents, the rasters and the mantle are what they were; the history's entry for Caren, Caren's own record, the arc volcanoes of the Caren Plate's far edges and the name of two plates' speed rule changed. Recorded again the same day for the plume under the islands west of Caren (one volcano, its ridge of seamounts and one line of the history added; nothing else)."
+    "tectonicsContentSha256": "81127914c177383bf6359693ad9c3ae91246a2418df04ff335dd9b29c61dd093",
+    "tectonicsNote": "Recorded anew on 20 November 2026 (canon: Caren in the plate record). The plates, their poles, speeds and boundaries, the continents, the rasters and the mantle are what they were; the history's entry for Caren, Caren's own record, the arc volcanoes of the Caren Plate's far edges and the name of two plates' speed rule changed. Recorded again the same day for the plume under the islands west of Caren (one volcano, its ridge of seamounts and one line of the history added; nothing else). Recorded again on 21 November 2026 for the ranges' heights by their histories (scripts/eym-orogeny.mjs): each range's height, mean height, crust, unroofing and history, and the report's lines about them; the plates, poles, speeds, boundaries, continents, the ranges' courses, the rasters, the volcanoes, the mantle and the history's stages are what they were (the same seed was chosen)."
   },
   "managed": {
     "registryCsvSha256": {
-      "value": "0a1d2b377e66535cb94932ef99944a968fc5cd2578824cdbf6bd33964f10e0eb",
-      "note": "The far continents' rivers by runoff; the daily weather rains the budget's yearly rain"
+      "value": "98f3ac3262337f8209dc4692c310c2cb000a7721480b3108df3f342bfb3b257a",
+      "note": "Ranges' heights by their histories (eym-orogeny-v1)"
     }
   }
 }

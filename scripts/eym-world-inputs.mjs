@@ -234,6 +234,27 @@ export const WORLD_INPUTS = deepFreeze({
   },
 
   /**
+   * How high a range stands, from its history (scripts/eym-orogeny.mjs; owner, 20 November 2026). Normal crust is
+   * `crustKm` thick and cannot be thickened beyond `maxCrustKm` (it spreads sideways instead: Tibet's is about 70).
+   * The surface floats (1 − `crustDensity`/`mantleDensity`) of the excess above the sea. Of the plates' convergence
+   * `shorteningShare` shortens the belt (a subducting plate mostly goes down; where terranes are swept up more is
+   * taken; a collision takes half), over a belt `beltWidths` times the range's drawn width. The excess wears down
+   * at excess³ / `wearKm2Myr` a million years under `referenceRainMm` of rain, faster in wetter country. These are
+   * set by Earth's ranges, not Eym's: an Alpine collision (10 mm a year for 35 million years) stands with about
+   * 17 km of excess crust and a mean height of 2.5 km; the Himalaya (45 mm a year) with 28 km; a coastal range
+   * over a plate going down at 65 mm a year with 16 km; and a belt that stopped 300 million years ago keeps
+   * about 4 km, low mountains, as the Appalachians do.
+   * Summits stand `peakOverMean` times the belt's mean height. The rain a range wears under is its latitude's on an
+   * all-ocean Eym (the rain budget reads the heights, so the heights cannot read the budget).
+   */
+  orogeny: { crustKm: 35, maxCrustKm: 70, crustDensity: 2800, mantleDensity: 3300, shorteningShare: { subduction: 0.04, accretion: 0.08, collision: 0.5 }, beltWidths: 3, wearKm2Myr: 10000, referenceRainMm: 1000, peakOverMean: 2,
+    // The histories the plate record does not date range by range: the First Land's assembly closed its seams at
+    // `assembly.convergenceMmYr` for `assembly.activeMyr` and ended `assembly.endedMyrAgo` (420 to 320 Myr ago); the
+    // far continents' collisions of today began `collisionMyr` ago, and terranes have been swept up along their
+    // leading edges for `accretionMyr`. (The rates of today's ranges are the plates' own.)
+    assembly: { convergenceMmYr: 40, activeMyr: 100, endedMyrAgo: 320 }, collisionMyr: 25, accretionMyr: 120 },
+
+  /**
    * Rivers that carry the climate (owner, 20 November 2026; scripts/eym-river-flow.mjs, the drainage and the far
    * continents' routing). A stream crossing arid ground (where the land's own yearly runoff is under `aridMm`) loses
    * water to the air and its bed: up to `aridLossPer100Km` of what it carries for each 100 km (as the Nile does in
