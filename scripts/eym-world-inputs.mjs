@@ -277,8 +277,10 @@ export const WORLD_INPUTS = deepFreeze({
    * the Sudd and the Okavango in its delta), so a river can dwindle and die in a dry basin. On the far continents a
    * square counts toward a river by the water it sheds against `farReferenceRunoffMm` (the mean runoff of their
    * land, fixed): a square shedding twice that counts double, so wet country has more rivers and dry country fewer.
+   * A river drawn on the maps runs in a valley it has cut: where the drainage routes water over the land, the
+   * ground along a drawn river lies `valleyFloorM` lower, so the land beside it drains into it.
    */
-  rivers: { aridMm: 25, aridLossPer100Km: 0.2, farReferenceRunoffMm: 650 },
+  rivers: { aridMm: 25, aridLossPer100Km: 0.2, farReferenceRunoffMm: 650, valleyFloorM: 60 },
 
   /** The sea floor's shape (scripts/eym-seafloor.mjs): shelf widths (km) by margin, the slope's width, the abyss's run. */
   seaFloor: { shelfKm: { active: 50, passive: 220 }, slopeKm: 260, abyssKm: 1500 },

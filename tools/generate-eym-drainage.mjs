@@ -74,8 +74,10 @@ export function drainLand(ctx, outline, nearRiver, stats = null, runoffAt = null
     land[i] = nd.land && !nd.water ? 1 : 0;
     // The coarse surface steps between relief classes; noise keyed to the world breaks its flats so they drain in branches.
     z[i] = nd.elevationM + 25 * globeNoise(v, 30, 4, 91) + 12 * globeNoise(v, 7, 2, 95) + 60 * Math.min(nd.relief, 3) * globeNoise(v, 12, 3, 93);
-    if (land[i]) { landNodes += 1; river[i] = nearRiver(lat, lon) ? 1 : 0; }
+    if (land[i]) { landNodes += 1; river[i] = nearRiver(lat, lon) ? 1 : 0; if (river[i]) z[i] -= WORLD_INPUTS.rivers.valleyFloorM; }
   }
+  // (The known rivers run in valleys they have cut: along each the surface the water is routed over is lowered by
+  // `valleyFloorM`, so the land beside a drawn river drains into it, as it must to have made the river.)
   ctx.lattice.clear(); // the nodes' facts are not needed again: let them go before the next land mass
   // Fill hollows from the sea (and the lakes and the box's edge), recording where each node drains.
   // A filled hollow is flat; an even step across it sends the water in ruler-straight lines from where it spills, so each node's
