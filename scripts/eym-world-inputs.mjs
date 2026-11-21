@@ -255,6 +255,22 @@ export const WORLD_INPUTS = deepFreeze({
     assembly: { convergenceMmYr: 40, activeMyr: 100, endedMyrAgo: 320 }, collisionMyr: 25, accretionMyr: 120 },
 
   /**
+   * What the land sheds and where it rests, and the crust under it (scripts/eym-sediment.mjs, tools/generate-eym-
+   * crust.mjs; owner, 20 November 2026). A square wears `flatMPerMyr` even where flat and dry, and `steepMPerMyr`
+   * more for each kilometre it stands above its lowest neighbour under `referenceRunoffMm` of runoff (about 50 m a
+   * million years is the world's mean on Earth; a kilometre of relief in wet country sheds several times that),
+   * divided by its rock's hardness (`rock`: granite and quartzite wear slowly, shale fast). Ground gentler than
+   * `plainSlopeMPerKm` keeps up to `plainKeeps` of what comes down to it; a hollow deeper than `basinDepthM` below its lip is a
+   * closed basin and keeps all that reaches it; `deltaShare` of what reaches the sea is
+   * laid at the mouth and the rest along the shelf beside it. Thicknesses are today's rates kept up for
+   * `depositMyr` (the time since the First Land broke up), no thicker than `maxFillKm`. Rock that formed deep
+   * (granite, gneiss, metamorphic rock, marble, quartzite) at the surface has been unroofed at least
+   * `basementUnroofedKm`; a cover of sediment or lava has not.
+   */
+  sediment: { flatMPerMyr: 5, steepMPerMyr: 150, referenceRunoffMm: 650, plainSlopeMPerKm: 1.5, plainKeeps: 0.35, basinDepthM: 300, deltaShare: 0.5, depositMyr: 190, maxFillKm: 12, basementUnroofedKm: 10,
+    rock: { "granite-gneiss": 1.6, "godstone-granite": 2.2, "godstone-quartzite": 2.5, metamorphic: 1.4, marble: 1.1, volcanic: 1, limestone: 0.9, "caren-limestone": 0.9, "sandstone-shale": 0.6 } },
+
+  /**
    * Rivers that carry the climate (owner, 20 November 2026; scripts/eym-river-flow.mjs, the drainage and the far
    * continents' routing). A stream crossing arid ground (where the land's own yearly runoff is under `aridMm`) loses
    * water to the air and its bed: up to `aridLossPer100Km` of what it carries for each 100 km (as the Nile does in

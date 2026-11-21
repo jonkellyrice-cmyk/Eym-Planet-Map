@@ -149,6 +149,14 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
     rule("rain-budget", "the rain file holds every land square, with deserts and wet coasts and no square over 9,000 mm; the tropics' land is wetter than the dry belts'", s.landSquares > 10000 && s.wettest.mm < 9000 && s.driest.mm < 100 && Math.min(...tropics.map((b) => b.meanMm)) > Math.min(...dry.map((b) => b.meanMm)), `${s.landSquares} land squares; wettest ${s.wettest.mm} mm, driest ${s.driest.mm} mm; land between 20° S and 20° N ${tropics.map((b) => b.meanMm).join(", ")} mm by ten degrees`);
   }
 
+  // The crust floats the land, and what the land sheds comes to rest somewhere (scripts/eym-sediment.mjs).
+  if (world.crust) {
+    const s = world.crust.summary, O = WORLD_INPUTS.orogeny;
+    rule("crust-floats", "every land square's crust is between the normal thickness and the crust's limit", s.crustKm[0] >= O.crustKm - 0.01 && s.crustKm[2] <= O.maxCrustKm + 0.01 && s.crustKm[1] > O.crustKm, `${s.crustKm.join(" / ")} km (least, mean, most)`);
+    rule("sediment-balance", "all the rock the land sheds comes to rest: in deltas, on shelves, on plains or in closed basins", Math.abs(s.shedKm3PerMyr - s.restedKm3PerMyr) <= 0.005 * s.shedKm3PerMyr && s.restsBy.delta > 0 && s.restsBy.plain > 0, `${s.shedKm3PerMyr} km³ a million years shed, ${s.restedKm3PerMyr} at rest (${Object.entries(s.restsBy).map(([k, v]) => `${k} ${v}`).join(", ")})`);
+    rule("wear-plausible", "the land's mean wear is between 20 and 120 m a million years (Earth's is about 50)", s.wearMPerMyr.mean >= 20 && s.wearMPerMyr.mean <= 120, `mean ${s.wearMPerMyr.mean}, middle ${s.wearMPerMyr.middle}, most ${s.wearMPerMyr.most} m a million years`);
+  }
+
   // Rivers carry the climate (owner, 20 November 2026): the drainage measures the land each drawn river truly drains
   // and its runoff. The drawn rivers stay as drawn; one whose modelled flow is far below what its drawn bed would
   // carry is reported, for the owner to weigh.
@@ -191,6 +199,7 @@ export async function worldChecks(world, { current = false, pins = readPins() } 
     const { magneticSourcesSha256 } = await import("./generate-eym-magnetic.mjs"); if (world.magnetic?.sourcesSha256 !== magneticSourcesSha256()) stale.push("magnetic survey");
     const { carenSourcesSha256 } = await import("./generate-eym-caren.mjs"); if (world.caren?.sourcesSha256 !== carenSourcesSha256()) stale.push("Caren's survey");
     const { rainSourcesSha256 } = await import("./generate-eym-rain.mjs"); if (world.rain?.sourcesSha256 !== rainSourcesSha256()) stale.push("the rain");
+    const { crustSourcesSha256 } = await import("./generate-eym-crust.mjs"); if (world.crust?.sourcesSha256 !== crustSourcesSha256()) stale.push("the crust and sediment");
     const fp = regionFingerprint(); if (world.regionFingerprint?.shapes !== fp.shapes || world.regionFingerprint?.paint !== fp.paint) stale.push("Region fingerprint");
     rule("up-to-date", "every derived file is up to date with what it is made from", stale.length === 0, stale.length ? `stale: ${stale.join(", ")} (run npm run world)` : "");
     const managed = managedPinsOf(world), moved = Object.keys(managed).filter((k) => pins.managed[k]?.value !== managed[k]);
