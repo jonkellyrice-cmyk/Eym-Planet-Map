@@ -25,7 +25,10 @@ export const FAULTS = Object.freeze({
 });
 /** Eruptions per year by activity, and the explosivity (VEI 0–6) they reach, by share. */
 const ERUPTION_RATE = { active: 1 / 5, dormant: 1 / 400, extinct: 0 };
-const VEI_SHARES = { subduction: [0.12, 0.3, 0.3, 0.17, 0.08, 0.025, 0.005], hotspot: [0.45, 0.35, 0.15, 0.04, 0.01, 0, 0] };
+// (The great eruptions are as rare as on Earth, now that they cool the weather: with some twenty eruptions a year
+// on Eym, a cataclysmic one, VEI 5, about once in ten years and a colossal one, VEI 6, about once in a century.
+// They were five times as common.)
+const VEI_SHARES = { subduction: [0.14, 0.33, 0.32, 0.165, 0.04, 0.0045, 0.0005], hotspot: [0.45, 0.35, 0.15, 0.04, 0.01, 0, 0] };
 const VEI_WORDS = ["gentle lava flows", "small explosions and lava", "an explosive eruption with an ash column", "a large explosive eruption", "a great explosive eruption", "a cataclysmic eruption", "a colossal eruption"];
 /** Felt-intensity words, Mercalli I–XII. */
 export const MERCALLI = Object.freeze(["", "not felt", "weak (felt by a few at rest)", "weak (felt indoors)", "light (windows rattle, sleepers wake)", "moderate (felt by all, crockery breaks)", "strong (plaster cracks, chimneys fall)", "very strong (poor buildings damaged)", "severe (walls collapse)", "violent (houses shift off foundations)", "extreme (most stone buildings fall)", "extreme (bridges and roads destroyed)", "total destruction"]);
@@ -66,8 +69,41 @@ export function boundaryPoints(geology) {
   const bytes = (b64) => (typeof Buffer !== "undefined" ? Uint8Array.from(Buffer.from(b64, "base64")) : Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)));
   const read = (b64) => { const u = bytes(b64), v = new DataView(u.buffer), out = []; for (let i = 0; i + 3 < u.length; i += 4) out.push([v.getInt16(i, true) / 10, v.getInt16(i + 2, true) / 10]); return out; };
   const out = { trenches: read(b.trenches), collisions: read(b.collisions), ridges: read(b.ridges), intraplate: b.intraplate ? read(b.intraplate) : [] };
+  // Each point's own measure (see `faultScale`): how fast its plates move against each other, and how long the
+  // unbroken stretch of boundary it lies on is.
+  const scales = {};
+  for (const kind of ["trenches", "collisions", "ridges"]) {
+    const points = out[kind], rates = b.ratesMmYr?.[kind] ? bytes(b.ratesMmYr[kind]) : null, group = points.map((_, i) => i), find = (i) => { while (group[i] !== i) { group[i] = group[group[i]]; i = group[i]; } return i; };
+    for (let i = 0; i < points.length; i += 1) for (let j = i + 1; j < points.length; j += 1) { if (Math.abs(points[i][0] - points[j][0]) > 3) continue; if (distanceKm(points[i], points[j]) <= STRETCH_GAP_KM) group[find(i)] = find(j); }
+    const size = new Map(); points.forEach((_, i) => { const g = find(i); size.set(g, (size.get(g) ?? 0) + 1); });
+    scales[kind] = points.map((_, i) => faultMeasure(kind, rates ? rates[i] : null, size.get(find(i)) * STRETCH_STEP_KM));
+  }
+  out.scales = scales;
   unpacked.set(b, out);
   return out;
+}
+
+// ---------------------------------------------------------------- faults by their causes
+
+/**
+ * A boundary's earthquakes follow what drives them (owner's direction of 20 November 2026). The rate of quakes
+ * grows with how fast the plates move against each other there (the strain to be released: in proportion, against
+ * the `REFERENCE_MM_YR` the kind's rate was set for, between a fifth and three times). The largest quake a fault can
+ * make grows with the length that can break at once: about magnitude 5.1 + 1.16 × log10(km) for a rupture's
+ * length (Wells and Coppersmith 1994), a megathrust breaking far deeper and so greater by `DEPTH_BONUS`; never
+ * more than the kind's own greatest.
+ */
+export const REFERENCE_MM_YR = Object.freeze({ trenches: 50, collisions: 30, ridges: 40 });
+const STRETCH_GAP_KM = 260, STRETCH_STEP_KM = 111, DEPTH_BONUS = Object.freeze({ trenches: 1.4, collisions: 0.6, ridges: 0 });
+/** A fault point's own measure from its plates' speed (mm a year, or null where it is not recorded) and its stretch's length (km): { rate (times the kind's), maxMagnitude }. */
+export function faultMeasure(kind, speedMmYr, stretchKm) {
+  const f = FAULTS[kind], rate = speedMmYr == null ? 1 : Math.min(3, Math.max(0.2, speedMmYr / REFERENCE_MM_YR[kind]));
+  const byLength = stretchKm == null ? f.maxMagnitude : 5.08 + 1.16 * Math.log10(Math.max(20, stretchKm)) + DEPTH_BONUS[kind];
+  return { rate, maxMagnitude: Math.round(Math.min(f.maxMagnitude, Math.max(MIN_MAGNITUDE + 1, byLength)) * 10) / 10, speedMmYr, stretchKm };
+}
+/** The measure of fault point `index` of a kind in a geology section ({ rate: 1, maxMagnitude: the kind's } where there is none, as for the small faults inside a continent). */
+export function faultScale(geology, kind, index) {
+  return boundaryPoints(geology)?.scales?.[kind]?.[index] ?? { rate: 1, maxMagnitude: FAULTS[kind].maxMagnitude };
 }
 
 // ---------------------------------------------------------------- the catalogue
@@ -76,10 +112,10 @@ export function boundaryPoints(geology) {
  * Every quake from one boundary point in one Eym year with a magnitude in [band, band + 1). Each band has its
  * own draws, so asking for the large quakes only (from far away) gives exactly the large quakes of the full list.
  */
-function quakesOf(kind, index, at, year, band) {
-  const f = FAULTS[kind], lo = band, hi = Math.min(band + 1, f.maxMagnitude); if (lo >= hi) return [];
+function quakesOf(kind, index, at, year, band, scale = null) {
+  const f = FAULTS[kind], lo = band, hi = Math.min(band + 1, scale?.maxMagnitude ?? f.maxMagnitude); if (lo >= hi) return [];
   const share = (m) => 10 ** -(m - MIN_MAGNITUDE), rng = rngFor(`${QUAKE_MODEL}|${kind}|${index}|${year}|${band}`), out = [];
-  const count = poisson(rng, f.rate * (share(lo) - share(hi)));
+  const count = poisson(rng, f.rate * (scale?.rate ?? 1) * (share(lo) - share(hi)));
   for (let k = 0; k < count; k += 1) {
     const timeMs = year * YEAR_MS + Math.floor(rng() * YEAR_MS);
     // Gutenberg–Richter within the band.
@@ -93,8 +129,8 @@ function quakesOf(kind, index, at, year, band) {
 }
 
 /** Every quake of MIN_MAGNITUDE or more from one fault point in one Eym year (all its bands): the catalogue itself, wherever it is felt. */
-export function faultQuakes(kind, index, at, year) {
-  const out = []; for (let band = MIN_MAGNITUDE; band < FAULTS[kind].maxMagnitude; band += 1) out.push(...quakesOf(kind, index, at, year, band));
+export function faultQuakes(kind, index, at, year, scale = null) {
+  const out = []; for (let band = MIN_MAGNITUDE; band < (scale?.maxMagnitude ?? FAULTS[kind].maxMagnitude); band += 1) out.push(...quakesOf(kind, index, at, year, band, scale));
   return out;
 }
 
@@ -112,6 +148,36 @@ function eruptionsOf(volcano, index, year) {
     out.push({ kind: "eruption", timeMs, endMs: timeMs + days * DAY_MS, vei, at: volcano.at, volcano: { kind: volcano.kind, setting: volcano.setting, heightM: volcano.heightM, activity: volcano.activity }, words: VEI_WORDS[vei] });
   }
   return out;
+}
+
+/**
+ * How much a great eruption cools the air at a latitude at a time (°C, a negative number or 0): ash and sulphur
+ * thrown into the high air dim the Sun for one to three years. A cataclysmic eruption (VEI 5) cools by about a
+ * tenth of a degree, a colossal one (VEI 6) by about half a degree at its worst, some months after it; the veil
+ * thins by half every `COOLING_HALF_YEARS`. An eruption within 25° of the equator veils the whole world; one
+ * farther from it mostly its own hemisphere. The eruptions are the catalogue's own (the same that shake and darken
+ * the places near them).
+ */
+export const COOLING_C = Object.freeze({ 5: 0.12, 6: 0.5 }), COOLING_HALF_YEARS = 0.9, COOLING_RISE_YEARS = 0.25;
+export function greatEruptions(geology, fromMs, toMs, minVei = 5) {
+  const out = [], firstYear = Math.floor(fromMs / YEAR_MS), lastYear = Math.floor(toMs / YEAR_MS);
+  (geology?.volcanoes ?? []).forEach((v, index) => { for (let year = firstYear; year <= lastYear; year += 1) for (const e of eruptionsOf(v, index, year)) if (e.vei >= minVei && e.timeMs >= fromMs && e.timeMs <= toMs) out.push(e); });
+  return out.sort((a, b) => a.timeMs - b.timeMs);
+}
+const coolingCache = new WeakMap();
+export function volcanicCoolingC(geology, timeMs, lat = 0) {
+  if (!geology?.volcanoes?.length) return 0;
+  // (The great eruptions of the four years before a year are found once for that year and kept.)
+  let years = coolingCache.get(geology); if (!years) coolingCache.set(geology, (years = new Map()));
+  const year = Math.floor(timeMs / YEAR_MS); let list = years.get(year); if (!list) { list = greatEruptions(geology, (year - 4) * YEAR_MS, (year + 1) * YEAR_MS); years.set(year, list); }
+  let cooling = 0;
+  for (const e of list) {
+    const t = (timeMs - e.timeMs) / YEAR_MS; if (t <= 0 || t > 4) continue;
+    const veil = Math.min(1, t / COOLING_RISE_YEARS) * 0.5 ** (Math.max(0, t - COOLING_RISE_YEARS) / COOLING_HALF_YEARS);
+    const reach = Math.abs(e.at[0]) <= 25 ? 1 : (e.at[0] >= 0) === (lat >= 0) ? 1 : 0.25;
+    cooling -= (COOLING_C[Math.min(6, e.vei)] ?? 0) * veil * reach;
+  }
+  return Math.round(cooling * 100) / 100;
 }
 
 /** How an eruption reaches a place `d` km away: the effects, or null if it does not. */
@@ -137,7 +203,8 @@ export function tremorsAt(geology, { lat, lon, fromMs, toMs, hardRock = false })
     (boundaries[kind] ?? []).forEach((at, index) => {
       // Only the bands that could be felt here (allowing for the epicentre's spread round the source point).
       const k0 = Math.max(0, Math.floor(feltFromMagnitude(distanceKm(here, at) - 170) - MIN_MAGNITUDE));
-      for (let band = MIN_MAGNITUDE + k0; band < f.maxMagnitude; band += 1) for (let year = firstYear; year <= lastYear; year += 1) for (const q of quakesOf(kind, index, at, year, band)) {
+      const scale = boundaries.scales?.[kind]?.[index] ?? null;
+      for (let band = MIN_MAGNITUDE + k0; band < (scale?.maxMagnitude ?? f.maxMagnitude); band += 1) for (let year = firstYear; year <= lastYear; year += 1) for (const q of quakesOf(kind, index, at, year, band, scale)) {
         if (q.timeMs < fromMs || q.timeMs > toMs) continue;
         const d = distanceKm(here, q.at); let intensity = feltIntensity(q.magnitude, d, q.depthKm);
         if (hardRock) intensity -= 1;

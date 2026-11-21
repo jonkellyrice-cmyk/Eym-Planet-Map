@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.42.0 (2026-11-21)
+
+Earthquakes by plate rate and fault length, and great eruptions that cool the weather (owner's direction of 20 November 2026, the causal-chain audit, checks 7 and 8; with it the roadmap's old item of volcanic climate effects).
+
+- *Checked first.* Earthquakes' rate and greatest size came from the boundary's kind alone (a trench, a collision, a ridge), whatever the plates did there. Eruptions were dated and sized but the weather ignored them.
+- *Earthquakes follow the plates.* The map's geology now records, for every point of plate boundary, how fast its two plates move against each other there (their own poles and rates: 0 to 138 mm a year at the trenches, 68 in the middle; 20 in the middle at the collisions; 59 at the ridges). A boundary's quakes are as many as that speed against the speed its kind's rate was set for (between a fifth and three times). The greatest quake a fault can make follows the length that can break at once (magnitude 5.1 + 1.16 × log10 of the kilometres, a megathrust greater for its depth), never more than its kind's greatest: Eym's boundaries are long, so only short stretches are held lower.
+- *Caren's own small faults are as they were* (they are not on a plate boundary): mostly under magnitude 4, rare 5 to 6, none larger, spread out.
+- *Great eruptions cool the weather.* A cataclysmic eruption (VEI 5) cools the air by about a tenth of a degree and a colossal one (VEI 6) by about half a degree at its worst, some months after it, fading by half every 0.9 years: one to three cooler years. One near the equator veils the whole world; one far from it mostly its own hemisphere. The eruptions are the catalogue's own, the same that darken the places near them.
+- *Great eruptions are as rare as on Earth.* With some twenty eruptions a year on Eym, a cataclysmic one now comes about once in ten years and a colossal one about once in a century; they were five times as common, which with the cooling would have kept a veil over the world without end. Smaller eruptions are a little more common in their place; how many eruptions there are is unchanged.
+- *Causal tests* (`tests/eym-quakes-causes.test.mjs`): the same fault at 10, 50 and 150 mm a year has quakes in proportion; a short stretch cannot make a great quake; Eym's twenty fastest trench points shake more than three times as often as its twenty slowest; a lone great eruption cools nothing before it, most within a year and less each year after; the weather at a place is cooler by just that.
+- *What changes for a reader:* the list of earthquakes felt at a place (more near fast boundaries, fewer near slow ones) and which eruptions are the great ones; temperatures a few tenths of a degree lower in the years after one. No map changes.
+- *Checks 6 and 9, reported.* The far continents' grown land has had a tectonic origin for every area since 0.33.0 (tested). The ocean has had the equator's undercurrent welling up over ridges and the trades' upwelling off west-facing coasts since 0.35.0, and the islands' effect is measured (0.36.0); its winds still follow belts that move with the Sun and are the same at every longitude, without the monsoon's reversal: that is the next step.
+- *Tests changed:* none weakened or removed; the new file is added.
+
 ## 0.41.0 (2026-11-21)
 
 The land drains into its drawn rivers (the owner's choice of 21 November 2026 for the drawn rivers that carried little water: carve the land to the rivers; the drawn rivers, lakes, coasts and peaks are not moved).
