@@ -36,7 +36,7 @@ test("more rain in a catchment, more water in its river: runoff is what the rain
 });
 
 test("a river crossing arid ground loses water and can die; over land that sheds water it loses none", () => {
-  const W = WORLD_INPUTS.weather.rivers;
+  const W = WORLD_INPUTS.rivers;
   assert.equal(waterKept(W.aridMm, 100), 1); assert.equal(waterKept(400, 100), 1);
   assert.ok(Math.abs(waterKept(0, 100) - (1 - W.aridLossPer100Km)) < 1e-12 && waterKept(W.aridMm / 2, 100) > waterKept(0, 100));
   // A stream that leaves wet hills with 1,000 units of water and crosses desert in 2.2 km steps: less with every

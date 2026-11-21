@@ -1,7 +1,7 @@
 {
  "schemaVersion": 1,
  "model": "eym-magnetic-v1",
- "sourcesSha256": "ec09843a70a96c06361b69b3fe973247190fda3ea9e11f3b6612933e60839277",
+ "sourcesSha256": "f701702d43cec1e4811e6cb5d7fc27b433d7078b4860ab80125618d53c75e745",
  "poleBox": {
   "latDeg": [
    79,

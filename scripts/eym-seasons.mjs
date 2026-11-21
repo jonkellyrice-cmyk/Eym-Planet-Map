@@ -151,9 +151,11 @@ export function environmentField(asset) {
       if (distKm[i] + step < distKm[j]) { distKm[j] = distKm[i] + step; queue.push(j); }
     }
   }
+  // The land's yearly rain, where the asset carries it (the rain budget's, one byte for each land square in order).
+  const landRain = asset.raster.landRainSqrtBase64 ? decodeBytes(asset.raster.landRainSqrtBase64) : null; let landSeen = 0;
   const cells = Array.from({ length: n }, (_, i) => {
-    const latIndex = Math.floor(i / lonCount), lonIndex = i % lonCount, lat = -90 + res * (latIndex + 0.5);
-    return { id: i, latIndex, lonIndex, lat, lon: -180 + res * (lonIndex + 0.5), ocean: Boolean(ocean[i]), elevationM: ocean[i] ? 0 : elevation[i], biome: biomes.categories[biomes.values[i]], annualMeanC: annualMeanTemperatureC(lat, ocean[i] ? 0 : elevation[i]), continentality: ocean[i] ? 0 : clamp(distKm[i] / 1200, 0, 1) };
+    const latIndex = Math.floor(i / lonCount), lonIndex = i % lonCount, lat = -90 + res * (latIndex + 0.5), rainMm = !ocean[i] && landRain ? (landRain[landSeen++] / 2.5) ** 2 : null;
+    return { id: i, latIndex, lonIndex, lat, lon: -180 + res * (lonIndex + 0.5), ocean: Boolean(ocean[i]), rainMm, elevationM: ocean[i] ? 0 : elevation[i], biome: biomes.categories[biomes.values[i]], annualMeanC: annualMeanTemperatureC(lat, ocean[i] ? 0 : elevation[i]), continentality: ocean[i] ? 0 : clamp(distKm[i] / 1200, 0, 1) };
   });
   const cellAt = (lat, lon) => cells[clamp(Math.floor((lat + 90) / res), 0, latCount - 1) * lonCount + ((Math.floor((lon + 180) / res) % lonCount) + lonCount) % lonCount];
   // The ocean currents' share (scripts/eym-climate.mjs): full at sea, fading inland (about 400 km).

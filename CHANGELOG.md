@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.38.0 (2026-11-21)
+
+The far continents' rivers and the daily weather follow the rain budget (the rest of "rivers carry the climate" and of the climate coupling; owner's direction of 20 November 2026).
+
+- *The far continents' rivers by the water the land sheds.* On Gaffa, Khohalis and Demani a square now counts toward a river by its runoff (what its rain and warmth leave, by Budyko's curve) against the mean runoff of their land (a fixed dial, `rivers.farReferenceRunoffMm`), not by its area alone. Wet country makes rivers of smaller catchments, dry country fewer: Khohalis has 228 rivers (148 before), Demani 211 (149), Gaffa 118 (196); 557 in all (493).
+- *Rivers that die.* Water crossing ground that sheds none dwindles on the way (the same rule as on Caren and Garyk), and a river whose water falls below a river's ends there: nine of the far continents' rivers now end in a dry basin, short of the sea (a new kind of mouth, `dry-basin`).
+- *The daily weather rains the budget's rain.* The map asset now carries each land square's yearly rain (one byte a square), and the weather's rain at a place is scaled to it instead of to a figure for its kind of country. Within 35° of the equator the land's afternoon storms were adding two fifths more than the weather's measure by latitude allowed for; that excess is now taken out (a dial, measured over Caren and Garyk). Four years of weather over Caren and Garyk now give 0.96 to 1.08 of the budget's yearly rain, square by square (it was 1.36 to 1.53). The wind's and dust's work (dunes, loess) follows, since it reads the weather.
+- *The river dials have their own group* (`rivers`: the arid loss and the far continents' yardstick).
+- *Causal tests:* land that everywhere sheds the reference runoff has exactly the rivers the land drained alone gives; twice the runoff, more rivers each carrying about twice as much; half, fewer; a land wet in one half and dry in the other has no river rising in the dry half, and rivers that die there; a wetter square has wetter weather in proportion, and the weather's yearly rain is the rain file's.
+- *Still as before:* the weather's seasons of rain follow its own rain belt, not yet the budget's twelve months; and the drawn rivers with little water (0.37.0) wait for the heights and erosion step.
+- *Tests changed, said plainly.* The test that the far continents' rivers are, point for point, what routing by land alone gives is replaced by the causal tests above (the routing is no longer by land alone); that the shipped rivers are exactly what the build routes is still held by the cartography's up-to-date check. The check of how rivers end allows the new ending in a dry basin. No test is skipped or deleted without a replacement.
+
 ## 0.37.0 (2026-11-20)
 
 Rivers carry the climate (owner's direction of 20 November 2026; the second step of "fix the causal chain"). A river's water is the runoff of the land it truly drains, not a figure for its catchment's area or the width it is drawn at.

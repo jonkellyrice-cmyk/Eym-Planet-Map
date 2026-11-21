@@ -233,6 +233,16 @@ export const WORLD_INPUTS = deepFreeze({
     molkath: { latDeg: [-2.5, 4.8], lonDeg: [-3.6, 2.6], crestAt: [1.2, -0.2] },
   },
 
+  /**
+   * Rivers that carry the climate (owner, 20 November 2026; scripts/eym-river-flow.mjs, the drainage and the far
+   * continents' routing). A stream crossing arid ground (where the land's own yearly runoff is under `aridMm`) loses
+   * water to the air and its bed: up to `aridLossPer100Km` of what it carries for each 100 km (as the Nile does in
+   * the Sudd and the Okavango in its delta), so a river can dwindle and die in a dry basin. On the far continents a
+   * square counts toward a river by the water it sheds against `farReferenceRunoffMm` (the mean runoff of their
+   * land, fixed): a square shedding twice that counts double, so wet country has more rivers and dry country fewer.
+   */
+  rivers: { aridMm: 25, aridLossPer100Km: 0.2, farReferenceRunoffMm: 650 },
+
   /** The sea floor's shape (scripts/eym-seafloor.mjs): shelf widths (km) by margin, the slope's width, the abyss's run. */
   seaFloor: { shelfKm: { active: 50, passive: 220 }, slopeKm: 260, abyssKm: 1500 },
 
@@ -281,10 +291,10 @@ export const WORLD_INPUTS = deepFreeze({
     // gives wider rivers, drier narrower (scripts/eym-river-flow.mjs). Fixed, so that one land's climate never
     // changes another land's rivers.
     riverReferenceRunoffMm: 1000,
-    // A stream crossing arid ground (where the land's own yearly runoff is under `aridMm`) loses water to the air
-    // and its bed: up to `aridLossPer100Km` of what it carries for each 100 km (as the Nile does in the Sudd and
-    // the Okavango in its delta), so a river can dwindle and die in a dry basin.
-    rivers: { aridMm: 25, aridLossPer100Km: 0.2 },
+    // How much more rain the daily weather's lift yields over tropical and subtropical land than its measure by
+    // latitude allows for (the afternoon storms): measured over Caren and Garyk, four years of weather against the
+    // rain budget's totals.
+    landAfternoonYield: 1.41,
     /**
      * The land's hand on the large-scale atmosphere (scripts/eym-land-atmosphere.mjs; owner, 20 November 2026).
      */
