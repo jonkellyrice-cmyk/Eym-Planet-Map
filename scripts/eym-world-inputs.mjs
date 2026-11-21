@@ -68,7 +68,9 @@ export const WORLD_INPUTS = deepFreeze({
   plates: {
     // How closely a seeded continent must come out to what the layout asks: its area within this fraction, its centre within this many degrees.
     targetTolerance: { areaFraction: 0.1, centerDeg: 3 },
-    // Eym stays 98.6% ocean: the fit keeps the ocean's share between these.
+    // The plate fit places the continents' cores, which with Caren and Garyk leave 98.6% ocean: the fit keeps the
+    // cores' share between these. (Not the world's: the land grown from the cores, `growth` below, brings Eym to
+    // about 80% ocean, each grown area with its tectonic origin.)
     oceanFraction: [0.9855, 0.9865],
     // What drives a plate: with a sinking slab along at least `slabShare` of its edge it moves at `slabSpeedMmYr`
     // (mm a year); without, at `freeSpeedMmYr`. The plates named in `speedKept` keep the speeds their fitted
@@ -196,12 +198,12 @@ export const WORLD_INPUTS = deepFreeze({
     // The season's wind: trades of `easterlyMs` from the east (slack by `doldrums` under the belt) blowing toward
     // the belt at up to `towardBeltMs` (full `turnDeg` from it); air that has crossed the equator to a belt more than
     // `monsoonFromDeg` from it is turned to a westerly of up to `monsoonWestMs` (full when the belt is `monsoonFullDeg`
-    // farther still); westerlies of `westerlyMs` beyond `westerliesFromDeg`. The belts' seasonal shift is
-    // `seasonShift` of the Sun's. The wind is never slacker than `leastMs`, and through a month it blows from
+    // farther still); westerlies of `westerlyMs` beyond `westerliesFromDeg`. (The belts' seasonal shift is Eym's own: scripts/eym-rain-band.generated.mjs.)
+    // The wind is never slacker than `leastMs`, and through a month it blows from
     // `spreadDeg` to either side of its mean a quarter of the time each. Low air climbs high ground only within
     // speed/`layeringPerS` of its top (the air's layering, N = 0.01 a second), measured above the lowest ground
     // of the last `blockKm`.
-    wind: { seasonShift: 0.4, towardBeltMs: 3, turnDeg: 6, easterlyMs: 6, doldrums: 0.6, monsoonFromDeg: 4, monsoonFullDeg: 8, monsoonWestMs: 4, westerliesFromDeg: 28, westerlyMs: 8, leastMs: 2, spreadDeg: 25, layeringPerS: 0.01, blockKm: 500 },
+    wind: { towardBeltMs: 3, turnDeg: 6, easterlyMs: 6, doldrums: 0.6, monsoonFromDeg: 4, monsoonFullDeg: 8, monsoonWestMs: 4, westerliesFromDeg: 28, westerlyMs: 8, leastMs: 2, spreadDeg: 25, layeringPerS: 0.01, blockKm: 500 },
     // A wind gap: ground `wallM` higher on both sides, across the wind, within `widthKm` in all. In the narrowest
     // the wind runs `speedUp` times faster again and spreads by that extra speed over the gap's width (a few
     // millionths a second, as measured in the Turkana channel); `lowAirShare` of the column is in the air that spreads.
@@ -292,13 +294,16 @@ export const WORLD_INPUTS = deepFreeze({
     // north, fading over `fadeDeg` at either end), out to `reachKm` from the nearest land and no farther than
     // `withinKm` from the centre; its floor is `depthM[0]` deep by the land and `depthM[1]` at its edge, where it
     // falls to the ocean's floor over `edgeKm`.
-    banks: [{ name: "the southern and eastern banks of Caren", center: [0, 0.5], bearingDeg: [70, 205], fadeDeg: 12, reachKm: 500, withinKm: 1500, depthM: [25, 60], edgeKm: 120 }],
+    // (None for now, by the owner's decision of 20 November 2026: the bank is added at step 6 only if still needed.
+    // The one that was measured: { name: "the southern and eastern banks of Caren", center: [0, 0.5],
+    // bearingDeg: [70, 205], fadeDeg: 12, reachKm: 500, withinKm: 1500, depthM: [25, 60], edgeKm: 120 }.)
+    banks: [],
   },
 
   /** The ocean climate (tools/generate-eym-climate.mjs). */
   ocean: {
-    // How far the wind belts follow the Sun (Earth's move about 0.6 of the declination; an aquaplanet's less).
-    beltShift: 0.4,
+    // (How far the wind belts follow the Sun is no longer a dial: it is worked out from where Eym's land lies,
+    // `weather.land.oceanSwing` and `monsoonReach`, and written to scripts/eym-rain-band.generated.mjs.)
     // How much of the sea floor's shape the upper ocean feels (0 = a flat floor, 1 = one unlayered sea).
     steering: 0.3,
     // The strength of upwelling along a continental slope (at 0.4 m/s) and over a seamount chain (at 0.3 m/s), on the wind-driven upwelling's scale.
@@ -321,7 +326,13 @@ export const WORLD_INPUTS = deepFreeze({
     // down: in warm latitudes it stands up to `shallowWarmC` warmer than the open sea beside it (Earth's Sunda and
     // Sahul shelf seas are about a degree warmer than the ocean off them). A narrow shelf is flushed by the ocean
     // and hardly warmer.
-    shallowM: 100, shallowWarmC: 1,
+    // (Off for now, with the banks: 0. Measured at 1.)
+    shallowM: 100, shallowWarmC: 0,
+    // The westerlies blow harder over sea than over land, which drags on them: each hemisphere's are stronger by
+    // `westerliesLandDrag` for each whole share of its 40° to 60° latitudes that is sea rather than land, about the
+    // two hemispheres' mean (Earth's southern westerlies, over almost unbroken sea, are some 15% stronger than its
+    // northern, half of whose belt is land). It was a fixed 15% for the south, Earth's own geography.
+    westerliesLandDrag: 0.3,
   },
 
   /**
@@ -340,13 +351,17 @@ export const WORLD_INPUTS = deepFreeze({
     albedo: { sea: 0.07, seaIce: 0.55, land: 0.2, snow: 0.6, ice: 0.7 }, topOfAirShare: 0.35,
     snowBelowC: 0, iceCapBelowC: 0, seaIceBelowC: -1.8,
     airShare: 0.5, degPerPW: 2.7, mostDeg: 8, seaCarriesSouthPW: 0,
+    // Whether the rain band's mean latitude is the balance's. Off for now by the owner's decision of 20 November
+    // 2026 ("Caren climate: decision + next steps"): the balance is worked out and recorded, and the band's mean
+    // stays where it was (`bandMeanLatUntilThen`, the old fixed 4° N) until the land's own swing and the trade-wind
+    // inversion are in; then it is switched on (step 6).
+    bandFollowsBalance: false, bandMeanLatUntilThen: 4,
   },
 
   /** The weather's large-scale circulation (scripts/eym-weather.mjs): the belts' seasonal shift, the jet streams and blocking. */
   weather: {
-    // How far the wind and pressure belts follow the Sun at the equator, as a share of its declination (the rain
-    // belt's own share); the shift fades toward the poles (about 6° each way at 30°, 3° at 60°).
-    beltShift: 0.4,
+    // (How far the wind and pressure belts follow the Sun at the equator, as a share of its declination, is worked
+    // out from where Eym's land lies: see `land.oceanSwing` below. The shift fades toward the poles.)
     // The polar-front jet: its mean latitude, and the slow waves it meanders in (how many round the world, how far
     // each swings in degrees, how fast it drifts east in degrees of longitude a day). Modest: a world of ocean has
     // stronger, straighter jets than Earth. The subtropical branch lies at `subtropicalLat` and hardly meanders.
@@ -382,7 +397,14 @@ export const WORLD_INPUTS = deepFreeze({
       // of its declination farther than over ocean (Earth's reaches 25° to 30° N over southern Asia, 5° to 10° over
       // the open Pacific). Where the belt is drawn `monsoonFullDeg` beyond the ocean's, the wind between the equator
       // and the belt is fully turned: `monsoonWestMs` from the west and `monsoonOnshoreMs` toward the land (m/s).
-      heatLat: [5, 40], reachDeg: 18, plateauGain: 0.3, monsoonReach: 0.75, monsoonFullDeg: 10, monsoonWestMs: 10, monsoonOnshoreMs: 4,
+      // How far the belts follow the Sun (owner's direction of 20 November 2026: from the land as it is, not an
+      // aquaplanet's guess). Water is slow to warm, so over open ocean the rain belt follows the Sun by only
+      // `oceanSwing` of its declination (Earth's open Pacific: 0.15 to 0.2); over land from end to end of the heated
+      // band by `monsoonReach` more (Earth's southern Asia: about 1.15 in all). Each longitude lies between by its
+      // land. The winds' and pressure belts' own shift, which runs round the world, is the mean of that over Eym's
+      // longitudes (worked out by tools/generate-eym-energy.mjs). It was 0.4 everywhere over ocean.
+      oceanSwing: 0.2,
+      heatLat: [5, 40], reachDeg: 18, plateauGain: 0.3, monsoonReach: 0.95, monsoonFullDeg: 10, monsoonWestMs: 10, monsoonOnshoreMs: 4,
       // Stationary waves. What bends a jet is the land and high ground between `jetLat` degrees of latitude, smoothed
       // over `waveDeg` of longitude; ground of `highM` metres counts as fully high. High ground puts a ridge
       // `ridgeDeg` upwind of itself and a trough `troughDeg` downwind, up to `orographyDeg` of latitude; a continent's

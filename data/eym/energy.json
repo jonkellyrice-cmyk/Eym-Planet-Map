@@ -1,20 +1,20 @@
 {
  "schemaVersion": 1,
- "sourcesSha256": "08506a7f9dc3afbb4c5ecedd837dca06cf0356b00f87e59fb8bed50463e4d108",
+ "sourcesSha256": "b0b07fff4651dd759a8fcd0b9cadc2442a10f25b525120dfba265568ecf9a510",
  "model": "eym-energy-v1",
  "reflectedPW": {
   "north": {
    "sea": 1.548,
    "seaIce": 0.646,
    "land": 1.271,
-   "snow": 0.303,
+   "snow": 0.302,
    "ice": 0.156
   },
   "south": {
    "sea": 1.629,
    "seaIce": 0.759,
    "land": 1.083,
-   "snow": 0.148,
+   "snow": 0.149,
    "ice": 0.039
   }
  },
@@ -22,21 +22,39 @@
   "north": {
    "sea": 173.55,
    "seaIce": 23.45,
-   "land": 46.76,
-   "snow": 8.98,
+   "land": 46.77,
+   "snow": 8.97,
    "ice": 2.29
   },
   "south": {
    "sea": 183.1,
    "seaIce": 27.23,
-   "land": 39.81,
-   "snow": 4.46,
+   "land": 39.8,
+   "snow": 4.47,
    "ice": 0.43
   }
  },
- "keptNorthLessSouthPW": -0.266,
+ "keptNorthLessSouthPW": -0.264,
  "airCarriesNorthPW": 0.066,
  "bandMeanLat": -0.18,
+ "bandFollowsBalance": false,
+ "bandMeanLatInUse": 4,
+ "beltSwing": {
+  "overOpenOcean": 0.2,
+  "overTheMostLand": 1.144,
+  "mean": 0.423,
+  "meanHeatedLandShare": 0.235
+ },
+ "westerlies": {
+  "landShare": {
+   "north": 0.203,
+   "south": 0.147
+  },
+  "strength": {
+   "north": 0.991,
+   "south": 1.009
+  }
+ },
  "causes": {
   "allSeaBandLat": 0,
   "landAddsDeg": -0.18,

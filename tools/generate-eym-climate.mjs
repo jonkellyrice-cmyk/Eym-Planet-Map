@@ -1,8 +1,7 @@
 // Fits Eym's ocean climate (Stage 2 of the physical history and climate programme) and writes
 // data/eym/climate.json: surface currents, upwelling and sea-surface temperature anomalies for the four
 // seasons, and the pattern of a slow El Niño-like oscillation. Drawn by rule from the land and the wind belts:
-//   - Wind belts (trades, westerlies, polar easterlies) shift a little with the Sun (an aquaplanet's belts move
-//     less than Earth's). Their curl drives a wind-driven circulation (a Stommel model: friction, the beta effect
+//   - Wind belts (trades, westerlies, polar easterlies) shift with the Sun, by as much as Eym's land and sea allow. Their curl drives a wind-driven circulation (a Stommel model: friction, the beta effect
 //     and the wind, with every coast a wall), solved on a 2° grid; it gives the circumpolar flow, gyres and the
 //     strong western boundary currents where Caren, Garyk, Gaffa, Khohalis and Demani block the way.
 //   - Ekman drift (to the right of the wind in the north, to the left in the south) adds to the surface current;
@@ -24,6 +23,7 @@ import { inputsFingerprint, WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs
 import { rainBeltLat, seaLevelTemperatureC, seasonalTemperature } from "../scripts/eym-seasons.mjs";
 import { landAtmosphere } from "../scripts/eym-land-atmosphere.mjs";
 import { beltWind, windDrag } from "../scripts/eym-winds.mjs";
+import { BELT_SWING_MEAN, WESTERLIES, WIND_BELTS_MEAN_LAT } from "../scripts/eym-rain-band.generated.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universal-time.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/climate.json", root);
@@ -38,18 +38,18 @@ const DEG = Math.PI / 180, R = 6.371e6, OMEGA = 7.292e-5, RHO = 1025, YEAR_MS = 
 const RES = 2, NLAT = 180 / RES, NLON = 360 / RES, N = NLAT * NLON;
 /** Fractions of the year (0 = March equinox) the four seasons are taken at. */
 export const SEASONS = Object.freeze([0, 0.25, 0.5, 0.75]);
-/** How far the wind belts follow the Sun (Earth's move about 0.6 of the declination; an aquaplanet's less). */
-export const BELT_SHIFT = WORLD_INPUTS.ocean.beltShift;
+/** How far the wind belts follow the Sun: the mean over Eym's longitudes of what its land and sea allow (scripts/eym-rain-band.generated.mjs). */
+export const BELT_SHIFT = BELT_SWING_MEAN;
 const latOf = (r) => -90 + RES * (r + 0.5), lonOf = (c) => -180 + RES * (c + 0.5);
 const g = (x, m, s) => Math.exp(-(((x - m) / s) ** 2));
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
-/** Zonal wind stress (N/m²) at a latitude in a season: trades, westerlies (stronger in the south), polar easterlies. */
+/** Zonal wind stress (N/m²) at a latitude in a season: trades, westerlies (stronger in the hemisphere with more sea in their path), polar easterlies. */
 export function windStress(lat, declinationDeg) {
   // (The belts stand about the rain band's mean latitude in the tropics, where the trades meet; the westerlies and
   // the polar winds keep their places.)
-  const tropics = 1 - clamp((Math.abs(lat) - 20) / 20, 0, 1), p = lat - rainBeltLat(0) * tropics - BELT_SHIFT * declinationDeg, a = Math.abs(p);
-  return -0.07 * g(a, 13, 10) + 0.13 * (p < 0 ? 1.15 : 1) * g(a, 48, 10) - 0.03 * g(a, 75, 7);
+  const tropics = 1 - clamp((Math.abs(lat) - 20) / 20, 0, 1), p = lat - WIND_BELTS_MEAN_LAT * tropics - BELT_SHIFT * declinationDeg, a = Math.abs(p);
+  return -0.07 * g(a, 13, 10) + 0.13 * (p < 0 ? WESTERLIES.south : WESTERLIES.north) * g(a, 48, 10) - 0.03 * g(a, 75, 7);
 }
 
 /**
@@ -261,7 +261,7 @@ export function solveSeason(land, f, floor = null, winds = null) {
  * faster where the westerlies blow hard (about 30 days to forget an anomaly in the tropics, 12 days at 60°), and
  * eddies in the westerly jets stir harder, so wakes behind the continents fade within some 20-30° downstream.
  */
-export function solveAnomaly(land, u, v, up, floor = null) {
+export function solveAnomaly(land, u, v, up, floor = null, shallowWarmC = SHALLOW_WARM_C) {
   const ocean = (r, c) => !land[idx(r, c)], dy = R * RES * DEG;
   const base = Float64Array.from({ length: N }, (_, i) => seaLevelTemperatureC(latOf(Math.floor(i / NLON))));
   let T = Float64Array.from(base);
@@ -273,10 +273,10 @@ export function solveAnomaly(land, u, v, up, floor = null) {
   // it stands warmer than the open sea. A narrow shelf is flushed by the ocean beside it, so the warmth grows with how
   // much of the sea round about is shallow too (land beside it shuts it in).
   const warm = new Float64Array(N);
-  if (floor?.shallow) for (let r = 1; r < NLAT - 1; r += 1) for (let c = 0; c < NLON; c += 1) {
+  if (floor?.shallow && shallowWarmC) for (let r = 1; r < NLAT - 1; r += 1) for (let c = 0; c < NLON; c += 1) {
     const i = idx(r, c); if (!ocean(r, c) || !floor.shallow[i]) continue;
     let round = floor.shallow[i]; for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) round += ocean(r + dr, c + dc) ? floor.shallow[idx(r + dr, c + dc)] : 1;
-    warm[i] = SHALLOW_WARM_C * floor.shallow[i] * round / 5;
+    warm[i] = shallowWarmC * floor.shallow[i] * round / 5;
   }
   for (let step = 0; step < 2400; step += 1) {
     const next = Float64Array.from(T);

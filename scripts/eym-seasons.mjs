@@ -25,7 +25,7 @@ const SUNRISE_ALTITUDE_DEG = -0.833;
 
 // ---------------------------------------------------------------- climate
 
-/** Annual mean sea-level temperature (°C) on an Earth-like, mostly ocean world. */
+/** Annual mean sea-level temperature (°C) by latitude, the same in both hemispheres (Earth-like; Eym is four fifths sea). */
 export function seaLevelTemperatureC(lat) { const s2 = Math.sin(lat * DEG) ** 2; return 27.5 - 30 * s2 - 10 * s2 * s2; }
 
 /** Zonal annual precipitation (mm): wet equatorial belt, dry subtropics, wet mid-latitudes, dry poles. The wet belt
@@ -108,9 +108,9 @@ export function sunTimes(latDeg, declinationDeg) {
 // ---------------------------------------------------------------- seasons
 
 /** Where the tropical rain belt lies over open ocean: about its mean latitude (which follows the warmer half of the
- * world: scripts/eym-energy.mjs, worked out from the land, snow and ice as they are) it follows the Sun, but on a
- * world of so much sea it moves less than Earth's (0.4 of the Sun's declination, as the wind belts in the climate model). */
-export const rainBeltLat = (declinationDeg, meanLat = RAIN_BAND_MEAN_LAT) => meanLat + 0.4 * declinationDeg;
+ * world: scripts/eym-energy.mjs, worked out from the land, snow and ice as they are) it follows the Sun, but water is
+ * slow to warm and it moves little (`weather.land.oceanSwing` of the Sun's declination; over land much more: scripts/eym-land-atmosphere.mjs). */
+export const rainBeltLat = (declinationDeg, meanLat = RAIN_BAND_MEAN_LAT) => meanLat + WORLD_INPUTS.weather.land.oceanSwing * declinationDeg;
 /** The rain band's mean latitude over open ocean (degrees north), from the hemispheres' balance. */
 export const RAIN_BAND_MEAN = RAIN_BAND_MEAN_LAT;
 /** The Sun's approximate declination from the date alone (for when no model snapshot is at hand). */

@@ -1,4 +1,5 @@
 import test from "node:test";
+import { BELT_SWING_MEAN } from "../scripts/eym-rain-band.generated.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { inputsFingerprint, WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
@@ -29,7 +30,7 @@ test("Eym's dials live in one file, and everything that uses one reads it from t
   // The other modules' named values are the inputs' own.
   assert.deepEqual([SLAB_SHARE, SLAB_SPEED_MM, FREE_SPEED_MM, SPEED_KEPT, TARGET_TOLERANCE, OCEAN_FRACTION], [WORLD_INPUTS.plates.slabShare, WORLD_INPUTS.plates.slabSpeedMmYr, WORLD_INPUTS.plates.freeSpeedMmYr, WORLD_INPUTS.plates.speedKept, WORLD_INPUTS.plates.targetTolerance, WORLD_INPUTS.plates.oceanFraction]);
   assert.deepEqual([SHELF_KM, SLOPE_KM, ABYSS_KM], [WORLD_INPUTS.seaFloor.shelfKm, WORLD_INPUTS.seaFloor.slopeKm, WORLD_INPUTS.seaFloor.abyssKm]);
-  assert.deepEqual([BELT_SHIFT, STEERING, SLOPE_UPWELLING, SEAMOUNT_UPWELLING], [WORLD_INPUTS.ocean.beltShift, WORLD_INPUTS.ocean.steering, WORLD_INPUTS.ocean.slopeUpwelling, WORLD_INPUTS.ocean.seamountUpwelling]);
+  assert.deepEqual([BELT_SHIFT, STEERING, SLOPE_UPWELLING, SEAMOUNT_UPWELLING], [BELT_SWING_MEAN, WORLD_INPUTS.ocean.steering, WORLD_INPUTS.ocean.slopeUpwelling, WORLD_INPUTS.ocean.seamountUpwelling]);
   // Nothing can change a dial by accident at run time.
   assert.ok(Object.isFrozen(WORLD_INPUTS) && Object.isFrozen(WORLD_INPUTS.layout.seeded[0]) && Object.isFrozen(WORLD_INPUTS.ocean));
   assert.throws(() => { "use strict"; WORLD_INPUTS.ocean.steering = 1; });

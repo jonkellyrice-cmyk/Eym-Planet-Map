@@ -13,6 +13,7 @@
 // high in place with persistent weather under and beside it. All of it is a direct function of the clock.
 
 import { annualMeanTemperatureC, approximateDeclinationDeg, rainBeltLat, seasonalTemperature, yearFraction, RAIN_BAND_MEAN, zonalPrecipitationMm } from "./eym-seasons.mjs";
+import { BELT_SWING_MEAN } from "./eym-rain-band.generated.mjs";
 import { WORLD_INPUTS } from "./eym-world-inputs.mjs";
 import { landAtmosphere } from "./eym-land-atmosphere.mjs";
 import { DAY_MS, DAYS_PER_YEAR } from "./universal-time.mjs";
@@ -55,7 +56,7 @@ const W = WORLD_INPUTS.weather;
  * How far (degrees of latitude, northward positive) the wind and pressure belts stand from their mean places at a
  * latitude, for the Sun's declination: they follow the Sun as the rain belt does, less and less toward the poles.
  */
-export const beltShiftDeg = (lat, declinationDeg) => W.beltShift * declinationDeg * (1 - Math.abs(lat) / 90);
+export const beltShiftDeg = (lat, declinationDeg) => BELT_SWING_MEAN * declinationDeg * (1 - Math.abs(lat) / 90);
 
 /** Mean surface wind by latitude (m/s east, m/s north): trades, westerlies, polar easterlies, shifted with the season. */
 export function backgroundWind(lat, declinationDeg = 0) {

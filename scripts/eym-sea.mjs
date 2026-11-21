@@ -6,7 +6,7 @@
 //     Pierson–Moskowitz, fetch- and duration-limited JONSWAP).
 //   - Swell: waves that outrun the storms that made them. Every low and tropical cyclone of the last days is a
 //     source; its waves travel at their group speed, spread and weaken with distance, and are stopped by land
-//     between. On a world 98.6% ocean the fetch is enormous, so the westerly belts send long swell far.
+//     between. Four fifths of Eym is sea and the fetch is long, so the westerly belts send long swell far; land in the way stops it.
 //   - Voyages: an all-water route between two places (shortest path over the 1° sea cells, then straightened),
 //     sailed in 3-hour steps through the weather the ship meets: currents help or hinder, head seas slow a
 //     steamer, and a sailing ship goes with the wind (tacking when it must).

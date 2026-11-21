@@ -26,6 +26,7 @@
 // switched off (`causes`), which is how the tests show that a cause reaches its effect.
 
 import { beltWind } from "./eym-winds.mjs";
+import { BELT_SWING_MEAN } from "./eym-rain-band.generated.mjs";
 
 export const RAIN_MODEL = "eym-rain-v1";
 export const RAIN_CAUSES = Object.freeze({ sea: true, beltPull: true, orography: true, recycling: true, jets: true, seasonalWinds: true, mixing: true });
@@ -51,7 +52,7 @@ export function rainModel(dials, world, causes = RAIN_CAUSES) {
   /** What a full column of air holds (mm of water) over ground at sea level where the air at sea level is `c` °C. */
   const fullMm = (c) => d.column.fullMmAt27 * Math.exp(d.column.perC * (c - 27));
   /** The air's temperature at sea level at a latitude in a month: the latitude's own, with the belts' seasonal shift. */
-  const airC = (lat, month) => seaLevelC(clamp(lat - d.wind.seasonShift * monthDeclinationDeg(month) * (1 - Math.abs(lat) / 90), -90, 90));
+  const airC = (lat, month) => seaLevelC(clamp(lat - BELT_SWING_MEAN * monthDeclinationDeg(month) * (1 - Math.abs(lat) / 90), -90, 90));
 
   // The sea's anomaly averaged round a place (for the low air's gathering over warm water), and along a band of
   // longitude (for the belt's place): each worked once for a grid square and month and kept.

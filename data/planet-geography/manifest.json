@@ -36,7 +36,7 @@
       "system": "Mitkear",
       "body": "Eym",
       "seed": "741343188e552de0",
-      "inputFingerprint": "5bc464cc0e149f3ab17d",
+      "inputFingerprint": "d2a7881dd3421b9b4f2e",
       "path": "data/planet-geography/mitkear/eym.json",
       "summary": {
         "waterFraction": 0.79859,
@@ -49,25 +49,25 @@
           "sea-ice": 543,
           "ice-cap": 54,
           "tundra": 44,
-          "open-ocean": 594,
+          "open-ocean": 593,
           "taiga": 30,
-          "cold-desert": 6,
-          "steppe": 34,
-          "temperate-forest": 27,
-          "temperate-rainforest": 12,
-          "savanna": 22,
+          "cold-desert": 5,
+          "steppe": 32,
+          "temperate-forest": 32,
+          "temperate-rainforest": 10,
+          "savanna": 16,
           "tropical-ocean": 352,
-          "hot-desert": 3,
-          "seasonal-forest": 73,
-          "tropical-rainforest": 6
+          "hot-desert": 4,
+          "seasonal-forest": 78,
+          "tropical-rainforest": 7
         },
         "resources": {
           "marine-biological": 1332,
           "hydrothermal-seafloor": 145,
-          "sedimentary-basin": 297,
+          "sedimentary-basin": 296,
           "orogenic-metallic": 23,
           "alluvial-agricultural": 1,
-          "upland-mineral": 2
+          "upland-mineral": 3
         }
       }
     },
