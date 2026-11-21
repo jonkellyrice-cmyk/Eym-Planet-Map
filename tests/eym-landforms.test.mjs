@@ -141,6 +141,8 @@ test("Caren's and Garyk's channels are the ones recorded, bit for bit", () => {
   // (canon of 19 November 2026) a river of theirs that crosses ±180° was at first walked right round the world at
   // its latitude, through Caren and Garyk, and 47 false channels appeared: this is the guard against its like.
   const doc = JSON.parse(read(drainagePath));
-  assert.deepEqual(doc.landMasses, [{ continent: "Caren", latticeDeg: 0.02, channels: 572 }, { continent: "Garyk", latticeDeg: 0.02, channels: 412 }]);
-  assert.equal(createHash("sha256").update(doc.pointsInt16Base64).digest("hex"), "dbf4fca5ae88dc43e54aae799461ad9ec8fff94b124c1e8584bceda1f69fe2c7");
+  // (Recorded anew on 21 November 2026: the land beside a drawn river now drains into it, the ground along each
+  // lying lower where the water is routed, so some channels that ran past a drawn river now end in it. They were 572 and 412.)
+  assert.deepEqual(doc.landMasses, [{ continent: "Caren", latticeDeg: 0.02, channels: 512 }, { continent: "Garyk", latticeDeg: 0.02, channels: 395 }]);
+  assert.equal(createHash("sha256").update(doc.pointsInt16Base64).digest("hex"), "7a1f4a0fe992fc9212b1ee0ac2ece62959a98c2b230e24ca0fda8fd7675dce2c");
 });

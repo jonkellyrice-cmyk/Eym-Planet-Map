@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.41.0 (2026-11-21)
+
+The land drains into its drawn rivers (the owner's choice of 21 November 2026 for the drawn rivers that carried little water: carve the land to the rivers; the drawn rivers, lakes, coasts and peaks are not moved).
+
+- *A drawn river runs in a valley it has cut.* Where the drainage routes water over the land, the ground along each river drawn on Caren's and Garyk's maps now lies 60 m lower (a dial, `rivers.valleyFloorM`), so the land beside a drawn river drains into it, as it must to have made the river. Until now the water was routed over the land without the rivers' valleys, and much of it ran past them.
+- *The drawn rivers now carry their catchments' water.* Caren's greatest river drains 117,000 km² and carries about 9,400 m³/s in the mean (55,000 km² and 3,400 m³/s before); eleven of the 49 measured courses (estuaries counted) drain more than 40,000 km². Of the 42, eight still carry less than a river's water by the standing check (twelve before): six of them carry 47 to 93 m³/s where 100 is asked of a river drawn two kilometres wide, and two are short courses in dry or small catchments (about 5 m³/s). They stay listed.
+- *Fewer separate channels.* Channels that ran past a drawn river now end in it: 512 on Caren (572 before) and 395 on Garyk (412).
+- *What changes on the maps:* small valleys near the drawn rivers (about 27% of Caren's sampled Region tile pieces and 7% of Garyk's change, slightly); river reports near the great rivers show their true, larger flows.
+- *Tests changed, said plainly.* The pin of the drainage channels, bit for bit, is recorded anew (the channels changed on purpose, as above). Nothing else.
+
 ## 0.40.0 (2026-11-21)
 
 The crust under the land, its unroofing, what it sheds and where the sediment rests (owner's direction of 20 November 2026, the causal-chain audit, items 3 to 5, as an account on the map's squares; the owner chose this bookkeeping layer first, so that Resources has what it needs, and the land's shapes are not changed by it). A new file, `data/eym/crust.json`, made by `tools/generate-eym-crust.mjs` in the build chain (dials `sediment`).
