@@ -25,6 +25,8 @@
 // Pure: the land's heights, the sea's temperatures and the belt's seasonal place are passed in. Each cause can be
 // switched off (`causes`), which is how the tests show that a cause reaches its effect.
 
+import { beltWind } from "./eym-winds.mjs";
+
 export const RAIN_MODEL = "eym-rain-v1";
 export const RAIN_CAUSES = Object.freeze({ sea: true, beltPull: true, orography: true, recycling: true, jets: true, seasonalWinds: true, mixing: true });
 const DEG = Math.PI / 180, KM = 111.195, MONTHS = 12, DAY_S = 86400, MONTH_DAYS = 365.25 / 12;
@@ -94,18 +96,7 @@ export function rainModel(dials, world, causes = RAIN_CAUSES) {
 
   /** The season's wind at a place: m/s toward the north and the east, its speed, and the belt's latitude there. */
   const windAt = (lat, lon, month) => windFor(lat, on.seasonalWinds ? beltLat(lon, month) : 0);
-  function windFor(lat, belt) {
-    const w = d.wind, y = lat - belt;
-    // Trades: toward the belt and from the east, slack under the belt itself.
-    let north = -w.towardBeltMs * Math.tanh(y / w.turnDeg) * bell(y, 35), east = -w.easterlyMs * (1 - w.doldrums * bell(y, w.turnDeg));
-    // Air that has crossed the equator to reach a belt standing well off it is turned to blow from the west.
-    if (on.seasonalWinds && Math.abs(belt) > w.monsoonFromDeg && lat * belt > 0 && Math.abs(lat) < Math.abs(belt)) east += (w.easterlyMs + w.monsoonWestMs) * clamp((Math.abs(belt) - w.monsoonFromDeg) / w.monsoonFullDeg, 0, 1) * Math.sin(Math.PI * Math.abs(lat) / Math.abs(belt)) ** 0.8;
-    // Beyond the dry belts: westerlies.
-    const mid = smoothstep(w.westerliesFromDeg, w.westerliesFromDeg + 10, Math.abs(lat));
-    north *= 1 - mid; east = east * (1 - mid) + w.westerlyMs * mid;
-    const speed = Math.max(w.leastMs, Math.hypot(north, east));
-    return { north, east, speed, belt };
-  }
+  const windFor = (lat, belt) => beltWind(d.wind, lat, belt, on.seasonalWinds);
   function step(lat, lon, north, east, km) { const la = clamp(lat + north * km / KM, -89, 89); return [la, lon + east * km / (KM * Math.max(0.1, Math.cos(lat * DEG)))]; }
 
   /** How shut in a place is between high grounds across a wind (0 open, 1 a narrow gap), for one of eight headings. */

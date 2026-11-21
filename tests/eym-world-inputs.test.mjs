@@ -34,7 +34,7 @@ test("Eym's dials live in one file, and everything that uses one reads it from t
   assert.throws(() => { "use strict"; WORLD_INPUTS.ocean.steering = 1; });
   // Changing a dial makes the build redo what follows from it and nothing that does not: each generator
   // fingerprints the groups of dials it uses (the plate fit does not follow the ocean's or the shelf seas' dials).
-  assert.deepEqual(TECTONIC_INPUTS, ["layout", "plates", "orogeny"]); assert.deepEqual(CLIMATE_INPUTS, ["layout", "seaFloor", "ocean"]);
+  assert.deepEqual(TECTONIC_INPUTS, ["layout", "plates", "orogeny"]); assert.deepEqual(CLIMATE_INPUTS, ["layout", "seaFloor", "ocean", "rain", "weather"]);
   assert.ok(inputsFingerprint("ocean").includes(`"steering":${WORLD_INPUTS.ocean.steering}`) && !inputsFingerprint("ocean").includes("slabShare"));
   assert.notEqual(inputsFingerprint("layout", "plates"), inputsFingerprint("layout", "ocean"));
   assert.throws(() => inputsFingerprint("nonsense"), /no such group of dials/);

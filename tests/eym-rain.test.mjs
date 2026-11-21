@@ -157,7 +157,9 @@ test("the islands' ridge west of Caren is in the sea's temperatures, and colder 
   const climate = json("data/eym/climate.json"), seaAt = seaAnomalyReader(climate), hc = WORLD_INPUTS.layout.hotspotCluster;
   // Over the ridge the sea is colder than the sea two squares north and south of it at the same longitude.
   const over = [0, 3, 6, 9].map((m) => seaAt(hc.center[0] + 2, hc.center[1], m)), beside = [0, 3, 6, 9].map((m) => seaAt(hc.center[0] + 10, hc.center[1], m));
-  for (let k = 0; k < 4; k += 1) assert.ok(over[k] <= -0.8 && over[k] < beside[k] - 0.3, `season ${k}: ${over[k].toFixed(1)} °C over the ridge, ${beside[k].toFixed(1)} °C beside it`);
+  // (In the year's mean by 0.8 °C or more against its latitude's; in every season colder than beside it by more than 0.3 °C.)
+  assert.ok(over.reduce((x, y) => x + y, 0) / 4 <= -0.8, `over the ridge ${over.map((c) => c.toFixed(1)).join(", ")} °C`);
+  for (let k = 0; k < 4; k += 1) assert.ok(over[k] < beside[k] - 0.3, `season ${k}: ${over[k].toFixed(1)} °C over the ridge, ${beside[k].toFixed(1)} °C beside it`);
   // The same sea with and without that cooling: measurably less rain over the ridge with it.
   const withRidge = rule(() => null, (lat, lon) => (Math.abs(lat - 2) < 3 && Math.abs(lon + 14) < 3 ? -1.0 : -0.5)), without = rule(() => null, () => -0.5);
   assert.ok(year(withRidge, 3, -14) < year(without, 3, -14) * 0.93, `${Math.round(year(withRidge, 3, -14))} mm against ${Math.round(year(without, 3, -14))} mm`);

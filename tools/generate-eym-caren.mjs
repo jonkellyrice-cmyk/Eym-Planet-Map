@@ -163,7 +163,7 @@ function surveyClimate({ source, labels, placeOf, sampler, land, peaks, km }) {
   // What the canon expects, and whether the rule gives it (found or not, with the measure): verified, not assumed.
   const expectations = [
     { expected: "a tongue of cold water toward Caren's west coast", found: tongue <= -0.3, measure: `the sea west of Caren is ${Math.abs(tongue)} °C colder than its latitude's, the year round` },
-    { expected: "the western coasts' sea swings 5 to 8 °C through the year", found: coastSwing >= 5, measure: `${coastSwing} °C` },
+    { expected: "the western coasts' sea swings 5 to 8 °C through the year", found: coastSwing >= 5, measure: `${coastSwing.toFixed(1)} °C through the year` },
     { expected: "the rain belt south of the equator over Caren for more of the year", found: southOfEquator >= 6, measure: `${southOfEquator} months of 12 (the sea and the land draw it between ${Math.min(...pullByMonth)}° and ${Math.max(...pullByMonth)}° from the open ocean's place)` },
     { expected: "northern Caren cooler than the south", found: north.meanC < south.meanC - 2, measure: `${north.meanC} °C against ${south.meanC} °C` },
     { expected: "northern Caren drier than the south", found: north.annualMm < south.annualMm, measure: `${north.annualMm} mm against ${south.annualMm} mm (north-west ${northWest.annualMm} mm, north-east ${northEast.annualMm} mm): the rain belt stands over the north for more of the year, and the high ground wrings the air` },

@@ -209,6 +209,18 @@ the model and not applied: a range of 1,500 m or more across the wind between th
 the ocean model does not give: that sea is a warm pool). The map shows neither. The decision is the world's author's;
 a place can be set apart by a recorded exception with its reason (`data/eym/overrides.json`).
 
+*Measured again (0.43.0, after the causal-chain audit: the rivers, the range heights and, last, the sea driven by
+the season's winds).* The verdicts are the same: five found, eight not. The figures now: the cold tongue 0.7 °C in the
+year's mean, 1.1 °C over the islands' ridge; the western coasts' sea swinging 1.0 °C through the year (coldest, 1.4 °C
+under its latitude's, in the northern winter, when the north-east trades blow hardest along and off the coast); the
+rain belt south of the equator 4 months of 12; the north 2,575 mm against the south's 1,671 mm (north-west 2,207 mm,
+north-east 3,249 mm); the plateau 14.9 °C, its months 3.2 °C apart, no dry month, coldest nights 5.5 °C; Mt. Weth
+1,760 mm to its south-west against 1,220 mm to its north-east; Mt. Oplin 2,584 mm against 3,822 mm, Mt. Danrich
+3,850 mm against 4,226 mm, Menera 1,972 mm; the south 1,671 mm with three to four dry months, Dree 1,746 mm with
+four. The Molkath country's tan ground: west (the lee) 442, 1,610, 1,980 mm with 5.4 dry months today and 250,
+1,164, 2,022 mm with 6.4 with the wall standing; east 2,278, 4,374, 8,162 mm today and 1,574, 2,180, 4,828 mm then;
+none of it under 250 mm in either era. The tables above are 0.36.0's and are kept for comparison.
+
 *The map against the rain* (where they disagree; neither is overridden): of Caren's squares that are mostly forest on
 the map, one has under 900 mm (1.5° N 3.5° W, 574 mm, in the remnant's lee); of its mostly open squares, sixteen have
 over 2,500 mm (the east, between 4° S and 4° N); all nine of its mostly tan squares have over 1,000 mm.

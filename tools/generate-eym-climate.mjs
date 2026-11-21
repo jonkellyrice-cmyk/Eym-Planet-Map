@@ -21,15 +21,17 @@ import { pathToFileURL } from "node:url";
 import { buildEymSurface, EYM_LAYOUT } from "../scripts/eym-surface.mjs";
 import { marginOf, seaFloorHeightM, seamountsOf, shoalOverSeamounts, tectonicDistances } from "../scripts/eym-seafloor.mjs";
 import { inputsFingerprint, WORLD_INPUTS } from "../scripts/eym-world-inputs.mjs";
-import { seaLevelTemperatureC, seasonalTemperature } from "../scripts/eym-seasons.mjs";
+import { rainBeltLat, seaLevelTemperatureC, seasonalTemperature } from "../scripts/eym-seasons.mjs";
+import { landAtmosphere } from "../scripts/eym-land-atmosphere.mjs";
+import { beltWind, windDrag } from "../scripts/eym-winds.mjs";
 import { DAY_MS, DAYS_PER_YEAR, NORTHWARD_EQUINOX_MS } from "../scripts/universal-time.mjs";
 
 const root = new URL("../", import.meta.url), OUT = new URL("data/eym/climate.json", root);
-export const EYM_CLIMATE_MODEL = "eym-climate-v2";
+export const EYM_CLIMATE_MODEL = "eym-climate-v3";
 /** What the climate is made from: this tool, the surface (its land) and the seasons (base temperatures). */
-export const CLIMATE_SOURCES = ["tools/generate-eym-climate.mjs", "scripts/eym-surface.mjs", "scripts/eym-seafloor.mjs", "scripts/eym-seasons.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json", "data/eym/growth.json"];
+export const CLIMATE_SOURCES = ["tools/generate-eym-climate.mjs", "scripts/eym-surface.mjs", "scripts/eym-seafloor.mjs", "scripts/eym-seasons.mjs", "scripts/eym-winds.mjs", "scripts/eym-land-atmosphere.mjs", "data/eym/traced-continents.json", "data/eym/tectonics.json", "data/eym/growth.json"];
 /** The groups of dials (scripts/eym-world-inputs.mjs) the ocean climate follows. */
-export const CLIMATE_INPUTS = ["layout", "seaFloor", "ocean"];
+export const CLIMATE_INPUTS = ["layout", "seaFloor", "ocean", "rain", "weather"];
 export const climateSourcesSha256 = () => { const h = createHash("sha256"); for (const p of CLIMATE_SOURCES) h.update(readFileSync(new URL(p, root))); h.update(inputsFingerprint(...CLIMATE_INPUTS)); return h.digest("hex"); };
 
 const DEG = Math.PI / 180, R = 6.371e6, OMEGA = 7.292e-5, RHO = 1025, YEAR_MS = DAYS_PER_YEAR * DAY_MS;
@@ -46,6 +48,41 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 export function windStress(lat, declinationDeg) {
   const p = lat - BELT_SHIFT * declinationDeg, a = Math.abs(p);
   return -0.07 * g(a, 13, 10) + 0.13 * (p < 0 ? 1.15 : 1) * g(a, 48, 10) - 0.03 * g(a, 75, 7);
+}
+
+/**
+ * The season's winds over each longitude, for the sea (owner's direction of 20 November 2026: wind stress from the
+ * seasonal winds including the monsoon's reversal, not fixed belts): where the rain belt stands at a longitude in a
+ * season, by the land's heating alone (scripts/eym-land-atmosphere.mjs; not by the sea's own temperature, which
+ * this model is about to work out).
+ */
+export function seasonalWinds() {
+  const traced = JSON.parse(readFileSync(new URL("data/eym/traced-continents.json", root), "utf8"));
+  const tectonics = JSON.parse(readFileSync(new URL("data/eym/tectonics.json", root), "utf8")), growth = JSON.parse(readFileSync(new URL("data/eym/growth.json", root), "utf8"));
+  const { sampler } = buildEymSurface(traced, EYM_LAYOUT, tectonics, growth), cells = [];
+  for (let r = 0; r < 180; r += 1) for (let c = 0; c < 360; c += 1) { const lat = -89.5 + r, lon = -179.5 + c, s = sampler(lat, lon), land = Boolean(s?.land && !s.inlandWater); cells.push({ lat, lon, ocean: !land, elevationM: land ? Math.max(0, s.elevationM) : 0 }); }
+  const atmosphere = landAtmosphere({ cells });
+  return { beltLatAt: (lon, declinationDeg) => atmosphere.rainBeltLatAt(lon, declinationDeg) };
+}
+
+/**
+ * The wind's stress on the sea in a season (N/m² toward the east and the north, on the 2° grid). Without `winds`:
+ * the belts alone, the same at every longitude and blowing along the latitudes. With them: the belts, changed over
+ * each longitude by what the season's wind there (the rain's rule) differs from the open ocean's, by its drag on
+ * the water (so where a land has drawn the rain belt far from the equator the trades give way to the monsoon's
+ * westerlies); and the wind's drag toward the belt, north or south.
+ */
+export function stressField(declinationDeg, winds = null) {
+  const east = new Float64Array(N), north = new Float64Array(N), w = WORLD_INPUTS.rain.wind, k = WORLD_INPUTS.ocean.dragNumber, open = rainBeltLat(declinationDeg);
+  for (let r = 0; r < NLAT; r += 1) {
+    const lat = latOf(r), belts = windStress(lat, declinationDeg), plain = winds ? windDrag(beltWind(w, lat, open), k) : null;
+    for (let c = 0; c < NLON; c += 1) {
+      const i = r * NLON + c; if (!winds) { east[i] = belts; continue; }
+      const here = windDrag(beltWind(w, lat, winds.beltLatAt(lonOf(c), declinationDeg)), k);
+      east[i] = belts + here.east - plain.east; north[i] = here.north;
+    }
+  }
+  return { east, north };
 }
 
 /** Land fraction of each 2° cell (3×3 samples), from the surface. */
@@ -129,12 +166,12 @@ export const SLOPE_UPWELLING = WORLD_INPUTS.ocean.slopeUpwelling, SEAMOUNT_UPWEL
 export const UNDERCURRENT_LAT = WORLD_INPUTS.ocean.undercurrentLat, UNDERCURRENT_UPWELLING = WORLD_INPUTS.ocean.undercurrentUpwelling, OFFSHORE_LAT = WORLD_INPUTS.ocean.offshoreLat, OFFSHORE_UPWELLING = WORLD_INPUTS.ocean.offshoreUpwelling;
 
 /** One season: currents (m/s), upwelling (0–1.5) and the sea-surface temperature anomaly (°C), on the 2° grid. */
-export function solveSeason(land, f, floor = null) {
+export function solveSeason(land, f, floor = null, winds = null) {
   const decl = 23.44 * Math.sin(2 * Math.PI * f), timeMs = NORTHWARD_EQUINOX_MS + f * YEAR_MS;
   const ocean = (r, c) => !land[idx(r, c)];
   // Wind stress and its curl by latitude.
-  const tau = Array.from({ length: NLAT }, (_, r) => windStress(latOf(r), decl));
-  const curl = tau.map((_, r) => { const n = tau[Math.min(NLAT - 1, r + 1)], s = tau[Math.max(0, r - 1)]; return -(n - s) / (2 * R * RES * DEG); });
+  const stress = stressField(decl, winds), tau = stress.east, tauN = stress.north;
+  const curl = Float64Array.from({ length: N }, (_, i) => { const r = Math.floor(i / NLON), c = i % NLON, dxHere = R * Math.cos(latOf(r) * DEG) * RES * DEG; return -(tau[idx(Math.min(NLAT - 1, r + 1), c)] - tau[idx(Math.max(0, r - 1), c)]) / (2 * R * RES * DEG) + (tauN[idx(r, c + 1)] - tauN[idx(r, c - 1)]) / (2 * dxHere); });
   // The wind-driven circulation: r∇²ψ + H·J(ψ, f/h) = curl τ / (ρH), ψ = 0 on every coast and beyond 78°. Over a
   // flat floor (h = H) the middle term is the beta effect, β ∂ψ/∂x; over the real floor the flow also follows the
   // lines of f/h, so ridges, plateaus and continental slopes steer it. The layers of a real ocean shield the upper
@@ -150,10 +187,10 @@ export function solveSeason(land, f, floor = null) {
     // however steep the floor.
     const cx = q ? (q[idx(Math.min(NLAT - 1, r + 1), c)] - q[idx(Math.max(0, r - 1), c)]) / (2 * dy) : 0, cy = q ? -(q[idx(r, c + 1)] - q[idx(r, c - 1)]) / (2 * dx) : 0;
     const ax = Math.abs(cx) / dx, ay = Math.abs(cy) / dy;
-    const target = (fr * (e + w) / (dx * dx) + fr * (n + s) / (dy * dy) + beta * (e - w) / (2 * dx) + ax * (cx > 0 ? e : w) + ay * (cy > 0 ? n : s) - curl[r] / (RHO * H)) / (2 * fr / (dx * dx) + 2 * fr / (dy * dy) + ax + ay);
+    const target = (fr * (e + w) / (dx * dx) + fr * (n + s) / (dy * dy) + beta * (e - w) / (2 * dx) + ax * (cx > 0 ? e : w) + ay * (cy > 0 ? n : s) - curl[idx(r, c)] / (RHO * H)) / (2 * fr / (dx * dx) + 2 * fr / (dy * dy) + ax + ay);
     psi[idx(r, c)] += 1.3 * (target - psi[idx(r, c)]);
   }
-  // Geostrophic (gyre) velocities, and Ekman drift from the zonal stress.
+  // Geostrophic (gyre) velocities, and Ekman drift (to the right of the wind in the north, the left in the south).
   const gu = new Float64Array(N), gv = new Float64Array(N), eu = new Float64Array(N), ev = new Float64Array(N);
   for (let r = 1; r < NLAT - 1; r += 1) for (let c = 0; c < NLON; c += 1) {
     if (!ocean(r, c)) continue;
@@ -161,21 +198,28 @@ export function solveSeason(land, f, floor = null) {
     gu[idx(r, c)] = -(psi[idx(r + 1, c)] - psi[idx(r - 1, c)]) / (2 * dy);
     gv[idx(r, c)] = (psi[idx(r, c + 1)] - psi[idx(r, c - 1)]) / (2 * dx);
     const fc = 2 * OMEGA * Math.sin(Math.sign(lat || 1) * Math.max(Math.abs(lat), 4) * DEG);
-    ev[idx(r, c)] = -tau[r] / (RHO * fc * 50);
+    ev[idx(r, c)] = -tau[idx(r, c)] / (RHO * fc * 50);
+    // (A wind along a meridian drives water east or west only as far as the Earth's turning turns the drift aside:
+    // not at the equator, fully from `OFFSHORE_LAT` on, by the same measure the trades' drag off a coast fades by.)
+    eu[idx(r, c)] = tauN[idx(r, c)] / (RHO * fc * 50) * Math.min(1, (Math.abs(lat) / OFFSHORE_LAT) ** 2);
   }
   // Scale to an ocean's speeds: boundary currents near a metre a second, the open drift a tenth of that.
   const gScale = 0.9 / (percentile([...gu].map((u, i) => Math.hypot(u, gv[i])).filter((v) => v > 0), 0.99) || 1);
   const eScale = 0.12 / (percentile([...ev].map(Math.abs).filter((v) => v > 0), 0.9) || 1);
   const u = new Float64Array(N), v = new Float64Array(N);
   for (let i = 0; i < N; i += 1) { u[i] = gu[i] * gScale + eu[i] * eScale; v[i] = gv[i] * gScale + ev[i] * eScale; }
-  // Upwelling: where the Ekman drift pulls water apart (a coast counts as still water).
-  const div = new Float64Array(N);
+  // Upwelling: where the Ekman drift pulls water apart (a coast counts as still water). North and south that is the
+  // open sea's (along the equator, under the belts); east and west it is a coast's, where a wind along the shore
+  // carries the surface water out to sea (`coastal`; with the belts alone no wind blows along a meridian, and there
+  // is none). The scale is the open sea's.
+  const div = new Float64Array(N), coastal = new Float64Array(N);
   for (let r = 1; r < NLAT - 1; r += 1) for (let c = 0; c < NLON; c += 1) {
     if (!ocean(r, c)) continue;
     const lat = latOf(r), dx = R * Math.cos(lat * DEG) * RES * DEG, at = (rr, cc) => (ocean(rr, cc) ? ev[idx(rr, cc)] * eScale * Math.cos(latOf(rr) * DEG) : 0);
     div[idx(r, c)] = (at(r + 1, c) - at(r - 1, c)) / (2 * dy * Math.cos(lat * DEG));
+    const atU = (cc) => (ocean(r, cc) ? eu[idx(r, cc)] * eScale : 0); coastal[idx(r, c)] = (atU(c + 1) - atU(c - 1)) / (2 * dx);
   }
-  const top = percentile([...div].filter((d) => d > 0), 0.95) || 1, up = Float64Array.from(div, (d) => clamp(d / top, 0, 1.5));
+  const top = percentile([...div].filter((d) => d > 0), 0.95) || 1, up = Float64Array.from(div, (d, i) => clamp((d + coastal[i]) / top, 0, 1.5));
   // The sea floor's own upwelling: a current running along a continental slope draws deep water up it (most when
   // the shallows lie on its right in the north, its left in the south: the bottom layer then creeps upslope), and
   // any current crossing a seamount chain is lifted over it. Both scale with the current's speed.
@@ -195,11 +239,12 @@ export function solveSeason(land, f, floor = null) {
   // equator that is the northern winter), fading over two cells from the coast and toward `OFFSHORE_LAT`.
   // (`offshore` keeps this part by itself: it is the one upwelling here that comes and goes with the season so
   // near the equator, and the sea's temperature follows it month by month: see `seasonalAnomaly`.)
-  const offshore = new Float64Array(N);
+  // (What the wind along a shore adds also comes and goes with the season, and is kept with it.)
+  const offshore = Float64Array.from(up, (v, i) => v - clamp(div[i] / top, 0, 1.5));
   for (let r = 1; r < NLAT - 1; r += 1) {
     const lat = latOf(r); if (Math.abs(lat) > OFFSHORE_LAT) continue;
-    const trades = clamp(-tau[r] / 0.07, 0, 1.3), near = 1 - (Math.abs(lat) / OFFSHORE_LAT) ** 2;
-    for (let c = 0; c < NLON; c += 1) { if (!ocean(r, c)) continue; const share = !ocean(r, c + 1) ? 1 : !ocean(r, c + 2) ? 0.5 : 0; if (share) { const i = idx(r, c), before = up[i]; up[i] = clamp(up[i] + OFFSHORE_UPWELLING * trades * near * share, 0, 1.5); offshore[i] = up[i] - before; } }
+    const near = 1 - (Math.abs(lat) / OFFSHORE_LAT) ** 2;
+    for (let c = 0; c < NLON; c += 1) { if (!ocean(r, c)) continue; const share = !ocean(r, c + 1) ? 1 : !ocean(r, c + 2) ? 0.5 : 0; if (share) { const i = idx(r, c), before = up[i], trades = clamp(-tau[i] / 0.07, 0, 1.3); up[i] = clamp(up[i] + OFFSHORE_UPWELLING * trades * near * share, 0, 1.5); offshore[i] += up[i] - before; } }
   }
   return { declinationDeg: decl, u, v, upwelling: up, offshore };
 }
@@ -326,8 +371,8 @@ const round = (a, k) => Array.from(a, (x) => Math.round(x * k) / k);
 
 /** Build the whole climate document. */
 export function buildClimate() {
-  const land = landMask(), floor = bathymetry();
-  const solved = SEASONS.map((f) => solveSeason(land, f, floor));
+  const land = landMask(), floor = bathymetry(), winds = WORLD_INPUTS.ocean.seasonalWinds ? seasonalWinds() : null;
+  const solved = SEASONS.map((f) => solveSeason(land, f, floor, winds));
   const mean = (k) => Float64Array.from({ length: N }, (_, i) => solved.reduce((s, x) => s + x[k][i], 0) / solved.length);
   const annual = solveAnomaly(land, mean("u"), mean("v"), mean("upwelling")), tilt = tradeTilt(land), offshoreMean = mean("offshore");
   const seasons = solved.map((s, k) => {
