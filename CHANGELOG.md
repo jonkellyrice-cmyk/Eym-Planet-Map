@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.40.0 (2026-11-21)
+
+The crust under the land, its unroofing, what it sheds and where the sediment rests (owner's direction of 20 November 2026, the causal-chain audit, items 3 to 5, as an account on the map's squares; the owner chose this bookkeeping layer first, so that Resources has what it needs, and the land's shapes are not changed by it). A new file, `data/eym/crust.json`, made by `tools/generate-eym-crust.mjs` in the build chain (dials `sediment`).
+
+- *The crust that floats each land square* (Airy isostasy): 35 km under land at the sea's level to 70 km under the highest squares, 40 km in the mean. Under northern Caren the mantle's swell holds part of the height, so its crust is thinner than the height alone would ask (as its own survey says).
+- *How deep each square is unroofed:* a range's own unroofing near the range (0.39.0); at least 10 km wherever rock that formed deep (granite, gneiss, metamorphic rock, marble, quartzite) is at the surface; nothing under a cover of sediment or lava. 7,211 land squares have deep rock at the surface.
+- *How fast each square wears down,* from how far it stands above its lowest neighbour, the water it sheds (the rain budget's, less what soil and plant take) and its rock's hardness (granite and quartzite slow, shale fast): 3 to 1,364 m a million years, 13 in the middle square and 45 in the mean (Earth's mean is about 50).
+- *Where the sediment rests* (`scripts/eym-sediment.mjs`). What a square sheds goes downhill square by square to the sea (the land is flooded from the sea upward, so every square has a way out unless it lies in a hollow more than 300 m below its lip). Gentle ground keeps a share of what comes down to it (alluvial plains); a deep closed hollow keeps all (a basin); at the sea half is laid at the mouth (a delta) and half along the shelf beside it. Of 4.62 million km³ shed each million years, 46% rests on plains, 36% in deltas, 16% on shelves and 2% in closed basins; all of it is accounted for. Each resting place has a thickness (today's rates kept up for the 190 million years since the First Land broke up, no more than 12 km) and its kind; the greatest deltas, basins and plains are listed.
+- *Causal tests* (`tests/eym-sediment.test.mjs`): steeper ground, more runoff or softer rock wears faster; nothing is lost on the way; twice the wear upstream, a bigger delta; a flat coastal plain keeps a share that a steep slope does not; a deep hollow keeps everything and a shallow dip drains through.
+- *Standing checks:* every square's crust between the normal thickness and the limit; all that is shed comes to rest; the land's mean wear between 20 and 120 m a million years.
+- *Not changed:* the maps. This layer is read by nothing drawn yet; Resources will read it (coal, oil and gas, sedimentary ores, salt and placers want the basins' and deltas' thickness and age; ore bodies want the unroofing).
+- *Still to build:* the land itself reshaped by its wearing down over the plate history (the owner chose to leave that for later), and Caren's land carved to its drawn rivers (next).
+
 ## 0.39.0 (2026-11-21)
 
 Ranges' heights by their histories (owner's direction of 20 November 2026, the causal-chain audit beyond rainfall, item 1, with items 2 and 3 in a reduced form). The far continents' ranges were a height for their kind plus some noise (collision 4,300 m and up to 1,500 more, accretion 2,500 and up to 1,100, old belts 1,700 and up to 900). Each now has a history, and its height follows from it (`scripts/eym-orogeny.mjs`, dials `orogeny`).

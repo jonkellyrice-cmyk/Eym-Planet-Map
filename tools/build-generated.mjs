@@ -61,6 +61,11 @@ if (row.geography_input_fingerprint !== fingerprint) {
   run("tools/export-atlas-snapshots.mjs");
   changed = true;
 }
+// The crust under the land, its unroofing, what it sheds and where the sediment rests (tools/generate-eym-crust.mjs)
+// follow the cartography, the ranges' histories and the rain: made again (under a second) when any changed.
+const { crustSourcesSha256 } = await import("./generate-eym-crust.mjs");
+const readCrust = () => { try { return JSON.parse(readFileSync(new URL("data/eym/crust.json", root), "utf8")); } catch { return null; } };
+if (readCrust()?.sourcesSha256 !== crustSourcesSha256()) { run("tools/generate-eym-crust.mjs"); changed = true; }
 // The survey of the mapped continents' coasts (tools/generate-eym-coasts.mjs: shelves, bays, the tide's funnelling)
 // follows the cartography and the plates: made again (about a quarter of a minute) when either changed.
 const { coastSourcesSha256 } = await import("./generate-eym-coasts.mjs");
